@@ -1,5 +1,5 @@
 import {
-  Categoria, Registro, STATUS_ESPERA, Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
+  Categoria, Registro, Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
 } from "./tipos";
 
 // Todos os prompts que o Nexo monta para colar no Copilot.
@@ -26,8 +26,6 @@ function cabecalhoTarefa(t: Tarefa, cat?: Categoria) {
     `Categoria: ${cat?.nome || "Sem categoria"}`,
     `Status atual: ${nomeStatus(t.status)} | Prioridade: ${t.prioridade}/10${t.prazo ? ` | Prazo: ${formatarData(t.prazo)}` : ""}`,
   ];
-  if (STATUS_ESPERA.includes(t.status) && (t.aguardandoQuem || t.cobrarEm))
-    L.push(`Aguardando: ${t.aguardandoQuem || "terceiros"}${t.cobrarEm ? ` | Cobrar em: ${formatarData(t.cobrarEm)}` : ""}`);
   if (t.descricao) L.push(`Descrição: ${t.descricao}`);
   return L.join("\n");
 }
@@ -55,7 +53,7 @@ function historico(t: Tarefa, limite = 8, excluirId?: string) {
 }
 
 function listaAbertos(t: Tarefa, excluirId?: string) {
-  const ab = passosAbertos(t).filter((x) => !excluirId || x.registro?.id !== excluirId);
+  const ab = passosAbertos(t).filter((x) => x.registro.id !== excluirId);
   return ab.length ? ab.map((x) => `- ${x.passo.texto}`).join("\n") : "Nenhum";
 }
 

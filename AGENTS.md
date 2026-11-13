@@ -41,7 +41,8 @@ Estas restrições definem várias decisões de arquitetura. Não as viole.
 - **Não existe API de IA** liberada. Só o **Copilot no navegador**. Toda IA do app é "copiar prompt / colar resposta". Nunca adicione dependência de API de LLM.
 - **Nada sensível vai para o repositório.** Dados do trabalho ficam só na pasta local do usuário. O repo é público.
 - Ele usa **Windows**, Edge/Chrome, PowerShell e Git Bash.
-- **Evite dependências novas.** Cada pacote precisa passar pelo npm do proxy. Hoje o projeto só depende de `next`, `react`, `react-dom` (+ `typescript` e `@types/*` em dev). Sem Tailwind, sem libs de UI, sem banco.
+- **Dependências com parcimônia.** Cada pacote precisa passar pelo npm do proxy (funciona, mas é mais um ponto de falha). A v2 adotou, a pedido do dono, a pilha de interface que ele usa nos outros projetos: `tailwindcss` + `@tailwindcss/postcss`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`, `motion`, `lucide-react`, `cmdk`, `sonner`, `@dnd-kit/core` e `geist` (fonte empacotada, sem buscar nada na internet). Versões **fixadas** no `package.json`. Antes de somar outra, veja se o kit em `components/ui` já resolve. Continua sem banco e sem API de IA.
+- **Fontes e ícones são locais.** Nunca use `next/font/google` nem CDN: o build roda na máquina corporativa e o app não faz chamadas externas.
 - O servidor sobe **só em `127.0.0.1:3210`** (nunca `0.0.0.0`), porque está numa rede corporativa.
 
 ---
@@ -49,7 +50,7 @@ Estas restrições definem várias decisões de arquitetura. Não as viole.
 ## 3. Stack e comandos
 
 - **Next.js 16.4.6** (App Router, Turbopack), **React 19.3.1**, **TypeScript** estrito. Versões fixadas no `package.json`.
-- CSS puro em `app/globals.css` (variáveis, tema claro e escuro automático por `prefers-color-scheme`).
+- **Tailwind CSS v4** (configurado só por CSS em `app/globals.css`, sem `tailwind.config`), componentes no padrão **Shadcn** sobre **Radix** em `components/ui`, animações com **motion**, ícones **lucide-react**. Tema claro, escuro ou do sistema. Detalhes e regras na seção 13.
 - Atenção às mudanças do Next 16: o antigo `middleware.ts` agora é **`proxy.ts`** (exporta `function proxy`); `params` de rotas dinâmicas é uma **Promise** (`await ctx.params` nos route handlers, `useParams()` nos client components); `useSearchParams()` exige `<Suspense>`. Na dúvida, leia `node_modules/next/dist/docs/`.
 
 ```bash
@@ -59,7 +60,9 @@ npm run build       # build de produção
 npm start           # produção em 127.0.0.1:3210
 npm run typecheck   # tsc --noEmit
 bash testes/api.sh  # testes de fumaça da camada de dados e segurança (precisa de build)
-python3 testes/e2e.py  # teste ponta a ponta da interface (Playwright), ver cabeçalho do arquivo
+NEXO_URL=http://127.0.0.1:3311 node testes/e2e.cjs  # ponta a ponta da interface (Playwright para Node), pasta de dados VAZIA, ver cabeçalho
+node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
+node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do Outlook
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -67,7 +70,7 @@ Para desenvolver sem sujar dados reais, use pasta descartável:
 HOME=/tmp/nexo-home NEXO_DATA_DIR=/tmp/nexo-dados npm run dev
 ```
 
-**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.py` ou ao menos abra no navegador e confira.
+**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.cjs` ou ao menos abra no navegador e confira.
 
 ---
 
@@ -95,13 +98,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Nada é apagado de verdade**:
   - tarefa excluída → `_lixeira/tarefa-<id>-<carimbo>.json` (restaurável em Configurações);
   - item removido de categorias/links → `_lixeira/<colecao>-removidos-<carimbo>.json`;
-  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`;
-  - pendência avulsa removida → fica dentro da própria tarefa em `passosRemovidos[]`.
+  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`.
 - **Espelho em Markdown** (`markdown/<slug>--<id>.md`) regenerado a cada gravação: se o app morrer, os dados continuam legíveis e pesquisáveis no Windows.
-- **Nada digitado se perde antes de salvar**:
-  - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5 ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
-  - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
-  - os outros formulários (tarefa, link, resposta colada do Copilot) não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`fecharComCuidado()` em `components/ui.tsx`). **Formulário novo com texto digitado tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
 
@@ -114,6 +112,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   nexo.json                      { app: "nexo", schemaVersion, criadoEm, migradoEm? }
   categorias.json                { rev, items: Categoria[] }
   links.json                     { rev, items: LinkDoc[] }
+  pessoas.json                   { rev, items: Pessoa[] }   (ausente = vazio, rev 0)
+  times.json                     { rev, items: Time[] }     (ausente = vazio, rev 0)
   tarefas/<id>.json              uma Tarefa por arquivo, com a timeline inteira dentro
   arquivos/AAAA/<base36>-<nome>  documentos anexados (gravação com flag "wx": nunca sobrescreve)
   markdown/<slug>--<id>.md       espelho legível, gerado (pode apagar)
@@ -124,17 +124,20 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 ```
 
 ### Modelo (fonte da verdade: `lib/tipos.ts`)
-- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?, passos?: Passo[]` (pendências avulsas, criadas direto na tarefa, fora de um registro), `aguardandoQuem?`, `cobrarEm? (AAAA-MM-DD|null)`, e opcionalmente `registrosRemovidos[]` e `passosRemovidos[]`.
-- **Espera**: `STATUS_ESPERA` = `aguardando` e `bloqueada`. Só nesses status valem `aguardandoQuem` e `cobrarEm`. Ao sair da espera, `aplicarStatus()` limpa os dois campos e escreve o que havia no marco da mudança ("Estava aguardando Fulano (cobrança marcada para ...)"), então a informação fica na timeline.
+- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje).
 - **Status**: `a_fazer | em_andamento | aguardando | bloqueada | concluida | cancelada`. "Abertos" = os quatro primeiros (`STATUS_ABERTOS`).
 - **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
 - **TipoRegistro**: `reuniao | atividade | impedimento | decisao | nota | marco`. `marco` é gerado pelo sistema (tarefa criada, mudança de status; o marco de status `concluida` é o card verde "Concluída" do esboço).
-- **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo? (AAAA-MM-DD), criadoEm?` (`criadoEm` só nas avulsas; nos passos de registro vale a data do registro). As "pendências" do app são todos os passos com `feito=false` de tarefas abertas, venham de um registro (`registro.proximosPassos`) ou sejam avulsos (`tarefa.passos`). Use sempre `passosAbertos(t)` para listar (devolve `{ registro|null, passo, desde }`) e `mapearPassos()` / `marcarPasso()` para alterar: eles cobrem os dois lugares.
-- **"Meu" passo**: `ehMeu(responsavel, meusNomes)` = sem responsável, "Eu" ou um dos nomes que o usuário cadastrou em Configurações (preferência `nexo:meusNomes`, só no navegador).
+- **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo?`. As "pendências" do app são todos os passos com `feito=false` de tarefas abertas.
 - **Categoria**: `id, nome, descricao, cor, arquivada?, criadaEm, atualizadaEm`.
 - **LinkDoc**: `id, tipo ("link"|"arquivo"), titulo, url?, arquivo? (caminho relativo em arquivos/), nomeArquivo?, tamanho?, descricao, tags[], tarefaId?, categoriaId?, criadoEm`.
+- **Pessoa**: `id ("pe..."), nome, apelidos[], email, cargo, area, ajudaCom, anotacoes, categoriaIds[], tags[], arquivada?, origem? ("manual"|"registros"|"outlook"), criadaEm, atualizadaEm`. Registros e passos continuam guardando nomes como texto; a ligação com o cadastro é feita na leitura (`lib/pessoas.ts`, `chaveNome` contra `nome` e `apelidos`). Nada é reescrito nas tarefas.
+- **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
+
+### Preferências de interface (localStorage, não são dados)
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage.
 
 ---
 
@@ -142,20 +145,46 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 
 | Rota | O que faz |
 |---|---|
-| `/` Painel | Números (abertas, atrasadas, bloqueadas, pendências, concluídas no mês), filtros (texto, categoria, status), ordenação (prioridade, prazo, última atividade, A-Z; lembrada em localStorage), grade de cards. |
-| `/tarefas/[id]` | Cabeçalho (categoria, status editável, prioridade, prazo, tags, descrição; em status de espera, a linha "Aguardando quem / Cobrar em"), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), barra lateral com Pendências (`components/PassosTarefa.tsx`: cria pendência avulsa sem registro e edita texto, responsável e prazo de qualquer passo ali mesmo), Links e docs da tarefa, Pessoas envolvidas, último Panorama IA. |
-| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa (com prazo primeiro), filtro "Todos / Só os meus / De outras pessoas" (lembrado), caixa "Aguardando terceiros" (tarefas em espera, ordenadas pela data de cobrança) e lista de prazos de tarefas e de passos. |
-| `/categorias` e `/categorias/[id]` | Cards de categoria com contagens; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links da categoria e prompt de panorama do assunto. Arquivar/desarquivar. |
-| `/pessoas` | Todos os participantes que já apareceram e quem tem algo em aberto (responsável de passo ou "aguardando quem"), com contagem e último contato; `?p=Nome` mostra o que está em aberto com a pessoa e todos os registros com ela. |
+| `/` Hoje | Página inicial. Saudação, captura rápida de tarefa, **foco de hoje** (tarefas escolhidas, com os passos marcáveis ali), **precisa de você** (lembretes ativos, com adiar), faixa da semana (prazos dos próximos 7 dias), aguardando retorno, bloqueadas e paradas, progresso do dia. |
+| `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
+| `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), lateral com Pendências, Links e docs, Pessoas envolvidas e último Panorama IA. |
+| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
+| `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
+| `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
+| `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/busca?q=` | Busca sem acento/maiúscula em tarefas, registros (todos os campos) e links, com trecho destacado. |
-| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, "como você aparece nos passos" (seus nomes), atalhos. |
+| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, aparência (tema), rotina e lembretes, atalhos. |
 
+### Moldura (components/Shell.tsx)
+- Barra lateral recolhível (`Ctrl B`) com contadores, barra superior (voltar/avançar, migalhas, busca, sino, tema, tela cheia, atalhos) e barra de status (pasta de dados, "Salvando..."/"Salvo às HH:MM", contagens, versão).
+- **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
+- **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos**: `N` nova tarefa, `/` busca global, `Esc` fecha modal (no editor de registro guarda o rascunho; nos outros formulários pergunta antes se houver texto digitado).
-- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com autocompletar de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco). Tem rascunho automático (seção 4): fechar com algo digitado guarda o rascunho em vez de perder, e o rodapé ganha "Descartar" e "Fechar e continuar depois". O componente interno só é montado quando o editor abre, e o estado inicial vem do rascunho (se houver) ou do registro.
-- Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `components/TarefaForm.tsx`), que gera o marco.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `G` depois `H/T/P/C/E/L/S/R` para navegar, `Ctrl Enter` salva formulários, `Esc` fecha.
+- Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
+
+### Rotina e lembretes (o app lembra o usuário do que fazer)
+- **Motor de lembretes** (`lib/lembretes.ts`, função pura sobre os dados): prazo vencido, prazo hoje, prazo chegando (3 dias), passo com prazo vencido ou para hoje, follow-up (`lembrarEm`) chegou, bloqueada sem novidade (3 dias), aguardando retorno (5 dias), parada (7 dias), passos antigos (14 dias) e em andamento sem próximo passo. Os limites estão em `LIMITES`.
+- Lembretes aparecem no sino, na tela Hoje e nos contadores da barra lateral. **Adiar** esconde um lembrete até uma data e fica só no localStorage.
+- **Planejar o dia** (`components/rotina/PlanejarDia.tsx`): ritual em 3 passos (o que ficou para trás, escolher os focos, pronto). Abre sozinho na primeira visita do dia (desligável) e pelo atalho `D`.
+- **Foco de hoje**: `tarefa.focoEm = hoje`. Vale só no dia; no dia seguinte a tarefa deixa de ser foco sem precisar limpar nada.
+- **Follow-up**: `tarefa.lembrarEm`. Definido no formulário, na página da tarefa ou pelo menu da tarefa ("Lembrar de voltar").
+- **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
+
+### Pessoas e times
+- **Dois arquivos novos** na pasta de dados: `pessoas.json` (`{ rev, items: Pessoa[] }`) e `times.json` (`{ rev, items: Time[] }`). Se faltarem, valem como vazios (rev 0). Não houve migração: `SCHEMA_APP` continua 1, e uma versão antiga do app simplesmente ignora os dois arquivos.
+- **Nomes continuam como texto** nos registros e passos. A ligação com o cadastro é feita na leitura, por `nome` ou `apelidos` (`lib/pessoas.ts`: `montarDiretorio`, `acharPessoa`, `pessoasDaCategoria`, `nomesConhecidos`). Nada é reescrito nas tarefas.
+- **O vínculo com time mora no Time**: `membroIds` (que inclui os responsáveis) e `responsavelIds`. A Pessoa não guarda time.
+- **Ids** de pessoa e time são gerados no cliente com `novoId("pe")` e `novoId("ti")`, e validados no servidor por `ID_VALIDO`.
+- **Importação do Outlook** (`components/pessoas/ImportarPessoas.tsx` + `lib/importar-pessoas.ts`): tudo no navegador, sem API. Mostra prévia, avisa quem já existe e nunca duplica. Para quem já existe, só preenche campo vazio. Pode pôr os importados num time e ligá-los a uma categoria.
+- **Privacidade**: nomes e e-mails reais nunca vão para o repositório. Testes e exemplos usam nomes fictícios e o domínio `exemplo.local`.
+
+### Regras que continuam valendo
+- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
+- Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `lib/acoes.ts`), que gera o marco.
+- Toda tarefa mostrada na tela tem o menu de ações (`components/MenuTarefa.tsx`): botão direito ou "...".
 
 ---
 
@@ -193,11 +222,21 @@ Todos incluem o contexto (cabeçalho da tarefa, histórico resumido, passos em a
 
 ```
 app/
-  layout.tsx              Provider + Shell em todas as páginas
-  globals.css             todo o visual (variáveis, claro/escuro)
-  page.tsx                painel
-  tarefas/[id]/page.tsx   página da tarefa + CardRegistro
-  categorias/, pendencias/, pessoas/, links/, relatorios/, busca/, configuracoes/
+  layout.tsx              Provider, Raiz e Shell em todas as páginas
+  globals.css             Tailwind, tokens de cor (claro e escuro), utilitários
+  icon.svg                ícone do app (aba e instalação)
+  manifest.ts             manifesto para instalar o Nexo pelo navegador
+  page.tsx                Hoje (página inicial)
+  tarefas/page.tsx        lista de tarefas (grade, lista e quadro)
+  tarefas/[id]/page.tsx   página da tarefa + timeline (CardRegistro)
+  categorias/             lista e página de cada categoria ([id])
+  pendencias/page.tsx     passos em aberto
+  pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
+  links/page.tsx          banco de links e arquivos
+  revisao/page.tsx        revisão semanal guiada
+  relatorios/page.tsx     relatório do período
+  busca/page.tsx          busca global (?q=)
+  configuracoes/page.tsx  dados, aparência, rotina, atalhos
   api/
     estado/      GET   estado do app (configurado? pasta, schema, somente leitura, erro)
     config/      POST  { dataDir }  define a pasta de dados
@@ -205,42 +244,85 @@ app/
     tarefas/[id] PUT   { tarefa, revEsperada|null }   DELETE → lixeira
     categorias/  PUT   { items, revEsperada }   (lista inteira; removidos vão pra lixeira)
     links/       PUT   { items, revEsperada }
+    pessoas/     PUT   { items, revEsperada }   (ids validados por ID_VALIDO, sem repetição)
+    times/       PUT   { items, revEsperada }
     arquivos/    POST  multipart "arquivo" → { arquivo, nomeArquivo, tamanho }
                  GET   ?p=<caminho relativo>[&baixar=1]  (inline com CSP sandbox)
     backup/      GET lista, POST backup manual
     exportar/    GET   JSON completo para download
     lixeira/     GET lista, POST { arquivo } restaura tarefa
 components/
-  Provider.tsx            estado global, fetch, fila de gravação, toasts
-  Shell.tsx               barra lateral, busca global, atalhos, onboarding, avisos, modal de nova tarefa
-  TarefaForm.tsx          criar/editar tarefa + aplicarStatus()
+  Provider.tsx            estado global, fetch, fila de gravação, atualizarTarefa(id, fn), toasts
+  Raiz.tsx                provedores de interface: tema, confirmação, dicas, toasts, MotionConfig
+  Shell.tsx               moldura: barra lateral, barra superior, barra de status, atalhos
+  MenuTarefa.tsx          menu de ações da tarefa (botão direito e "...") e useAcoesTarefa()
+  comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
+  useLembretes.ts         lembretes ativos e adiar()
+  TarefaForm.tsx          criar e editar tarefa, aplicarStatus() na tela
   RegistroEditor.tsx      editor de registro com fluxo Copilot
-  PassosTarefa.tsx        caixa "Pendências" da tarefa: lista, cria avulsa, edita passo no lugar
   PromptModal.tsx         copiar prompt / colar resposta genérico
-  LinkForm.tsx            link/arquivo + hrefLink()
-  CategoriaForm.tsx, CardTarefa.tsx, ui.tsx (Modal, fecharComCuidado, badges, ChipsInput, Campo, copiarTexto...)
+  LinkForm.tsx            link ou arquivo, hrefLink()
+  CategoriaForm.tsx       criar e editar categoria
+  CardTarefa.tsx          cartão de tarefa (grade, quadro e categorias)
+  ui/                     kit genérico no padrão Shadcn sobre Radix (seção 13)
+  shell/                  barra lateral, paleta de comandos, sino, logo, telas de primeira vez, erro e atalhos
+  hoje/                   tela Hoje: captura rápida, foco de hoje, precisa de você, semana
+  rotina/                 ritual "Planejar o dia" em 3 etapas
+  tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
+  tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral
+  pendencias/             tela de pendências: agrupamento e linhas
+  categorias/             cartões de categoria, emblema e ações
+  pessoas/                lista e detalhe de pessoas e times
+    AbasPessoas.tsx       alternância Pessoas | Times
+    ListaPessoas.tsx      aba Pessoas: cadastradas e nomes sem cadastro
+    ListaTimes.tsx        aba Times: cartões com cor, responsáveis e membros
+    DetalhePessoa.tsx     página da pessoa (?p=Nome): ajuda, times, passos, histórico
+    DetalheTime.tsx       página do time (?time=id): responsáveis, membros, tarefas
+    PessoaForm.tsx        cadastrar/editar pessoa
+    TimeForm.tsx          cadastrar/editar time
+    ImportarPessoas.tsx   assistente do Outlook (colar, CSV, vCard)
+    ListaPassos.tsx       passos em aberto com a pessoa ou o time, marcáveis
+    SeletorMultiplo.tsx   seleção múltipla com busca (chips + popover)
+    SeletorCor.tsx        bolinhas de cor do time
+    pecas.tsx             links, etiquetas, avatares, ações e menus
+    dados.ts              reexporta lib/pessoas.ts com os nomes antigos
+  links/                  ícones e formato curto dos links
+  busca/                  campo de busca e filtro
+  revisao/                cartão da revisão semanal e contas do retrato
+  configuracoes/          painéis de dados (pasta, backups, lixeira) e de preferências
 lib/
-  tipos.ts                tipos, normalização, helpers (servidor e cliente)
+  tipos.ts                tipos, normalização e helpers (servidor e cliente)
   armazenamento.ts        TODO acesso a disco (só servidor)
   migracoes.ts            SCHEMA_APP e MIGRACOES
-  prompts.ts              prompts e parser da resposta
-  rascunhos.ts            rascunho automático do editor de registro (localStorage, só cliente)
-  preferencias.ts         preferências do navegador (lerPref/gravarPref, meus nomes)
-  markdown.ts             espelho .md
+  acoes.ts                transformações puras da tarefa (aplicarStatus, comFoco, comLembrete...)
+  lembretes.ts            motor de lembretes (função pura sobre os dados)
+  preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
+  prompts.ts              prompts do Copilot e parser da resposta
+  pessoas.ts              diretório unificado (cadastradas + nomes soltos), pessoasDaCategoria, nomesConhecidos
+  importar-pessoas.ts     importador do Outlook sem API (colagem, CSV, vCard, ANSI) e compararComCadastro
+  markdown.ts             espelho .md de cada tarefa
   resposta.ts             tratar(): erro → 409 (conflito), 423 (somente leitura), 500
+  animacoes.ts            presets do motion (suave, mola, lista, subir...)
+  tema.ts                 script que aplica o tema antes da primeira pintura
+  utils.ts                cn() (junta classes do Tailwind)
 proxy.ts                  segurança das rotas /api (ver seção 10)
+postcss.config.mjs        Tailwind CSS v4 via @tailwindcss/postcss
+components.json           configuração do kit Shadcn (estilo, aliases)
+next.config.ts            configuração do Next.js
 scripts/                  instalação/atualização sem git (seção 9)
-testes/api.sh, testes/e2e.py
-Iniciar Nexo.cmd          atalho Windows: abre o navegador e roda npm start
+testes/api.sh             testes de fumaça da API e da segurança
+testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node)
+testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável (--so-pessoas: só pessoas e times)
+testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
+Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
 Convenções:
 - **Código, nomes e textos em português** (variáveis, funções, rotas, mensagens). Mantenha.
 - Componentes de tela são client components (`"use client"`); acesso a disco só em `lib/armazenamento.ts`, chamado pelos route handlers.
 - Toda escrita de dados passa pelo Provider (nunca `fetch` direto para gravar, exceto backup/lixeira em Configurações).
-- Dentro de `atualizarTarefa(id, (t) => ...)` nunca leia `e.target.value`: a função roda depois, numa fila, e o campo pode já ter sido redesenhado. Guarde o valor numa variável antes.
 - Textos da interface: tom natural, direto, sem "cara de IA". **Não use travessão (—)** em textos visíveis nem em documentos (preferência do usuário).
-- Sem bibliotecas novas para coisas que dá pra fazer em poucas linhas.
+- Interface sempre com o kit de `components/ui` e `components/comum.tsx` (seção 13). Nada de elemento nativo do navegador onde o kit tem substituto.
 
 ---
 
@@ -279,20 +361,21 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Prioridade 1 a 10, quanto maior mais urgente.** Confirmado pelo usuário. Mudar o sentido no futuro altera o significado de um valor gravado, então **é migração** (seção 4).
 - Pasta de dados é um caminho digitado (o servidor é local, então pode ler qualquer pasta do usuário). Não há seletor de pasta nativo.
 - Timeline em ordem crescente por padrão (como no esboço), com alternância.
-- Rascunho do editor fica no `localStorage`, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: o rascunho vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. Os campos de "atualizar a tarefa junto" só entram no rascunho se foram mexidos, para um rascunho antigo não desfazer uma mudança de status feita depois.
-- Pendência avulsa mora em `tarefa.passos` (campo novo opcional, sem migração), e não num registro "fantasma": a timeline continua sendo só o que aconteceu. Os passos de registro continuam onde estavam.
-- "Aguardando quem / cobrar em" ficam na tarefa (não no registro) e não entram no editor de registro: ao salvar um registro que põe a tarefa em espera, a linha aparece vazia no cabeçalho pedindo o preenchimento.
+- **v2: a página inicial é a tela Hoje** e a lista de tarefas foi para `/tarefas`. A ideia é abrir o app de manhã e já saber o que fazer.
+- **v2: interface com Tailwind + Shadcn/Radix + motion**, a pedido do dono (seção 13). A regra antiga de "sem Tailwind, sem libs de UI" deixou de valer.
+- Lembretes são calculados na hora a partir dos dados (não há tabela de lembretes para manter). O que é preferência (adiar, tema, rotina) fica no localStorage; o que é dado (`lembrarEm`, `focoEm`, prazo do passo) fica na tarefa.
+- Não usamos notificações do sistema operacional: os lembretes vivem dentro do app (sino, Hoje, ritual do dia).
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
+- **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
 - Importar/colar a ata de reunião do Teams ou o texto de e-mail direto num registro.
-- Tela "Hoje": vencidos, cobranças do dia, tarefas paradas há X dias e tarefas abertas sem próximo passo. Visão semanal tipo agenda.
-- Busca por várias palavras (hoje só frase exata) com link direto para o registro.
+- Notificação do sistema (Windows) para lembretes críticos, se o dono quiser ser avisado com o app fechado.
+- Subtarefas/checklist próprio da tarefa (além dos passos dos registros).
 - Vincular tarefas entre si (dependências) e "tarefas relacionadas" na mesma categoria.
 - Templates por tipo de demanda (ex.: onboarding Security Champion) com passos padrão.
 - Exportar uma tarefa ou categoria como relatório em Markdown/HTML para mandar ao gestor.
 - Importar de volta um `nexo-export-*.json` (restauração completa).
-- Kanban por status no painel.
 - Histórico de prompts gerados e respostas coladas por tarefa.
 
 ---
@@ -301,10 +384,61 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 
 1. Leia este arquivo e o trecho de código envolvido.
 2. Se a mudança toca dados gravados: siga a seção 4 (campo opcional + padrão, ou migração).
-3. Implemente sem dependências novas, em português, no estilo existente.
+3. Implemente em português, no estilo existente, com o kit de `components/ui` e `components/comum.tsx` (seção 13). Dependência nova só com motivo forte.
 4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela).
 5. Atualize este AGENTS.md (seções 5 a 8 e 11) e o README se o comportamento para o usuário mudou. Suba a `version` no `package.json` em mudanças relevantes.
 6. Commits em português, descritivos.
+
+## 13. Interface (design system)
+
+A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Shadcn (Radix) + motion + lucide**. Pedido do dono: cara de app de desktop profissional, **nada nativo do navegador** e tudo com componente próprio e animação discreta. Siga estas regras em qualquer tela nova.
+
+### Onde fica cada coisa
+| Arquivo | O que tem |
+|---|---|
+| `app/globals.css` | Tailwind, tokens de cor (claro em `:root`, escuro em `.dark`), sombras, barras de rolagem, utilitários `texto-pre` e `sem-selecao`. |
+| `components/ui/*` | Kit genérico (padrão Shadcn, sem regra de negócio). `button`, `input` (Input, Textarea), `dialog` (Dialog e AlertDialog), `select` (Select e o atalho `Seletor`), `popover` (Popover, `Dica`), `menu` (DropdownMenu e ContextMenu), `controles` (Label, Checkbox, Switch, `CampoSwitch`, Slider, `Segmentado`), `data` (`Calendario`, `SeletorData`, `SeletorHora`, `somarDias`, `dataPorExtenso`), `command` (Command e `Combobox`), `chips` (`CampoChips`, `CampoSugestoes`, `AreaArquivo`), `diversos` (Badge, Card, Separator, Skeleton, Kbd, Collapsible, ScrollArea, Tabs, Progress, Table/THead/TBody/Tr/Th/Td, Toaster). |
+| `components/comum.tsx` | Peças de domínio: `Pagina`, `Secao`, `Painel`, `Estatistica`, `Vazio`, `Contador`, `StatusBadge`, `SeletorStatus`, `IconeStatus`, `opcoesStatus`, `PrioBadge`, `SeletorPrioridade`, `CatTag`, `PontoCor`, `PrazoTag`, `IconeTipo`, `TipoBadge`, `AvatarPessoa`, `ChipPessoa`, `Etiqueta`, `ItemPasso`, `Campo`, `LinhaCampos`, `ChipsInput`, `Modal`, `Destaque`, `copiarTexto`, `formatarTamanho`. |
+| `components/Raiz.tsx` | Provedores de interface: tema (`useTema`), confirmação (`useConfirmar`), dicas, toasts, `MotionConfig`. |
+| `components/MenuTarefa.tsx` | `MenuContextoTarefa` (botão direito), `BotaoMenuTarefa` ("...") e `useAcoesTarefa()`. Toda tarefa que aparece na tela deve ter esse menu. |
+| `components/useLembretes.ts` | Lembretes ativos e `adiar()`. |
+| `lib/acoes.ts` | Transformações puras de tarefa: `aplicarStatus`, `comFoco`, `comLembrete`, `comPassoAlternado`, `comPrazoDoPasso`, `semRegistro`. Use sempre dentro de `atualizarTarefa(id, fn)`. |
+| `lib/lembretes.ts` | Motor de lembretes (`gerarLembretes`, `resumoDoDia`, `sugestoesDeFoco`, `dataRelativa`, `saudacao`, `LIMITES`). Função pura. |
+| `lib/preferencias.ts` | `usePref(chave, padrao)` (localStorage com prefixo `nexo:`) e `useRotina()`. |
+| `lib/animacoes.ts` | Presets do motion: `suave`, `mola`, `lista`/`itemLista`, `subir`, `brotar`, `itemRemovivel`. |
+
+### Nada nativo do navegador
+| Em vez de | Use |
+|---|---|
+| `<select>` | `Seletor` (lista curta) ou `Combobox` (lista longa, com busca) |
+| `<input type="date">` / `type="time"` | `SeletorData` / `SeletorHora` (valor continua string `AAAA-MM-DD` / `HH:MM`, `""` = vazio) |
+| `<input type="range">` | `SeletorPrioridade` (1 a 10) ou `Slider` |
+| `<input type="checkbox">` | `Checkbox`, `CampoSwitch` ou `ItemPasso` |
+| `<input type="file">` | `AreaArquivo` |
+| `<datalist>` | `CampoSugestoes` ou `CampoChips` |
+| `confirm()` / `alert()` | `useConfirmar()` e `toast()` do Provider |
+| atributo `title` | `<Dica texto="...">` |
+| `<details>` | `Collapsible` |
+| `<table>` crua | `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` |
+| emoji como ícone | ícone do `lucide-react` (tipos de registro: `IconeTipo`; status: `IconeStatus`) |
+| menu de contexto do navegador em itens | `ContextMenu` (`MenuContextoTarefa` para tarefas) |
+
+### Layout e densidade (cara de app de desktop)
+- A janela não rola. O Shell ocupa `100vh` (barra lateral, barra superior, barra de status) e cada tela usa `<Pagina>`: cabeçalho fixo e corpo com rolagem própria. Para telas com colunas que rolam separadas (quadro, página da tarefa) use `<Pagina semRolagem>` e cuide da rolagem dentro.
+- Densidade compacta: controles com 32px de altura (`h-8`), texto de interface `text-[13px]`, texto de leitura `text-sm`, rótulos `text-xs`, metadados `text-[11px]`. Título de página `text-lg`, de seção `text-[13px] font-semibold`.
+- Espaços: 12 a 16px entre blocos irmãos (`gap-3`/`gap-4`), 32px entre seções (`Secao` já dá). Cartões com `rounded-xl border bg-card shadow-xs`.
+- Cores só por token (`bg-card`, `text-muted-foreground`, `border`, `bg-primary`, `text-destructive`, `text-sucesso`, `text-alerta`, `text-info`, `bg-st-andamento/12`...). Nunca hexadecimal em componente. A única cor livre é `categoria.cor`, que é dado do usuário e entra por `style`.
+- Tema claro e escuro por classe `.dark` no `<html>` (`useTema()`), com opção "sistema". Toda tela tem que ficar boa nos dois.
+- Números em `tabular-nums`. Textos longos do usuário em `texto-pre` (preserva quebras). Rótulos e botões em `sem-selecao`.
+
+### Animação
+- `motion` (`import { motion, AnimatePresence } from "motion/react"`) com os presets de `lib/animacoes.ts`. Listas entram em cascata (`lista` + `itemLista`), itens que somem usam `AnimatePresence` + `layout`, pílulas e seleções deslizam com `layoutId`.
+- Rápido e discreto: 150 a 250ms, nada que atrase o uso. O `MotionConfig reducedMotion="user"` já respeita quem pede menos movimento.
+- Hover e foco sempre visíveis (anel `ring-ring`). Todo botão só de ícone tem `aria-label` e `Dica`.
+
+### Texto e testes
+- Português do Brasil, tom direto, sem travessão. Erros dizem o que aconteceu e o que fazer.
+- Os componentes do kit têm `data-slot` (ex.: `data-slot="seletor-data"`, `"seletor-status"`, `"passo"`, `"estatistica"`). O `testes/e2e.cjs` usa esses atributos e textos visíveis; ao criar componente novo que o teste precise achar, ponha um `data-slot`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

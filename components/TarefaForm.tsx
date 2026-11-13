@@ -1,13 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal, fecharComCuidado } from "./ui";
+import { ComboCategoria } from "./tarefas/ComboCategoria";
+import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, SeletorPrioridade, opcoesStatus } from "./comum";
+import { Button } from "@/components/ui/button";
+import { type OpcaoCombo } from "@/components/ui/command";
+import { SeletorData } from "@/components/ui/data";
+import { Badge, Kbd } from "@/components/ui/diversos";
+import { Input, Textarea } from "@/components/ui/input";
+import { Seletor } from "@/components/ui/select";
+import { aplicarStatus } from "@/lib/acoes";
 import {
-  CORES, STATUS, STATUS_ESPERA, Status, Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarCategoria,
-  normalizarRegistro, normalizarTarefa, novoId,
+  CORES, Status, Tarefa, hojeISO, normalizarCategoria, normalizarRegistro,
+  normalizarTarefa, novoId,
 } from "@/lib/tipos";
+
+/** Valor interno do seletor quando a categoria escolhida ainda vai ser criada ao salvar. */
+const NOVA = "__nova";
 
 export function TarefaForm({
   aberto, fechar, tarefa, categoriaInicial,
@@ -23,10 +34,11 @@ export function TarefaForm({
   const [status, setStatus] = useState<Status>("a_fazer");
   const [prioridade, setPrioridade] = useState(5);
   const [prazo, setPrazo] = useState("");
+  const [lembrarEm, setLembrarEm] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [aguardandoQuem, setAguardandoQuem] = useState("");
-  const [cobrarEm, setCobrarEm] = useState("");
   const [salvando, setSalvando] = useState(false);
+  // Trava síncrona: Enter no título e Ctrl+Enter podem chegar juntos antes de o estado "salvando" virar.
+  const gravando = useRef(false);
 
   useEffect(() => {
     if (!aberto) return;
@@ -37,52 +49,77 @@ export function TarefaForm({
     setStatus(tarefa?.status ?? "a_fazer");
     setPrioridade(tarefa?.prioridade ?? 5);
     setPrazo(tarefa?.prazo ?? "");
+    setLembrarEm(tarefa?.lembrarEm ?? "");
     setTags(tarefa?.tags ?? []);
-    setAguardandoQuem(tarefa?.aguardandoQuem ?? "");
-    setCobrarEm(tarefa?.cobrarEm ?? "");
+    setSalvando(false);
+    gravando.current = false;
   }, [aberto, tarefa, categoriaInicial]);
 
-  const categorias = (dados?.categorias.items ?? []).filter((c) => !c.arquivada || c.id === categoriaId);
+  const todasCategorias = dados?.categorias.items;
+  const corNova = CORES[(todasCategorias?.length ?? 0) % CORES.length];
+  const opcoesCategoria = useMemo(() => {
+    const ops: OpcaoCombo[] = (todasCategorias ?? [])
+      .filter((c) => !c.arquivada || c.id === categoriaId)
+      .map((c) => ({
+        valor: c.id,
+        rotulo: c.nome,
+        render: (
+          <>
+            <PontoCor cor={c.cor} />
+            <span className="truncate">{c.nome}</span>
+          </>
+        ),
+      }));
+    if (novaCat)
+      ops.push({
+        valor: NOVA,
+        rotulo: novaCat,
+        render: (
+          <>
+            <PontoCor cor={corNova} />
+            <span className="truncate">{novaCat}</span>
+            <Badge variant="default">nova</Badge>
+          </>
+        ),
+      });
+    return ops;
+  }, [todasCategorias, categoriaId, novaCat, corNova]);
+
   const todasTags = useMemo(
     () => [...new Set((dados?.tarefas ?? []).flatMap((t) => t.tags))].sort(),
     [dados?.tarefas],
   );
 
-  const sujo =
-    titulo !== (tarefa?.titulo ?? "") || descricao !== (tarefa?.descricao ?? "") ||
-    tags.join("\n") !== (tarefa?.tags ?? []).join("\n") || novaCat.trim() !== "" ||
-    aguardandoQuem !== (tarefa?.aguardandoQuem ?? "");
-  const tentarFechar = fecharComCuidado(sujo, fechar);
-
-  const emEspera = STATUS_ESPERA.includes(status);
-
   async function salvar() {
-    if (!titulo.trim()) return;
+    if (!titulo.trim() || gravando.current) return;
+    gravando.current = true;
     setSalvando(true);
+    const liberar = () => {
+      gravando.current = false;
+      setSalvando(false);
+    };
     let catId: string | null = categoriaId || null;
-    if (categoriaId === "__nova") {
-      if (!novaCat.trim()) {
-        setSalvando(false);
-        return;
-      }
+    if (categoriaId === NOVA) {
+      if (!novaCat.trim()) return liberar();
       const nova = normalizarCategoria({
         id: novoId("c"),
         nome: novaCat.trim(),
         cor: CORES[(dados?.categorias.items.length ?? 0) % CORES.length],
       });
       const ok = await salvarCategorias((items) => [...items, nova]);
-      if (!ok) return setSalvando(false);
+      if (!ok) return liberar();
+      // A categoria já existe no disco: se a tarefa falhar a seguir, um novo "Salvar" não cria outra igual.
       catId = nova.id;
+      setCategoriaId(nova.id);
+      setNovaCat("");
     }
     const campos = {
-      titulo: titulo.trim(), descricao, categoriaId: catId, prioridade, prazo: prazo || null, tags,
-      // só valem enquanto a tarefa está parada com alguém
-      aguardandoQuem: emEspera ? aguardandoQuem.trim() : "",
-      cobrarEm: emEspera ? cobrarEm || null : null,
+      titulo: titulo.trim(), descricao, categoriaId: catId, prioridade, prazo: prazo || null,
+      lembrarEm: lembrarEm || null, tags,
     };
     if (tarefa) {
       const r = await atualizarTarefa(tarefa.id, (t) => aplicarStatus({ ...t, ...campos }, status, t));
-      setSalvando(false);
+      liberar();
       if (r) fechar();
     } else {
       const base = normalizarTarefa({ id: novoId("t"), ...campos, status });
@@ -93,7 +130,7 @@ export function TarefaForm({
         }),
       );
       const r = await criarTarefa(base);
-      setSalvando(false);
+      liberar();
       if (r) {
         fechar();
         router.push(`/tarefas/${r.id}`);
@@ -104,103 +141,98 @@ export function TarefaForm({
   return (
     <Modal
       titulo={tarefa ? "Editar tarefa" : "Nova tarefa"}
+      descricao={tarefa ? "Mudar o status aqui também registra um marco na linha do tempo." : "Só o título é obrigatório. O resto dá para completar depois."}
       aberto={aberto}
-      fechar={tentarFechar}
+      fechar={fechar}
+      className="max-w-[580px]"
       rodape={
         <>
-          <button className="btn" onClick={tentarFechar}>Cancelar</button>
-          <button className="btn primario" onClick={salvar} disabled={salvando || !titulo.trim()}>
+          <span className="mr-auto hidden items-center gap-1 text-[11px] text-muted-foreground sem-selecao sm:inline-flex">
+            <Kbd>Ctrl</Kbd>
+            <Kbd>Enter</Kbd>
+            <span className="ml-0.5">salva de qualquer campo</span>
+          </span>
+          <Button variant="outline" onClick={fechar}>Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando || !titulo.trim()}>
             {salvando ? "Salvando..." : "Salvar"}
-          </button>
+          </Button>
         </>
       }
     >
-      <div className="form">
+      <div
+        data-slot="form-tarefa"
+        className="flex flex-col gap-4"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            salvar();
+          }
+        }}
+      >
         <Campo rotulo="Título">
-          <input autoFocus value={titulo} onChange={(e) => setTitulo(e.target.value)}
+          <Input
+            autoFocus
+            data-foco-inicial
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
             placeholder="Ex.: Onboarding do squad X no Security Champion"
-            onKeyDown={(e) => e.key === "Enter" && salvar()} />
+            aria-label="Título da tarefa"
+            className="h-9 text-sm font-medium placeholder:font-normal"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                salvar();
+              }
+            }}
+          />
         </Campo>
-        <div className="linha-campos">
-          <Campo rotulo="Categoria" dica="O assunto de onde a tarefa nasceu">
-            <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)}>
-              <option value="">Sem categoria</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-              <option value="__nova">+ Nova categoria...</option>
-            </select>
+
+        <LinhaCampos>
+          <Campo rotulo="Categoria" dica="O assunto de onde a tarefa nasceu.">
+            <ComboCategoria
+              valor={categoriaId}
+              aoMudar={setCategoriaId}
+              opcoes={opcoesCategoria}
+              aria-label="Categoria"
+              aoCriar={(nome) => {
+                setNovaCat(nome);
+                setCategoriaId(NOVA);
+              }}
+            />
           </Campo>
-          {categoriaId === "__nova" && (
-            <Campo rotulo="Nome da nova categoria">
-              <input autoFocus value={novaCat} onChange={(e) => setNovaCat(e.target.value)} placeholder="Ex.: Security Champion" />
-            </Campo>
-          )}
-        </div>
-        <div className="linha-campos">
           <Campo rotulo="Status">
-            <select value={status} onChange={(e) => setStatus(e.target.value as Status)}>
-              {STATUS.map((s) => (
-                <option key={s.id} value={s.id}>{s.nome}</option>
-              ))}
-            </select>
+            <Seletor valor={status} aoMudar={(v) => setStatus(v as Status)} opcoes={opcoesStatus} aria-label="Status" />
           </Campo>
-          <Campo rotulo={`Prioridade: ${prioridade}`} dica="1 = pode esperar · 10 = urgente">
-            <input type="range" min={1} max={10} value={prioridade} onChange={(e) => setPrioridade(+e.target.value)} />
-          </Campo>
-          <Campo rotulo="Prazo">
-            <input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
-          </Campo>
-        </div>
-        {emEspera && (
-          <div className="linha-campos">
-            <Campo rotulo={status === "bloqueada" ? "Depende de quem" : "Aguardando quem"}>
-              <input value={aguardandoQuem} onChange={(e) => setAguardandoQuem(e.target.value)} placeholder="Pessoa ou time" />
-            </Campo>
-            <Campo rotulo="Cobrar em" dica="Quando você vai voltar a cobrar">
-              <input type="date" value={cobrarEm} onChange={(e) => setCobrarEm(e.target.value)} />
-            </Campo>
-          </div>
-        )}
-        <Campo rotulo="Descrição / objetivo">
-          <textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)}
-            placeholder="O que precisa ser entregue, quem pediu, contexto..." />
+        </LinhaCampos>
+
+        <Campo
+          rotulo={<>Prioridade: <span className="font-semibold text-foreground tabular-nums">{prioridade}</span></>}
+          dica="1 = pode esperar · 10 = urgente"
+        >
+          <SeletorPrioridade valor={prioridade} aoMudar={setPrioridade} />
         </Campo>
+
+        <LinhaCampos>
+          <Campo rotulo="Prazo">
+            <SeletorData valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo" />
+          </Campo>
+          <Campo rotulo="Lembrar de voltar em" dica="O app te avisa nesse dia para você retomar a tarefa.">
+            <SeletorData valor={lembrarEm} aoMudar={setLembrarEm} placeholder="Sem lembrete" aria-label="Lembrar de voltar em" />
+          </Campo>
+        </LinhaCampos>
+
         <Campo rotulo="Tags" dica="Enter ou vírgula para adicionar">
-          <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: HT, Security Champion" />
+          <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: pipeline, auditoria" />
+        </Campo>
+
+        <Campo rotulo="Descrição / objetivo">
+          <Textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)}
+            placeholder="O que precisa ser entregue, quem pediu, contexto..." />
         </Campo>
       </div>
     </Modal>
   );
 }
 
-// Quando o status muda, registra um marco na timeline (o card "Concluída" do esboço).
-export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa, obs = ""): Tarefa {
-  if (anterior.status === novo) return t;
-  const fim = novo === "concluida" || novo === "cancelada";
-  // Saiu da espera: "aguardando quem" e "cobrar em" deixam de valer. Para não perder a
-  // informação, ela fica escrita no marco da mudança de status.
-  const saiuDaEspera = STATUS_ESPERA.includes(anterior.status) && !STATUS_ESPERA.includes(novo);
-  const quem = (anterior.aguardandoQuem || "").trim();
-  if (saiuDaEspera && (quem || anterior.cobrarEm)) {
-    const nota = `Estava ${anterior.status === "bloqueada" ? "dependendo de" : "aguardando"} ${quem || "terceiros"}` +
-      `${anterior.cobrarEm ? ` (cobrança marcada para ${formatarData(anterior.cobrarEm)})` : ""}.`;
-    obs = obs ? `${obs}\n${nota}` : nota;
-  }
-  return {
-    ...t,
-    ...(saiuDaEspera ? { aguardandoQuem: "", cobrarEm: null } : {}),
-    status: novo,
-    concluidaEm: fim ? agoraISO() : null,
-    registros: [
-      ...t.registros,
-      normalizarRegistro({
-        tipo: "marco",
-        data: hojeISO(),
-        titulo: nomeStatus(novo),
-        anotacoes: obs,
-        alteracoes: { status: { de: anterior.status, para: novo } },
-      }),
-    ],
-  };
-}
+// aplicarStatus mora em lib/acoes.ts; reexportado aqui para quem já importava deste arquivo.
+export { aplicarStatus } from "@/lib/acoes";

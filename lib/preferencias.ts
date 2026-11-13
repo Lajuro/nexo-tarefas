@@ -1,23 +1,86 @@
-// Preferências que ficam só no navegador (localStorage). Nada aqui é dado de trabalho:
-// se sumir, o app volta ao padrão.
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+// Preferências de interface (ordem, visão, tema, lembretes adiados, rotina do dia).
+// Ficam em localStorage porque são do aparelho, não dos dados: nada aqui é crítico.
+// Chaves sempre com o prefixo "nexo:". Componentes que usam a mesma chave ficam em sincronia.
+
+const PREFIXO = "nexo:";
+const EVENTO = "nexo:pref";
 
 export function lerPref<T>(chave: string, padrao: T): T {
   try {
-    const v = localStorage.getItem(`nexo:${chave}`);
-    return v ? (JSON.parse(v) as T) : padrao;
+    const v = localStorage.getItem(PREFIXO + chave);
+    return v === null ? padrao : (JSON.parse(v) as T);
   } catch {
     return padrao;
   }
 }
 
-export function gravarPref(chave: string, valor: unknown) {
+export function gravarPref<T>(chave: string, valor: T) {
   try {
-    localStorage.setItem(`nexo:${chave}`, JSON.stringify(valor));
+    localStorage.setItem(PREFIXO + chave, JSON.stringify(valor));
+  } catch {}
+  try {
+    window.dispatchEvent(new CustomEvent(EVENTO, { detail: { chave } }));
   } catch {}
 }
 
-// Nomes pelos quais o usuário aparece como responsável de um passo (além de "Eu").
-export function lerMeusNomes(): string[] {
-  const v = lerPref<unknown>("meusNomes", []);
-  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()) : [];
+/**
+ * Como um useState, mas lembrado entre visitas.
+ * `carregado` vira true depois da primeira leitura (use para não piscar o valor padrão,
+ * por exemplo antes de abrir sozinho o ritual do dia).
+ */
+export function usePref<T>(chave: string, padrao: T): [T, (v: T | ((atual: T) => T)) => void, boolean] {
+  const [valor, setValor] = useState<T>(padrao);
+  const [carregado, setCarregado] = useState(false);
+
+  useEffect(() => {
+    const ler = () => setValor(lerPref(chave, padrao));
+    ler();
+    setCarregado(true);
+    const aoMudar = (e: Event) => {
+      if ((e as CustomEvent).detail?.chave === chave) ler();
+    };
+    const aoMudarOutraAba = (e: StorageEvent) => {
+      if (e.key === PREFIXO + chave) ler();
+    };
+    window.addEventListener(EVENTO, aoMudar);
+    window.addEventListener("storage", aoMudarOutraAba);
+    return () => {
+      window.removeEventListener(EVENTO, aoMudar);
+      window.removeEventListener("storage", aoMudarOutraAba);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave]);
+
+  const definir = useCallback(
+    (v: T | ((atual: T) => T)) => {
+      const novo = typeof v === "function" ? (v as (a: T) => T)(lerPref(chave, padrao)) : v;
+      setValor(novo);
+      gravarPref(chave, novo);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chave],
+  );
+
+  return [valor, definir, carregado];
+}
+
+/** Estado da rotina diária/semanal (quando foi a última vez que o usuário planejou o dia ou revisou a semana). */
+export interface Rotina {
+  /** AAAA-MM-DD do último "planejar o dia" concluído ou dispensado. */
+  ultimoPlanejamento: string;
+  /** AAAA-MM-DD da última revisão semanal concluída. */
+  ultimaRevisao: string;
+  /** Abrir o ritual sozinho na primeira visita do dia. */
+  abrirSozinho: boolean;
+}
+
+export const ROTINA_PADRAO: Rotina = { ultimoPlanejamento: "", ultimaRevisao: "", abrirSozinho: true };
+
+export function useRotina() {
+  const [rotina, setRotina, carregado] = usePref<Rotina>("rotina", ROTINA_PADRAO);
+  return { rotina: { ...ROTINA_PADRAO, ...rotina }, setRotina, carregado };
 }

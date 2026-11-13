@@ -1,6 +1,6 @@
 # Nexo · cérebro de tarefas
 
-Organizador pessoal de tarefas, 100% local (offline-first). Cada tarefa tem uma linha do tempo com reuniões, atividades, impedimentos e decisões, e o app monta prompts prontos para colar no Copilot e lê a resposta de volta.
+Organizador pessoal de tarefas, 100% local (offline-first), com cara de aplicativo de desktop: tema claro e escuro, tudo pelo teclado, e uma tela Hoje que lembra você do que fazer. Cada tarefa tem uma linha do tempo com reuniões, atividades, impedimentos e decisões, e o app monta prompts prontos para colar no Copilot e lê a resposta de volta.
 
 ## Instalar ou atualizar (sem git clone)
 
@@ -32,22 +32,47 @@ Variáveis opcionais: `NEXO_DESTINO` (pasta do app, padrão `%USERPROFILE%\nexo-
 
 ## Usar
 
-Abra pelo atalho (ou `Iniciar Nexo.cmd`). O app roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
+Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como um aplicativo (modo aplicativo do Edge). Para tela cheia, use F11 ou o botão na barra superior. O servidor roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
 
-Atalhos: `N` nova tarefa · `/` buscar · `Esc` fechar janela.
+A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia e uma captura rápida de tarefa.
 
-Na página da tarefa, a caixa **Pendências** tem **+ Adicionar** para criar um passo direto, sem precisar de um registro, e o lápis ao lado de cada passo edita texto, responsável e prazo. Quando a tarefa fica em "Aguardando terceiros" ou "Bloqueada", o cabeçalho pede **com quem está** e **quando cobrar**; a tela Pendências junta tudo isso em "Aguardando terceiros" e em "Prazos". Em Configurações dá para dizer como seu nome aparece nos passos, para o filtro "Só os meus" funcionar.
-
-Pode fechar o editor de registro no meio da digitação (Esc, clique fora, F5, navegador travado): o que você escreveu fica como rascunho e volta quando abrir de novo. A página da tarefa mostra um aviso com **Continuar** e **Descartar**. O rascunho fica guardado no navegador, então vale para aquele navegador e some se você limpar os dados do site.
+Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
 
 ### Fluxo com o Copilot
 
-1. Em uma tarefa, clique em **+ Reunião** (ou Atividade) e escreva suas anotações brutas.
+1. Na página da tarefa, clique em **Reunião** (ou **Atividade**) e escreva suas anotações brutas.
 2. **Copiar prompt**: o app junta o contexto da tarefa (histórico, pendências) com suas anotações.
 3. Cole no Copilot, copie a resposta e cole de volta no app.
 4. **Preencher campos**: resumo, decisões, próximos passos (com responsável), impedimentos e participantes são separados sozinhos. Passos antigos que a resposta disser que foram resolvidos já vêm marcados para concluir.
 
 Também tem prompts de **panorama da tarefa**, **preparar próxima reunião**, **panorama da categoria** e **relatório do período**.
+
+## Rotina
+
+O Nexo lembra você do que fazer:
+
+- **Tela Hoje**: saudação, foco do dia, o que precisa de você, a semana e as tarefas paradas.
+- **Planejar o dia**: abre sozinho na primeira visita do dia (dá para desligar) e pela tecla `D`. Mostra o que ficou para trás e você escolhe os focos.
+- **Foco de hoje**: marca as tarefas em que você vai trabalhar no dia. No dia seguinte, elas deixam de ser foco sozinhas.
+- **Lembrar de voltar em**: uma data para a tarefa voltar a aparecer. Dá para definir no formulário, na página da tarefa ou no menu da tarefa.
+- **Sino de lembretes**: tudo o que merece atenção, com a opção de adiar qualquer item até uma data.
+- **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
+- Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
+
+## Pessoas e times
+
+Cadastre as pessoas com quem você trabalha e os times de cada assunto. Assim o Nexo sabe quem pode ajudar com o quê, e cada nome que aparece nos registros fica ligado à pessoa certa.
+
+- **Pessoas**: nome, apelidos (outros jeitos de escrever o nome que aparecem nos registros), e-mail, cargo, área e "pode ajudar com".
+- **Times**: nome, cor, responsáveis e membros. Um time pode ser ligado a uma ou mais categorias.
+- **Categorias**: a página de cada categoria mostra quem pode ajudar naquele assunto e os times ligados a ele.
+- **Nomes sem cadastro**: quem aparece nos registros mas ainda não foi cadastrado fica numa lista própria. Dali você cadastra a pessoa ou junta o nome como apelido de alguém que já existe.
+- **Importar do Outlook**: três jeitos, e nada sai do seu computador.
+  - **Colar**: copie o campo Para ou Participantes de um e-mail ou de uma reunião e cole no app.
+  - **CSV**: exporte os contatos em arquivo CSV. No Outlook clássico: Arquivo > Abrir e Exportar > Importar/Exportar > Exportar para um arquivo. No Outlook novo ou na web: Pessoas > Gerenciar contatos > Exportar contatos.
+  - **vCard (.vcf)**: um arquivo com um ou mais contatos. No Outlook clássico, abra o contato e vá em Arquivo > Salvar como, escolhendo o formato vCard.
+
+O app mostra uma prévia antes de gravar. Quem já existe no cadastro não é duplicado: só entram os campos que estavam vazios.
 
 ## Onde ficam os dados
 
@@ -56,6 +81,8 @@ Também tem prompts de **panorama da tarefa**, **preparar próxima reunião**, *
   nexo.json               versão do formato dos dados
   categorias.json
   links.json
+  pessoas.json            pessoas cadastradas (opcional: sem o arquivo, a lista começa vazia)
+  times.json              times (opcional, como as pessoas)
   tarefas/<id>.json       uma tarefa por arquivo, com a timeline inteira
   arquivos/AAAA/...       documentos anexados
   markdown/*.md           versão legível de cada tarefa (gerada automaticamente)
@@ -67,7 +94,6 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 
 ## Proteções contra perda de dados
 
-- Rascunho automático no editor de registro e confirmação antes de fechar os outros formulários com texto digitado.
 - Escrita atômica (arquivo temporário + troca), com nova tentativa se o OneDrive estiver segurando o arquivo.
 - Arquivo corrompido nunca é tratado como vazio: o app avisa e não grava por cima.
 - Controle de revisão: se a mesma tarefa for alterada em duas abas ou dois PCs, a segunda gravação é recusada em vez de sobrescrever.
@@ -81,6 +107,9 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 npm install
 npm run dev        # http://127.0.0.1:3210
 npm run typecheck
+node testes/semear.mjs   # cenário de demonstração numa pasta de dados vazia e descartável
 ```
+
+A interface usa Tailwind CSS v4, componentes no padrão Shadcn sobre Radix, motion para as animações e lucide para os ícones.
 
 Contexto completo para agentes e regras para evoluir o app sem perder dados: `AGENTS.md`.

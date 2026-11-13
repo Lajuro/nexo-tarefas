@@ -21,10 +21,6 @@ export const STATUS: { id: Status; nome: string }[] = [
 
 export const STATUS_ABERTOS: Status[] = ["a_fazer", "em_andamento", "aguardando", "bloqueada"];
 
-// Status em que a tarefa está parada na mão de outra pessoa. Só neles valem
-// "aguardando quem" e "cobrar em".
-export const STATUS_ESPERA: Status[] = ["aguardando", "bloqueada"];
-
 export type TipoRegistro = "reuniao" | "atividade" | "impedimento" | "decisao" | "nota" | "marco";
 
 export const TIPOS_REGISTRO: { id: TipoRegistro; nome: string; icone: string }[] = [
@@ -42,8 +38,7 @@ export interface Passo {
   feito: boolean;
   feitoEm?: string | null;
   responsavel?: string;
-  prazo?: string | null; // AAAA-MM-DD
-  criadoEm?: string; // só nas pendências avulsas; nos passos de registro vale a data do registro
+  prazo?: string | null;
   [extra: string]: unknown;
 }
 
@@ -90,9 +85,10 @@ export interface Tarefa {
   criadaEm: string;
   atualizadaEm: string;
   concluidaEm?: string | null;
-  passos?: Passo[]; // pendências avulsas: criadas direto na tarefa, fora de um registro
-  aguardandoQuem?: string; // com quem a tarefa está parada (status de espera)
-  cobrarEm?: string | null; // AAAA-MM-DD: quando voltar a cobrar
+  /** Data (AAAA-MM-DD) em que o usuário quer ser lembrado de voltar nesta tarefa (follow-up). */
+  lembrarEm?: string | null;
+  /** Dia (AAAA-MM-DD) em que a tarefa foi escolhida como foco. Só vale como foco se for hoje. */
+  focoEm?: string | null;
   [extra: string]: unknown;
 }
 
@@ -123,6 +119,50 @@ export interface LinkDoc {
   [extra: string]: unknown;
 }
 
+/**
+ * Pessoa cadastrada (pessoas.json). Os registros e passos continuam guardando nomes como texto;
+ * a ligação com o cadastro é feita na leitura, comparando o nome normalizado com `nome` e `apelidos`.
+ */
+export interface Pessoa {
+  id: string; // novoId("pe")
+  nome: string;
+  /** Outros nomes pelos quais aparece nos registros (ex.: "Marina", "Marina S."). */
+  apelidos: string[];
+  email: string;
+  /** Função ou papel. */
+  cargo: string;
+  /** Área, squad ou empresa (texto livre). */
+  area: string;
+  /** Com o que essa pessoa pode ajudar. */
+  ajudaCom: string;
+  anotacoes: string;
+  /** Assuntos (categorias) aos quais está ligada. */
+  categoriaIds: string[];
+  tags: string[];
+  arquivada?: boolean;
+  origem?: "manual" | "registros" | "outlook";
+  criadaEm: string;
+  atualizadaEm: string;
+  [extra: string]: unknown;
+}
+
+/** Time (times.json). Os vínculos com pessoas ficam aqui, não na Pessoa. */
+export interface Time {
+  id: string; // novoId("ti")
+  nome: string;
+  descricao: string;
+  /** Uma das CORES. */
+  cor: string;
+  responsavelIds: string[];
+  /** Inclui os responsáveis. */
+  membroIds: string[];
+  categoriaIds: string[];
+  arquivado?: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+  [extra: string]: unknown;
+}
+
 export interface Colecao<T> {
   rev: number;
   items: T[];
@@ -133,6 +173,8 @@ export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
   links: Colecao<LinkDoc>;
+  pessoas: Colecao<Pessoa>;
+  times: Colecao<Time>;
   avisos: string[];
 }
 
@@ -181,8 +223,7 @@ export function normalizarPasso(p: Partial<Passo>): Passo {
     feito: Boolean(p.feito),
     feitoEm: p.feitoEm ?? null,
     responsavel: str(p.responsavel),
-    prazo: typeof p.prazo === "string" && p.prazo ? p.prazo : null,
-    criadoEm: str(p.criadoEm),
+    prazo: p.prazo ?? null,
   };
 }
 
@@ -226,9 +267,8 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     criadaEm: str(t.criadaEm) || agoraISO(),
     atualizadaEm: str(t.atualizadaEm) || agoraISO(),
     concluidaEm: t.concluidaEm ?? null,
-    passos: Array.isArray(t.passos) ? t.passos.map(normalizarPasso) : [],
-    aguardandoQuem: str(t.aguardandoQuem),
-    cobrarEm: typeof t.cobrarEm === "string" && t.cobrarEm ? t.cobrarEm : null,
+    lembrarEm: typeof t.lembrarEm === "string" && t.lembrarEm ? t.lembrarEm : null,
+    focoEm: typeof t.focoEm === "string" && t.focoEm ? t.focoEm : null,
   };
 }
 
@@ -263,6 +303,47 @@ export function normalizarLink(l: Partial<LinkDoc>): LinkDoc {
   };
 }
 
+const ORIGENS_PESSOA = ["manual", "registros", "outlook"] as const;
+const semRepetir = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Boolean))];
+
+export function normalizarPessoa(p: Partial<Pessoa>): Pessoa {
+  return {
+    ...p,
+    id: str(p.id) || novoId("pe"),
+    nome: str(p.nome).trim() || "Sem nome",
+    apelidos: semRepetir(arrStr(p.apelidos)),
+    email: str(p.email).trim(),
+    cargo: str(p.cargo),
+    area: str(p.area),
+    ajudaCom: str(p.ajudaCom),
+    anotacoes: str(p.anotacoes),
+    categoriaIds: semRepetir(arrStr(p.categoriaIds)),
+    tags: arrStr(p.tags),
+    arquivada: Boolean(p.arquivada),
+    origem: ORIGENS_PESSOA.includes(p.origem as (typeof ORIGENS_PESSOA)[number]) ? p.origem : "manual",
+    criadaEm: str(p.criadaEm) || agoraISO(),
+    atualizadaEm: str(p.atualizadaEm) || agoraISO(),
+  };
+}
+
+export function normalizarTime(t: Partial<Time>): Time {
+  const responsavelIds = semRepetir(arrStr(t.responsavelIds));
+  return {
+    ...t,
+    id: str(t.id) || novoId("ti"),
+    nome: str(t.nome).trim() || "Sem nome",
+    descricao: str(t.descricao),
+    cor: str(t.cor) || CORES[6],
+    responsavelIds,
+    // os responsáveis também são membros
+    membroIds: semRepetir([...arrStr(t.membroIds), ...responsavelIds]),
+    categoriaIds: semRepetir(arrStr(t.categoriaIds)),
+    arquivado: Boolean(t.arquivado),
+    criadoEm: str(t.criadoEm) || agoraISO(),
+    atualizadoEm: str(t.atualizadoEm) || agoraISO(),
+  };
+}
+
 export const ID_VALIDO = /^[a-zA-Z0-9_-]{1,80}$/;
 
 export function nomeStatus(s: Status) {
@@ -278,15 +359,6 @@ export function formatarData(iso: string | null | undefined, comAno = true) {
   const [a, m, d] = iso.slice(0, 10).split("-");
   if (!a || !m || !d) return iso;
   return comAno ? `${d}/${m}/${a.slice(2)}` : `${d}/${m}`;
-}
-
-// Carimbo ISO (UTC) mostrado no fuso local, ex.: "13/11 14:32".
-export function formatarDataHora(iso: string | null | undefined) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 export function semAcento(s: string) {
@@ -313,91 +385,10 @@ export function ordenarRegistros(regs: Registro[], recentesPrimeiro = false) {
   return recentesPrimeiro ? ord.reverse() : ord;
 }
 
-// Carimbo ISO (UTC) virando data de calendário local (AAAA-MM-DD).
-export function dataLocalDe(iso: string | null | undefined) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "";
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-// Um passo em aberto e de onde ele veio. `registro` é null nas pendências avulsas.
-// `desde` é a data (AAAA-MM-DD) em que o passo nasceu.
-export interface PassoAberto {
-  registro: Registro | null;
-  passo: Passo;
-  desde: string;
-}
-
 export function passosAbertos(t: Tarefa) {
-  const out: PassoAberto[] = [];
-  for (const r of t.registros)
-    for (const p of r.proximosPassos) if (!p.feito) out.push({ registro: r, passo: p, desde: r.data });
-  for (const p of t.passos ?? [])
-    if (!p.feito) out.push({ registro: null, passo: p, desde: dataLocalDe(p.criadoEm) || dataLocalDe(t.criadaEm) });
+  const out: { registro: Registro; passo: Passo }[] = [];
+  for (const r of t.registros) for (const p of r.proximosPassos) if (!p.feito) out.push({ registro: r, passo: p });
   return out;
-}
-
-// Aplica `fn` em todos os passos da tarefa, estejam num registro ou avulsos.
-export function mapearPassos(t: Tarefa, fn: (p: Passo) => Passo): Tarefa {
-  return {
-    ...t,
-    registros: t.registros.map((r) => ({ ...r, proximosPassos: r.proximosPassos.map(fn) })),
-    passos: (t.passos ?? []).map(fn),
-  };
-}
-
-export function marcarPasso(t: Tarefa, passoId: string, feito: boolean): Tarefa {
-  return mapearPassos(t, (p) => (p.id === passoId ? { ...p, feito, feitoEm: feito ? agoraISO() : null } : p));
-}
-
-// Um passo é "meu" se não tem responsável, se o responsável é "Eu" ou se bate com um dos
-// nomes que o usuário disse que usa (Configurações).
-const EU = /^(eu|eu mesmo|eu mesma|me|mim)$/;
-export function ehMeu(responsavel: string | undefined, meusNomes: string[] = []) {
-  const r = semAcento((responsavel || "").trim());
-  if (!r) return true;
-  return EU.test(r) || meusNomes.some((n) => semAcento(n.trim()) === r);
-}
-
-// Tarefa aberta sem nenhum sinal de vida há este tanto de dias conta como "parada".
-export const DIAS_PARADA = 7;
-
-// Data (AAAA-MM-DD) do último sinal de vida da tarefa: registro na timeline, passo concluído
-// ou pendência avulsa criada. Editar título ou prioridade não conta.
-export function ultimaAtividade(t: Tarefa) {
-  let d = dataLocalDe(t.criadaEm);
-  const ve = (x: string) => { if (x && x > d) d = x; };
-  for (const r of t.registros) {
-    ve(r.data);
-    for (const p of r.proximosPassos) ve(dataLocalDe(p.feitoEm));
-  }
-  for (const p of t.passos ?? []) {
-    ve(dataLocalDe(p.criadoEm));
-    ve(dataLocalDe(p.feitoEm));
-  }
-  return d;
-}
-
-export function diasSemAtividade(t: Tarefa) {
-  return Math.max(0, -(diasAte(ultimaAtividade(t)) ?? 0));
-}
-
-// "Parada" = aberta e esquecida. Tarefa em espera com cobrança marcada não conta:
-// ela está parada de propósito e quem avisa é a data de cobrança.
-export function estaParada(t: Tarefa) {
-  if (!STATUS_ABERTOS.includes(t.status)) return false;
-  if (STATUS_ESPERA.includes(t.status) && t.cobrarEm) return false;
-  return diasSemAtividade(t) >= DIAS_PARADA;
-}
-
-// Soma dias a hoje e devolve AAAA-MM-DD (fuso local).
-export function hojeMais(dias: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + dias);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export function ultimoRegistro(t: Tarefa) {
