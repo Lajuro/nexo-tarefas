@@ -306,7 +306,7 @@ async function main() {
   });
   await etapa("pessoas mostra a participante", async () => {
     await pg.goto(B + "/pessoas");
-    await pg.locator("[data-slot=pessoa]", { hasText: "Marina" }).first().waitFor();
+    await pg.locator("[data-slot=pessoa], [data-slot=nome-solto]", { hasText: "Marina" }).first().waitFor();
   });
   await etapa("links: adicionar e ver na lista", async () => {
     await pg.goto(B + "/links");
