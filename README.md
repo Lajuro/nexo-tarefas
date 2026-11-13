@@ -36,6 +36,10 @@ Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como u
 
 A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia e uma captura rápida de tarefa.
 
+### Busca e "só os meus"
+
+A busca aceita várias palavras em qualquer ordem e abre a tarefa já no registro encontrado. Em **Configurações**, "Como você aparece nos passos" guarda o seu nome e apelidos: com isso, passos em que o Copilot escreveu o seu nome contam como seus, e os prompts passam a dizer ao Copilot quem é você.
+
 ### Registrou no lugar errado?
 
 Cada registro da linha do tempo tem um botão **Mover para outra tarefa**. E no menu "..." da tarefa existe **Juntar em outra tarefa**, para quando uma tarefa na verdade faz parte de outra: os registros, tags e links vão para a tarefa escolhida e a antiga vai para a lixeira, de onde dá para restaurar.
