@@ -154,7 +154,7 @@ export function PessoaForm({
       }
     >
       <div data-slot="pessoa-form" className="grid gap-x-6 gap-y-4 md:grid-cols-2" onKeyDown={aoTeclar}>
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="grid min-w-0 content-start gap-4">
           <Campo rotulo="Nome">
             <div className="flex items-center gap-2.5">
               <AvatarPessoa nome={nomeLimpo || "?"} tamanho="lg" />
@@ -225,7 +225,7 @@ export function PessoaForm({
           </Campo>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="grid min-w-0 content-start gap-4">
           <Campo rotulo="Pode ajudar com" dica="É o que aparece em destaque na lista e na busca.">
             <Textarea
               rows={4}
