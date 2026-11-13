@@ -197,6 +197,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco). Tem **rascunho automático** (seção 4): fechar com algo digitado (Esc, clique fora, X) guarda o rascunho e avisa, sem perguntar; o rodapé ganha "Descartar" (com confirmação) e "Fechar e continuar depois". Ao abrir, o estado vem do rascunho, se houver, e um aviso no topo permite descartá-lo e voltar ao que estava salvo.
 - Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `lib/acoes.ts`), que gera o marco.
 - Toda tarefa mostrada na tela tem o menu de ações (`components/MenuTarefa.tsx`): botão direito ou "...".
+- **Consertar o que foi registrado no lugar errado** (`components/MoverEJuntar.tsx`, montado uma vez no Shell e aberto por evento): cada registro da timeline (menos os marcos) tem "Mover para outra tarefa", e o menu da tarefa tem "Juntar em outra tarefa...". Juntar leva registros, tags e links para o destino, grava um marco "Juntou a tarefa X" com a descrição que ela tinha e manda a origem para a lixeira (restaurável). A ordem das gravações é sempre **destino recebe, depois origem perde**: se falhar no meio, sobra uma cópia repetida, nunca um buraco. As folhas do bloco de notas que apontavam para a origem passam a apontar para o destino.
 
 ---
 
@@ -281,6 +282,7 @@ components/
   Raiz.tsx                provedores de interface: tema, confirmação, dicas, toasts, MotionConfig
   Shell.tsx               moldura: barra lateral, barra superior, barra de status, atalhos
   MenuTarefa.tsx          menu de ações da tarefa (botão direito e "...") e useAcoesTarefa()
+  MoverEJuntar.tsx        janelas de mover registro para outra tarefa e de juntar duas tarefas
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
   useLembretes.ts         lembretes ativos e adiar()
   useHoje.ts              dia de hoje que se atualiza sozinho na virada do dia
@@ -437,7 +439,7 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 | `components/Raiz.tsx` | Provedores de interface: tema (`useTema`), confirmação (`useConfirmar`), dicas, toasts, `MotionConfig`. |
 | `components/MenuTarefa.tsx` | `MenuContextoTarefa` (botão direito), `BotaoMenuTarefa` ("...") e `useAcoesTarefa()`. Toda tarefa que aparece na tela deve ter esse menu. |
 | `components/useLembretes.ts` | Lembretes ativos e `adiar()`. |
-| `lib/acoes.ts` | Transformações puras de tarefa: `aplicarStatus`, `comFoco`, `comLembrete`, `comPassoAlternado`, `comPrazoDoPasso`, `semRegistro`. Use sempre dentro de `atualizarTarefa(id, fn)`. |
+| `lib/acoes.ts` | Transformações puras de tarefa: `aplicarStatus`, `comFoco`, `comLembrete`, `comPassoAlternado`, `comPrazoDoPasso`, `semRegistro`, `comRegistroRecebido`, `semRegistroMovido`, `comTarefaJuntada`. Use sempre dentro de `atualizarTarefa(id, fn)`. |
 | `lib/lembretes.ts` | Motor de lembretes (`gerarLembretes`, `resumoDoDia`, `sugestoesDeFoco`, `dataRelativa`, `saudacao`, `LIMITES`). Função pura. |
 | `lib/preferencias.ts` | `usePref(chave, padrao)` (localStorage com prefixo `nexo:`) e `useRotina()`. |
 | `lib/animacoes.ts` | Presets do motion: `suave`, `mola`, `lista`/`itemLista`, `subir`, `brotar`, `itemRemovivel`. |
