@@ -399,8 +399,65 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="-"
-manifest() { :; }
+MANIFEST_COMMIT="f6149e8"
+manifest() {
+  cat <<'MANIFESTO'
+100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
+100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
+100644 9d150a798809d8bf527aabdfcb4420a9c3d0169b AGENTS.md
+100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
+100644 cd157bb84684e2163216daeb0f242bb822f529e6 Iniciar Nexo.cmd
+100644 0758da0331509a17acb7b7749120e9df33a53a58 README.md
+100644 8e355462a183535d349b80f580493cfcb187032b app/api/arquivos/route.ts
+100644 b19a971d9b52424cb50c5eccb24d40eac71d0051 app/api/backup/route.ts
+100644 c28578efe9be7694957478263f3c8a387e3a3bbb app/api/categorias/route.ts
+100644 dc390bd3abe6e2d536f0b519dad280099d9fc9ac app/api/config/route.ts
+100644 3ae2cf010e2f4fc81dc8ab47d43d85d44a81ca46 app/api/dados/route.ts
+100644 b46621e477758df584374185b49985124466a3f6 app/api/estado/route.ts
+100644 a107bb9bedd857f1f989405d51392ee9396dc2a7 app/api/exportar/route.ts
+100644 0aa3a525b99939e81777ab96654037e3c1f04841 app/api/links/route.ts
+100644 9516a379fb5f1a299e1648d21db38c352688f709 app/api/lixeira/route.ts
+100644 636c77351b2310321b6a1158098fd204686d933a app/api/tarefas/[id]/route.ts
+100644 be03b9b4d625b288ff25acaafe3ff2c2f19cc597 app/busca/page.tsx
+100644 fcbbf13c4704687eca63f016c68fac3a4b7a1c22 app/categorias/[id]/page.tsx
+100644 65a34376a0569a6b8f8da7bb4d2f1601271cc190 app/categorias/page.tsx
+100644 16edfe25e285327a327142dd58d7050668fd32a7 app/configuracoes/page.tsx
+100644 294d23c927424c0f5caa55ad059abf95b6393143 app/globals.css
+100644 2289de44510aede8c34ed3f17b766275e2b9299f app/icon.svg
+100644 b87085b50984ec0e0eb58943dc1128d9c055724a app/layout.tsx
+100644 b0bf2304b5b95637290205aa8b60a42cd5fc7a22 app/links/page.tsx
+100644 78d55ec532182a636239444e0802a57a08116d36 app/page.tsx
+100644 0dfe929bd587f96e2441ef5c1df1d6ef253516e6 app/pendencias/page.tsx
+100644 d64bb6a7542c91486718bb5726d960fe23cae870 app/pessoas/page.tsx
+100644 de75afa2156998dbdbe502f212d7a36c31edb209 app/relatorios/page.tsx
+100644 146a1c8df141e48413b09de59e2ebda1e090f9c7 app/tarefas/[id]/page.tsx
+100644 f249c45957868d18eacdfb637ba405101e0af212 components/CardTarefa.tsx
+100644 217c182779aaac6dff77950ad8d57e8560491adb components/CategoriaForm.tsx
+100644 fed306dcbee7ecf1ba9fa5d24f465dbfbabe08d9 components/LinkForm.tsx
+100644 0662ca6afb1dbd00ceea4e8bc151a1eb36a6dc3d components/PromptModal.tsx
+100644 a3a3cde259821bea77130e83d4fd93a0962ac7c4 components/Provider.tsx
+100644 7e082b32fcd8a88fdf95f815cff60f399194baea components/RegistroEditor.tsx
+100644 9c8bc1bb540080b92f1bfdab72580ea70e016187 components/Shell.tsx
+100644 fec7bee0583cd051b11b9efc94668cd0d2d184ae components/TarefaForm.tsx
+100644 5c010c264e6128ffab7a66b3cad7019d5ec9c58e components/ui.tsx
+100644 52a0c6378aa8b47f0473752b560d6e4479133f3e lib/armazenamento.ts
+100644 736abd1d29fafa5a6f5b6be4f59c9711cc878507 lib/markdown.ts
+100644 306cd900e20302ac2c5761ec3b0b65ebdd9a59bb lib/migracoes.ts
+100644 82abb58521d35b7d8eb3284ba1f4256846d4b11c lib/prompts.ts
+100644 1e547873db8208dc03cb56acf363e9941c5c35fd lib/resposta.ts
+100644 ed979a24431d03532ff5626da51ad07ab1c6b50a lib/tipos.ts
+100644 47b9f102f4b8b34b862fa295f5108806e1198d79 next.config.ts
+100644 acae9b665646e0db591ec34d2ef7459d08ef9323 package-lock.json
+100644 84e14988b110bd7a6313278b3b61e78f8379bd86 package.json
+100644 ff217c0e0a103de9951a58cdc113c13f3dd18df8 proxy.ts
+100755 - scripts/baixar-nexo.sh
+100755 b248bddf0ce318579f048d93b148d56418632320 scripts/gerar-scripts-de-copia.sh
+100644 68a98f7f69c9e9628299ea390a20f053130edc45 scripts/instalar-nexo.ps1
+100644 f253a1dc20f32dcd5bb139ea0dca9001fe53dc29 testes/api.sh
+100644 ff2ed5da58f9709bc3d1af56654f52fd8155e3c7 testes/e2e.py
+100644 1a0ca4a34fe96c15554af6446dbe6aca722fa8c7 tsconfig.json
+MANIFESTO
+}
 # <<< MANIFESTO
 
 main
