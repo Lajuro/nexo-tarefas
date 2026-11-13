@@ -94,6 +94,8 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 
 ## Proteções contra perda de dados
 
+- Rascunho automático no editor de registro: pode fechar no meio da digitação (Esc, clique fora, F5, janela fechada, navegador travado) que o texto volta quando abrir de novo, e a página da tarefa avisa com **Continuar** e **Descartar**. O rascunho fica no navegador, então vale para aquele navegador e some se você limpar os dados do site.
+- Os formulários de tarefa, link e resposta colada do Copilot perguntam antes de fechar se houver texto digitado.
 - Escrita atômica (arquivo temporário + troca), com nova tentativa se o OneDrive estiver segurando o arquivo.
 - Arquivo corrompido nunca é tratado como vazio: o app avisa e não grava por cima.
 - Controle de revisão: se a mesma tarefa for alterada em duas abas ou dois PCs, a segunda gravação é recusada em vez de sobrescrever.

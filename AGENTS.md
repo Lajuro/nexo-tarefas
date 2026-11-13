@@ -100,6 +100,10 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   - item removido de categorias/links → `_lixeira/<colecao>-removidos-<carimbo>.json`;
   - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`.
 - **Espelho em Markdown** (`markdown/<slug>--<id>.md`) regenerado a cada gravação: se o app morrer, os dados continuam legíveis e pesquisáveis no Windows.
+- **Nada digitado se perde antes de salvar**:
+  - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5, janela fechada ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
+  - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
+  - os formulários de tarefa, link e resposta colada do Copilot não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`useFecharComCuidado()` em `components/Raiz.tsx`). **Formulário novo com texto longo tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
 
@@ -137,7 +141,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
 ### Preferências de interface (localStorage, não são dados)
-Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage.
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage. A única coisa além de preferência que mora lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`, seção 4): são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
 
 ---
 
@@ -182,7 +186,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Privacidade**: nomes e e-mails reais nunca vão para o repositório. Testes e exemplos usam nomes fictícios e o domínio `exemplo.local`.
 
 ### Regras que continuam valendo
-- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
+- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco). Tem **rascunho automático** (seção 4): fechar com algo digitado (Esc, clique fora, X) guarda o rascunho e avisa, sem perguntar; o rodapé ganha "Descartar" (com confirmação) e "Fechar e continuar depois". Ao abrir, o estado vem do rascunho, se houver, e um aviso no topo permite descartá-lo e voltar ao que estava salvo.
 - Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `lib/acoes.ts`), que gera o marco.
 - Toda tarefa mostrada na tela tem o menu de ações (`components/MenuTarefa.tsx`): botão direito ou "...".
 
@@ -298,6 +302,7 @@ lib/
   lembretes.ts            motor de lembretes (função pura sobre os dados)
   preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
   prompts.ts              prompts do Copilot e parser da resposta
+  rascunhos.ts            rascunho automático do editor de registro (localStorage, só cliente)
   pessoas.ts              diretório unificado (cadastradas + nomes soltos), pessoasDaCategoria, nomesConhecidos
   importar-pessoas.ts     importador do Outlook sem API (colagem, CSV, vCard, ANSI) e compararComCadastro
   markdown.ts             espelho .md de cada tarefa
@@ -366,6 +371,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Lembretes são calculados na hora a partir dos dados (não há tabela de lembretes para manter). O que é preferência (adiar, tema, rotina) fica no localStorage; o que é dado (`lembrarEm`, `focoEm`, prazo do passo) fica na tarefa.
 - Não usamos notificações do sistema operacional: os lembretes vivem dentro do app (sino, Hoje, ritual do dia).
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
+- **Rascunho do editor de registro fica no `localStorage`**, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. "Atualizar a tarefa junto" só entra no rascunho se foi mexido, para um rascunho antigo não desfazer uma mudança de status feita depois. Fechar o editor guarda o rascunho em vez de perguntar "descartar?", porque assim dá para fechar no meio de uma reunião, olhar a timeline e voltar.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
@@ -388,6 +394,8 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela).
 5. Atualize este AGENTS.md (seções 5 a 8 e 11) e o README se o comportamento para o usuário mudou. Suba a `version` no `package.json` em mudanças relevantes.
 6. Commits em português, descritivos.
+7. **Toda entrega vai para a `main`**, depois de os testes passarem (pedido do dono). É o que garante que uma sessão nova comece do estado mais recente: sessões diferentes não lembram umas das outras, só enxergam o repositório. Se o workflow dos scripts de cópia não rodar, gere-os à mão (seção 9) e suba junto.
+8. **Antes de começar qualquer trabalho, liste as branches remotas** (`git branch -r` depois de `git fetch`) e veja se alguma tem commits que a `main` não tem. Se tiver, pare e pergunte ao dono antes de trabalhar em cima da `main`: já aconteceu de uma sessão refazer, sobre uma versão antiga, coisas que estavam prontas numa branch ainda não unida.
 
 ## 13. Interface (design system)
 

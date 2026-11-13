@@ -42,6 +42,27 @@ const ContextoConfirmar = createContext<Confirmar>(async () => false);
 /** `const confirmar = useConfirmar(); if (await confirmar({ titulo: "Excluir?" })) ...` */
 export const useConfirmar = () => useContext(ContextoConfirmar);
 
+/**
+ * Para formulários sem rascunho: fecha direto se nada foi digitado; senão pergunta antes de
+ * jogar fora. Use o retorno como `fechar` do Modal e do botão Cancelar.
+ */
+export function useFecharComCuidado(sujo: boolean, fechar: () => void) {
+  const confirmar = useConfirmar();
+  return async () => {
+    if (sujo) {
+      const descartar = await confirmar({
+        titulo: "Fechar sem salvar?",
+        descricao: "O que você digitou aqui ainda não foi salvo e se perde se fechar agora.",
+        confirmar: "Descartar",
+        cancelar: "Continuar editando",
+        perigo: true,
+      });
+      if (!descartar) return;
+    }
+    fechar();
+  };
+}
+
 export function Raiz({ children }: { children: ReactNode }) {
   const [tema, setTema] = useState<Tema>("sistema");
   const [resolvido, setResolvido] = useState<"claro" | "escuro">("claro");

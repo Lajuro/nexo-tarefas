@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, Pencil, Plus, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
+import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, History, Pencil, Plus, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { BotaoMenuTarefa, useAcoesTarefa } from "@/components/MenuTarefa";
@@ -24,7 +24,8 @@ import { ehFocoHoje, semRegistro } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
-import { Registro, TipoRegistro, agoraISO, formatarData, ordenarRegistros, tipoInfo } from "@/lib/tipos";
+import { Rascunho, apagarRascunho, listarRascunhos } from "@/lib/rascunhos";
+import { Registro, TipoRegistro, agoraISO, formatarData, formatarDataHora, ordenarRegistros, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 // Filtro rápido da linha do tempo. "Atividades" junta tudo que não é reunião nem marco
@@ -75,6 +76,13 @@ export default function PaginaTarefa() {
   // Versões antigas gravaram "1"/"0" nesta chave; Boolean(Number()) entende os dois formatos.
   const [prefRecentes, setPrefRecentes] = usePref<boolean>("recentesPrimeiro", false);
   const recentes = Boolean(Number(prefRecentes));
+
+  // Rascunhos de registro que ficaram sem salvar (editor fechado, F5, janela fechada, travamento).
+  // Relê sempre que o editor fecha.
+  const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
+  useEffect(() => {
+    if (!editor.aberto) setRascunhos(listarRascunhos(id));
+  }, [editor.aberto, id]);
 
   const tarefa = dados?.tarefas.find((t) => t.id === id);
   const cat = dados?.categorias.items.find((c) => c.id === tarefa?.categoriaId);
@@ -223,6 +231,34 @@ export default function PaginaTarefa() {
               </div>
             </div>
 
+            {rascunhos.map((x) => {
+              const reg = x.registroId ? tarefa.registros.find((r) => r.id === x.registroId) : null;
+              if (x.registroId && !reg) return null; // o registro saiu da timeline; o rascunho não tem onde entrar
+              const oQue = reg
+                ? `edição de “${reg.titulo || tipoInfo(reg.tipo).nome}”`
+                : `registro novo: ${tipoInfo(x.r.tipo).nome.toLowerCase()}${x.r.titulo ? `, “${x.r.titulo}”` : ""}`;
+              return (
+                <div key={x.registroId ?? "novo"} data-slot="rascunho-aviso" role="status"
+                  className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-info/30 bg-info/10 px-3.5 py-2.5 text-[13px] leading-snug">
+                  <History className="size-4 shrink-0 text-info" />
+                  <span className="min-w-0 flex-1 basis-56">Rascunho não salvo ({oQue}), de {formatarDataHora(x.salvoEm)}.</span>
+                  <div className="flex items-center gap-1.5">
+                    <Button size="sm" onClick={() => setEditor(reg ? { aberto: true, registro: reg } : { aberto: true, tipo: x.r.tipo })}>Continuar</Button>
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      const ok = await confirmar({
+                        titulo: "Descartar este rascunho?",
+                        descricao: "O que você tinha digitado neste registro se perde.",
+                        confirmar: "Descartar",
+                        perigo: true,
+                      });
+                      if (!ok) return;
+                      apagarRascunho(tarefa.id, x.registroId);
+                      setRascunhos(listarRascunhos(tarefa.id));
+                    }}>Descartar</Button>
+                  </div>
+                </div>
+              );
+            })}
             {tarefa.registros.length === 0 ? (
               <Vazio titulo="Nada registrado ainda" icone={<Plus />}>
                 <p>Registre a primeira reunião ou atividade desta tarefa para começar a linha do tempo.</p>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, FileText, FolderOpen, Globe, Link2 } from "lucide-react";
 import { useNexo } from "./Provider";
+import { useFecharComCuidado } from "./Raiz";
 import { Campo, ChipsInput, IconeStatus, Modal, PontoCor, formatarTamanho } from "./comum";
 import { IconeLink } from "./links/IconeLink";
 import { Button } from "@/components/ui/button";
@@ -128,15 +129,20 @@ export function LinkForm({
   const ehRede = url.trim().startsWith("\\\\");
   const IconeEndereco = ehRede ? FolderOpen : Globe;
 
+  const sujo = aberto && (
+    titulo !== (link?.titulo ?? "") || url !== (link?.url ?? "") || descricao !== (link?.descricao ?? "") || arquivo !== null
+  );
+  const tentarFechar = useFecharComCuidado(sujo, fechar);
+
   return (
     <Modal
       titulo={link ? "Editar link ou documento" : "Adicionar link ou documento"}
       descricao="Guarde um endereço ou a cópia de um arquivo para achar depois."
       aberto={aberto}
-      fechar={fechar}
+      fechar={tentarFechar}
       rodape={
         <>
-          <Button variant="outline" onClick={fechar}>Cancelar</Button>
+          <Button variant="outline" onClick={tentarFechar}>Cancelar</Button>
           <Button disabled={!liberado} onClick={salvar}>{salvando ? "Salvando..." : "Salvar"}</Button>
         </>
       }

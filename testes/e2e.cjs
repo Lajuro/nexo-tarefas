@@ -14,7 +14,8 @@
 // NEXO_E2E_FOTOS=<pasta> salva screenshots de cada etapa (opcional).
 //
 // Cobre: categorias, nova tarefa pelo atalho N, registro de reunião com o fluxo
-// do Copilot (copiar prompt, colar resposta, preencher campos), atividade que
+// do Copilot (copiar prompt, colar resposta, preencher campos), rascunho do registro
+// (Esc, F5, continuar, descartar), atividade que
 // conclui passo antigo, passo marcado na página da tarefa, troca de status com
 // marco, conclusão, lista/quadro/filtro em /tarefas, pendências, busca, pessoas,
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
@@ -223,6 +224,29 @@ async function main() {
   });
 
   // ---------- atividade que conclui passo antigo ----------
+  await etapa("rascunho do registro sobrevive a Esc e F5", async () => {
+    await pg.locator('[data-slot=registrar][data-tipo=reuniao]').click();
+    let d = dialogo();
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    await d.getByPlaceholder("O que foi falado").fill("anotação que não pode sumir");
+    await d.locator("[data-slot=rascunho-estado]").waitFor();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=rascunho-aviso]").waitFor();
+    await pg.reload();
+    await pg.locator("[data-slot=rascunho-aviso]").getByRole("button", { name: "Continuar" }).click();
+    d = dialogo();
+    await d.locator("[data-slot=rascunho-recuperado]").waitFor();
+    afirmar((await d.getByPlaceholder("O que foi falado").inputValue()) === "anotação que não pode sumir", "o rascunho não voltou depois do F5");
+    await d.getByRole("button", { name: "Descartar", exact: true }).click();
+    await pg.locator("[role=alertdialog][data-state=open]").getByRole("button", { name: "Descartar" }).click();
+    await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=rascunho-aviso]").waitFor({ state: "detached" });
+    await pg.locator("[role=alertdialog]").waitFor({ state: "detached" });
+    const sobras = await pg.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("nexo:rascunho:")).length);
+    afirmar(sobras === 0, "o rascunho descartado continuou guardado");
+  });
+
   await etapa("atividade conclui passo antigo", async () => {
     await pg.locator('[data-slot=registrar][data-tipo=atividade]').click();
     const d = dialogo();

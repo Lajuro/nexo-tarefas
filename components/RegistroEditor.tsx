@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ClipboardPaste, ListChecks, RefreshCw, WandSparkles, X } from "lucide-react";
+import { ClipboardPaste, History, ListChecks, RefreshCw, WandSparkles, X } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { Campo, ChipsInput, IconeTipo, LinhaCampos, Modal, SeletorPrioridade, copiarTexto, opcoesStatus } from "./comum";
@@ -19,8 +19,9 @@ import { aplicarStatus } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
+import { Rascunho, apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
 import {
-  Passo, Registro, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarData, hojeISO, nomeStatus,
+  Passo, Registro, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarData, formatarDataHora, hojeISO, nomeStatus,
   normalizarPasso, normalizarRegistro, novoId, passosAbertos,
 } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -79,24 +80,81 @@ export function RegistroEditor({
   const [copiado, marcarCopiado] = useCopiado();
   const inicial = useRef("");
   const relogioRealce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Rascunho automático (lib/rascunhos.ts): o que foi digitado e ainda não foi salvo.
+  const [recuperado, setRecuperado] = useState<Rascunho | null>(null);
+  const [rascunhoOk, setRascunhoOk] = useState(true);
+  const base = useRef<{ r: Registro; colado: string } | null>(null); // o registro como estava, para "descartar rascunho"
+  const alvo = useRef<string | null>(null); // retrato que o estado terá quando a abertura terminar de carregar
+  const gravada = useRef<string | null>(null); // último retrato guardado como rascunho
+  const encerrado = useRef(false); // salvo ou descartado: não recria o rascunho
+  const regId = registro?.id ?? null;
 
   useEffect(() => {
     if (!aberto) return;
-    const base = registro ? structuredClone(registro) : normalizarRegistro({ tipo: tipoInicial, data: hojeISO() });
-    setR(base);
-    setColado(registro?.respostaIABruta ?? "");
-    setStatus(tarefa.status);
-    setPrioridade(tarefa.prioridade);
-    setPrazo(tarefa.prazo ?? "");
-    setConcluir([]);
+    const original = registro ? structuredClone(registro) : normalizarRegistro({ tipo: tipoInicial, data: hojeISO() });
+    const coladoOriginal = registro?.respostaIABruta ?? "";
+    const lido = lerRascunho(tarefa.id, regId);
+    const rasc = lido && (!registro || lido.r.id === registro.id) ? lido : null;
+    // Abre do rascunho, se houver. Status, prioridade e prazo só vêm dele se tinham sido mexidos.
+    const ini = {
+      r: rasc ? rasc.r : original,
+      colado: rasc ? rasc.colado : coladoOriginal,
+      status: rasc?.status ?? tarefa.status,
+      prioridade: rasc?.prioridade ?? tarefa.prioridade,
+      prazo: rasc?.prazo ?? (tarefa.prazo ?? ""),
+      concluir: rasc ? rasc.concluir : [],
+    };
+    setR(ini.r);
+    setColado(ini.colado);
+    setStatus(ini.status);
+    setPrioridade(ini.prioridade);
+    setPrazo(ini.prazo);
+    setConcluir(ini.concluir);
+    setRecuperado(rasc);
+    setRascunhoOk(true);
+    base.current = { r: structuredClone(original), colado: coladoOriginal };
+    alvo.current = retrato(ini.r, ini.colado, ini.status, ini.prioridade, ini.prazo, ini.concluir);
+    gravada.current = rasc ? alvo.current : null;
+    encerrado.current = false;
     setSalvando(false);
     setJaCopiou(false);
     setPreenchido(null);
     setRealce({ campos: [], passos: [] });
     setFocarPasso(null);
-    inicial.current = retrato(base, registro?.respostaIABruta ?? "", tarefa.status, tarefa.prioridade, tarefa.prazo ?? "", []);
+    inicial.current = retrato(original, coladoOriginal, tarefa.status, tarefa.prioridade, tarefa.prazo ?? "", []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, registro?.id]);
+
+  // A cada mudança, guarda no navegador o que ainda não foi salvo (e apaga se voltou ao original).
+  const atual = retrato(r, colado, status, prioridade, prazo, concluir);
+  useEffect(() => {
+    if (!aberto || encerrado.current) return;
+    if (alvo.current !== null) {
+      // Logo depois de abrir, o estado ainda é o da abertura anterior: espera carregar.
+      if (atual !== alvo.current) return;
+      alvo.current = null;
+    }
+    if (atual === inicial.current) {
+      if (gravada.current !== null) apagarRascunho(tarefa.id, regId);
+      gravada.current = null;
+      return;
+    }
+    if (atual === gravada.current) return;
+    const ok = gravarRascunho({
+      tarefaId: tarefa.id,
+      registroId: regId,
+      r,
+      colado,
+      status: status !== tarefa.status ? status : undefined,
+      prioridade: prioridade !== tarefa.prioridade ? prioridade : undefined,
+      prazo: prazo !== (tarefa.prazo ?? "") ? prazo : undefined,
+      concluir,
+      baseAtualizadoEm: registro?.atualizadoEm ?? null,
+    });
+    gravada.current = ok ? atual : null;
+    setRascunhoOk(ok);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, atual]);
 
   useEffect(() => () => {
     if (relogioRealce.current) clearTimeout(relogioRealce.current);
@@ -109,7 +167,8 @@ export function RegistroEditor({
   const quem = useMemo(() => ["Eu", ...pessoas.filter((p) => p !== "Eu")], [pessoas]);
 
   const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro.id !== r.id);
-  const mudou = aberto && retrato(r, colado, status, prioridade, prazo, concluir) !== inicial.current;
+  const mudou = aberto && atual !== inicial.current;
+  const registroMudouDepois = !!registro && !!recuperado?.baseAtualizadoEm && recuperado.baseAtualizadoEm !== registro.atualizadoEm;
 
   async function copiarPrompt() {
     if (!r.anotacoes.trim()) toast("Dica: escreva suas anotações brutas antes, o prompt usa elas.", "info");
@@ -193,7 +252,10 @@ export function RegistroEditor({
     novo.alteracoes = alteracoes;
 
     const ok = await atualizarTarefa(tarefa.id, (t) => {
-      const regs = registro ? t.registros.map((x) => (x.id === registro.id ? novo : x)) : [...t.registros, novo];
+      // Decide pelo que está gravado agora: se o registro já existe, troca; se não, acrescenta.
+      const regs = t.registros.some((x) => x.id === novo.id)
+        ? t.registros.map((x) => (x.id === novo.id ? novo : x))
+        : [...t.registros, novo];
       const regsComConcluidos = regs.map((x) => ({
         ...x,
         proximosPassos: x.proximosPassos.map((p) =>
@@ -205,25 +267,55 @@ export function RegistroEditor({
     });
     setSalvando(false);
     if (ok) {
+      encerrado.current = true;
+      apagarRascunho(tarefa.id, regId);
       toast("Registro salvo.");
       fechar();
     }
   }
 
-  // Esc, clique fora, X e Cancelar passam por aqui: nada digitado some sem perguntar.
+  const perguntarDescarte = () =>
+    confirmar({
+      titulo: "Descartar o que você escreveu?",
+      descricao: "Este registro ainda não foi salvo. Se descartar, o que você digitou aqui se perde.",
+      confirmar: "Descartar",
+      cancelar: "Continuar editando",
+      perigo: true,
+    });
+
+  // Esc, clique fora, X e "Fechar e continuar depois" passam por aqui: o que foi digitado fica
+  // guardado como rascunho e volta ao reabrir. Só pergunta se o navegador não deixou guardar.
   async function tentarFechar() {
     if (salvando) return;
-    if (mudou) {
-      const descartar = await confirmar({
-        titulo: "Descartar o que você escreveu?",
-        descricao: "Este registro ainda não foi salvo. Se fechar agora, o que você digitou aqui se perde.",
-        confirmar: "Descartar",
-        cancelar: "Continuar editando",
-        perigo: true,
-      });
-      if (!descartar) return;
+    if (mudou && !rascunhoOk) {
+      if (!(await perguntarDescarte())) return;
+    } else if (mudou) {
+      toast("Rascunho guardado. Ele volta quando você abrir este registro de novo.", "info");
     }
     fechar();
+  }
+
+  // Botão "Descartar": joga o rascunho fora e fecha.
+  async function descartar() {
+    if (salvando || !(await perguntarDescarte())) return;
+    encerrado.current = true;
+    apagarRascunho(tarefa.id, regId);
+    fechar();
+  }
+
+  // No aviso de rascunho recuperado: volta ao que estava salvo, sem fechar o editor.
+  async function descartarRecuperado() {
+    if (!base.current || !(await perguntarDescarte())) return;
+    apagarRascunho(tarefa.id, regId);
+    gravada.current = null;
+    setR(structuredClone(base.current.r));
+    setColado(base.current.colado);
+    setStatus(tarefa.status);
+    setPrioridade(tarefa.prioridade);
+    setPrazo(tarefa.prazo ?? "");
+    setConcluir([]);
+    setPreenchido(null);
+    setRecuperado(null);
   }
 
   const tipos = TIPOS_REGISTRO.filter((t) => t.id !== "marco" || r.tipo === "marco");
@@ -242,8 +334,14 @@ export function RegistroEditor({
         <>
           <span className="mr-auto hidden items-center gap-1.5 text-[11px] text-muted-foreground sem-selecao sm:flex">
             <Kbd>Ctrl</Kbd><Kbd>Enter</Kbd> salva
+            {mudou && (
+              <span data-slot="rascunho-estado" className={cn("ml-2", !rascunhoOk && "text-alerta")}>
+                {rascunhoOk ? "Rascunho guardado neste navegador" : "Atenção: não consegui guardar o rascunho"}
+              </span>
+            )}
           </span>
-          <Button variant="outline" onClick={tentarFechar}>Cancelar</Button>
+          {mudou && <Button variant="destructive-ghost" onClick={descartar}>Descartar</Button>}
+          <Button variant="outline" onClick={tentarFechar}>{mudou ? "Fechar e continuar depois" : "Cancelar"}</Button>
           <Button onClick={salvar} disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar registro"}
           </Button>
@@ -262,6 +360,17 @@ export function RegistroEditor({
       >
         {/* Esquerda: o que aconteceu, do jeito que o usuário anotou */}
         <div data-slot="editor-anotacoes" className="flex min-w-0 flex-col gap-3.5 p-5 lg:min-h-0 lg:flex-1 lg:basis-0 lg:overflow-y-auto">
+          {recuperado && (
+            <div data-slot="rascunho-recuperado" role="status"
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs leading-snug">
+              <History className="size-3.5 shrink-0 text-info" />
+              <span className="min-w-0 flex-1 basis-48">
+                Continuando o rascunho de {formatarDataHora(recuperado.salvoEm)}, que não tinha sido salvo.
+                {registroMudouDepois && " O registro foi alterado depois disso: salvar grava a versão do rascunho."}
+              </span>
+              <Button variant="outline" size="sm" onClick={descartarRecuperado}>Descartar rascunho</Button>
+            </div>
+          )}
           <Segmentado
             aria-label="Tipo de registro"
             valor={r.tipo}

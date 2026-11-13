@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
+import { useFecharComCuidado } from "./Raiz";
 import { ComboCategoria } from "./tarefas/ComboCategoria";
 import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, SeletorPrioridade, opcoesStatus } from "./comum";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,13 @@ export function TarefaForm({
     setSalvando(false);
     gravando.current = false;
   }, [aberto, tarefa, categoriaInicial]);
+
+  // Texto digitado e ainda não salvo: Esc, clique fora e Cancelar perguntam antes de jogar fora.
+  const sujo = aberto && (
+    titulo !== (tarefa?.titulo ?? "") || descricao !== (tarefa?.descricao ?? "") ||
+    tags.join("\n") !== (tarefa?.tags ?? []).join("\n") || novaCat.trim() !== ""
+  );
+  const tentarFechar = useFecharComCuidado(sujo, fechar);
 
   const todasCategorias = dados?.categorias.items;
   const corNova = CORES[(todasCategorias?.length ?? 0) % CORES.length];
@@ -143,7 +151,7 @@ export function TarefaForm({
       titulo={tarefa ? "Editar tarefa" : "Nova tarefa"}
       descricao={tarefa ? "Mudar o status aqui também registra um marco na linha do tempo." : "Só o título é obrigatório. O resto dá para completar depois."}
       aberto={aberto}
-      fechar={fechar}
+      fechar={tentarFechar}
       className="max-w-[580px]"
       rodape={
         <>
@@ -152,7 +160,7 @@ export function TarefaForm({
             <Kbd>Enter</Kbd>
             <span className="ml-0.5">salva de qualquer campo</span>
           </span>
-          <Button variant="outline" onClick={fechar}>Cancelar</Button>
+          <Button variant="outline" onClick={tentarFechar}>Cancelar</Button>
           <Button onClick={salvar} disabled={salvando || !titulo.trim()}>
             {salvando ? "Salvando..." : "Salvar"}
           </Button>

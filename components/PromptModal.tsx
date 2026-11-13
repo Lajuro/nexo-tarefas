@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { Modal, copiarTexto } from "./comum";
 import { useNexo } from "./Provider";
+import { useFecharComCuidado } from "./Raiz";
 import { BlocoCopilot, IconeCopiar, PassoCopilot, useCopiado } from "./tarefa/Copilot";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
@@ -56,16 +57,19 @@ export function PromptModal({
     fechar();
   };
 
+  // Resposta colada e ainda não guardada: pergunta antes de fechar.
+  const tentarFechar = useFecharComCuidado(aberto && !!aoSalvarResposta && !!resposta.trim(), fechar);
+
   return (
     <Modal
       titulo={titulo}
       descricao={explicacao}
       aberto={aberto}
-      fechar={fechar}
+      fechar={tentarFechar}
       className="max-w-[720px]"
       rodape={
         <>
-          <Button variant="outline" onClick={fechar}>Fechar</Button>
+          <Button variant="outline" onClick={tentarFechar}>Fechar</Button>
           {aoSalvarResposta && (
             <Button disabled={!resposta.trim() || salvando} onClick={salvar}>
               {salvando ? "Salvando..." : rotuloSalvar}
