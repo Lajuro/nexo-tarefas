@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="8fd5d50"
+MANIFEST_COMMIT="162ef94"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 da9965abba9edec5a4cc85b8d7e6e95816df105a AGENTS.md
+100644 d519a775e666557dae83e8e6b9711203df5ace24 AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 4a03b50b4e6440946bd82efbd76befd7ca7e3019 README.md
+100644 8d01aa33852947b9f0f40944453441569031ce93 README.md
 100644 8e355462a183535d349b80f580493cfcb187032b app/api/arquivos/route.ts
 100644 b19a971d9b52424cb50c5eccb24d40eac71d0051 app/api/backup/route.ts
 100644 c28578efe9be7694957478263f3c8a387e3a3bbb app/api/categorias/route.ts
@@ -434,19 +434,19 @@ manifest() {
 100644 0a6f76ffa109f0bf97eeda85e55aba30f0a63d1e app/pessoas/page.tsx
 100644 64119c209adfa1cf14576df9bae5c6d834dd0689 app/relatorios/page.tsx
 100644 ca5daa3a78f3349c37e13f18c88fb8c6dd79a715 app/revisao/page.tsx
-100644 213cf61fb9cfb72917403eea237f81b957199c41 app/tarefas/[id]/page.tsx
+100644 6a584b2258548380ffd8762c807370ccca478ea7 app/tarefas/[id]/page.tsx
 100644 ddc3325edbbe3e2c024fd7ddbda048a91048af85 app/tarefas/page.tsx
 100644 de75a0b4bb49f3e74eceaeb4db039a6fcb1aef67 components.json
 100644 f785e9017c940c3135204a43cb8596f5fcb08d4b components/CardTarefa.tsx
 100644 c8345f8321be3bd5036840aa64e489960d7a9129 components/CategoriaForm.tsx
-100644 e4626b677b4a2764483e003a05ca45180c7c88c9 components/LinkForm.tsx
+100644 93a0b6f3fbf90d955dbf754c70406d5ffb33d7f1 components/LinkForm.tsx
 100644 14a00edc715f600ab1c8f772351f9b8b7c6142f9 components/MenuTarefa.tsx
-100644 4f80b986c58a5d2ce48b9d16c342199c107bd26d components/PromptModal.tsx
+100644 45cc0682abc77b0c3c8ed8fe1fed7ad9d7b46e20 components/PromptModal.tsx
 100644 35d37c637ce58cfd47df7c81348afe6ae21bf2a3 components/Provider.tsx
-100644 b33c203c30a244fc625f7324fae69696c0859c68 components/Raiz.tsx
-100644 5567a920b06134ea88f8e09d42003e8d9f4ed227 components/RegistroEditor.tsx
+100644 55ab790a3587bfcda534123dc4e5c34f31a34bea components/Raiz.tsx
+100644 5007343501fcb51c0fd6f872114149341f53e9d4 components/RegistroEditor.tsx
 100644 f9ee3626d7ff105972db3930a42e9aef2c3ed7da components/Shell.tsx
-100644 de7e4540072986e6bc7b3b6d6b96072a163d03c0 components/TarefaForm.tsx
+100644 50a53c0af3e3d0734245214b9c2aa55f960d3730 components/TarefaForm.tsx
 100644 853b57ea933d3108e61b2f0a42b3d35c2dd88083 components/busca/CampoBusca.tsx
 100644 057d16d862d907a36f53fc2ad3b9844d01024f41 components/categorias/CartaoCategoria.tsx
 100644 b90efb4a33ad6983da8fb39689e56d942006ee4e components/categorias/EmblemaCategoria.tsx
@@ -525,13 +525,14 @@ manifest() {
 100644 dcd751bb9a402f99fd908b362912017426ff0b1e lib/pessoas.ts
 100644 246009cfbac2816f3b967d13bde470a46dd18ffa lib/preferencias.ts
 100644 82abb58521d35b7d8eb3284ba1f4256846d4b11c lib/prompts.ts
+100644 d5de2f346661d8c4ceb7ec704c9db14a1809b97c lib/rascunhos.ts
 100644 1e547873db8208dc03cb56acf363e9941c5c35fd lib/resposta.ts
 100644 16e4cce4c12f7879eb0e43a0ba484d8c071a9a21 lib/tema.ts
-100644 f772206612fd3d6e47faeef687129785a8cff622 lib/tipos.ts
+100644 f2246db4cd974921435129d7ea79dd0fa8a0f3db lib/tipos.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 47b9f102f4b8b34b862fa295f5108806e1198d79 next.config.ts
-100644 d333a8c695eb1fcff46ca8ac9a4bb0bab16927b8 package-lock.json
-100644 1ac07f5935f04fbc4b5c545181b458a64027a82b package.json
+100644 2726bbe69a55023040e11ee9def366151403a597 package-lock.json
+100644 86de5262607a079fc2943b9bf5878910e861416e package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 ff217c0e0a103de9951a58cdc113c13f3dd18df8 proxy.ts
 100755 - scripts/baixar-nexo.sh
@@ -539,7 +540,7 @@ manifest() {
 100644 68a98f7f69c9e9628299ea390a20f053130edc45 scripts/instalar-nexo.ps1
 100755 - scripts/nexo-offline.sh
 100644 d6d4f1ef1e5ff3afe7e776f4372458c52b4b45db testes/api.sh
-100644 69271c3f3b30a0502fc172fe4fcf5cd35353cf24 testes/e2e.cjs
+100644 6a19b81baa02e365ed7fd2166329850493c8447f testes/e2e.cjs
 100644 01ad3d1d401e114e651ce756995c206a6d42233b testes/pessoas.test.mjs
 100644 6f822ba77ec626f837f431a0b7a18f82272ae0d7 testes/semear.mjs
 100644 1a0ca4a34fe96c15554af6446dbe6aca722fa8c7 tsconfig.json
