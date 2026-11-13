@@ -265,7 +265,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 
 ## 11. Decisões tomadas e pontos em aberto
 
-- **Prioridade 1 a 10, quanto maior mais urgente.** No esboço não ficou claro o sentido (T4 = 8, T2 = 2). O usuário ainda não confirmou; se ele pedir o inverso, isso muda o significado de um valor gravado, então **é migração** (seção 4).
+- **Prioridade 1 a 10, quanto maior mais urgente.** Confirmado pelo usuário. Mudar o sentido no futuro altera o significado de um valor gravado, então **é migração** (seção 4).
 - Pasta de dados é um caminho digitado (o servidor é local, então pode ler qualquer pasta do usuário). Não há seletor de pasta nativo.
 - Timeline em ordem crescente por padrão (como no esboço), com alternância.
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
