@@ -111,6 +111,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   nexo.json                      { app: "nexo", schemaVersion, criadoEm, migradoEm? }
   categorias.json                { rev, items: Categoria[] }
   links.json                     { rev, items: LinkDoc[] }
+  pessoas.json                   { rev, items: Pessoa[] }   (ausente = vazio, rev 0)
+  times.json                     { rev, items: Time[] }     (ausente = vazio, rev 0)
   tarefas/<id>.json              uma Tarefa por arquivo, com a timeline inteira dentro
   arquivos/AAAA/<base36>-<nome>  documentos anexados (gravação com flag "wx": nunca sobrescreve)
   markdown/<slug>--<id>.md       espelho legível, gerado (pode apagar)
@@ -128,6 +130,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo?`. As "pendências" do app são todos os passos com `feito=false` de tarefas abertas.
 - **Categoria**: `id, nome, descricao, cor, arquivada?, criadaEm, atualizadaEm`.
 - **LinkDoc**: `id, tipo ("link"|"arquivo"), titulo, url?, arquivo? (caminho relativo em arquivos/), nomeArquivo?, tamanho?, descricao, tags[], tarefaId?, categoriaId?, criadoEm`.
+- **Pessoa**: `id ("pe..."), nome, apelidos[], email, cargo, area, ajudaCom, anotacoes, categoriaIds[], tags[], arquivada?, origem? ("manual"|"registros"|"outlook"), criadaEm, atualizadaEm`. Registros e passos continuam guardando nomes como texto; a ligação com o cadastro é feita na leitura (`lib/pessoas.ts`, `chaveNome` contra `nome` e `apelidos`). Nada é reescrito nas tarefas.
+- **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
@@ -231,6 +235,8 @@ app/
     tarefas/[id] PUT   { tarefa, revEsperada|null }   DELETE → lixeira
     categorias/  PUT   { items, revEsperada }   (lista inteira; removidos vão pra lixeira)
     links/       PUT   { items, revEsperada }
+    pessoas/     PUT   { items, revEsperada }   (ids validados por ID_VALIDO, sem repetição)
+    times/       PUT   { items, revEsperada }
     arquivos/    POST  multipart "arquivo" → { arquivo, nomeArquivo, tamanho }
                  GET   ?p=<caminho relativo>[&baixar=1]  (inline com CSP sandbox)
     backup/      GET lista, POST backup manual
@@ -270,6 +276,8 @@ lib/
   lembretes.ts            motor de lembretes (função pura sobre os dados)
   preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
   prompts.ts              prompts do Copilot e parser da resposta
+  pessoas.ts              diretório unificado (cadastradas + nomes soltos), pessoasDaCategoria, nomesConhecidos
+  importar-pessoas.ts     importador do Outlook sem API (colagem, CSV, vCard, ANSI) e compararComCadastro
   markdown.ts             espelho .md de cada tarefa
   resposta.ts             tratar(): erro → 409 (conflito), 423 (somente leitura), 500
   animacoes.ts            presets do motion (suave, mola, lista, subir...)
@@ -282,7 +290,8 @@ next.config.ts            configuração do Next.js
 scripts/                  instalação/atualização sem git (seção 9)
 testes/api.sh             testes de fumaça da API e da segurança
 testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node)
-testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável
+testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável (--so-pessoas: só pessoas e times)
+testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { toast as sonner } from "sonner";
-import { Categoria, Dados, EstadoApp, LinkDoc, Tarefa, normalizarTarefa } from "@/lib/tipos";
+import { Categoria, Dados, EstadoApp, LinkDoc, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
@@ -16,6 +16,8 @@ interface Ctx {
   excluirTarefa: (id: string) => Promise<boolean>;
   salvarCategorias: (fn: (items: Categoria[]) => Categoria[]) => Promise<boolean>;
   salvarLinks: (fn: (items: LinkDoc[]) => LinkDoc[]) => Promise<boolean>;
+  salvarPessoas: (fn: (items: Pessoa[]) => Pessoa[]) => Promise<boolean>;
+  salvarTimes: (fn: (items: Time[]) => Time[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
@@ -167,7 +169,7 @@ export function Provider({ children }: { children: ReactNode }) {
   );
 
   const salvarColecao = useCallback(
-    <T,>(nome: "categorias" | "links", fn: (items: T[]) => T[]) =>
+    <T,>(nome: "categorias" | "links" | "pessoas" | "times", fn: (items: T[]) => T[]) =>
       enfileirar(nome, async () => {
         const d = ref.current;
         if (!d) return false;
@@ -203,6 +205,14 @@ export function Provider({ children }: { children: ReactNode }) {
   );
   const salvarLinks = useCallback(
     (fn: (items: LinkDoc[]) => LinkDoc[]) => salvarColecao<LinkDoc>("links", fn),
+    [salvarColecao],
+  );
+  const salvarPessoas = useCallback(
+    (fn: (items: Pessoa[]) => Pessoa[]) => salvarColecao<Pessoa>("pessoas", fn),
+    [salvarColecao],
+  );
+  const salvarTimes = useCallback(
+    (fn: (items: Time[]) => Time[]) => salvarColecao<Time>("times", fn),
     [salvarColecao],
   );
 
@@ -246,7 +256,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

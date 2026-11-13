@@ -2,7 +2,7 @@
 // É função pura (sem estado, sem disco): a interface decide o que mostrar e o que adiar.
 // Nada aqui é gravado. "Adiar" um lembrete fica em localStorage (ver components/useLembretes.ts).
 
-import { Passo, Registro, STATUS_ABERTOS, Tarefa, diasAte, formatarData, hojeISO } from "./tipos";
+import { type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO } from "./tipos";
 
 /** Limites, em dias, que disparam cada tipo de lembrete. */
 export const LIMITES = {

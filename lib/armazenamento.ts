@@ -3,8 +3,9 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import {
-  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Tarefa, ID_VALIDO,
-  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarTarefa,
+  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Pessoa, Tarefa, Time, ID_VALIDO,
+  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarPessoa, normalizarTarefa,
+  normalizarTime,
 } from "./tipos";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
 import { tarefaParaMarkdown } from "./markdown";
@@ -15,6 +16,8 @@ import { tarefaParaMarkdown } from "./markdown";
   nexo.json              -> versão do formato dos dados (schemaVersion)
   categorias.json        -> categorias
   links.json             -> banco de links e documentos
+  pessoas.json           -> pessoas cadastradas (ausente = nenhuma)
+  times.json             -> times, com responsáveis e membros (ausente = nenhum)
   tarefas/<id>.json      -> uma tarefa por arquivo, com toda a timeline dentro
   arquivos/AAAA/...      -> documentos anexados (nunca são sobrescritos)
   markdown/*.md          -> espelho legível das tarefas (gerado, pode apagar)
@@ -25,6 +28,12 @@ import { tarefaParaMarkdown } from "./markdown";
   O código do app NUNCA fica nessa pasta, e a configuração (qual pasta usar)
   fica em ~/.nexo/config.json. Atualizar o app não encosta em nada disso.
 */
+
+/** Coleções gravadas como arquivo único { rev, items } na raiz da pasta de dados. */
+export const COLECOES = ["categorias", "links", "pessoas", "times"] as const;
+export type NomeColecao = (typeof COLECOES)[number];
+/** Coleções novas: cada item precisa ter id válido (ID_VALIDO) e único para ser gravado. */
+const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times"];
 
 const CONFIG_DIR = path.join(os.homedir(), ".nexo");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -180,7 +189,7 @@ async function snapshot(dir: string, nome: string) {
   const destino = path.join(dir, "_backups", nome);
   if (existsSync(destino)) return destino;
   await fs.mkdir(destino, { recursive: true });
-  for (const f of ["nexo.json", "categorias.json", "links.json"]) {
+  for (const f of ["nexo.json", ...COLECOES.map((c) => `${c}.json`)]) {
     if (existsSync(path.join(dir, f))) await fs.copyFile(path.join(dir, f), path.join(destino, f));
   }
   if (existsSync(path.join(dir, "tarefas"))) {
@@ -274,7 +283,9 @@ export async function lerTudo(): Promise<Dados> {
   }
   const categorias = await lerColecao<Categoria>(dir, "categorias", normalizarCategoria, avisos);
   const links = await lerColecao<LinkDoc>(dir, "links", normalizarLink, avisos);
-  return { tarefas, categorias, links, avisos };
+  const pessoas = await lerColecao<Pessoa>(dir, "pessoas", normalizarPessoa, avisos);
+  const times = await lerColecao<Time>(dir, "times", normalizarTime, avisos);
+  return { tarefas, categorias, links, pessoas, times, avisos };
 }
 
 async function lerColecao<T>(
@@ -365,14 +376,24 @@ export async function restaurarDaLixeira(arquivo: string) {
   return t;
 }
 
-// ---------- escrita: coleções (categorias, links) ----------
+// ---------- escrita: coleções (categorias, links, pessoas, times) ----------
 
 export async function salvarColecao<T extends { id: string }>(
-  nome: "categorias" | "links",
+  nome: NomeColecao,
   items: Partial<T>[],
   revEsperada: number,
   norm: (x: Partial<T>) => T,
 ): Promise<Colecao<T>> {
+  if (COLECOES_COM_ID_ESTRITO.includes(nome)) {
+    const vistos = new Set<string>();
+    for (const i of items) {
+      if (!i || typeof i !== "object" || typeof i.id !== "string" || !ID_VALIDO.test(i.id)) {
+        throw new Error(`ID inválido na lista de ${nome}.`);
+      }
+      if (vistos.has(i.id)) throw new Error(`ID repetido na lista de ${nome}: ${i.id}.`);
+      vistos.add(i.id);
+    }
+  }
   const dir = await paraEscrita();
   const arq = path.join(dir, `${nome}.json`);
   const atual = await lerJson<Colecao<Partial<T>>>(arq, { rev: 0, items: [] });

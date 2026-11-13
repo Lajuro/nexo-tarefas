@@ -119,6 +119,50 @@ export interface LinkDoc {
   [extra: string]: unknown;
 }
 
+/**
+ * Pessoa cadastrada (pessoas.json). Os registros e passos continuam guardando nomes como texto;
+ * a ligação com o cadastro é feita na leitura, comparando o nome normalizado com `nome` e `apelidos`.
+ */
+export interface Pessoa {
+  id: string; // novoId("pe")
+  nome: string;
+  /** Outros nomes pelos quais aparece nos registros (ex.: "Marina", "Marina S."). */
+  apelidos: string[];
+  email: string;
+  /** Função ou papel. */
+  cargo: string;
+  /** Área, squad ou empresa (texto livre). */
+  area: string;
+  /** Com o que essa pessoa pode ajudar. */
+  ajudaCom: string;
+  anotacoes: string;
+  /** Assuntos (categorias) aos quais está ligada. */
+  categoriaIds: string[];
+  tags: string[];
+  arquivada?: boolean;
+  origem?: "manual" | "registros" | "outlook";
+  criadaEm: string;
+  atualizadaEm: string;
+  [extra: string]: unknown;
+}
+
+/** Time (times.json). Os vínculos com pessoas ficam aqui, não na Pessoa. */
+export interface Time {
+  id: string; // novoId("ti")
+  nome: string;
+  descricao: string;
+  /** Uma das CORES. */
+  cor: string;
+  responsavelIds: string[];
+  /** Inclui os responsáveis. */
+  membroIds: string[];
+  categoriaIds: string[];
+  arquivado?: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+  [extra: string]: unknown;
+}
+
 export interface Colecao<T> {
   rev: number;
   items: T[];
@@ -129,6 +173,8 @@ export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
   links: Colecao<LinkDoc>;
+  pessoas: Colecao<Pessoa>;
+  times: Colecao<Time>;
   avisos: string[];
 }
 
@@ -254,6 +300,47 @@ export function normalizarLink(l: Partial<LinkDoc>): LinkDoc {
     tarefaId: l.tarefaId || null,
     categoriaId: l.categoriaId || null,
     criadoEm: str(l.criadoEm) || agoraISO(),
+  };
+}
+
+const ORIGENS_PESSOA = ["manual", "registros", "outlook"] as const;
+const semRepetir = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Boolean))];
+
+export function normalizarPessoa(p: Partial<Pessoa>): Pessoa {
+  return {
+    ...p,
+    id: str(p.id) || novoId("pe"),
+    nome: str(p.nome).trim() || "Sem nome",
+    apelidos: semRepetir(arrStr(p.apelidos)),
+    email: str(p.email).trim(),
+    cargo: str(p.cargo),
+    area: str(p.area),
+    ajudaCom: str(p.ajudaCom),
+    anotacoes: str(p.anotacoes),
+    categoriaIds: semRepetir(arrStr(p.categoriaIds)),
+    tags: arrStr(p.tags),
+    arquivada: Boolean(p.arquivada),
+    origem: ORIGENS_PESSOA.includes(p.origem as (typeof ORIGENS_PESSOA)[number]) ? p.origem : "manual",
+    criadaEm: str(p.criadaEm) || agoraISO(),
+    atualizadaEm: str(p.atualizadaEm) || agoraISO(),
+  };
+}
+
+export function normalizarTime(t: Partial<Time>): Time {
+  const responsavelIds = semRepetir(arrStr(t.responsavelIds));
+  return {
+    ...t,
+    id: str(t.id) || novoId("ti"),
+    nome: str(t.nome).trim() || "Sem nome",
+    descricao: str(t.descricao),
+    cor: str(t.cor) || CORES[6],
+    responsavelIds,
+    // os responsáveis também são membros
+    membroIds: semRepetir([...arrStr(t.membroIds), ...responsavelIds]),
+    categoriaIds: semRepetir(arrStr(t.categoriaIds)),
+    arquivado: Boolean(t.arquivado),
+    criadoEm: str(t.criadoEm) || agoraISO(),
+    atualizadoEm: str(t.atualizadoEm) || agoraISO(),
   };
 }
 

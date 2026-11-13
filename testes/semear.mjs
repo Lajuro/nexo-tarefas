@@ -3,8 +3,11 @@
 //
 //   HOME=/tmp/nexo-home NEXO_DATA_DIR=/tmp/nexo-dados npm run dev
 //   node testes/semear.mjs            (usa NEXO_URL ou http://127.0.0.1:3210)
+//   node testes/semear.mjs --so-pessoas  (só as pessoas e os times de demonstração, numa pasta
+//                                         que já tem o cenário mas ainda não tem pessoas/times)
 //
-// Recusa rodar se já existir alguma tarefa, para nunca misturar com dados de verdade.
+// Recusa rodar se já existir alguma tarefa (ou, com --so-pessoas, se já houver pessoas ou times),
+// para nunca misturar com dados de verdade.
 
 const B = process.env.NEXO_URL || "http://127.0.0.1:3210";
 const J = { "Content-Type": "application/json" };
@@ -37,6 +40,63 @@ const reg = (tipo, delta, titulo, extra = {}) => ({
 });
 const criada = (delta, status = "a_fazer") =>
   reg("marco", delta, "Tarefa criada", { alteracoes: { status: { de: "", para: status } } });
+
+// Pessoas cadastradas e times. Diego e Letícia ficam de fora de propósito (aparecem só nos registros).
+const pessoas = [
+  {
+    id: "pedemomarina", nome: "Marina Souza", apelidos: ["Marina"], email: "marina.souza@exemplo.local",
+    cargo: "Product Owner", area: "Squad de Pagamentos", ajudaCom: "Priorizar o backlog do squad e liberar acessos aos repositórios.",
+    anotacoes: "Prefere alinhar por mensagem antes de marcar reunião.", categoriaIds: ["cdemoferr"], tags: ["pagamentos"],
+  },
+  {
+    id: "pedemofelipe", nome: "Felipe Rocha", apelidos: ["Felipe"], email: "felipe.rocha@exemplo.local",
+    cargo: "Arquiteto de soluções", area: "Arquitetura", ajudaCom: "Validar desenho de integração e padrões de pipeline.",
+    anotacoes: "", categoriaIds: ["cdemoferr", "cdemohard"], tags: ["arquitetura"],
+  },
+  {
+    id: "pedemobruno", nome: "Bruno Lima", apelidos: ["Bruno"], email: "bruno.lima@exemplo.local",
+    cargo: "Desenvolvedor sênior", area: "Squad de Pagamentos", ajudaCom: "Corrigir achados no código do checkout e testar regras do scan.",
+    anotacoes: "", categoriaIds: [], tags: ["pagamentos", "dev"],
+  },
+  {
+    id: "pedemocamila", nome: "Camila Torres", apelidos: ["Camila"], email: "camila.torres@exemplo.local",
+    cargo: "Coordenadora de capacitação", area: "Pessoas e Cultura", ajudaCom: "Agenda, salas e comunicação da trilha de champions.",
+    anotacoes: "", categoriaIds: ["cdemochamp"], tags: ["treinamento"],
+  },
+  {
+    id: "pedemorafael", nome: "Rafael Melo", apelidos: ["Rafael"], email: "rafael.melo@exemplo.local",
+    cargo: "Gerente de segurança", area: "Segurança da Informação", ajudaCom: "Aprovar exceções, destravar janelas de mudança e falar com a liderança.",
+    anotacoes: "Gestor direto.", categoriaIds: ["cdemochamp", "cdemovuln", "cdemohard"], tags: ["liderança"],
+  },
+].map((p) => ({ ...p, origem: "manual", criadaEm: carimbo(-40), atualizadaEm: carimbo(-40) }));
+
+const times = [
+  {
+    id: "tidemopagamentos", nome: "Squad de Pagamentos", descricao: "Squad dono do checkout e da API de pagamentos.", cor: "#0090ff",
+    responsavelIds: ["pedemomarina"], membroIds: ["pedemomarina", "pedemobruno"], categoriaIds: ["cdemoferr"],
+  },
+  {
+    id: "tidemoarquitetura", nome: "Arquitetura", descricao: "Time de arquitetura de soluções.", cor: "#8e4ec6",
+    responsavelIds: ["pedemofelipe"], membroIds: ["pedemofelipe"], categoriaIds: ["cdemoferr", "cdemohard"],
+  },
+].map((t) => ({ ...t, criadoEm: carimbo(-40), atualizadoEm: carimbo(-40) }));
+
+async function semearPessoas() {
+  const d = await api("/api/dados");
+  if (!d.pessoas || !d.times) throw new Error("Este servidor ainda não conhece pessoas e times. Atualize o app.");
+  if (d.pessoas.items.length || d.times.items.length) {
+    console.error("Esta pasta já tem pessoas ou times cadastrados. Nada foi alterado.");
+    process.exit(1);
+  }
+  await api("/api/pessoas", { method: "PUT", headers: J, body: JSON.stringify({ items: pessoas, revEsperada: d.pessoas.rev }) });
+  await api("/api/times", { method: "PUT", headers: J, body: JSON.stringify({ items: times, revEsperada: d.times.rev }) });
+}
+
+if (process.argv.includes("--so-pessoas")) {
+  await semearPessoas();
+  console.log(`Pessoas e times de demonstração criados em ${B}: ${pessoas.length} pessoas, ${times.length} times.`);
+  process.exit(0);
+}
 
 const dados = await api("/api/dados");
 if (dados.tarefas.length) {
@@ -185,4 +245,9 @@ const links = [
 const atual = await api("/api/dados");
 await api("/api/links", { method: "PUT", headers: J, body: JSON.stringify({ items: links, revEsperada: atual.links.rev }) });
 
-console.log(`Cenário de demonstração criado em ${B}: ${tarefas.length} tarefas, ${cats.length} categorias, ${links.length} links.`);
+await semearPessoas();
+
+console.log(
+  `Cenário de demonstração criado em ${B}: ${tarefas.length} tarefas, ${cats.length} categorias, ${links.length} links, ` +
+    `${pessoas.length} pessoas, ${times.length} times.`,
+);
