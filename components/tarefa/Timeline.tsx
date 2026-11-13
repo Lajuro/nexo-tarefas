@@ -7,7 +7,8 @@
 import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
+import { pedirMoverRegistro } from "@/components/MoverEJuntar";
 import { ChipPessoa, IconeTipo, STATUS_VISUAL, StatusBadge, TipoBadge } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
@@ -37,7 +38,11 @@ function Rotulo({ icone, children, className }: { icone?: ReactNode; children: R
   );
 }
 
-function AcoesRegistro({ aoEditar, aoRemover, className }: { aoEditar: () => void; aoRemover: () => void; className?: string }) {
+function AcoesRegistro({
+  aoEditar, aoRemover, aoMover, className,
+}: {
+  aoEditar: () => void; aoRemover: () => void; aoMover?: () => void; className?: string;
+}) {
   return (
     <div
       data-slot="registro-acoes"
@@ -49,6 +54,11 @@ function AcoesRegistro({ aoEditar, aoRemover, className }: { aoEditar: () => voi
       <Dica texto="Editar registro">
         <Button variant="ghost" size="icon-sm" aria-label="Editar registro" onClick={aoEditar}><Pencil /></Button>
       </Dica>
+      {aoMover && (
+        <Dica texto="Mover para outra tarefa">
+          <Button variant="ghost" size="icon-sm" aria-label="Mover registro para outra tarefa" onClick={aoMover}><ArrowRightLeft /></Button>
+        </Dica>
+      )}
       <Dica texto="Remover da linha do tempo">
         <Button variant="ghost" size="icon-sm" aria-label="Remover registro" onClick={aoRemover}
           className="hover:bg-destructive/10 hover:text-destructive">
@@ -113,7 +123,7 @@ function CardRegistro({
           <TipoBadge tipo={r.tipo} />
           {r.titulo && <h3 className="min-w-0 text-sm leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">{r.titulo}</h3>}
         </div>
-        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} className="-mt-1 -mr-2" />
+        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} aoMover={() => pedirMoverRegistro(tarefa.id, r.id)} className="-mt-1 -mr-2" />
       </header>
 
       {r.participantes.length > 0 && (
@@ -260,7 +270,7 @@ function CardConclusao({
             {dias === 0 ? "resolvida no mesmo dia em que foi criada" : dias === 1 ? "1 dia do início ao fim" : `${dias} dias do início ao fim`}
           </p>
         </div>
-        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} className="-mt-1 -mr-2" />
+        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} aoMover={() => pedirMoverRegistro(tarefa.id, r.id)} className="-mt-1 -mr-2" />
       </div>
       {r.anotacoes && <p className="mt-2 text-[13px] leading-relaxed texto-pre">{r.anotacoes}</p>}
     </div>

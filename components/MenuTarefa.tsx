@@ -6,9 +6,10 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Target, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Merge, Target, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
+import { pedirJuntarTarefa } from "./MoverEJuntar";
 import { IconeStatus, copiarTexto } from "./comum";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
@@ -126,6 +127,9 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       <k.Separator />
       <k.Item onSelect={async () => (await copiarTexto(t.titulo)) && toast("Título copiado.", "info")}>
         <Copy /> Copiar título
+      </k.Item>
+      <k.Item onSelect={() => pedirJuntarTarefa(t.id)}>
+        <Merge /> Juntar em outra tarefa...
       </k.Item>
       <k.Item perigo onSelect={() => a.excluir(t, aoExcluir)}>
         <Trash2 /> Mover para a lixeira

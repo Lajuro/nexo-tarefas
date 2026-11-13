@@ -28,6 +28,7 @@ import { Dica } from "@/components/ui/popover";
 import { aberta, passosAbertosDe } from "@/lib/lembretes";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
+import { MoverEJuntar } from "./MoverEJuntar";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
 
@@ -176,6 +177,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} fechar={() => setNova({ aberto: false })} />
       <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
+      <MoverEJuntar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
       <Paleta
         aberta={paleta}

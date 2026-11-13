@@ -70,3 +70,44 @@ export function semRegistro(t: Tarefa, registroId: string): Tarefa {
     registrosRemovidos: [...((t.registrosRemovidos as Registro[]) || []), { ...r, removidoEm: agoraISO() }],
   };
 }
+
+/** Recebe um registro vindo de outra tarefa. Não duplica se ele já estiver aqui. */
+export function comRegistroRecebido(t: Tarefa, r: Registro): Tarefa {
+  if (t.registros.some((x) => x.id === r.id)) return t;
+  return { ...t, registros: [...t.registros, r] };
+}
+
+/**
+ * Tira um registro que foi MOVIDO para outra tarefa. Diferente de semRegistro(): ele não vai
+ * para registrosRemovidos, porque continua existindo na tarefa de destino.
+ */
+export function semRegistroMovido(t: Tarefa, registroId: string): Tarefa {
+  return { ...t, registros: t.registros.filter((x) => x.id !== registroId) };
+}
+
+/**
+ * Junta `origem` dentro de `destino`: os registros (menos os marcos, que contam a história da
+ * outra tarefa) e as tags vêm para cá, e um marco registra a junção com a descrição que a outra
+ * tinha. Prazo e follow-up só são herdados se o destino não tiver os seus.
+ * Pode rodar duas vezes sem duplicar nada (o marco tem id fixo).
+ */
+export function comTarefaJuntada(destino: Tarefa, origem: Tarefa): Tarefa {
+  const ja = new Set(destino.registros.map((r) => r.id));
+  const vindos = origem.registros.filter((r) => r.tipo !== "marco" && !ja.has(r.id));
+  const idMarco = `junta-${origem.id}`;
+  const marco = ja.has(idMarco)
+    ? []
+    : [
+        normalizarRegistro({
+          id: idMarco, tipo: "marco", data: hojeISO(), titulo: `Juntou a tarefa “${origem.titulo}”`,
+          anotacoes: origem.descricao ? `Descrição que ela tinha: ${origem.descricao}` : "",
+        }),
+      ];
+  return {
+    ...destino,
+    registros: [...destino.registros, ...vindos, ...marco],
+    tags: [...new Set([...destino.tags, ...origem.tags])],
+    prazo: destino.prazo ?? origem.prazo,
+    lembrarEm: destino.lembrarEm ?? origem.lembrarEm ?? null,
+  };
+}
