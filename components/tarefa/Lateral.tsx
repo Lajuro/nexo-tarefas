@@ -15,6 +15,7 @@ import { itemLista, itemRemovivel, lista } from "@/lib/animacoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { LinkDoc, Tarefa, diasAte, formatarData, passosAbertos } from "@/lib/tipos";
+import { cn } from "@/lib/utils";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
 import { TextoRico } from "./Texto";
@@ -164,8 +165,9 @@ function Panorama({ tarefa, aoGerar }: { tarefa: Tarefa; aoGerar: () => void }) 
             </Dica>
             <Dica texto={aberto ? "Recolher" : "Mostrar"}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label={aberto ? "Recolher o panorama" : "Mostrar o panorama"} className="group/pan">
-                  <ChevronRight className="transition-transform duration-200 group-data-[state=open]/pan:rotate-90" />
+                {/* A Dica também escreve data-state no botão, então o giro segue o estado e não o atributo. */}
+                <Button variant="ghost" size="icon-sm" aria-label={aberto ? "Recolher o panorama" : "Mostrar o panorama"}>
+                  <ChevronRight className={cn("transition-transform duration-200", aberto && "rotate-90")} />
                 </Button>
               </CollapsibleTrigger>
             </Dica>

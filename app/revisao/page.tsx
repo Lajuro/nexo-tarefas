@@ -33,6 +33,15 @@ interface Inicial {
   retrato: Retrato;
 }
 
+/** Revisão em andamento, guardada por aba para sobreviver a uma recarga da página. */
+interface EmCurso {
+  dia: string;
+  fila: string[];
+  inicial: Record<string, Inicial>;
+  indice: number;
+}
+const EM_CURSO = "nexo:revisao-em-curso";
+
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 /**
@@ -124,6 +133,26 @@ export default function Revisao() {
       window.removeEventListener("pointerdown", ponteiro, true);
     };
   }, [fase, abertas.length, comecar, ir]);
+
+  // A revisão em curso sobrevive a um F5 (ou a sair e voltar na mesma aba, no mesmo dia): fica em
+  // sessionStorage, que é só desta aba. Nada disso é dado: as alterações já foram gravadas na hora.
+  useEffect(() => {
+    try {
+      const salvo = JSON.parse(sessionStorage.getItem(EM_CURSO) ?? "null") as EmCurso | null;
+      if (salvo?.dia !== hojeISO() || !Array.isArray(salvo.fila) || !salvo.fila.length) return;
+      if (!salvo.fila.every((id) => salvo.inicial?.[id]?.retrato)) return;
+      setFila(salvo.fila);
+      setInicial(salvo.inicial);
+      setPos([Math.min(Math.max(0, Number(salvo.indice) || 0), salvo.fila.length - 1), 1]);
+      setFase("passos");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      if (fase === "passos") sessionStorage.setItem(EM_CURSO, JSON.stringify({ dia: hojeISO(), fila, inicial, indice } satisfies EmCurso));
+      else sessionStorage.removeItem(EM_CURSO);
+    } catch {}
+  }, [fase, fila, inicial, indice]);
 
   useEffect(() => {
     rolagem.current?.scrollTo({ top: 0 });

@@ -72,7 +72,11 @@ export function passaSemStatus(t: Tarefa, f: Filtros, textoNormalizado: string) 
   if (f.especial === "atrasadas" && !atrasada(t)) return false;
   if (f.especial === "foco" && !(aberta(t) && ehFocoHoje(t))) return false;
   if (f.especial === "mes" && !concluidaNoMes(t)) return false;
-  if (textoNormalizado && !semAcento(`${t.titulo} ${t.descricao} ${t.tags.join(" ")}`).includes(textoNormalizado)) return false;
+  if (textoNormalizado) {
+    // Todas as palavras digitadas precisam aparecer, em qualquer ordem ("politica excecoes" acha "política de exceções").
+    const alvo = semAcento(`${t.titulo} ${t.descricao} ${t.tags.join(" ")}`);
+    if (!textoNormalizado.split(/\s+/).every((palavra) => alvo.includes(palavra))) return false;
+  }
   return true;
 }
 

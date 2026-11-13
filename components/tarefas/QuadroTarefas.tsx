@@ -232,7 +232,7 @@ export function QuadroTarefas({
 
       <DragOverlay dropAnimation={{ duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
         {ativa ? (
-          <div data-slot="cartao-fantasma" className="rotate-[1.5deg] cursor-grabbing">
+          <div data-slot="cartao-fantasma" className="rotate-[1.5deg] cursor-grabbing [&_button]:hidden">
             <CardTarefa
               t={ativa}
               cat={ativa.categoriaId ? categorias.get(ativa.categoriaId) : null}
