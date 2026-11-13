@@ -62,6 +62,7 @@ npm run typecheck   # tsc --noEmit
 bash testes/api.sh  # testes de fumaça da camada de dados e segurança (precisa de build)
 NEXO_URL=http://127.0.0.1:3311 node testes/e2e.cjs  # ponta a ponta da interface (Playwright para Node), pasta de dados VAZIA, ver cabeçalho
 node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
+node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do Outlook
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -149,7 +150,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), lateral com Pendências, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
-| `/pessoas` | Todos os participantes que já apareceram, com contagem, último contato e quantos passos estão com cada um; `?p=Nome` mostra o que está com a pessoa e o histórico de registros. |
+| `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
 | `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
@@ -171,6 +172,14 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Foco de hoje**: `tarefa.focoEm = hoje`. Vale só no dia; no dia seguinte a tarefa deixa de ser foco sem precisar limpar nada.
 - **Follow-up**: `tarefa.lembrarEm`. Definido no formulário, na página da tarefa ou pelo menu da tarefa ("Lembrar de voltar").
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
+
+### Pessoas e times
+- **Dois arquivos novos** na pasta de dados: `pessoas.json` (`{ rev, items: Pessoa[] }`) e `times.json` (`{ rev, items: Time[] }`). Se faltarem, valem como vazios (rev 0). Não houve migração: `SCHEMA_APP` continua 1, e uma versão antiga do app simplesmente ignora os dois arquivos.
+- **Nomes continuam como texto** nos registros e passos. A ligação com o cadastro é feita na leitura, por `nome` ou `apelidos` (`lib/pessoas.ts`: `montarDiretorio`, `acharPessoa`, `pessoasDaCategoria`, `nomesConhecidos`). Nada é reescrito nas tarefas.
+- **O vínculo com time mora no Time**: `membroIds` (que inclui os responsáveis) e `responsavelIds`. A Pessoa não guarda time.
+- **Ids** de pessoa e time são gerados no cliente com `novoId("pe")` e `novoId("ti")`, e validados no servidor por `ID_VALIDO`.
+- **Importação do Outlook** (`components/pessoas/ImportarPessoas.tsx` + `lib/importar-pessoas.ts`): tudo no navegador, sem API. Mostra prévia, avisa quem já existe e nunca duplica. Para quem já existe, só preenche campo vazio. Pode pôr os importados num time e ligá-los a uma categoria.
+- **Privacidade**: nomes e e-mails reais nunca vão para o repositório. Testes e exemplos usam nomes fictícios e o domínio `exemplo.local`.
 
 ### Regras que continuam valendo
 - **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
@@ -263,7 +272,20 @@ components/
   tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral
   pendencias/             tela de pendências: agrupamento e linhas
   categorias/             cartões de categoria, emblema e ações
-  pessoas/                lista e detalhe de pessoas
+  pessoas/                lista e detalhe de pessoas e times
+    AbasPessoas.tsx       alternância Pessoas | Times
+    ListaPessoas.tsx      aba Pessoas: cadastradas e nomes sem cadastro
+    ListaTimes.tsx        aba Times: cartões com cor, responsáveis e membros
+    DetalhePessoa.tsx     página da pessoa (?p=Nome): ajuda, times, passos, histórico
+    DetalheTime.tsx       página do time (?time=id): responsáveis, membros, tarefas
+    PessoaForm.tsx        cadastrar/editar pessoa
+    TimeForm.tsx          cadastrar/editar time
+    ImportarPessoas.tsx   assistente do Outlook (colar, CSV, vCard)
+    ListaPassos.tsx       passos em aberto com a pessoa ou o time, marcáveis
+    SeletorMultiplo.tsx   seleção múltipla com busca (chips + popover)
+    SeletorCor.tsx        bolinhas de cor do time
+    pecas.tsx             links, etiquetas, avatares, ações e menus
+    dados.ts              reexporta lib/pessoas.ts com os nomes antigos
   links/                  ícones e formato curto dos links
   busca/                  campo de busca e filtro
   revisao/                cartão da revisão semanal e contas do retrato
@@ -344,6 +366,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Lembretes são calculados na hora a partir dos dados (não há tabela de lembretes para manter). O que é preferência (adiar, tema, rotina) fica no localStorage; o que é dado (`lembrarEm`, `focoEm`, prazo do passo) fica na tarefa.
 - Não usamos notificações do sistema operacional: os lembretes vivem dentro do app (sino, Hoje, ritual do dia).
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
+- **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
 - Importar/colar a ata de reunião do Teams ou o texto de e-mail direto num registro.

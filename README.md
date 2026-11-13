@@ -59,6 +59,21 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Pessoas e times
+
+Cadastre as pessoas com quem você trabalha e os times de cada assunto. Assim o Nexo sabe quem pode ajudar com o quê, e cada nome que aparece nos registros fica ligado à pessoa certa.
+
+- **Pessoas**: nome, apelidos (outros jeitos de escrever o nome que aparecem nos registros), e-mail, cargo, área e "pode ajudar com".
+- **Times**: nome, cor, responsáveis e membros. Um time pode ser ligado a uma ou mais categorias.
+- **Categorias**: a página de cada categoria mostra quem pode ajudar naquele assunto e os times ligados a ele.
+- **Nomes sem cadastro**: quem aparece nos registros mas ainda não foi cadastrado fica numa lista própria. Dali você cadastra a pessoa ou junta o nome como apelido de alguém que já existe.
+- **Importar do Outlook**: três jeitos, e nada sai do seu computador.
+  - **Colar**: copie o campo Para ou Participantes de um e-mail ou de uma reunião e cole no app.
+  - **CSV**: exporte os contatos em arquivo CSV. No Outlook clássico: Arquivo > Abrir e Exportar > Importar/Exportar > Exportar para um arquivo. No Outlook novo ou na web: Pessoas > Gerenciar contatos > Exportar contatos.
+  - **vCard (.vcf)**: um arquivo com um ou mais contatos. No Outlook clássico, abra o contato e vá em Arquivo > Salvar como, escolhendo o formato vCard.
+
+O app mostra uma prévia antes de gravar. Quem já existe no cadastro não é duplicado: só entram os campos que estavam vazios.
+
 ## Onde ficam os dados
 
 ```
@@ -66,6 +81,8 @@ O Nexo lembra você do que fazer:
   nexo.json               versão do formato dos dados
   categorias.json
   links.json
+  pessoas.json            pessoas cadastradas (opcional: sem o arquivo, a lista começa vazia)
+  times.json              times (opcional, como as pessoas)
   tarefas/<id>.json       uma tarefa por arquivo, com a timeline inteira
   arquivos/AAAA/...       documentos anexados
   markdown/*.md           versão legível de cada tarefa (gerada automaticamente)

@@ -17,7 +17,7 @@
 // do Copilot (copiar prompt, colar resposta, preencher campos), atividade que
 // conclui passo antigo, passo marcado na página da tarefa, troca de status com
 // marco, conclusão, lista/quadro/filtro em /tarefas, pendências, busca, pessoas,
-// links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
+// pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
 // ritual "Planejar o dia", paleta Ctrl+K e tema escuro.
 
 const { chromium } = require("playwright");
@@ -356,6 +356,91 @@ async function main() {
       await pg.waitForTimeout(250);
     }
     await pg.locator("[data-slot=ritual-conteudo]").waitFor({ state: "detached" });
+  });
+
+  // ---------- pessoas e times ----------
+  const pessoasDe = async () => (await dados()).pessoas?.items || [];
+  const timesDe = async () => (await dados()).times?.items || [];
+  const escolherMultiplo = async (d, rotulo, nome) => {
+    await d.getByRole("combobox", { name: rotulo, exact: true }).click();
+    await pg.locator("[data-slot=command-item]", { hasText: nome }).first().click();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=command-item]").first().waitFor({ state: "detached" }).catch(() => {});
+  };
+  await etapa("pessoas: cadastrar nome solto", async () => {
+    await pg.goto(B + "/pessoas");
+    const solto = pg.locator("[data-slot=nomes-soltos] [data-slot=nome-solto]", { hasText: "Marina" }).first();
+    await solto.waitFor();
+    await solto.getByRole("button", { name: "Cadastrar" }).click();
+    const d = dialogo();
+    await d.locator("[data-slot=pessoa-form]").waitFor();
+    await d.getByPlaceholder("Ex.: Libera acessos, conhece a pipeline de deploy").fill("Libera a homologacao e conhece a pipeline");
+    await d.getByRole("button", { name: "Salvar", exact: true }).click();
+    await dialogo().waitFor({ state: "detached" }).catch(() => {});
+    const p = (await pessoasDe()).find((x) => /^Marina/.test(x.nome));
+    afirmar(p && /homologacao/.test(p.ajudaCom), "pessoa Marina sem ajudaCom no disco");
+    await pg.locator("[data-slot=pessoa]", { hasText: "Marina" }).first().waitFor();
+  });
+  await etapa("pessoas: nova pessoa", async () => {
+    await pg.goto(B + "/pessoas");
+    await pg.getByRole("button", { name: "Nova pessoa" }).first().click();
+    const d = dialogo();
+    await d.locator("[data-slot=pessoa-form]").waitFor();
+    await d.getByPlaceholder("Nome completo").fill("Renata Alves");
+    await d.getByLabel("E-mail", { exact: true }).fill("renata.alves@exemplo.local");
+    await d.getByLabel("Cargo", { exact: true }).fill("Product Owner");
+    await d.getByRole("button", { name: "Salvar", exact: true }).click();
+    await dialogo().waitFor({ state: "detached" }).catch(() => {});
+    const p = (await pessoasDe()).find((x) => x.nome === "Renata Alves");
+    afirmar(p && p.email === "renata.alves@exemplo.local" && p.cargo === "Product Owner", "Renata Alves não gravou direito");
+    await pg.locator("[data-slot=pessoa]", { hasText: "Renata Alves" }).first().waitFor();
+  });
+  let idTime = "";
+  await etapa("times: novo time", async () => {
+    await pg.goto(B + "/pessoas");
+    await pg.getByRole("radio", { name: /Times/ }).click();
+    await pg.getByRole("button", { name: "Novo time" }).first().click();
+    const d = dialogo();
+    await d.locator("[data-slot=time-form]").waitFor();
+    await d.getByPlaceholder("Ex.: Squad de Pagamentos").fill("Squad de Pagamentos");
+    await escolherMultiplo(d, "Membros", "Marina");
+    await escolherMultiplo(d, "Membros", "Renata Alves");
+    await escolherMultiplo(d, "Responsáveis", "Renata Alves");
+    await d.getByRole("button", { name: "Salvar", exact: true }).click();
+    await dialogo().waitFor({ state: "detached" }).catch(() => {});
+    const t = (await timesDe())[0];
+    afirmar(t && t.membroIds.length === 2 && t.responsavelIds.length === 1, "time sem 2 membros e 1 responsável: " + JSON.stringify(t));
+    idTime = t.id;
+    await pg.locator("[data-slot=time]").first().waitFor();
+  });
+  await etapa("times: detalhe do time", async () => {
+    await pg.locator("[data-slot=time]", { hasText: "Squad de Pagamentos" }).getByRole("link", { name: "Squad de Pagamentos" }).first().click();
+    await pg.waitForURL(/\/pessoas\?.*time=/);
+    afirmar(pg.url().includes(idTime), "URL do time sem o id");
+    await pg.locator("[data-slot=membro]").first().waitFor();
+    await pg.locator("[data-slot=responsavel]").first().waitFor();
+  });
+  await etapa("pessoas: importar do Outlook por colagem", async () => {
+    await pg.goto(B + "/pessoas");
+    await pg.getByRole("button", { name: "Importar do Outlook" }).first().click();
+    const d = dialogo();
+    await d.locator("[data-slot=importar-pessoas]").waitFor();
+    await d.locator("[data-slot=importar-colagem]").fill("Paula Dias <paula.dias@exemplo.local>; Renata Alves <renata.alves@exemplo.local>");
+    await d.locator("[data-slot=importar-continuar]").click();
+    await d.locator("[data-slot=importado]").first().waitFor();
+    afirmar((await d.locator("[data-slot=importado]").count()) === 2, "esperava 2 linhas importadas");
+    afirmar((await d.locator('[data-slot=importado][data-situacao="nova"]').count()) === 1, "esperava exatamente 1 pessoa nova");
+    await d.locator("[data-slot=importar-confirmar]").click();
+    await pg.locator("[data-slot=importar-resumo]").waitFor();
+    const ps = await pessoasDe();
+    const paula = ps.find((x) => x.nome === "Paula Dias");
+    afirmar(paula && paula.origem === "outlook", "Paula Dias não entrou com origem outlook");
+    afirmar(ps.filter((x) => x.nome === "Renata Alves").length === 1, "Renata Alves duplicada");
+    await fecharDialogo();
+  });
+  await etapa("busca acha pessoa pelo que ela ajuda", async () => {
+    await pg.goto(B + "/busca?q=homologacao");
+    await pg.locator("[data-slot=resultado][data-tipo=pessoa]").first().waitFor();
   });
 
   // ---------- paleta ----------
