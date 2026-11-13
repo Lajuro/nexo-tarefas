@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CatTag, PrazoTag, PrioBadge, StatusBadge } from "./ui";
-import { Categoria, STATUS_ABERTOS, Tarefa, formatarData, passosAbertos, tipoInfo, ultimoRegistro } from "@/lib/tipos";
+import { CatTag, CobrarTag, PrazoTag, PrioBadge, StatusBadge } from "./ui";
+import { Categoria, STATUS_ABERTOS, STATUS_ESPERA, Tarefa, formatarData, passosAbertos, tipoInfo, ultimoRegistro } from "@/lib/tipos";
 
 export function CardTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
   const ult = ultimoRegistro(t);
@@ -24,6 +24,8 @@ export function CardTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
         <PrazoTag prazo={t.prazo} concluida={!aberta} />
         {reunioes > 0 && <span>👥 {reunioes}</span>}
         {pend > 0 && <span>☐ {pend} pendente{pend > 1 ? "s" : ""}</span>}
+        {STATUS_ESPERA.includes(t.status) && t.aguardandoQuem && <span>⏳ {t.aguardandoQuem}</span>}
+        {STATUS_ESPERA.includes(t.status) && <CobrarTag data={t.cobrarEm} />}
       </div>
       {ult && (
         <div className="card-ultimo">

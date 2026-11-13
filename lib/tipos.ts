@@ -21,6 +21,10 @@ export const STATUS: { id: Status; nome: string }[] = [
 
 export const STATUS_ABERTOS: Status[] = ["a_fazer", "em_andamento", "aguardando", "bloqueada"];
 
+// Status em que a tarefa está parada na mão de outra pessoa. Só neles valem
+// "aguardando quem" e "cobrar em".
+export const STATUS_ESPERA: Status[] = ["aguardando", "bloqueada"];
+
 export type TipoRegistro = "reuniao" | "atividade" | "impedimento" | "decisao" | "nota" | "marco";
 
 export const TIPOS_REGISTRO: { id: TipoRegistro; nome: string; icone: string }[] = [
@@ -38,7 +42,8 @@ export interface Passo {
   feito: boolean;
   feitoEm?: string | null;
   responsavel?: string;
-  prazo?: string | null;
+  prazo?: string | null; // AAAA-MM-DD
+  criadoEm?: string; // só nas pendências avulsas; nos passos de registro vale a data do registro
   [extra: string]: unknown;
 }
 
@@ -85,6 +90,9 @@ export interface Tarefa {
   criadaEm: string;
   atualizadaEm: string;
   concluidaEm?: string | null;
+  passos?: Passo[]; // pendências avulsas: criadas direto na tarefa, fora de um registro
+  aguardandoQuem?: string; // com quem a tarefa está parada (status de espera)
+  cobrarEm?: string | null; // AAAA-MM-DD: quando voltar a cobrar
   [extra: string]: unknown;
 }
 
@@ -173,7 +181,8 @@ export function normalizarPasso(p: Partial<Passo>): Passo {
     feito: Boolean(p.feito),
     feitoEm: p.feitoEm ?? null,
     responsavel: str(p.responsavel),
-    prazo: p.prazo ?? null,
+    prazo: typeof p.prazo === "string" && p.prazo ? p.prazo : null,
+    criadoEm: str(p.criadoEm),
   };
 }
 
@@ -217,6 +226,9 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     criadaEm: str(t.criadaEm) || agoraISO(),
     atualizadaEm: str(t.atualizadaEm) || agoraISO(),
     concluidaEm: t.concluidaEm ?? null,
+    passos: Array.isArray(t.passos) ? t.passos.map(normalizarPasso) : [],
+    aguardandoQuem: str(t.aguardandoQuem),
+    cobrarEm: typeof t.cobrarEm === "string" && t.cobrarEm ? t.cobrarEm : null,
   };
 }
 
@@ -301,10 +313,52 @@ export function ordenarRegistros(regs: Registro[], recentesPrimeiro = false) {
   return recentesPrimeiro ? ord.reverse() : ord;
 }
 
+// Carimbo ISO (UTC) virando data de calendário local (AAAA-MM-DD).
+export function dataLocalDe(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Um passo em aberto e de onde ele veio. `registro` é null nas pendências avulsas.
+// `desde` é a data (AAAA-MM-DD) em que o passo nasceu.
+export interface PassoAberto {
+  registro: Registro | null;
+  passo: Passo;
+  desde: string;
+}
+
 export function passosAbertos(t: Tarefa) {
-  const out: { registro: Registro; passo: Passo }[] = [];
-  for (const r of t.registros) for (const p of r.proximosPassos) if (!p.feito) out.push({ registro: r, passo: p });
+  const out: PassoAberto[] = [];
+  for (const r of t.registros)
+    for (const p of r.proximosPassos) if (!p.feito) out.push({ registro: r, passo: p, desde: r.data });
+  for (const p of t.passos ?? [])
+    if (!p.feito) out.push({ registro: null, passo: p, desde: dataLocalDe(p.criadoEm) || dataLocalDe(t.criadaEm) });
   return out;
+}
+
+// Aplica `fn` em todos os passos da tarefa, estejam num registro ou avulsos.
+export function mapearPassos(t: Tarefa, fn: (p: Passo) => Passo): Tarefa {
+  return {
+    ...t,
+    registros: t.registros.map((r) => ({ ...r, proximosPassos: r.proximosPassos.map(fn) })),
+    passos: (t.passos ?? []).map(fn),
+  };
+}
+
+export function marcarPasso(t: Tarefa, passoId: string, feito: boolean): Tarefa {
+  return mapearPassos(t, (p) => (p.id === passoId ? { ...p, feito, feitoEm: feito ? agoraISO() : null } : p));
+}
+
+// Um passo é "meu" se não tem responsável, se o responsável é "Eu" ou se bate com um dos
+// nomes que o usuário disse que usa (Configurações).
+const EU = /^(eu|eu mesmo|eu mesma|me|mim)$/;
+export function ehMeu(responsavel: string | undefined, meusNomes: string[] = []) {
+  const r = semAcento((responsavel || "").trim());
+  if (!r) return true;
+  return EU.test(r) || meusNomes.some((n) => semAcento(n.trim()) === r);
 }
 
 export function ultimoRegistro(t: Tarefa) {

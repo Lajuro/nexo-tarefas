@@ -95,7 +95,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Nada é apagado de verdade**:
   - tarefa excluída → `_lixeira/tarefa-<id>-<carimbo>.json` (restaurável em Configurações);
   - item removido de categorias/links → `_lixeira/<colecao>-removidos-<carimbo>.json`;
-  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`.
+  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`;
+  - pendência avulsa removida → fica dentro da própria tarefa em `passosRemovidos[]`.
 - **Espelho em Markdown** (`markdown/<slug>--<id>.md`) regenerado a cada gravação: se o app morrer, os dados continuam legíveis e pesquisáveis no Windows.
 - **Nada digitado se perde antes de salvar**:
   - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5 ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
@@ -123,11 +124,13 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 ```
 
 ### Modelo (fonte da verdade: `lib/tipos.ts`)
-- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`.
+- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?, passos?: Passo[]` (pendências avulsas, criadas direto na tarefa, fora de um registro), `aguardandoQuem?`, `cobrarEm? (AAAA-MM-DD|null)`, e opcionalmente `registrosRemovidos[]` e `passosRemovidos[]`.
+- **Espera**: `STATUS_ESPERA` = `aguardando` e `bloqueada`. Só nesses status valem `aguardandoQuem` e `cobrarEm`. Ao sair da espera, `aplicarStatus()` limpa os dois campos e escreve o que havia no marco da mudança ("Estava aguardando Fulano (cobrança marcada para ...)"), então a informação fica na timeline.
 - **Status**: `a_fazer | em_andamento | aguardando | bloqueada | concluida | cancelada`. "Abertos" = os quatro primeiros (`STATUS_ABERTOS`).
 - **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
 - **TipoRegistro**: `reuniao | atividade | impedimento | decisao | nota | marco`. `marco` é gerado pelo sistema (tarefa criada, mudança de status; o marco de status `concluida` é o card verde "Concluída" do esboço).
-- **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo?`. As "pendências" do app são todos os passos com `feito=false` de tarefas abertas.
+- **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo? (AAAA-MM-DD), criadoEm?` (`criadoEm` só nas avulsas; nos passos de registro vale a data do registro). As "pendências" do app são todos os passos com `feito=false` de tarefas abertas, venham de um registro (`registro.proximosPassos`) ou sejam avulsos (`tarefa.passos`). Use sempre `passosAbertos(t)` para listar (devolve `{ registro|null, passo, desde }`) e `mapearPassos()` / `marcarPasso()` para alterar: eles cobrem os dois lugares.
+- **"Meu" passo**: `ehMeu(responsavel, meusNomes)` = sem responsável, "Eu" ou um dos nomes que o usuário cadastrou em Configurações (preferência `nexo:meusNomes`, só no navegador).
 - **Categoria**: `id, nome, descricao, cor, arquivada?, criadaEm, atualizadaEm`.
 - **LinkDoc**: `id, tipo ("link"|"arquivo"), titulo, url?, arquivo? (caminho relativo em arquivos/), nomeArquivo?, tamanho?, descricao, tags[], tarefaId?, categoriaId?, criadoEm`.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
@@ -140,14 +143,14 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 | Rota | O que faz |
 |---|---|
 | `/` Painel | Números (abertas, atrasadas, bloqueadas, pendências, concluídas no mês), filtros (texto, categoria, status), ordenação (prioridade, prazo, última atividade, A-Z; lembrada em localStorage), grade de cards. |
-| `/tarefas/[id]` | Cabeçalho (categoria, status editável, prioridade, prazo, tags, descrição), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), barra lateral com Pendências, Links e docs da tarefa, Pessoas envolvidas, último Panorama IA. |
-| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, com filtro "só os meus" e lista de prazos. |
+| `/tarefas/[id]` | Cabeçalho (categoria, status editável, prioridade, prazo, tags, descrição; em status de espera, a linha "Aguardando quem / Cobrar em"), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), barra lateral com Pendências (`components/PassosTarefa.tsx`: cria pendência avulsa sem registro e edita texto, responsável e prazo de qualquer passo ali mesmo), Links e docs da tarefa, Pessoas envolvidas, último Panorama IA. |
+| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa (com prazo primeiro), filtro "Todos / Só os meus / De outras pessoas" (lembrado), caixa "Aguardando terceiros" (tarefas em espera, ordenadas pela data de cobrança) e lista de prazos de tarefas e de passos. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links da categoria e prompt de panorama do assunto. Arquivar/desarquivar. |
-| `/pessoas` | Todos os participantes que já apareceram, com contagem e último contato; `?p=Nome` mostra todos os registros com aquela pessoa. |
+| `/pessoas` | Todos os participantes que já apareceram e quem tem algo em aberto (responsável de passo ou "aguardando quem"), com contagem e último contato; `?p=Nome` mostra o que está em aberto com a pessoa e todos os registros com ela. |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/busca?q=` | Busca sem acento/maiúscula em tarefas, registros (todos os campos) e links, com trecho destacado. |
-| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, atalhos. |
+| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, "como você aparece nos passos" (seus nomes), atalhos. |
 
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
 - **Atalhos**: `N` nova tarefa, `/` busca global, `Esc` fecha modal (no editor de registro guarda o rascunho; nos outros formulários pergunta antes se houver texto digitado).
@@ -212,6 +215,7 @@ components/
   Shell.tsx               barra lateral, busca global, atalhos, onboarding, avisos, modal de nova tarefa
   TarefaForm.tsx          criar/editar tarefa + aplicarStatus()
   RegistroEditor.tsx      editor de registro com fluxo Copilot
+  PassosTarefa.tsx        caixa "Pendências" da tarefa: lista, cria avulsa, edita passo no lugar
   PromptModal.tsx         copiar prompt / colar resposta genérico
   LinkForm.tsx            link/arquivo + hrefLink()
   CategoriaForm.tsx, CardTarefa.tsx, ui.tsx (Modal, fecharComCuidado, badges, ChipsInput, Campo, copiarTexto...)
@@ -221,6 +225,7 @@ lib/
   migracoes.ts            SCHEMA_APP e MIGRACOES
   prompts.ts              prompts e parser da resposta
   rascunhos.ts            rascunho automático do editor de registro (localStorage, só cliente)
+  preferencias.ts         preferências do navegador (lerPref/gravarPref, meus nomes)
   markdown.ts             espelho .md
   resposta.ts             tratar(): erro → 409 (conflito), 423 (somente leitura), 500
 proxy.ts                  segurança das rotas /api (ver seção 10)
@@ -233,6 +238,7 @@ Convenções:
 - **Código, nomes e textos em português** (variáveis, funções, rotas, mensagens). Mantenha.
 - Componentes de tela são client components (`"use client"`); acesso a disco só em `lib/armazenamento.ts`, chamado pelos route handlers.
 - Toda escrita de dados passa pelo Provider (nunca `fetch` direto para gravar, exceto backup/lixeira em Configurações).
+- Dentro de `atualizarTarefa(id, (t) => ...)` nunca leia `e.target.value`: a função roda depois, numa fila, e o campo pode já ter sido redesenhado. Guarde o valor numa variável antes.
 - Textos da interface: tom natural, direto, sem "cara de IA". **Não use travessão (—)** em textos visíveis nem em documentos (preferência do usuário).
 - Sem bibliotecas novas para coisas que dá pra fazer em poucas linhas.
 
@@ -274,12 +280,14 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Pasta de dados é um caminho digitado (o servidor é local, então pode ler qualquer pasta do usuário). Não há seletor de pasta nativo.
 - Timeline em ordem crescente por padrão (como no esboço), com alternância.
 - Rascunho do editor fica no `localStorage`, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: o rascunho vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. Os campos de "atualizar a tarefa junto" só entram no rascunho se foram mexidos, para um rascunho antigo não desfazer uma mudança de status feita depois.
+- Pendência avulsa mora em `tarefa.passos` (campo novo opcional, sem migração), e não num registro "fantasma": a timeline continua sendo só o que aconteceu. Os passos de registro continuam onde estavam.
+- "Aguardando quem / cobrar em" ficam na tarefa (não no registro) e não entram no editor de registro: ao salvar um registro que põe a tarefa em espera, a linha aparece vazia no cabeçalho pedindo o preenchimento.
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
 - Importar/colar a ata de reunião do Teams ou o texto de e-mail direto num registro.
-- Lembretes de follow-up ("passo sem andamento há X dias") e visão semanal tipo agenda.
-- Subtarefas/checklist próprio da tarefa (além dos passos dos registros).
+- Tela "Hoje": vencidos, cobranças do dia, tarefas paradas há X dias e tarefas abertas sem próximo passo. Visão semanal tipo agenda.
+- Busca por várias palavras (hoje só frase exata) com link direto para o registro.
 - Vincular tarefas entre si (dependências) e "tarefas relacionadas" na mesma categoria.
 - Templates por tipo de demanda (ex.: onboarding Security Champion) com passos padrão.
 - Exportar uma tarefa ou categoria como relatório em Markdown/HTML para mandar ao gestor.

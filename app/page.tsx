@@ -5,18 +5,10 @@ import { useNexo } from "@/components/Provider";
 import { CardTarefa } from "@/components/CardTarefa";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { Vazio } from "@/components/ui";
+import { lerPref } from "@/lib/preferencias";
 import { STATUS, STATUS_ABERTOS, Status, diasAte, passosAbertos, semAcento, ultimoRegistro } from "@/lib/tipos";
 
 type Ordem = "prioridade" | "prazo" | "atividade" | "titulo";
-
-function lerPref<T>(chave: string, padrao: T): T {
-  try {
-    const v = localStorage.getItem(`nexo:${chave}`);
-    return v ? (JSON.parse(v) as T) : padrao;
-  } catch {
-    return padrao;
-  }
-}
 
 export default function Painel() {
   const { dados } = useNexo();

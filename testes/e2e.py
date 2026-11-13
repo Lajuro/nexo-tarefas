@@ -6,7 +6,7 @@
 # Cobre: criar categorias, criar tarefa pelo atalho N, registrar reunião,
 # copiar prompt, colar resposta do Copilot, preencher campos, concluir passo
 # antigo por resposta da IA, rascunho do editor (Esc, F5, continuar, descartar),
-# pendências, busca e pessoas.
+# pendência avulsa com prazo, aguardando quem / cobrar em, pendências, busca e pessoas.
 import asyncio, sys
 from playwright.async_api import async_playwright
 import os
@@ -100,10 +100,23 @@ async def main():
         await pg.click(".modal-rodape >> text=Salvar registro")
         await pg.wait_for_timeout(500)
         await pg.screenshot(path="/tmp/nexo-e2e-02-tarefa.png", full_page=True)
+        # pendência avulsa (sem registro) com responsável e prazo, e tarefa aguardando alguém
+        await pg.click(".lado .caixa >> nth=0 >> text=+ Adicionar")
+        await pg.fill(".form-passo input[aria-label='Pendência']", "Cobrar acesso com o time de plataforma")
+        await pg.fill(".form-passo input[aria-label='Responsável']", "Marina")
+        await pg.fill(".form-passo input[type=date]", "2026-11-20")
+        await pg.click(".form-passo >> text=Adicionar")
+        await pg.wait_for_selector(".lado .caixa >> nth=0 >> text=avulsa")
+        await pg.select_option(".tarefa-topo select", "aguardando")
+        await pg.fill(".espera-linha input[type=text]", "Marina"); await pg.keyboard.press("Enter")
+        await pg.fill(".espera-linha input[type=date]", "2026-11-25")
+        await pg.wait_for_selector(".espera-linha .prazo")
         pend = await pg.locator(".lado .caixa >> nth=0").inner_text()
         await pg.goto(B + "/"); await pg.wait_for_selector(".card-tarefa")
         await pg.screenshot(path="/tmp/nexo-e2e-01-painel.png")
         await pg.goto(B + "/pendencias"); await pg.wait_for_timeout(500)
+        tela = await pg.locator(".conteudo").inner_text()
+        assert "AGUARDANDO TERCEIROS (1)" in tela.upper() and "Cobrar acesso com o time de plataforma" in tela, tela[:400]
         await pg.screenshot(path="/tmp/nexo-e2e-03-pendencias.png")
         await pg.goto(B + "/busca?q=checkout"); await pg.wait_for_timeout(500)
         nres = await pg.locator(".resultado").count()

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { Campo, copiarTexto } from "@/components/ui";
+import { Campo, ChipsInput, copiarTexto } from "@/components/ui";
+import { gravarPref, lerMeusNomes } from "@/lib/preferencias";
 
 type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
 
@@ -20,7 +21,8 @@ export default function Configuracoes() {
     setBackups(b.backups || []);
     setLixeira(l.itens || []);
   };
-  useEffect(() => { carregar(); }, []);
+  const [meusNomes, setMeusNomes] = useState<string[]>([]);
+  useEffect(() => { carregar(); setMeusNomes(lerMeusNomes()); }, []);
 
   const totalRegs = dados!.tarefas.reduce((n, t) => n + t.registros.length, 0);
 
@@ -104,6 +106,19 @@ export default function Configuracoes() {
             </tbody>
           </table>
         )}
+      </section>
+
+      <section className="secao">
+        <h2>Como você aparece nos passos</h2>
+        <p className="sutil">
+          Passos sem responsável ou com “Eu” já contam como seus. Se o Copilot ou você costumam escrever seu nome,
+          coloque aqui para o filtro “Só os meus” das Pendências reconhecer. Fica guardado só neste navegador.
+        </p>
+        <div style={{ maxWidth: 420 }}>
+          <Campo rotulo="Seus nomes" dica="Enter ou vírgula para adicionar">
+            <ChipsInput valor={meusNomes} mudar={(v) => { setMeusNomes(v); gravarPref("meusNomes", v); }} placeholder="Ex.: seu primeiro nome" />
+          </Campo>
+        </div>
       </section>
 
       <section className="secao">

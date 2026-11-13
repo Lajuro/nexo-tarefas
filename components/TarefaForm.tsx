@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
 import { Campo, ChipsInput, Modal, fecharComCuidado } from "./ui";
 import {
-  CORES, STATUS, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarCategoria, normalizarRegistro,
-  normalizarTarefa, novoId,
+  CORES, STATUS, STATUS_ESPERA, Status, Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarCategoria,
+  normalizarRegistro, normalizarTarefa, novoId,
 } from "@/lib/tipos";
 
 export function TarefaForm({
@@ -24,6 +24,8 @@ export function TarefaForm({
   const [prioridade, setPrioridade] = useState(5);
   const [prazo, setPrazo] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [aguardandoQuem, setAguardandoQuem] = useState("");
+  const [cobrarEm, setCobrarEm] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -36,6 +38,8 @@ export function TarefaForm({
     setPrioridade(tarefa?.prioridade ?? 5);
     setPrazo(tarefa?.prazo ?? "");
     setTags(tarefa?.tags ?? []);
+    setAguardandoQuem(tarefa?.aguardandoQuem ?? "");
+    setCobrarEm(tarefa?.cobrarEm ?? "");
   }, [aberto, tarefa, categoriaInicial]);
 
   const categorias = (dados?.categorias.items ?? []).filter((c) => !c.arquivada || c.id === categoriaId);
@@ -46,8 +50,11 @@ export function TarefaForm({
 
   const sujo =
     titulo !== (tarefa?.titulo ?? "") || descricao !== (tarefa?.descricao ?? "") ||
-    tags.join("\n") !== (tarefa?.tags ?? []).join("\n") || novaCat.trim() !== "";
+    tags.join("\n") !== (tarefa?.tags ?? []).join("\n") || novaCat.trim() !== "" ||
+    aguardandoQuem !== (tarefa?.aguardandoQuem ?? "");
   const tentarFechar = fecharComCuidado(sujo, fechar);
+
+  const emEspera = STATUS_ESPERA.includes(status);
 
   async function salvar() {
     if (!titulo.trim()) return;
@@ -69,6 +76,9 @@ export function TarefaForm({
     }
     const campos = {
       titulo: titulo.trim(), descricao, categoriaId: catId, prioridade, prazo: prazo || null, tags,
+      // só valem enquanto a tarefa está parada com alguém
+      aguardandoQuem: emEspera ? aguardandoQuem.trim() : "",
+      cobrarEm: emEspera ? cobrarEm || null : null,
     };
     if (tarefa) {
       const r = await atualizarTarefa(tarefa.id, (t) => aplicarStatus({ ...t, ...campos }, status, t));
@@ -142,6 +152,16 @@ export function TarefaForm({
             <input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
           </Campo>
         </div>
+        {emEspera && (
+          <div className="linha-campos">
+            <Campo rotulo={status === "bloqueada" ? "Depende de quem" : "Aguardando quem"}>
+              <input value={aguardandoQuem} onChange={(e) => setAguardandoQuem(e.target.value)} placeholder="Pessoa ou time" />
+            </Campo>
+            <Campo rotulo="Cobrar em" dica="Quando você vai voltar a cobrar">
+              <input type="date" value={cobrarEm} onChange={(e) => setCobrarEm(e.target.value)} />
+            </Campo>
+          </div>
+        )}
         <Campo rotulo="Descrição / objetivo">
           <textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)}
             placeholder="O que precisa ser entregue, quem pediu, contexto..." />
@@ -158,8 +178,18 @@ export function TarefaForm({
 export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa, obs = ""): Tarefa {
   if (anterior.status === novo) return t;
   const fim = novo === "concluida" || novo === "cancelada";
+  // Saiu da espera: "aguardando quem" e "cobrar em" deixam de valer. Para não perder a
+  // informação, ela fica escrita no marco da mudança de status.
+  const saiuDaEspera = STATUS_ESPERA.includes(anterior.status) && !STATUS_ESPERA.includes(novo);
+  const quem = (anterior.aguardandoQuem || "").trim();
+  if (saiuDaEspera && (quem || anterior.cobrarEm)) {
+    const nota = `Estava ${anterior.status === "bloqueada" ? "dependendo de" : "aguardando"} ${quem || "terceiros"}` +
+      `${anterior.cobrarEm ? ` (cobrança marcada para ${formatarData(anterior.cobrarEm)})` : ""}.`;
+    obs = obs ? `${obs}\n${nota}` : nota;
+  }
   return {
     ...t,
+    ...(saiuDaEspera ? { aguardandoQuem: "", cobrarEm: null } : {}),
     status: novo,
     concluidaEm: fim ? agoraISO() : null,
     registros: [

@@ -8,7 +8,7 @@ import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import { apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
 import {
   Passo, Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarDataHora, hojeISO,
-  normalizarPasso, normalizarRegistro, novoId, passosAbertos,
+  mapearPassos, normalizarPasso, normalizarRegistro, novoId, passosAbertos,
 } from "@/lib/tipos";
 
 interface Props {
@@ -104,7 +104,7 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [dados?.tarefas]);
 
-  const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro.id !== r.id);
+  const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro?.id !== r.id);
   const registroMudou = Boolean(registro && ini.rasc?.baseAtualizadoEm && ini.rasc.baseAtualizadoEm !== registro.atualizadoEm);
 
   // Esc, clique fora, ✕ e o botão Fechar: nada se perde, o rascunho fica guardado.
@@ -172,7 +172,7 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
     setR((x) => ({
       ...x,
       proximosPassos: x.proximosPassos.map((p, j) =>
-        j === i ? { ...p, [campo]: v, ...(campo === "feito" ? { feitoEm: v ? agoraISO() : null } : {}) } : p,
+        j === i ? { ...p, [campo]: campo === "prazo" ? v || null : v, ...(campo === "feito" ? { feitoEm: v ? agoraISO() : null } : {}) } : p,
       ),
     }));
   }
@@ -194,14 +194,12 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
       const regs = t.registros.some((x) => x.id === novo.id)
         ? t.registros.map((x) => (x.id === novo.id ? novo : x))
         : [...t.registros, novo];
-      const regsComConcluidos = regs.map((x) => ({
-        ...x,
-        proximosPassos: x.proximosPassos.map((p) =>
-          concluir.includes(p.id) ? { ...p, feito: true, feitoEm: agoraISO() } : p,
-        ),
-      }));
+      // passos antigos resolvidos aqui (de outros registros ou avulsos)
+      const comConcluidos = mapearPassos({ ...t, registros: regs }, (p) =>
+        concluir.includes(p.id) ? { ...p, feito: true, feitoEm: agoraISO() } : p,
+      );
       // mudança de status vira um marco próprio na timeline (ex.: o card "Concluída")
-      return aplicarStatus({ ...t, registros: regsComConcluidos, prioridade, prazo: prazo || null }, status, t);
+      return aplicarStatus({ ...comConcluidos, prioridade, prazo: prazo || null }, status, t);
     });
     setSalvando(false);
     if (ok) {
@@ -295,9 +293,15 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
               {r.proximosPassos.map((p, i) => (
                 <div key={p.id} className="editor-passo">
                   <input type="checkbox" checked={p.feito} onChange={(e) => mudarPasso(i, "feito", e.target.checked)} />
-                  <input type="text" value={p.texto} onChange={(e) => mudarPasso(i, "texto", e.target.value)} placeholder="Ação" />
-                  <input type="text" className="resp" value={p.responsavel || ""} list="pessoas-lista"
-                    onChange={(e) => mudarPasso(i, "responsavel", e.target.value)} placeholder="Quem" />
+                  <div className="editor-passo-campos">
+                    <input type="text" value={p.texto} onChange={(e) => mudarPasso(i, "texto", e.target.value)} placeholder="Ação" />
+                    <div className="editor-passo-extra">
+                      <input type="text" className="resp" value={p.responsavel || ""} list="pessoas-lista"
+                        onChange={(e) => mudarPasso(i, "responsavel", e.target.value)} placeholder="Quem" />
+                      <input type="date" value={p.prazo || ""} aria-label="Prazo do passo" title="Prazo do passo"
+                        onChange={(e) => mudarPasso(i, "prazo", e.target.value)} />
+                    </div>
+                  </div>
                   <button className="btn-icone" aria-label="Remover passo"
                     onClick={() => set("proximosPassos", r.proximosPassos.filter((_, j) => j !== i))}>✕</button>
                 </div>

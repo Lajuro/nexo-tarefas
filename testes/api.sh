@@ -21,6 +21,11 @@ checa "cria tarefa" '"rev":1' "$(curl -s -X PUT $B/api/tarefas/t1 -H "$J" -d '{"
 R=$(curl -s -X PUT $B/api/tarefas/t1 -H "$J" -d '{"tarefa":{"id":"t1","titulo":"B"},"revEsperada":1}')
 checa "atualiza com rev certa" '"rev":2' "$R"
 checa "preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "tarefa antiga ganha os campos novos com padrão" '"passos":[],"aguardandoQuem":"","cobrarEm":null' "$R"
+R=$(curl -s -X PUT $B/api/tarefas/t2 -H "$J" -d '{"tarefa":{"id":"t2","titulo":"C","status":"aguardando","aguardandoQuem":"Marina","cobrarEm":"2026-12-01","passos":[{"id":"p1","texto":"Pedir acesso","prazo":"2026-12-05"}]},"revEsperada":null}')
+checa "grava pendência avulsa com prazo" '"texto":"Pedir acesso"' "$R"
+checa "grava aguardando quem e cobrar em" '"aguardandoQuem":"Marina","cobrarEm":"2026-12-01"' "$R"
+checa "espelho markdown tem a pendência avulsa" 'Pedir acesso' "$(cat "$TMP/dados/markdown/"*--t2.md 2>/dev/null)"
 checa "recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/tarefas/t1 -H "$J" -d '{"tarefa":{"id":"t1"},"revEsperada":1}')"
 checa "recusa id com path traversal" 'inválid' "$(curl -s -X PUT $B/api/tarefas/x -H "$J" -d '{"tarefa":{"id":"../x"},"revEsperada":null}')"
 checa "recusa leitura fora de arquivos/" 'inválid' "$(curl -s "$B/api/arquivos?p=../nexo.json")"

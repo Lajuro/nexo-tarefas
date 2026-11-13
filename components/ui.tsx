@@ -84,6 +84,14 @@ export function PrazoTag({ prazo, concluida }: { prazo: string | null; concluida
   return <span className={`prazo ${classe}`}>⏱ {formatarData(prazo)}{txt}</span>;
 }
 
+// "Cobrar em": quando voltar a cobrar quem está segurando a tarefa.
+export function CobrarTag({ data }: { data: string | null | undefined }) {
+  if (!data) return null;
+  const d = diasAte(data)!;
+  const txt = d < 0 ? `cobrança atrasada ${-d}d` : d === 0 ? "cobrar hoje" : `cobrar em ${formatarData(data, false)}`;
+  return <span className={`prazo ${d < 0 ? "atrasado" : d === 0 ? "perto" : ""}`}>🔔 {txt}</span>;
+}
+
 export function Vazio({ titulo, children }: { titulo: string; children?: ReactNode }) {
   return (
     <div className="vazio">
