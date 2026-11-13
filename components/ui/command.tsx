@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { campoBase } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -117,6 +117,7 @@ function Combobox({
   const [busca, setBusca] = React.useState("");
   const atual = opcoes.find((o) => o.valor === valor);
   const existe = opcoes.some((o) => limpar(o.rotulo) === limpar(busca.trim()));
+  const podeCriar = !!criar && !!busca.trim() && !existe;
 
   return (
     <Popover open={aberto} onOpenChange={(a) => { setAberto(a); if (!a) setBusca(""); }}>
@@ -131,7 +132,7 @@ function Combobox({
         <Command>
           <CommandInput placeholder={buscaPlaceholder} value={busca} onValueChange={setBusca} />
           <CommandList>
-            <CommandEmpty>{vazio}</CommandEmpty>
+            {!podeCriar && <CommandEmpty>{vazio}</CommandEmpty>}
             <CommandGroup>
               {permitirLimpar && (
                 <CommandItem value={`__limpar ${rotuloLimpar}`} onSelect={() => { aoMudar(""); setAberto(false); }}>
@@ -147,12 +148,15 @@ function Combobox({
                   {o.valor === valor && <Check className="size-3.5 !text-primary" />}
                 </CommandItem>
               ))}
-              {criar && busca.trim() && !existe && (
-                <CommandItem value={`__criar ${busca}`} forceMount onSelect={() => { criar(busca.trim()); setAberto(false); }}>
-                  <span>Criar <strong>“{busca.trim()}”</strong></span>
-                </CommandItem>
-              )}
             </CommandGroup>
+            {podeCriar && (
+              // Grupo próprio e sempre montado: o cmdk esconde o grupo inteiro quando nenhum item dele casa com a busca.
+              <CommandGroup forceMount>
+                <CommandItem value={`__criar ${busca}`} forceMount onSelect={() => { criar!(busca.trim()); setAberto(false); }}>
+                  <Plus /> <span>Criar <strong>“{busca.trim()}”</strong></span>
+                </CommandItem>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
