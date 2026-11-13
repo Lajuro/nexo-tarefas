@@ -137,9 +137,16 @@ export function Shell({ children }: { children: ReactNode }) {
   const temAbertas = !!dados?.tarefas.some(aberta);
   useEffect(() => {
     if (ritualOferecido.current || !rotinaCarregada || !dados) return;
-    ritualOferecido.current = true;
-    if (!rotina.abrirSozinho || rotina.ultimoPlanejamento === hojeISO() || !temAbertas || estado?.somenteLeitura) return;
-    const t = setTimeout(() => !temAlgoAberto() && setRitual(true), 900);
+    if (!rotina.abrirSozinho || rotina.ultimoPlanejamento === hojeISO() || !temAbertas || estado?.somenteLeitura) {
+      ritualOferecido.current = true;
+      return;
+    }
+    // Só marca como oferecido quando o tempo passa de fato: se o efeito for desfeito antes
+    // (StrictMode ou dados recarregados), a próxima execução agenda de novo.
+    const t = setTimeout(() => {
+      ritualOferecido.current = true;
+      if (!temAlgoAberto()) setRitual(true);
+    }, 900);
     return () => clearTimeout(t);
   }, [rotinaCarregada, dados, rotina.abrirSozinho, rotina.ultimoPlanejamento, temAbertas, estado?.somenteLeitura]);
 

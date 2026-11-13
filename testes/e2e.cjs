@@ -261,6 +261,7 @@ async function main() {
   await etapa("mudar status gera marco", async () => {
     await pg.locator("[data-slot=seletor-status]").first().click();
     await pg.getByRole("menuitemradio", { name: "Aguardando terceiros" }).click();
+    await pg.locator("[role=menu]").waitFor({ state: "detached" });
     await pg.locator("[data-slot=registro]", { hasText: "Aguardando terceiros" }).first().waitFor();
     const t = (await dados()).tarefas.find((x) => x.id === idTarefa);
     afirmar(t.status === "aguardando", "status não gravou: " + t.status);
@@ -268,6 +269,7 @@ async function main() {
   await etapa("concluir tarefa mostra card Concluída", async () => {
     await pg.locator("[data-slot=seletor-status]").first().click();
     await pg.getByRole("menuitemradio", { name: "Concluída" }).click();
+    await pg.locator("[role=menu]").waitFor({ state: "detached" });
     await pg.locator("[data-slot=registro]", { hasText: "Concluída" }).first().waitFor();
     const t = (await dados()).tarefas.find((x) => x.id === idTarefa);
     afirmar(t.status === "concluida" && t.concluidaEm, "conclusão não gravou");
@@ -276,15 +278,10 @@ async function main() {
   // ---------- /tarefas ----------
   await etapa("lista de tarefas, visões e filtro", async () => {
     await pg.goto(B + "/tarefas");
-    // a tarefa está concluída: os filtros padrão podem escondê-la, então limpa
     await pg.getByLabel("Filtrar tarefas por texto").fill("Pagamentos");
-    const st = pg.getByLabel("Filtrar por status");
-    if (await st.count()) {
-      await st.click();
-      const todos = pg.locator("[data-slot=select-item], [role=option], [role=menuitemradio]", { hasText: /^Todos|Todas|Concluídas/ }).first();
-      if (await todos.count()) await todos.click();
-      else await pg.keyboard.press("Escape");
-    }
+    // a tarefa já foi concluída e o padrão é "Só abertas": pede "Todas"
+    await pg.locator('[data-slot=select-trigger][aria-label="Filtrar por status"]').click();
+    await pg.locator("[data-slot=select-item]", { hasText: /^\s*Todas\s*$/ }).click();
     await pg.getByText(TITULO).first().waitFor();
     for (const v of ["Lista", "Quadro"]) {
       await pg.getByRole("radio", { name: v }).click();
