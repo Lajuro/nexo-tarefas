@@ -170,7 +170,6 @@ export function Paleta({
       return;
     }
     lista.querySelector<HTMLElement>(`[data-paleta-item="${CSS.escape(atual)}"]`)?.scrollIntoView({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atual]);
 
   const mover = (dir: Direcao) => {
