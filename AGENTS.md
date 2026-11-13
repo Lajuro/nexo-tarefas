@@ -41,7 +41,8 @@ Estas restrições definem várias decisões de arquitetura. Não as viole.
 - **Não existe API de IA** liberada. Só o **Copilot no navegador**. Toda IA do app é "copiar prompt / colar resposta". Nunca adicione dependência de API de LLM.
 - **Nada sensível vai para o repositório.** Dados do trabalho ficam só na pasta local do usuário. O repo é público.
 - Ele usa **Windows**, Edge/Chrome, PowerShell e Git Bash.
-- **Evite dependências novas.** Cada pacote precisa passar pelo npm do proxy. Hoje o projeto só depende de `next`, `react`, `react-dom` (+ `typescript` e `@types/*` em dev). Sem Tailwind, sem libs de UI, sem banco.
+- **Dependências com parcimônia.** Cada pacote precisa passar pelo npm do proxy (funciona, mas é mais um ponto de falha). A v2 adotou, a pedido do dono, a pilha de interface que ele usa nos outros projetos: `tailwindcss` + `@tailwindcss/postcss`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`, `motion`, `lucide-react`, `cmdk`, `sonner`, `@dnd-kit/core` e `geist` (fonte empacotada, sem buscar nada na internet). Versões **fixadas** no `package.json`. Antes de somar outra, veja se o kit em `components/ui` já resolve. Continua sem banco e sem API de IA.
+- **Fontes e ícones são locais.** Nunca use `next/font/google` nem CDN: o build roda na máquina corporativa e o app não faz chamadas externas.
 - O servidor sobe **só em `127.0.0.1:3210`** (nunca `0.0.0.0`), porque está numa rede corporativa.
 
 ---
@@ -49,7 +50,7 @@ Estas restrições definem várias decisões de arquitetura. Não as viole.
 ## 3. Stack e comandos
 
 - **Next.js 16.4.6** (App Router, Turbopack), **React 19.3.1**, **TypeScript** estrito. Versões fixadas no `package.json`.
-- CSS puro em `app/globals.css` (variáveis, tema claro e escuro automático por `prefers-color-scheme`).
+- **Tailwind CSS v4** (configurado só por CSS em `app/globals.css`, sem `tailwind.config`), componentes no padrão **Shadcn** sobre **Radix** em `components/ui`, animações com **motion**, ícones **lucide-react**. Tema claro, escuro ou do sistema. Detalhes e regras na seção 13.
 - Atenção às mudanças do Next 16: o antigo `middleware.ts` agora é **`proxy.ts`** (exporta `function proxy`); `params` de rotas dinâmicas é uma **Promise** (`await ctx.params` nos route handlers, `useParams()` nos client components); `useSearchParams()` exige `<Suspense>`. Na dúvida, leia `node_modules/next/dist/docs/`.
 
 ```bash
@@ -60,6 +61,7 @@ npm start           # produção em 127.0.0.1:3210
 npm run typecheck   # tsc --noEmit
 bash testes/api.sh  # testes de fumaça da camada de dados e segurança (precisa de build)
 python3 testes/e2e.py  # teste ponta a ponta da interface (Playwright), ver cabeçalho do arquivo
+node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -287,7 +289,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 
 1. Leia este arquivo e o trecho de código envolvido.
 2. Se a mudança toca dados gravados: siga a seção 4 (campo opcional + padrão, ou migração).
-3. Implemente sem dependências novas, em português, no estilo existente.
+3. Implemente em português, no estilo existente, com o kit de `components/ui` e `components/comum.tsx` (seção 13). Dependência nova só com motivo forte.
 4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela).
 5. Atualize este AGENTS.md (seções 5 a 8 e 11) e o README se o comportamento para o usuário mudou. Suba a `version` no `package.json` em mudanças relevantes.
 6. Commits em português, descritivos.
