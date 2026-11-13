@@ -209,11 +209,21 @@ Todos incluem o contexto (cabeçalho da tarefa, histórico resumido, passos em a
 
 ```
 app/
-  layout.tsx              Provider + Shell em todas as páginas
-  globals.css             todo o visual (variáveis, claro/escuro)
-  page.tsx                painel
-  tarefas/[id]/page.tsx   página da tarefa + CardRegistro
-  categorias/, pendencias/, pessoas/, links/, relatorios/, busca/, configuracoes/
+  layout.tsx              Provider, Raiz e Shell em todas as páginas
+  globals.css             Tailwind, tokens de cor (claro e escuro), utilitários
+  icon.svg                ícone do app (aba e instalação)
+  manifest.ts             manifesto para instalar o Nexo pelo navegador
+  page.tsx                Hoje (página inicial)
+  tarefas/page.tsx        lista de tarefas (grade, lista e quadro)
+  tarefas/[id]/page.tsx   página da tarefa + timeline (CardRegistro)
+  categorias/             lista e página de cada categoria ([id])
+  pendencias/page.tsx     passos em aberto
+  pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
+  links/page.tsx          banco de links e arquivos
+  revisao/page.tsx        revisão semanal guiada
+  relatorios/page.tsx     relatório do período
+  busca/page.tsx          busca global (?q=)
+  configuracoes/page.tsx  dados, aparência, rotina, atalhos
   api/
     estado/      GET   estado do app (configurado? pasta, schema, somente leitura, erro)
     config/      POST  { dataDir }  define a pasta de dados
@@ -227,24 +237,53 @@ app/
     exportar/    GET   JSON completo para download
     lixeira/     GET lista, POST { arquivo } restaura tarefa
 components/
-  Provider.tsx            estado global, fetch, fila de gravação, toasts
-  Shell.tsx               barra lateral, busca global, atalhos, onboarding, avisos, modal de nova tarefa
-  TarefaForm.tsx          criar/editar tarefa + aplicarStatus()
+  Provider.tsx            estado global, fetch, fila de gravação, atualizarTarefa(id, fn), toasts
+  Raiz.tsx                provedores de interface: tema, confirmação, dicas, toasts, MotionConfig
+  Shell.tsx               moldura: barra lateral, barra superior, barra de status, atalhos
+  MenuTarefa.tsx          menu de ações da tarefa (botão direito e "...") e useAcoesTarefa()
+  comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
+  useLembretes.ts         lembretes ativos e adiar()
+  TarefaForm.tsx          criar e editar tarefa, aplicarStatus() na tela
   RegistroEditor.tsx      editor de registro com fluxo Copilot
   PromptModal.tsx         copiar prompt / colar resposta genérico
-  LinkForm.tsx            link/arquivo + hrefLink()
-  CategoriaForm.tsx, CardTarefa.tsx, ui.tsx (Modal, badges, ChipsInput, Campo, copiarTexto...)
+  LinkForm.tsx            link ou arquivo, hrefLink()
+  CategoriaForm.tsx       criar e editar categoria
+  CardTarefa.tsx          cartão de tarefa (grade, quadro e categorias)
+  ui/                     kit genérico no padrão Shadcn sobre Radix (seção 13)
+  shell/                  barra lateral, paleta de comandos, sino, logo, telas de primeira vez, erro e atalhos
+  hoje/                   tela Hoje: captura rápida, foco de hoje, precisa de você, semana
+  rotina/                 ritual "Planejar o dia" em 3 etapas
+  tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
+  tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral
+  pendencias/             tela de pendências: agrupamento e linhas
+  categorias/             cartões de categoria, emblema e ações
+  pessoas/                lista e detalhe de pessoas
+  links/                  ícones e formato curto dos links
+  busca/                  campo de busca e filtro
+  revisao/                cartão da revisão semanal e contas do retrato
+  configuracoes/          painéis de dados (pasta, backups, lixeira) e de preferências
 lib/
-  tipos.ts                tipos, normalização, helpers (servidor e cliente)
+  tipos.ts                tipos, normalização e helpers (servidor e cliente)
   armazenamento.ts        TODO acesso a disco (só servidor)
   migracoes.ts            SCHEMA_APP e MIGRACOES
-  prompts.ts              prompts e parser da resposta
-  markdown.ts             espelho .md
+  acoes.ts                transformações puras da tarefa (aplicarStatus, comFoco, comLembrete...)
+  lembretes.ts            motor de lembretes (função pura sobre os dados)
+  preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
+  prompts.ts              prompts do Copilot e parser da resposta
+  markdown.ts             espelho .md de cada tarefa
   resposta.ts             tratar(): erro → 409 (conflito), 423 (somente leitura), 500
+  animacoes.ts            presets do motion (suave, mola, lista, subir...)
+  tema.ts                 script que aplica o tema antes da primeira pintura
+  utils.ts                cn() (junta classes do Tailwind)
 proxy.ts                  segurança das rotas /api (ver seção 10)
+postcss.config.mjs        Tailwind CSS v4 via @tailwindcss/postcss
+components.json           configuração do kit Shadcn (estilo, aliases)
+next.config.ts            configuração do Next.js
 scripts/                  instalação/atualização sem git (seção 9)
-testes/api.sh, testes/e2e.py
-Iniciar Nexo.cmd          atalho Windows: abre o navegador e roda npm start
+testes/api.sh             testes de fumaça da API e da segurança
+testes/e2e.py             teste ponta a ponta da interface (Playwright)
+testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável
+Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
 Convenções:
@@ -252,7 +291,7 @@ Convenções:
 - Componentes de tela são client components (`"use client"`); acesso a disco só em `lib/armazenamento.ts`, chamado pelos route handlers.
 - Toda escrita de dados passa pelo Provider (nunca `fetch` direto para gravar, exceto backup/lixeira em Configurações).
 - Textos da interface: tom natural, direto, sem "cara de IA". **Não use travessão (—)** em textos visíveis nem em documentos (preferência do usuário).
-- Sem bibliotecas novas para coisas que dá pra fazer em poucas linhas.
+- Interface sempre com o kit de `components/ui` e `components/comum.tsx` (seção 13). Nada de elemento nativo do navegador onde o kit tem substituto.
 
 ---
 

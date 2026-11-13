@@ -1,6 +1,6 @@
 # Nexo · cérebro de tarefas
 
-Organizador pessoal de tarefas, 100% local (offline-first). Cada tarefa tem uma linha do tempo com reuniões, atividades, impedimentos e decisões, e o app monta prompts prontos para colar no Copilot e lê a resposta de volta.
+Organizador pessoal de tarefas, 100% local (offline-first), com cara de aplicativo de desktop: tema claro e escuro, tudo pelo teclado, e uma tela Hoje que lembra você do que fazer. Cada tarefa tem uma linha do tempo com reuniões, atividades, impedimentos e decisões, e o app monta prompts prontos para colar no Copilot e lê a resposta de volta.
 
 ## Instalar ou atualizar (sem git clone)
 
@@ -32,18 +32,32 @@ Variáveis opcionais: `NEXO_DESTINO` (pasta do app, padrão `%USERPROFILE%\nexo-
 
 ## Usar
 
-Abra pelo atalho (ou `Iniciar Nexo.cmd`). O app roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
+Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como um aplicativo (modo aplicativo do Edge). Para tela cheia, use F11 ou o botão na barra superior. O servidor roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
 
-Atalhos: `N` nova tarefa · `/` buscar · `Esc` fechar janela.
+A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia e uma captura rápida de tarefa.
+
+Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
 
 ### Fluxo com o Copilot
 
-1. Em uma tarefa, clique em **+ Reunião** (ou Atividade) e escreva suas anotações brutas.
+1. Na página da tarefa, clique em **Reunião** (ou **Atividade**) e escreva suas anotações brutas.
 2. **Copiar prompt**: o app junta o contexto da tarefa (histórico, pendências) com suas anotações.
 3. Cole no Copilot, copie a resposta e cole de volta no app.
 4. **Preencher campos**: resumo, decisões, próximos passos (com responsável), impedimentos e participantes são separados sozinhos. Passos antigos que a resposta disser que foram resolvidos já vêm marcados para concluir.
 
 Também tem prompts de **panorama da tarefa**, **preparar próxima reunião**, **panorama da categoria** e **relatório do período**.
+
+## Rotina
+
+O Nexo lembra você do que fazer:
+
+- **Tela Hoje**: saudação, foco do dia, o que precisa de você, a semana e as tarefas paradas.
+- **Planejar o dia**: abre sozinho na primeira visita do dia (dá para desligar) e pela tecla `D`. Mostra o que ficou para trás e você escolhe os focos.
+- **Foco de hoje**: marca as tarefas em que você vai trabalhar no dia. No dia seguinte, elas deixam de ser foco sozinhas.
+- **Lembrar de voltar em**: uma data para a tarefa voltar a aparecer. Dá para definir no formulário, na página da tarefa ou no menu da tarefa.
+- **Sino de lembretes**: tudo o que merece atenção, com a opção de adiar qualquer item até uma data.
+- **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
+- Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
 ## Onde ficam os dados
 
@@ -76,6 +90,9 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 npm install
 npm run dev        # http://127.0.0.1:3210
 npm run typecheck
+node testes/semear.mjs   # cenário de demonstração numa pasta de dados vazia e descartável
 ```
+
+A interface usa Tailwind CSS v4, componentes no padrão Shadcn sobre Radix, motion para as animações e lucide para os ícones.
 
 Contexto completo para agentes e regras para evoluir o app sem perder dados: `AGENTS.md`.

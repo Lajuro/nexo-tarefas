@@ -347,7 +347,7 @@ function BarraStatus() {
         </button>
       </Dica>
       <div className="flex-1" />
-      <span data-slot="estado-gravacao" data-gravando={gravando > 0 || undefined} className="flex h-full items-center gap-1.5 px-2">
+      <span data-slot="estado-gravacao" data-gravando={gravando > 0 || undefined} className="flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap px-2">
         {estado?.somenteLeitura ? (
           <><Lock className="size-3" /> Somente leitura</>
         ) : gravando > 0 ? (
@@ -356,8 +356,8 @@ function BarraStatus() {
           <><Check className="size-3 text-sucesso" /> {hora ? `Salvo às ${hora}` : "Tudo salvo"}</>
         )}
       </span>
-      <Link href="/tarefas" className={item}><span className="tabular-nums">{abertas}</span> {abertas === 1 ? "aberta" : "abertas"}</Link>
-      <Link href="/pendencias" className={item}><span className="tabular-nums">{pend}</span> {pend === 1 ? "pendência" : "pendências"}</Link>
+      <Link href="/tarefas" className={cn(item, "shrink-0 whitespace-nowrap")}><span className="tabular-nums">{abertas}</span> {abertas === 1 ? "aberta" : "abertas"}</Link>
+      <Link href="/pendencias" className={cn(item, "shrink-0 whitespace-nowrap")}><span className="tabular-nums">{pend}</span> {pend === 1 ? "pendência" : "pendências"}</Link>
       <span className="flex h-full items-center px-2 font-mono text-[10px]">v{versao.version}</span>
     </footer>
   );
