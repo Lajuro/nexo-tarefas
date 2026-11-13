@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { Vazio } from "@/components/ui";
+import { Vazio } from "@/components/comum";
 import { Registro, Tarefa, formatarData, ordenarRegistros, semAcento, tipoInfo } from "@/lib/tipos";
 
 export default function Pessoas() {

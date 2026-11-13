@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal, copiarTexto } from "./ui";
+import { Modal, copiarTexto } from "./comum";
 import { useNexo } from "./Provider";
 
 export function PromptModal({

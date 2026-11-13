@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal, copiarTexto } from "./ui";
+import { Campo, ChipsInput, Modal, copiarTexto } from "./comum";
 import { aplicarStatus } from "./TarefaForm";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import {

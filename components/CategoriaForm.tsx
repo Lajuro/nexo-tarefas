@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNexo } from "./Provider";
-import { Campo, Modal } from "./ui";
+import { Campo, Modal } from "./comum";
 import { CORES, Categoria, agoraISO, normalizarCategoria, novoId } from "@/lib/tipos";
 
 export function CategoriaForm({ aberto, fechar, cat }: { aberto: boolean; fechar: () => void; cat?: Categoria }) {

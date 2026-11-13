@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal } from "./ui";
+import { Campo, ChipsInput, Modal } from "./comum";
+import { aplicarStatus } from "@/lib/acoes";
 import {
-  CORES, STATUS, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarCategoria, normalizarRegistro,
+  CORES, STATUS, Status, Tarefa, hojeISO, normalizarCategoria, normalizarRegistro,
   normalizarTarefa, novoId,
 } from "@/lib/tipos";
 
@@ -149,23 +150,5 @@ export function TarefaForm({
   );
 }
 
-// Quando o status muda, registra um marco na timeline (o card "Concluída" do esboço).
-export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa, obs = ""): Tarefa {
-  if (anterior.status === novo) return t;
-  const fim = novo === "concluida" || novo === "cancelada";
-  return {
-    ...t,
-    status: novo,
-    concluidaEm: fim ? agoraISO() : null,
-    registros: [
-      ...t.registros,
-      normalizarRegistro({
-        tipo: "marco",
-        data: hojeISO(),
-        titulo: nomeStatus(novo),
-        anotacoes: obs,
-        alteracoes: { status: { de: anterior.status, para: novo } },
-      }),
-    ],
-  };
-}
+// aplicarStatus mora em lib/acoes.ts; reexportado aqui para quem já importava deste arquivo.
+export { aplicarStatus } from "@/lib/acoes";

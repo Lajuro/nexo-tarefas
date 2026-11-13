@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { Campo, copiarTexto } from "@/components/ui";
+import { Campo, copiarTexto } from "@/components/comum";
 import { promptRelatorio } from "@/lib/prompts";
 import { formatarData, hojeISO, tipoInfo } from "@/lib/tipos";
 

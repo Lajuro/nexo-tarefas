@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { CatTag, PrazoTag, PrioBadge, StatusBadge, Vazio } from "@/components/ui";
+import { CatTag, PrazoTag, PrioBadge, StatusBadge, Vazio } from "@/components/comum";
 import { STATUS_ABERTOS, agoraISO, diasAte, formatarData, passosAbertos } from "@/lib/tipos";
 
 export default function Pendencias() {

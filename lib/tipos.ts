@@ -85,6 +85,10 @@ export interface Tarefa {
   criadaEm: string;
   atualizadaEm: string;
   concluidaEm?: string | null;
+  /** Data (AAAA-MM-DD) em que o usuário quer ser lembrado de voltar nesta tarefa (follow-up). */
+  lembrarEm?: string | null;
+  /** Dia (AAAA-MM-DD) em que a tarefa foi escolhida como foco. Só vale como foco se for hoje. */
+  focoEm?: string | null;
   [extra: string]: unknown;
 }
 
@@ -217,6 +221,8 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     criadaEm: str(t.criadaEm) || agoraISO(),
     atualizadaEm: str(t.atualizadaEm) || agoraISO(),
     concluidaEm: t.concluidaEm ?? null,
+    lembrarEm: typeof t.lembrarEm === "string" && t.lembrarEm ? t.lembrarEm : null,
+    focoEm: typeof t.focoEm === "string" && t.focoEm ? t.focoEm : null,
   };
 }
 

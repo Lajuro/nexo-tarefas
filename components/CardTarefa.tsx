@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CatTag, PrazoTag, PrioBadge, StatusBadge } from "./ui";
+import { CatTag, PrazoTag, PrioBadge, StatusBadge } from "./comum";
 import { Categoria, STATUS_ABERTOS, Tarefa, formatarData, passosAbertos, tipoInfo, ultimoRegistro } from "@/lib/tipos";
 
 export function CardTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {

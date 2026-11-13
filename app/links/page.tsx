@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
-import { CatTag, Vazio, formatarTamanho } from "@/components/ui";
+import { CatTag, Vazio, formatarTamanho } from "@/components/comum";
 import { LinkDoc, formatarData, semAcento } from "@/lib/tipos";
 
 export default function Links() {

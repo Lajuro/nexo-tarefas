@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { Campo, copiarTexto } from "@/components/ui";
+import { Campo, copiarTexto } from "@/components/comum";
 
 type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
 

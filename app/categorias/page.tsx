@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { CategoriaForm } from "@/components/CategoriaForm";
-import { Vazio } from "@/components/ui";
+import { Vazio } from "@/components/comum";
 import { STATUS_ABERTOS, formatarData, ultimoRegistro } from "@/lib/tipos";
 
 export default function Categorias() {

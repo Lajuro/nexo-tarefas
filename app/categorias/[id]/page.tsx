@@ -9,7 +9,7 @@ import { CategoriaForm } from "@/components/CategoriaForm";
 import { PromptModal } from "@/components/PromptModal";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
-import { Vazio } from "@/components/ui";
+import { Vazio } from "@/components/comum";
 import { promptCategoria } from "@/lib/prompts";
 import { STATUS, STATUS_ABERTOS } from "@/lib/tipos";
 

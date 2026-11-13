@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { CardTarefa } from "@/components/CardTarefa";
 import { abrirNovaTarefa } from "@/components/Shell";
-import { Vazio } from "@/components/ui";
+import { Vazio } from "@/components/comum";
 import { STATUS, STATUS_ABERTOS, Status, diasAte, passosAbertos, semAcento, ultimoRegistro } from "@/lib/tipos";
 
 type Ordem = "prioridade" | "prazo" | "atividade" | "titulo";

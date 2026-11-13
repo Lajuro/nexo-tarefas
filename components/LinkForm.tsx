@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal, formatarTamanho } from "./ui";
+import { Campo, ChipsInput, Modal, formatarTamanho } from "./comum";
 import { LinkDoc, normalizarLink, novoId } from "@/lib/tipos";
 
 export function LinkForm({

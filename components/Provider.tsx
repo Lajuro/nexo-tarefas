@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { toast as sonner } from "sonner";
 import { Categoria, Dados, EstadoApp, LinkDoc, Tarefa, normalizarTarefa } from "@/lib/tipos";
 
-type Toast = { id: number; texto: string; tipo: "ok" | "erro" };
+type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
 interface Ctx {
   estado: EstadoApp | null;
@@ -43,15 +44,15 @@ export function Provider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoApp | null>(null);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const ref = useRef<Dados | null>(null);
   const filas = useRef(new Map<string, Promise<unknown>>());
   ref.current = dados;
 
+  // Avisos passam pelo Sonner (o <Toaster/> fica em components/Raiz.tsx).
   const toast = useCallback((texto: string, tipo: Toast["tipo"] = "ok") => {
-    const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, texto, tipo }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), tipo === "erro" ? 7000 : 2600);
+    if (tipo === "erro") sonner.error(texto, { duration: 7000 });
+    else if (tipo === "info") sonner(texto, { duration: 3200 });
+    else sonner.success(texto, { duration: 2600 });
   }, []);
 
   const recarregar = useCallback(async () => {
@@ -236,13 +237,6 @@ export function Provider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      <div className="toasts">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.tipo}`}>
-            {t.texto}
-          </div>
-        ))}
-      </div>
     </Contexto.Provider>
   );
 }

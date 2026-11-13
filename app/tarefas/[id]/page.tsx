@@ -8,7 +8,7 @@ import { TarefaForm, aplicarStatus } from "@/components/TarefaForm";
 import { RegistroEditor } from "@/components/RegistroEditor";
 import { PromptModal } from "@/components/PromptModal";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
-import { CatTag, PrazoTag, PrioBadge, Vazio, formatarTamanho } from "@/components/ui";
+import { CatTag, PrazoTag, PrioBadge, Vazio, formatarTamanho } from "@/components/comum";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
 import {
   Registro, STATUS, Status, TipoRegistro, agoraISO, formatarData, nomeStatus, ordenarRegistros, passosAbertos, tipoInfo,

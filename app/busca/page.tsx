@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useMemo } from "react";
 import { useNexo } from "@/components/Provider";
 import { hrefLink } from "@/components/LinkForm";
-import { CatTag, Destaque, StatusBadge, Vazio } from "@/components/ui";
+import { CatTag, Destaque, StatusBadge, Vazio } from "@/components/comum";
 import { Registro, Tarefa, formatarData, semAcento, tipoInfo } from "@/lib/tipos";
 
 export default function Busca() {
