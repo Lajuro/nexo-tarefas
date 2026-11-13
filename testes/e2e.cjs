@@ -19,7 +19,7 @@
 // conclui passo antigo, passo marcado na página da tarefa, troca de status com
 // marco, conclusão, lista/quadro/filtro em /tarefas, pendências, busca, pessoas,
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
-// ritual "Planejar o dia", paleta Ctrl+K e tema escuro.
+// ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -468,6 +468,46 @@ async function main() {
   });
 
   // ---------- paleta ----------
+  await etapa("bloco de notas: escrever, organizar com o Copilot e aplicar", async () => {
+    await pg.goto(B + "/notas");
+    const texto = pg.locator("[data-slot=editor-nota] textarea");
+    await texto.waitFor();
+    await texto.fill("squad confirmou a data do treinamento. preciso mandar o convite.\nauditoria pediu um relatório novo.");
+    await pg.locator("[data-slot=nota-situacao][data-situacao=salvo]").waitFor();
+    afirmar((await dados()).notas.items.length === 1, "a folha não foi gravada sozinha");
+    await pg.locator("[data-slot=organizar]").click();
+    const d = dialogo();
+    await d.locator("[data-slot=organizar-nota]").waitFor();
+    await d.getByRole("button", { name: "Copiar prompt" }).click();
+    await pg.waitForTimeout(300);
+    const prompt = await pg.evaluate(() => navigator.clipboard.readText());
+    const m = prompt.match(/\[(T\d+)\] (.+)/);
+    afirmar(m && prompt.includes("squad confirmou a data"), "o prompt não trouxe a folha e as tarefas abertas");
+    const antes = await dados();
+    const resposta = "Aqui está:\n```json\n" + JSON.stringify({
+      nexo: 1,
+      itens: [
+        { tipo: "registro", tarefa: m[1], tarefaTitulo: m[2], registroTipo: "atividade", titulo: "Data do treinamento confirmada",
+          resumo: "O squad confirmou a data.", passos: [{ texto: "Mandar o convite do treinamento", responsavel: "Eu", prazo: null }], trecho: "squad confirmou a data do treinamento" },
+        { tipo: "tarefa", titulo: "Relatório novo para a auditoria", descricao: "Pedido da auditoria.", prioridade: 6, passos: [] },
+        { tipo: "comando_estranho" },
+      ],
+      sobras: "",
+    }) + "\n```";
+    await d.getByLabel("Resposta do Copilot").fill(resposta);
+    await d.getByRole("button", { name: "Ler resposta" }).click();
+    await d.locator("[data-slot=proposta]").first().waitFor();
+    afirmar((await d.locator("[data-slot=proposta]").count()) === 2, "a prévia deveria ter 2 propostas");
+    afirmar((await dados()).tarefas.length === antes.tarefas.length, "a prévia gravou algo antes de aplicar");
+    await d.locator("[data-slot=aplicar-notas]").click();
+    await pg.locator("[data-slot=organizar-nota]").waitFor({ state: "detached" });
+    const depois = await dados();
+    afirmar(depois.tarefas.some((t) => t.registros.some((r) => r.titulo === "Data do treinamento confirmada" && r.proximosPassos.length === 1)), "o registro não entrou na tarefa");
+    afirmar(depois.tarefas.some((t) => t.titulo === "Relatório novo para a auditoria"), "a tarefa nova não foi criada");
+    const folha = depois.notas.items[0];
+    afirmar(folha.arquivadaEm && folha.gerou.length === 2, "a folha não foi arquivada com o que criou");
+  });
+
   await etapa("paleta Ctrl+K abre a tarefa", async () => {
     await pg.goto(B + "/");
     await pg.locator("[data-slot=pagina]").first().waitFor();

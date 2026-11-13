@@ -124,16 +124,14 @@ export function Provider({ children }: { children: ReactNode }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tarefa: t, revEsperada }),
     });
-    setDados((d) => {
-      if (!d) return d;
-      const existe = d.tarefas.some((x) => x.id === salva.id);
-      const nd = {
-        ...d,
-        tarefas: existe ? d.tarefas.map((x) => (x.id === salva.id ? salva : x)) : [...d.tarefas, salva],
-      };
-      ref.current = nd;
-      return nd;
+    const comSalva = (d: Dados): Dados => ({
+      ...d,
+      tarefas: d.tarefas.some((x) => x.id === salva.id) ? d.tarefas.map((x) => (x.id === salva.id ? salva : x)) : [...d.tarefas, salva],
     });
+    // A referência muda já, sem esperar o próximo render: quem gravar a mesma tarefa logo em
+    // seguida (ex.: aplicar várias propostas do bloco de notas) precisa da rev nova, senão leva 409.
+    if (ref.current) ref.current = comSalva(ref.current);
+    setDados((d) => (d ? comSalva(d) : d));
     return salva;
   }, []);
 
@@ -196,12 +194,9 @@ export function Provider({ children }: { children: ReactNode }) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items: fn(structuredClone(col.items)), revEsperada: col.rev }),
           });
-          setDados((dd) => {
-            if (!dd) return dd;
-            const nd = { ...dd, [nome]: nova } as Dados;
-            ref.current = nd;
-            return nd;
-          });
+          // Mesma razão da tarefa: a rev nova tem que valer para a próxima gravação da fila.
+          if (ref.current) ref.current = { ...ref.current, [nome]: nova } as Dados;
+          setDados((dd) => (dd ? ({ ...dd, [nome]: nova } as Dados) : dd));
           return true;
         } catch (e) {
           await falha(e);
