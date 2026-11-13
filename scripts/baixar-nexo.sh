@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="3506356"
+MANIFEST_COMMIT="b5ea344"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 085dc3e66753073ac4faee271e1e0a4d6be88172 AGENTS.md
+100644 bc17ce4e3f19ea7c0a494fafec45fe3e3567b02d AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 31d38e020f3c73f44f84dfb268a4505b63b77c65 README.md
+100644 aa6142746826a3fc885653ade50882f3eda8b291 README.md
 100644 8e355462a183535d349b80f580493cfcb187032b app/api/arquivos/route.ts
 100644 b19a971d9b52424cb50c5eccb24d40eac71d0051 app/api/backup/route.ts
 100644 c28578efe9be7694957478263f3c8a387e3a3bbb app/api/categorias/route.ts
@@ -421,10 +421,10 @@ manifest() {
 100644 e17331e21f1b39f6e9e7cd35711eddc5fa87d036 app/api/pessoas/route.ts
 100644 636c77351b2310321b6a1158098fd204686d933a app/api/tarefas/[id]/route.ts
 100644 598b5c2091632d1bd12a4be1e754a3679a247c67 app/api/times/route.ts
-100644 77436b98da0cd174313abe3a34b4014defe49216 app/busca/page.tsx
+100644 d65392603792e814fff5ee7afaef92a27296d6e3 app/busca/page.tsx
 100644 aa75b7a7b4000af968e0dac0f06872bea9a81870 app/categorias/[id]/page.tsx
 100644 7b8f5569a82946d87d6a48ae9dacc63e503fc9d7 app/categorias/page.tsx
-100644 287dfb560eed7c24bfa22fc11d7ea5be879c00ba app/configuracoes/page.tsx
+100644 02a8e5de0ec26390884bef49bcae2e3f0035fce4 app/configuracoes/page.tsx
 100644 186e1f6db47a3f02e7782eba1902c84b5871ded1 app/globals.css
 100644 314684907ed8f33fd74039c3a2d62805b56ad974 app/icon.svg
 100644 4b233817e1c9061f1c34b452d257172397e3d052 app/layout.tsx
@@ -436,7 +436,7 @@ manifest() {
 100644 0a6f76ffa109f0bf97eeda85e55aba30f0a63d1e app/pessoas/page.tsx
 100644 64119c209adfa1cf14576df9bae5c6d834dd0689 app/relatorios/page.tsx
 100644 ca5daa3a78f3349c37e13f18c88fb8c6dd79a715 app/revisao/page.tsx
-100644 6a584b2258548380ffd8762c807370ccca478ea7 app/tarefas/[id]/page.tsx
+100644 b7636638460b749b02c659972d0d97f02a6fe9fa app/tarefas/[id]/page.tsx
 100644 ddc3325edbbe3e2c024fd7ddbda048a91048af85 app/tarefas/page.tsx
 100644 de75a0b4bb49f3e74eceaeb4db039a6fcb1aef67 components.json
 100644 f785e9017c940c3135204a43cb8596f5fcb08d4b components/CardTarefa.tsx
@@ -445,7 +445,7 @@ manifest() {
 100644 df0dba4af51ce89d8e6d6dc28123543411eb9213 components/MenuTarefa.tsx
 100644 a4b1fe376b0a80ef4fa010a25900b0b73849556b components/MoverEJuntar.tsx
 100644 45cc0682abc77b0c3c8ed8fe1fed7ad9d7b46e20 components/PromptModal.tsx
-100644 9c14d1aa0b3a3c116e435cebb2c1d176a3b04f4a components/Provider.tsx
+100644 092491793c8bb11756572462d2db657eff40e0d3 components/Provider.tsx
 100644 55ab790a3587bfcda534123dc4e5c34f31a34bea components/Raiz.tsx
 100644 5007343501fcb51c0fd6f872114149341f53e9d4 components/RegistroEditor.tsx
 100644 1fb4a427e620e854c4eeabb2c912d26373359acf components/Shell.tsx
@@ -454,9 +454,9 @@ manifest() {
 100644 057d16d862d907a36f53fc2ad3b9844d01024f41 components/categorias/CartaoCategoria.tsx
 100644 b90efb4a33ad6983da8fb39689e56d942006ee4e components/categorias/EmblemaCategoria.tsx
 100644 a72a024898c1af98cfa1cd57bac3148cc8e39e4c components/categorias/acoes.ts
-100644 01617ff0498359b9928b464e206a653b79b09656 components/comum.tsx
+100644 bab85dc6d22acf0ed2e19d1de0071593f9f794f9 components/comum.tsx
 100644 5e3a4dec67469a25adfc2e5a5e76fd83a921a932 components/configuracoes/dados.tsx
-100644 8c5aca79ace65346f1801a6578625158199004f5 components/configuracoes/preferencias.tsx
+100644 9bfa48537fb63b52b002cf031971deead7044508 components/configuracoes/preferencias.tsx
 100644 cbbcb1c71e98a9f8feb086d850cac5ae839fe606 components/hoje/CapturaRapida.tsx
 100644 464e69db407309fb2105f5c3743b735cf115bde2 components/hoje/FocoHoje.tsx
 100644 cc1c1a01f0875dd8062c6a62e13f64421bbc7224 components/hoje/Laterais.tsx
@@ -525,21 +525,21 @@ manifest() {
 100644 3198e421c5ca7157371f58d197959a2d2849ce76 lib/animacoes.ts
 100644 c387f74ecd28ef1d722ab63a6c9df79439c37e31 lib/armazenamento.ts
 100644 55a06342e9e7d3114c28c6d867021ce961b243ba lib/importar-pessoas.ts
-100644 8df00e7c7a9d478b808618305057f014f43cefd4 lib/lembretes.ts
+100644 101fd701f98624d2a6d4efbb4c9c4f8ff75c8463 lib/lembretes.ts
 100644 f04ec7f2c66b4be82cc1bd1dfcda19beeb4bfbba lib/markdown.ts
 100644 306cd900e20302ac2c5761ec3b0b65ebdd9a59bb lib/migracoes.ts
-100644 20823add1c8376f60510ac00049808988899f601 lib/notas.ts
+100644 011534af2282383fe559459b5c2308bc0c6c16b3 lib/notas.ts
 100644 dcd751bb9a402f99fd908b362912017426ff0b1e lib/pessoas.ts
 100644 246009cfbac2816f3b967d13bde470a46dd18ffa lib/preferencias.ts
-100644 b7637228e0d75be8ea842f8a98e7591dac98cbbf lib/prompts.ts
+100644 8d914d947405749b4b23957330afcf88c9e6e49e lib/prompts.ts
 100644 0f221358f01a62d201e110ce5aca68acf7c155e9 lib/rascunhos.ts
 100644 1e547873db8208dc03cb56acf363e9941c5c35fd lib/resposta.ts
 100644 16e4cce4c12f7879eb0e43a0ba484d8c071a9a21 lib/tema.ts
 100644 dd11323b24e6cdc50fe7a171043cd930820d94e0 lib/tipos.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 47b9f102f4b8b34b862fa295f5108806e1198d79 next.config.ts
-100644 502beeac9717e5ba712dd9956a768e9abea0f968 package-lock.json
-100644 b533a1009bbf0abd48118f409a1742beaad8d989 package.json
+100644 18e7f3a661174308d57f89abdc740015e3655431 package-lock.json
+100644 794dfb8225c5cf0289f31f77141c3b0b9fe801bc package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 ff217c0e0a103de9951a58cdc113c13f3dd18df8 proxy.ts
 100755 - scripts/baixar-nexo.sh
