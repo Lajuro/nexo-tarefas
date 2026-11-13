@@ -7,13 +7,15 @@
 import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRightLeft, Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookMarked, Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
 import { pedirMoverRegistro } from "@/components/MoverEJuntar";
+import { useNexo } from "@/components/Provider";
 import { ChipPessoa, IconeTipo, STATUS_VISUAL, StatusBadge, TipoBadge } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
+import { comReferencia } from "@/lib/acoes";
 import { itemLista, lista, suave } from "@/lib/animacoes";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, diasAte, formatarData, hojeISO, nomeStatus, tipoInfo } from "@/lib/tipos";
@@ -39,9 +41,10 @@ function Rotulo({ icone, children, className }: { icone?: ReactNode; children: R
 }
 
 function AcoesRegistro({
-  aoEditar, aoRemover, aoMover, className,
+  aoEditar, aoRemover, aoMover, referencia, aoAlternarReferencia, className,
 }: {
-  aoEditar: () => void; aoRemover: () => void; aoMover?: () => void; className?: string;
+  aoEditar: () => void; aoRemover: () => void; aoMover?: () => void;
+  referencia?: boolean; aoAlternarReferencia?: () => void; className?: string;
 }) {
   return (
     <div
@@ -54,6 +57,14 @@ function AcoesRegistro({
       <Dica texto="Editar registro">
         <Button variant="ghost" size="icon-sm" aria-label="Editar registro" onClick={aoEditar}><Pencil /></Button>
       </Dica>
+      {aoAlternarReferencia && (
+        <Dica texto={referencia ? "Tirar da referência do assunto" : "Guardar como referência do assunto (aparece na categoria)"}>
+          <Button variant="ghost" size="icon-sm" aria-pressed={!!referencia} onClick={aoAlternarReferencia}
+            aria-label={referencia ? "Tirar da referência do assunto" : "Guardar como referência do assunto"} className={referencia ? "text-primary" : undefined}>
+            <BookMarked />
+          </Button>
+        </Dica>
+      )}
       {aoMover && (
         <Dica texto="Mover para outra tarefa">
           <Button variant="ghost" size="icon-sm" aria-label="Mover registro para outra tarefa" onClick={aoMover}><ArrowRightLeft /></Button>
@@ -102,8 +113,14 @@ function CardRegistro({
 }: {
   tarefa: Tarefa; r: Registro; destacado: boolean; aoEditar: () => void; aoRemover: () => void;
 }) {
+  const { atualizarTarefa, toast } = useNexo();
   const [aberto, setAberto] = useState(false);
   const temDetalhe = !!((r.resumoIA && r.anotacoes) || r.respostaIABruta);
+  const alternarReferencia = async () => {
+    const ligar = !r.referencia;
+    if (await atualizarTarefa(tarefa.id, (t) => comReferencia(t, r.id, ligar)))
+      toast(ligar ? "Guardado como referência do assunto. Aparece na página da categoria." : "Saiu da referência do assunto.", "info");
+  };
   const feitos = r.proximosPassos.filter((p) => p.feito).length;
 
   return (
@@ -121,9 +138,15 @@ function CardRegistro({
       <header className="flex items-start gap-2 px-4 pt-3">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
           <TipoBadge tipo={r.tipo} />
+          {r.referencia && (
+            <span data-slot="selo-referencia" className="inline-flex h-5 shrink-0 items-center gap-1 rounded-md bg-primary/12 px-1.5 text-[11px] font-medium text-primary dark:bg-primary/22 dark:text-foreground">
+              <BookMarked className="size-3" /> Referência
+            </span>
+          )}
           {r.titulo && <h3 className="min-w-0 text-sm leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">{r.titulo}</h3>}
         </div>
-        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} aoMover={() => pedirMoverRegistro(tarefa.id, r.id)} className="-mt-1 -mr-2" />
+        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} aoMover={() => pedirMoverRegistro(tarefa.id, r.id)}
+          referencia={r.referencia} aoAlternarReferencia={alternarReferencia} className="-mt-1 -mr-2" />
       </header>
 
       {r.participantes.length > 0 && (
@@ -270,7 +293,7 @@ function CardConclusao({
             {dias === 0 ? "resolvida no mesmo dia em que foi criada" : dias === 1 ? "1 dia do início ao fim" : `${dias} dias do início ao fim`}
           </p>
         </div>
-        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} aoMover={() => pedirMoverRegistro(tarefa.id, r.id)} className="-mt-1 -mr-2" />
+        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} className="-mt-1 -mr-2" />
       </div>
       {r.anotacoes && <p className="mt-2 text-[13px] leading-relaxed texto-pre">{r.anotacoes}</p>}
     </div>

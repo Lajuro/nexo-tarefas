@@ -69,6 +69,7 @@ const EXEMPLO = `{
       "decisoes": ["uma decisão por item"],
       "impedimentos": ["bloqueios, riscos ou dependências"],
       "passos": [{ "texto": "ação", "responsavel": "Eu", "prazo": null }],
+      "referencia": false,
       "trecho": "o pedaço das notas que virou este item, copiado INTEIRO, sem resumir"
     },
     {
@@ -146,6 +147,7 @@ ${nota.texto.trim() || "(vazio)"}
 - Quando as anotações explicam como algo funciona, escreva o resumo em tópicos, passo a passo, na ordem em que acontece. Use quebras de linha.
 - O que eu marquei como dúvida ou "depois eu vejo" vira também um passo em "passos".
 - Em "trecho", copie o pedaço das anotações inteiro, do jeito que está, sem resumir nem corrigir.
+- Use "referencia": true quando o registro explica como algo funciona (um processo, quem cuida do quê, regras) e pode servir de consulta em outras tarefas do mesmo assunto.
 
 === REGRAS ===
 - Use SOMENTE o que está nas anotações. Não invente nomes, datas, decisões ou passos.
@@ -307,6 +309,7 @@ export function interpretarNotas(resposta: string, tarefas: Tarefa[], categorias
         decisoes: vazio(linhas(item.decisoes)) ? "" : linhas(item.decisoes),
         impedimentos: vazio(linhas(item.impedimentos)) ? "" : linhas(item.impedimentos),
         proximosPassos: lerPassos(item.passos),
+        referencia: item.referencia === true,
       });
       if (!registro.titulo && !registro.resumoIA && !registro.anotacoes && !registro.proximosPassos.length) {
         avisos.push("Ignorei um registro vazio.");

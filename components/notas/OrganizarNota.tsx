@@ -280,6 +280,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                         <>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             {sobra ? <Badge variant="alerta">Não coube em nenhum item</Badge> : <TipoBadge tipo={p.registro.tipo} />}
+                            {p.registro.referencia && <Badge variant="default">Referência do assunto</Badge>}
                             {!sobra && <span className="min-w-0 text-[13px] font-medium">{p.registro.titulo || "Sem título"}</span>}
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">

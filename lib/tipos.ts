@@ -62,6 +62,8 @@ export interface Registro {
   respostaIABruta?: string;
   /** Folha do bloco de notas de onde este registro nasceu (para voltar ao texto original). */
   notaId?: string;
+  /** Conhecimento que vale além desta tarefa: aparece em "Referência do assunto" na página da categoria. */
+  referencia?: boolean;
   alteracoes?: {
     status?: Alteracao<string>;
     prioridade?: Alteracao<number>;
@@ -275,6 +277,7 @@ export function normalizarRegistro(r: Partial<Registro>): Registro {
     impedimentos: str(r.impedimentos),
     respostaIABruta: str(r.respostaIABruta),
     notaId: str(r.notaId),
+    referencia: Boolean(r.referencia),
     criadoEm: str(r.criadoEm) || agoraISO(),
     atualizadoEm: str(r.atualizadoEm) || agoraISO(),
   };

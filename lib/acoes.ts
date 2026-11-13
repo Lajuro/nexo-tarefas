@@ -111,3 +111,11 @@ export function comTarefaJuntada(destino: Tarefa, origem: Tarefa): Tarefa {
     lembrarEm: destino.lembrarEm ?? origem.lembrarEm ?? null,
   };
 }
+
+/**
+ * Marca (ou desmarca) um registro como referência do assunto: conhecimento que vale para várias
+ * tarefas (como um processo funciona, quem cuida do quê). Aparece na página da categoria.
+ */
+export function comReferencia(t: Tarefa, registroId: string, ligado: boolean): Tarefa {
+  return { ...t, registros: t.registros.map((r) => (r.id === registroId ? { ...r, referencia: ligado } : r)) };
+}

@@ -177,7 +177,7 @@ export function TarefaForm({
           }
         }}
       >
-        <Campo rotulo="Título">
+        <Campo rotulo="Título" dica={tarefa ? undefined : "A tarefa é a demanda inteira. Reuniões e atividades entram depois, como registros na linha do tempo dela."}>
           <Input
             autoFocus
             data-foco-inicial

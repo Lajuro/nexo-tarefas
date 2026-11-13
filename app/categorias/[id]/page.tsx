@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Archive, ArchiveRestore, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users,
+  Archive, ArchiveRestore, BookMarked, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { CardTarefa } from "@/components/CardTarefa";
@@ -14,8 +14,9 @@ import { PromptModal } from "@/components/PromptModal";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
+import { TextoRico } from "@/components/tarefa/Texto";
 import {
-  AvatarPessoa, Contador, Estatistica, IconeStatus, Pagina, Painel, PontoCor, Secao, Vazio, formatarTamanho,
+  AvatarPessoa, Contador, Estatistica, IconeStatus, Pagina, Painel, PontoCor, Secao, TipoBadge, Vazio, formatarTamanho,
 } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
@@ -25,7 +26,7 @@ import { itemLista, lista } from "@/lib/animacoes";
 import { usePref } from "@/lib/preferencias";
 import { pessoasDaCategoria } from "@/lib/pessoas";
 import { promptCategoria } from "@/lib/prompts";
-import { LinkDoc, STATUS, STATUS_ABERTOS, Status } from "@/lib/tipos";
+import { LinkDoc, STATUS, STATUS_ABERTOS, Status, formatarData } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const TOM_DO_STATUS: Record<Status, "neutro" | "primario" | "sucesso" | "alerta" | "perigo"> = {
@@ -69,6 +70,11 @@ export default function PaginaCategoria() {
   const abertas = ts.filter((t) => STATUS_ABERTOS.includes(t.status));
   const fechadas = ts.filter((t) => !STATUS_ABERTOS.includes(t.status));
   const reunioes = ts.reduce((n, t) => n + t.registros.filter((r) => r.tipo === "reuniao").length, 0);
+  // Registros marcados como referência: o que se aprendeu sobre o assunto e vale para qualquer tarefa dele.
+  const referencias = useMemo(
+    () => ts.flatMap((t) => t.registros.filter((r) => r.referencia).map((r) => ({ t, r }))).sort((a, b) => b.r.data.localeCompare(a.r.data)),
+    [ts],
+  );
 
   // Quem pode ajudar neste assunto: ligadas direto, por time ou por participação nos registros.
   const quemAjuda = useMemo(() => (dados ? pessoasDaCategoria(dados, id) : []), [dados, id]);
@@ -159,6 +165,30 @@ export default function PaginaCategoria() {
 
         <div className="mt-8 grid items-start gap-x-6 gap-y-8 @4xl:grid-cols-[minmax(0,1fr)_352px]">
           <div className="min-w-0">
+            {referencias.length > 0 && (
+              <Secao titulo="Referência do assunto" contagem={referencias.length} icone={<BookMarked />}>
+                <div data-slot="referencias" className="flex flex-col gap-3">
+                  {referencias.map(({ t, r }) => (
+                    <article key={r.id} data-slot="referencia" className="rounded-xl border bg-card px-4 py-3 shadow-xs">
+                      <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <TipoBadge tipo={r.tipo} />
+                        <span className="text-xs text-muted-foreground tabular-nums">{formatarData(r.data)}</span>
+                        <h3 className="min-w-0 text-sm leading-snug font-semibold tracking-tight">{r.titulo || "Sem título"}</h3>
+                      </header>
+                      <div className="mt-2 max-h-72 overflow-y-auto pr-1">
+                        {r.resumoIA
+                          ? <TextoRico texto={r.resumoIA} className="text-sm" />
+                          : <p className="text-sm leading-relaxed texto-pre">{r.anotacoes}</p>}
+                      </div>
+                      <Link href={`/tarefas/${t.id}?r=${encodeURIComponent(r.id)}`}
+                        className="mt-2 inline-flex items-center gap-1 rounded-sm text-xs font-medium text-muted-foreground underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+                        Ver na tarefa “{t.titulo}” <ChevronRight className="size-3" />
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </Secao>
+            )}
             <Secao titulo="Abertas" contagem={abertas.length} icone={<ListTodo />}>
               {abertas.length ? (
                 <div className={GRADE_TAREFAS}>{abertas.map((t) => <CardTarefa key={t.id} t={t} cat={cat} />)}</div>

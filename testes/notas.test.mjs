@@ -124,6 +124,10 @@ teste("registro completo vira Registro normalizado na tarefa certa", () => {
   assert.match(p.registro.id, /^r/);
   assert.ok(T.ID_VALIDO.test(p.registro.id) && p.registro.proximosPassos.every((x) => T.ID_VALIDO.test(x.id)), "ids gerados pelo app");
 });
+teste("referência: só vale true de verdade", () => {
+  for (const [v, esperado] of [[true, true], ["true", false], [1, false], [undefined, false], [null, false]])
+    assert.equal(ler({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "x", referencia: v }] }).propostas[0].registro.referencia, esperado, String(v));
+});
 teste("tipo de registro desconhecido ou 'marco' vira nota", () => {
   for (const rt of ["marco", "qualquer", undefined])
     assert.equal(ler({ itens: [{ tipo: "registro", tarefa: "T1", registroTipo: rt, titulo: "x" }] }).propostas[0].registro.tipo, "nota");
