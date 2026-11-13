@@ -124,14 +124,14 @@ export function Agenda() {
     <Popover open={aberta_} onOpenChange={setAberta}>
       <Dica texto="Agenda: prazos das próximas duas semanas">
         <PopoverTrigger asChild>
-          <button type="button" data-slot="ferramenta-agenda" aria-label="Agenda" className={cn(ficha, "hidden md:inline-flex")}>
+          <button type="button" data-slot="ferramenta-agenda" aria-label="Agenda" className={cn(ficha, "hidden lg:inline-flex")}>
             <CalendarDays className="size-3.5" />
             <span className="first-letter:uppercase">{semPonto(DIA_NAVBAR.format(deISO(hoje)))}</span>
             {agora && (
-              <>
+              <span className="hidden items-center gap-1.5 xl:flex">
                 <span aria-hidden className="h-3 w-px bg-border" />
                 <span className="tabular-nums">{agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-              </>
+              </span>
             )}
             {atrasados.length > 0 && <span aria-label={`${atrasados.length} em atraso`} className="size-1.5 rounded-full bg-destructive" />}
           </button>

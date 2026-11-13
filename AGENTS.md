@@ -64,6 +64,7 @@ NEXO_URL=http://127.0.0.1:3311 node testes/e2e.cjs  # ponta a ponta da interface
 node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
 node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do Outlook
 node testes/notas.test.mjs    # testes do bloco de notas: prompt e leitor do JSON que a IA devolve
+node testes/aparencia.test.mjs # testes da personalização: aparência, moldura e o script que roda antes da primeira pintura
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -107,6 +108,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5, janela fechada ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
   - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
   - a folha do bloco de notas grava sozinha na pasta de dados 1,5 s depois de o usuário parar de digitar (e ao trocar de folha ou a janela ir para o fundo). Nesse intervalo, ou se a gravação falhar, o texto fica em `nexo:nota-pendente:<id>` no `localStorage` e é regravado na próxima abertura;
+  - o "Anotar rápido" da barra superior guarda o que foi digitado em `nexo:anotarPendente` a cada tecla: fechar o balão, apertar F5 ou trocar de tela não perde o texto, e um ponto no botão avisa que há texto esperando;
   - os formulários de tarefa, link e resposta colada do Copilot não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`useFecharComCuidado()` em `components/Raiz.tsx`). **Formulário novo com texto longo tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
@@ -133,7 +135,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 ```
 
 ### Modelo (fonte da verdade: `lib/tipos.ts`)
-- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje).
+- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje). Desde a 2.7: `fixada?` (boolean: presa na barra lateral; é dado, para valer em qualquer PC).
 - **Status**: `a_fazer | em_andamento | aguardando | bloqueada | concluida | cancelada`. "Abertos" = os quatro primeiros (`STATUS_ABERTOS`).
 - **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, notaId? (folha do bloco de notas de onde nasceu), referencia? (conhecimento que vale para o assunto todo), alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
 - **TipoRegistro**: `reuniao | atividade | impedimento | decisao | nota | marco`. `marco` é gerado pelo sistema (tarefa criada, mudança de status; o marco de status `concluida` é o card verde "Concluída" do esboço).
@@ -147,7 +149,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
 ### Preferências de interface (localStorage, não são dados)
-Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo). Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`) e o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo), `aparencia` (`{ acento, cantos, fonte, movimento, lateral, fundo }`, ver `lib/aparencia.ts`), `moldura` (largura da barra lateral, ordem e itens escondidos, seções, ferramentas da barra superior, barra de status, ver `lib/moldura.ts`) e `recentes` (ids das últimas tarefas abertas). Tudo o que é lido do localStorage passa por uma função `normalizar*()` com listas fechadas: valor desconhecido vira o padrão. O `usePref` já nasce com o valor lido (não monta no padrão para depois "pular"), o que é seguro porque nada que depende de preferência é desenhado no servidor. Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`), o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`) e o **texto ainda não guardado do "Anotar rápido"** (`nexo:anotarPendente`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
 
 ---
 
@@ -169,11 +171,14 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, aparência (tema), rotina e lembretes, "como você aparece nos passos" (seus nomes), atalhos. |
 
 ### Moldura (components/Shell.tsx)
-- Barra lateral recolhível (`Ctrl B`) com contadores, barra superior (voltar/avançar, migalhas, busca, sino, tema, tela cheia, atalhos) e barra de status (pasta de dados, "Salvando..."/"Salvo às HH:MM", contagens, versão).
+- **Barra lateral** (`components/shell/Lateral.tsx`), recolhível (`Ctrl B`): navegação com contadores, e as seções **Foco de hoje** (tarefas em foco com o próximo passo e um anel de progresso), **Fixadas** (`tarefa.fixada`, pelo menu da tarefa), **Recentes** (últimas tarefas abertas, no localStorage) e **Assuntos**. Cada seção recolhe com um clique no título. A largura se ajusta arrastando a borda direita (setas com a borda em foco, dois cliques voltam ao padrão, arrastar bem para dentro recolhe).
+- **Barra superior** (`components/shell/BarraSuperior.tsx`): voltar/avançar, migalhas e as **ferramentas** de `components/shell/Ferramentas.tsx`: **Agenda** (dia e hora; ao abrir, prazos, passos com data e follow-ups das próximas duas semanas), **Foco** (passos do foco marcáveis sem trocar de tela), **Anotar rápido** (tarefa ou folha do bloco de notas de qualquer tela, atalho `A`; o texto digitado fica guardado no navegador até virar tarefa ou folha), busca, sino, **aparência** (tema, cor de destaque, cantos), tela cheia e atalhos. Botão direito na barra abre "escolher o que aparece".
+- **Barra de status**: pasta de dados, "Salvando..."/"Salvo às HH:MM", contagens, versão. Pode ser escondida; sem ela, o "Salvando..." aparece na barra superior só enquanto grava.
+- **Personalizar** (`components/shell/Personalizar.tsx`, aberto pelo botão do rodapé da barra lateral, pela barra superior, pela paleta e por Configurações): painel que desliza pela direita **sem escurecer o app** (em tela larga o app encolhe para ele caber ao lado), para ver cada mudança na hora. Abas: **Aparência** (tema, cor de destaque, cantos, letra, estilo da barra lateral, fundo das telas, movimento), **Lateral** (ordem e visibilidade dos itens de navegação e das seções, títulos de grupo, contadores, largura) e **Superior** (quais ferramentas aparecem, barra de status). Tudo é preferência do navegador (`lib/aparencia.ts` e `lib/moldura.ts`), nada toca os dados. Item de navegação escondido continua na paleta e nos atalhos `G`.
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `G` depois `H/T/P/N/C/E/L/S/R` para navegar (`G N` = Notas), `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/S/R` para navegar (`G N` = Notas), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -249,7 +254,8 @@ Todos incluem o contexto (cabeçalho da tarefa, histórico resumido, passos em a
 
 ```
 app/
-  layout.tsx              Provider, Raiz e Shell em todas as páginas
+  layout.tsx              Provider, Raiz e Shell em todas as páginas; injeta os scripts de tema e aparência no <head>
+  template.tsx            entrada animada de cada tela (o Next remonta o template a cada troca de rota)
   globals.css             Tailwind, tokens de cor (claro e escuro), utilitários
   icon.svg                ícone do app (aba e instalação)
   manifest.ts             manifesto para instalar o Nexo pelo navegador
@@ -296,7 +302,8 @@ components/
   CategoriaForm.tsx       criar e editar categoria
   CardTarefa.tsx          cartão de tarefa (grade, quadro e categorias)
   ui/                     kit genérico no padrão Shadcn sobre Radix (seção 13)
-  shell/                  barra lateral, paleta de comandos, sino, logo, telas de primeira vez, erro e atalhos
+  shell/                  moldura: Lateral (navegação e seções), BarraSuperior, Ferramentas (agenda, foco, anotar rápido, aparência),
+                          Personalizar (painel), Aparencia (controles de tema, cor, cantos...), Paleta, Sino, Logo, Telas, navegacao
   hoje/                   tela Hoje: captura rápida, foco de hoje, precisa de você, semana
   rotina/                 ritual "Planejar o dia" em 3 etapas
   tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
@@ -329,6 +336,8 @@ lib/
   acoes.ts                transformações puras da tarefa (aplicarStatus, comFoco, comLembrete...)
   lembretes.ts            motor de lembretes (função pura sobre os dados)
   preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
+  aparencia.ts            aparência escolhida (cor de destaque, cantos, letra, movimento, lateral, fundo) e o script do <head>
+  moldura.ts              barra lateral e barra superior do jeito do usuário: useMoldura(), useRecentes(), abrirPersonalizar()
   prompts.ts              prompts do Copilot e parser da resposta
   rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
@@ -349,6 +358,7 @@ testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node
 testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável (--so-pessoas: só pessoas e times)
 testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
 testes/notas.test.mjs     testes do prompt e do leitor de JSON do bloco de notas (node testes/notas.test.mjs)
+testes/aparencia.test.mjs testes da personalização e do script do <head> com valores hostis (node testes/aparencia.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -388,6 +398,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Anexos são servidos com `X-Content-Type-Options: nosniff` e `Content-Security-Policy: sandbox`; HTML e SVG de terceiros não executam no origin do app (HTML é servido como texto).
 - Upload grava com flag `wx` (nunca sobrescreve) e nome saneado.
 - **A resposta da IA é entrada não confiável.** O JSON colado no bloco de notas (`lib/notas.ts`) é validado campo a campo: tipos em lista fechada, datas reais no formato `AAAA-MM-DD`, tamanhos limitados (texto, itens, passos, pessoas), tarefa precisa existir e estar aberta. Ids são sempre gerados pelo app, nunca aceitos da resposta. Nada do que vem dela vira caminho, id ou código, e nada é gravado sem a prévia e a confirmação do usuário.
+- **O localStorage também é entrada não confiável.** O script que aplica a aparência antes da primeira pintura (`SCRIPT_APARENCIA` em `lib/aparencia.ts`) é texto fixo, gerado só de constantes, e aplica apenas valores das listas fechadas do app (consulta com `hasOwnProperty`, para `constructor` e afins não escaparem pela cadeia de protótipos). Nada lido do localStorage vira CSS, HTML ou código. `testes/aparencia.test.mjs` cobre isso.
 - Nada de telemetria, analytics ou chamadas externas em tempo de execução.
 
 ---
@@ -404,6 +415,8 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
 - **Rascunho do editor de registro fica no `localStorage`**, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. "Atualizar a tarefa junto" só entra no rascunho se foi mexido, para um rascunho antigo não desfazer uma mudança de status feita depois. Fechar o editor guarda o rascunho em vez de perguntar "descartar?", porque assim dá para fechar no meio de uma reunião, olhar a timeline e voltar.
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
+- **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
+- **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
@@ -436,7 +449,10 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 ### Onde fica cada coisa
 | Arquivo | O que tem |
 |---|---|
-| `app/globals.css` | Tailwind, tokens de cor (claro em `:root`, escuro em `.dark`), sombras, barras de rolagem, utilitários `texto-pre` e `sem-selecao`. |
+| `app/globals.css` | Tailwind, tokens de cor (claro em `:root`, escuro em `.dark`), sombras, barras de rolagem, utilitários `texto-pre` e `sem-selecao`. Também as regras da aparência escolhida (`html[data-fonte]`, `[data-movimento]`, `[data-lateral]`, `[data-fundo]`), a troca de tema em círculo e a entrada em cascata dos blocos. |
+| `lib/aparencia.ts` | Aparência do usuário: `ACENTOS`, `CANTOS`, `normalizarAparencia`, `aplicarAparencia`, `SCRIPT_APARENCIA`. Use `useAparencia()` (de `components/Raiz.tsx`) para ler ou mudar. |
+| `lib/moldura.ts` | Moldura do usuário: `useMoldura()`, `useRecentes()`, `registrarRecente()`, `abrirPersonalizar(aba)`, `naOrdem`, `alternarNa`. |
+| `components/shell/Aparencia.tsx` | Controles prontos: `SeletorTema`, `SeletorAcento`, `SeletorCantos`, `OpcoesAparencia`. |
 | `components/ui/*` | Kit genérico (padrão Shadcn, sem regra de negócio). `button`, `input` (Input, Textarea), `dialog` (Dialog e AlertDialog), `select` (Select e o atalho `Seletor`), `popover` (Popover, `Dica`), `menu` (DropdownMenu e ContextMenu), `controles` (Label, Checkbox, Switch, `CampoSwitch`, Slider, `Segmentado`), `data` (`Calendario`, `SeletorData`, `SeletorHora`, `somarDias`, `dataPorExtenso`), `command` (Command e `Combobox`), `chips` (`CampoChips`, `CampoSugestoes`, `AreaArquivo`), `diversos` (Badge, Card, Separator, Skeleton, Kbd, Collapsible, ScrollArea, Tabs, Progress, Table/THead/TBody/Tr/Th/Td, Toaster). |
 | `components/comum.tsx` | Peças de domínio: `Pagina`, `Secao`, `Painel`, `Estatistica`, `Vazio`, `Contador`, `StatusBadge`, `SeletorStatus`, `IconeStatus`, `opcoesStatus`, `PrioBadge`, `SeletorPrioridade`, `CatTag`, `PontoCor`, `PrazoTag`, `IconeTipo`, `TipoBadge`, `AvatarPessoa`, `ChipPessoa`, `Etiqueta`, `ItemPasso`, `Campo`, `LinhaCampos`, `ChipsInput`, `Modal`, `Destaque`, `copiarTexto`, `formatarTamanho`. |
 | `components/Raiz.tsx` | Provedores de interface: tema (`useTema`), confirmação (`useConfirmar`), dicas, toasts, `MotionConfig`. |
@@ -469,11 +485,14 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 - Espaços: 12 a 16px entre blocos irmãos (`gap-3`/`gap-4`), 32px entre seções (`Secao` já dá). Cartões com `rounded-xl border bg-card shadow-xs`.
 - Cores só por token (`bg-card`, `text-muted-foreground`, `border`, `bg-primary`, `text-destructive`, `text-sucesso`, `text-alerta`, `text-info`, `bg-st-andamento/12`...). Nunca hexadecimal em componente. A única cor livre é `categoria.cor`, que é dado do usuário e entra por `style`.
 - Tema claro e escuro por classe `.dark` no `<html>` (`useTema()`), com opção "sistema". Toda tela tem que ficar boa nos dois.
+- **A cor de destaque é do usuário.** `--primary`, `--ring`, `--accent` e `--sidebar-accent` derivam de `--matiz` e `--croma`. Em componente, use sempre os tokens (`bg-primary`, `text-primary`, `ring-ring`); nunca escreva um matiz fixo (275, "indigo"), senão a peça não acompanha a escolha. O mesmo para os cantos: use `rounded-md/lg/xl`, que derivam de `--radius`.
 - Números em `tabular-nums`. Textos longos do usuário em `texto-pre` (preserva quebras). Rótulos e botões em `sem-selecao`.
 
 ### Animação
 - `motion` (`import { motion, AnimatePresence } from "motion/react"`) com os presets de `lib/animacoes.ts`. Listas entram em cascata (`lista` + `itemLista`), itens que somem usam `AnimatePresence` + `layout`, pílulas e seleções deslizam com `layoutId`.
-- Rápido e discreto: 150 a 250ms, nada que atrase o uso. O `MotionConfig reducedMotion="user"` já respeita quem pede menos movimento.
+- Rápido e discreto: 150 a 250ms, nada que atrase o uso.
+- **O usuário escolhe quanto a interface se mexe** (`aparencia.movimento`): "completo" (respeita o "reduzir movimento" do Windows), "sutil" (só esmaecer: o motion roda com `reducedMotion="always"` e o CSS zera deslocamentos e escalas do tw-animate) e "nenhum" (`MotionGlobalConfig.skipAnimations` e transições de CSS zeradas). Por isso, anime com `motion` ou com as classes do tw-animate (`animate-in`, `fade-in-0`...), que obedecem a essa escolha; não crie `@keyframes` soltos sem olhar `html[data-movimento]`.
+- Cada tela entra com `app/template.tsx`; `Secao` e `Painel` dentro de `Pagina` entram em cascata por CSS; o cabeçalho da `Pagina` ganha sombra quando o conteúdo rola por baixo; a troca de tema abre em círculo a partir do clique (View Transitions, só no movimento completo).
 - Hover e foco sempre visíveis (anel `ring-ring`). Todo botão só de ícone tem `aria-label` e `Dica`.
 
 ### Texto e testes

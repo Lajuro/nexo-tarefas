@@ -30,7 +30,7 @@ function Migalhas() {
     const t = dados?.tarefas.find((x) => x.id === id);
     const cat = dados?.categorias.items.find((c) => c.id === t?.categoriaId);
     partes.push({ nome: "Tarefas", href: "/tarefas" });
-    if (cat) partes.push({ nome: <span className="flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span>, href: `/categorias/${cat.id}` });
+    if (cat) partes.push({ nome: <span className="flex min-w-0 items-center gap-1.5"><PontoCor cor={cat.cor} /><span className="truncate">{cat.nome}</span></span>, href: `/categorias/${cat.id}` });
     partes.push({ nome: t?.titulo ?? "Tarefa" });
   } else if (raiz === "categorias" && id) {
     const cat = dados?.categorias.items.find((c) => c.id === id);
@@ -39,20 +39,21 @@ function Migalhas() {
   } else partes.push({ nome: nomeDaRota(pathname) });
 
   return (
-    <nav aria-label="Você está em" data-slot="migalhas" className="flex min-w-0 items-center gap-1 text-[13px] sem-selecao">
+    <nav aria-label="Você está em" data-slot="migalhas" className="flex min-w-0 items-center gap-1 overflow-hidden text-[13px] sem-selecao">
       {partes.map((p, i) => {
         const ultima = i === partes.length - 1;
         return (
           <Fragment key={i}>
             {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />}
             {p.href && !ultima ? (
-              <Link href={p.href} className="shrink-0 rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
+              // A primeira migalha (a tela) nunca encolhe; as do meio cedem espaço antes de invadir as ferramentas.
+              <Link href={p.href} className={cn("rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40", i === 0 ? "shrink-0" : "min-w-0 shrink-[2]")}>
                 {p.nome}
               </Link>
             ) : (
               // A última migalha troca com um leve deslize quando a tela muda.
               <motion.span key={pathname} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={suave}
-                className={cn("truncate px-1 py-0.5", ultima ? "font-medium text-foreground" : "text-muted-foreground")}>
+                className={cn("min-w-8 truncate px-1 py-0.5", ultima ? "font-medium text-foreground" : "text-muted-foreground")}>
                 {p.nome}
               </motion.span>
             )}

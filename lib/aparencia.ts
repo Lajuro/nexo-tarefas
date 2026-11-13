@@ -76,11 +76,15 @@ export function aplicarAparencia(a: Aparencia, raiz: HTMLElement = document.docu
   raiz.dataset.fundo = a.fundo;
 }
 
-/** Mesmo efeito de aplicarAparencia(), em texto, para rodar inline no <head> antes da primeira pintura. */
-export const SCRIPT_APARENCIA = `(function(){try{var a=JSON.parse(localStorage.getItem("nexo:aparencia")||"{}")||{};var C=${JSON.stringify(
+/**
+ * Mesmo efeito de aplicarAparencia(), em texto, para rodar inline no <head> antes da primeira pintura.
+ * O localStorage é entrada não confiável: o script só aplica valores das listas fechadas daqui
+ * (consulta com hasOwnProperty, para "constructor" e afins não escaparem pela cadeia de protótipos).
+ */
+export const SCRIPT_APARENCIA = `(function(){try{var a=JSON.parse(localStorage.getItem("nexo:aparencia")||"{}");if(!a||typeof a!=="object")a={};var C=${JSON.stringify(
   Object.fromEntries(ACENTOS.map((c) => [c.id, [c.matiz, c.croma]])),
-)},R=${JSON.stringify(CANTOS)},h=document.documentElement,c=C[a.acento]||C.${APARENCIA_PADRAO.acento};h.style.setProperty("--matiz",c[0]);h.style.setProperty("--croma",c[1]);h.style.setProperty("--radius",R[a.cantos]||R.${APARENCIA_PADRAO.cantos});h.dataset.fonte=${JSON.stringify(
+)},R=${JSON.stringify(CANTOS)},h=document.documentElement,tem=function(o,k){return typeof k==="string"&&Object.prototype.hasOwnProperty.call(o,k)},de=function(l,v,p){return typeof v==="string"&&l.indexOf(v)>=0?v:p},c=tem(C,a.acento)?C[a.acento]:C.${APARENCIA_PADRAO.acento};h.style.setProperty("--matiz",c[0]);h.style.setProperty("--croma",c[1]);h.style.setProperty("--radius",tem(R,a.cantos)?R[a.cantos]:R.${APARENCIA_PADRAO.cantos});h.dataset.fonte=de(${JSON.stringify(
   FONTES,
-)}.indexOf(a.fonte)<0?"${APARENCIA_PADRAO.fonte}":a.fonte;h.dataset.movimento=${JSON.stringify(MOVIMENTOS)}.indexOf(a.movimento)<0?"${APARENCIA_PADRAO.movimento}":a.movimento;h.dataset.lateral=${JSON.stringify(
+)},a.fonte,"${APARENCIA_PADRAO.fonte}");h.dataset.movimento=de(${JSON.stringify(MOVIMENTOS)},a.movimento,"${APARENCIA_PADRAO.movimento}");h.dataset.lateral=de(${JSON.stringify(
   ESTILOS_LATERAL,
-)}.indexOf(a.lateral)<0?"${APARENCIA_PADRAO.lateral}":a.lateral;h.dataset.fundo=${JSON.stringify(FUNDOS)}.indexOf(a.fundo)<0?"${APARENCIA_PADRAO.fundo}":a.fundo}catch(_){}})()`;
+)},a.lateral,"${APARENCIA_PADRAO.lateral}");h.dataset.fundo=de(${JSON.stringify(FUNDOS)},a.fundo,"${APARENCIA_PADRAO.fundo}")}catch(_){}})()`;

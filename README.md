@@ -77,6 +77,20 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Deixe do seu jeito
+
+O botão de ajustes no rodapé da barra lateral (ou "Personalizar" na paleta, `Ctrl K`) abre um painel ao lado do app. Tudo muda na hora, enquanto você olha.
+
+- **Aparência**: tema claro, escuro ou do sistema, **cor de destaque** (dez opções), cantos retos, suaves ou redondos, letra (Geist, a do Windows ou serifada), estilo da barra lateral (sólida, vidro ou colorida), fundo das telas (liso, aurora ou pontilhado) e quanto a interface se mexe (completo, sutil ou nenhum).
+- **Barra lateral**: arraste os itens para mudar a ordem, desligue o que não usa, escolha quais seções aparecem (Foco de hoje, Fixadas, Recentes, Assuntos). A largura se ajusta arrastando a borda direita da barra. Clique no título de uma seção para recolher.
+- **Barra superior**: escolha as ferramentas que ficam à mão.
+  - **Agenda**: o dia e a hora. Ao clicar, os prazos, passos com data e lembretes das próximas duas semanas.
+  - **Foco**: quantos passos do foco de hoje já saíram. Ao clicar, você marca passos sem sair da tela em que está.
+  - **Anotar** (tecla `A`): cria uma tarefa ou uma folha do bloco de notas de qualquer tela. O que você digitar fica guardado ali até virar tarefa ou folha, mesmo se fechar o balão.
+- **Fixar uma tarefa**: no menu da tarefa (botão direito ou "..."), "Fixar na barra lateral". Ela fica a um clique, em qualquer tela.
+
+Essas escolhas ficam no navegador daquele computador. "Voltar tudo ao padrão" desfaz tudo de uma vez, sem tocar nas suas tarefas. Para aumentar ou diminuir tudo, use `Ctrl +` e `Ctrl -`.
+
 ## Pessoas e times
 
 Cadastre as pessoas com quem você trabalha e os times de cada assunto. Assim o Nexo sabe quem pode ajudar com o quê, e cada nome que aparece nos registros fica ligado à pessoa certa.
