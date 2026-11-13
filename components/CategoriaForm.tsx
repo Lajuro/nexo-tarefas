@@ -29,7 +29,7 @@ export function CategoriaForm({ aberto, fechar, cat }: { aberto: boolean; fechar
       rodape={<><button className="btn" onClick={fechar}>Cancelar</button><button className="btn primario" disabled={!nome.trim()} onClick={salvar}>Salvar</button></>}>
       <div className="form">
         <Campo rotulo="Nome">
-          <input autoFocus value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Raptor"
+          <input autoFocus value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Security Champion"
             onKeyDown={(e) => e.key === "Enter" && salvar()} />
         </Campo>
         <Campo rotulo="Descrição">

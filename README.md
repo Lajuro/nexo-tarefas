@@ -16,7 +16,17 @@ Se o `irm | iex` for bloqueado, abra o link do script no navegador, salve como `
 powershell -ExecutionPolicy Bypass -File .\instalar-nexo.ps1
 ```
 
-O script baixa o código (zip ou arquivo por arquivo), guarda a versão anterior em `nexo-app-anterior`, roda `npm install` e `npm run build` e cria o atalho **Nexo** na área de trabalho. Para atualizar, é só rodar o mesmo comando de novo.
+No Git Bash (mesmo kit do Sonora, com 3 caminhos de download e conferência por hash):
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/Lajuro/nexo-tarefas/main/scripts/baixar-nexo.sh
+bash baixar-nexo.sh nexo-app --instalar           # primeira vez
+bash baixar-nexo.sh nexo-app --forcar --instalar  # atualizar
+```
+
+Sem rede nenhuma: abra `scripts/nexo-offline.sh` no GitHub, copie o conteúdo para um arquivo e rode com `bash` (o projeto inteiro vem embutido).
+
+O script do PowerShell baixa o código (zip ou arquivo por arquivo), guarda a versão anterior em `nexo-app-anterior`, roda `npm install` e `npm run build` e cria o atalho **Nexo** na área de trabalho. Para atualizar, é só rodar o mesmo comando de novo.
 
 Variáveis opcionais: `NEXO_DESTINO` (pasta do app, padrão `%USERPROFILE%\nexo-app`), `NEXO_REPO`, `NEXO_BRANCH`, `NEXO_DATA_DIR` (fixa a pasta de dados).
 
@@ -68,4 +78,4 @@ npm run dev        # http://127.0.0.1:3210
 npm run typecheck
 ```
 
-Regras para evoluir o app sem perder dados estão em `CLAUDE.md`.
+Contexto completo para agentes e regras para evoluir o app sem perder dados: `AGENTS.md`.

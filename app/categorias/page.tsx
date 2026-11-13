@@ -29,7 +29,7 @@ export default function Categorias() {
         </div>
       </div>
       {cats.length === 0 ? (
-        <Vazio titulo="Nenhuma categoria ainda">Ex.: HT, Security Champion, Raptor...</Vazio>
+        <Vazio titulo="Nenhuma categoria ainda">Ex.: Security Champion, gestão de vulnerabilidades, um sistema específico...</Vazio>
       ) : (
         <div className="grade">
           {cats.map((c) => {

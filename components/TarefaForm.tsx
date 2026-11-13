@@ -118,7 +118,7 @@ export function TarefaForm({
           </Campo>
           {categoriaId === "__nova" && (
             <Campo rotulo="Nome da nova categoria">
-              <input autoFocus value={novaCat} onChange={(e) => setNovaCat(e.target.value)} placeholder="Ex.: Raptor" />
+              <input autoFocus value={novaCat} onChange={(e) => setNovaCat(e.target.value)} placeholder="Ex.: Security Champion" />
             </Campo>
           )}
         </div>
