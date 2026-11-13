@@ -63,6 +63,7 @@ bash testes/api.sh  # testes de fumaça da camada de dados e segurança (precisa
 NEXO_URL=http://127.0.0.1:3311 node testes/e2e.cjs  # ponta a ponta da interface (Playwright para Node), pasta de dados VAZIA, ver cabeçalho
 node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
 node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do Outlook
+node testes/notas.test.mjs    # testes do bloco de notas: prompt e leitor do JSON que a IA devolve
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -93,16 +94,18 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Escrita atômica** (`escreverAtomico`): grava em `arquivo.tmp` e faz `rename`. Tenta de novo até 8 vezes se o OneDrive/antivírus segurar o arquivo; fallback com `copyFile`.
 - **Arquivo corrompido nunca vira vazio** (`lerJson`): se o JSON não parsear, lança erro com mensagem clara. Uma coleção ilegível volta com `rev: -1` e a interface bloqueia gravações nela. **Nunca troque por `catch { return padrao }`.**
 - **Controle de concorrência otimista**: toda tarefa e coleção tem `rev`. A gravação manda `revEsperada`; se não bater, o servidor responde **409** e a interface recarrega. Isso protege contra duas abas ou dois PCs (OneDrive) gravando por cima.
-- **Fila de gravação por recurso** no cliente (`components/Provider.tsx`, `enfileirar`): cliques rápidos não disputam a mesma revisão. Sempre altere tarefa via `atualizarTarefa(id, fn)`, que aplica `fn` sobre a **versão mais recente** do estado.
+- **Fila de gravação por recurso** no cliente (`components/Provider.tsx`, `enfileirar`): cliques rápidos não disputam a mesma revisão. Sempre altere tarefa via `atualizarTarefa(id, fn)`, que aplica `fn` sobre a **versão mais recente** do estado. Depois de cada gravação, a referência usada pela fila (`ref.current`) é atualizada na hora, sem esperar o próximo render: assim duas gravações seguidas com `await` na mesma tarefa ou coleção (como aplicar várias propostas do bloco de notas) usam a rev certa.
 - **Backup diário automático**: antes da primeira escrita de cada dia, cópia dos JSON em `_backups/AAAA-MM-DD/` (mantém as 45 mais recentes; `manual-*` e `pre-migracao-*` nunca são podados).
 - **Nada é apagado de verdade**:
   - tarefa excluída → `_lixeira/tarefa-<id>-<carimbo>.json` (restaurável em Configurações);
   - item removido de categorias/links → `_lixeira/<colecao>-removidos-<carimbo>.json`;
-  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`.
+  - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`;
+  - folha do bloco de notas organizada → é **arquivada** (`arquivadaEm`), com o texto original e a lista do que criou; folha excluída → `_lixeira/notas-removidos-<carimbo>.json`.
 - **Espelho em Markdown** (`markdown/<slug>--<id>.md`) regenerado a cada gravação: se o app morrer, os dados continuam legíveis e pesquisáveis no Windows.
 - **Nada digitado se perde antes de salvar**:
   - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5, janela fechada ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
   - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
+  - a folha do bloco de notas grava sozinha na pasta de dados 1,5 s depois de o usuário parar de digitar (e ao trocar de folha ou a janela ir para o fundo). Nesse intervalo, ou se a gravação falhar, o texto fica em `nexo:nota-pendente:<id>` no `localStorage` e é regravado na próxima abertura;
   - os formulários de tarefa, link e resposta colada do Copilot não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`useFecharComCuidado()` em `components/Raiz.tsx`). **Formulário novo com texto longo tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
@@ -118,6 +121,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   links.json                     { rev, items: LinkDoc[] }
   pessoas.json                   { rev, items: Pessoa[] }   (ausente = vazio, rev 0)
   times.json                     { rev, items: Time[] }     (ausente = vazio, rev 0)
+  notas.json                     { rev, items: Nota[] }     (ausente = vazio, rev 0) folhas do bloco de notas
   tarefas/<id>.json              uma Tarefa por arquivo, com a timeline inteira dentro
   arquivos/AAAA/<base36>-<nome>  documentos anexados (gravação com flag "wx": nunca sobrescreve)
   markdown/<slug>--<id>.md       espelho legível, gerado (pode apagar)
@@ -137,11 +141,12 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **LinkDoc**: `id, tipo ("link"|"arquivo"), titulo, url?, arquivo? (caminho relativo em arquivos/), nomeArquivo?, tamanho?, descricao, tags[], tarefaId?, categoriaId?, criadoEm`.
 - **Pessoa**: `id ("pe..."), nome, apelidos[], email, cargo, area, ajudaCom, anotacoes, categoriaIds[], tags[], arquivada?, origem? ("manual"|"registros"|"outlook"), criadaEm, atualizadaEm`. Registros e passos continuam guardando nomes como texto; a ligação com o cadastro é feita na leitura (`lib/pessoas.ts`, `chaveNome` contra `nome` e `apelidos`). Nada é reescrito nas tarefas.
 - **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
+- **Nota** (folha do bloco de notas): `id ("n..."), titulo, texto, arquivadaEm? (carimbo|null), gerou?: FrutoDaNota[], criadaEm, atualizadaEm`. `FrutoDaNota` = `{ tipo ("registro"|"tarefa"|"passo"), tarefaId, registroId?, rotulo }`: o que nasceu da folha quando ela foi organizada. Coleção nova e opcional, sem migração.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
 ### Preferências de interface (localStorage, não são dados)
-Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage. A única coisa além de preferência que mora lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`, seção 4): são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`) e o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
 
 ---
 
@@ -153,6 +158,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
 | `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), lateral com Pendências, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
+| `/notas` | **Bloco de notas**: folhas de texto livre, escritas sem escolher tarefa nem campo (abas Abertas e Arquivadas). "Organizar com o Copilot" copia um prompt com a folha e as tarefas abertas, recebe um **JSON** de volta e mostra uma **prévia** (registro em tarefa existente, tarefa nova, passo antigo concluído). Só grava o que o usuário confirmar, e a folha é arquivada com a lista do que criou. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
@@ -166,7 +172,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `G` depois `H/T/P/C/E/L/S/R` para navegar, `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `G` depois `H/T/P/N/C/E/L/S/R` para navegar (`G N` = Notas), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -205,6 +211,7 @@ Tudo em `lib/prompts.ts`.
 | `promptPrepararReuniao(t, cat)` | Página da tarefa | não é salvo (uso livre) |
 | `promptCategoria(cat, tarefas)` | Página da categoria | não é salvo |
 | `promptRelatorio(tarefas, cats, ini, fim, foco)` | Relatórios | não é salvo |
+| `promptNotas(nota, tarefas, cats)` (em `lib/notas.ts`) | Bloco de notas | propostas (via `interpretarNotas`), aplicadas só depois da prévia |
 
 Todos incluem o contexto (cabeçalho da tarefa, histórico resumido, passos em aberto) e regras: português do Brasil, **não inventar** nada fora do que foi dado, seção vazia = "Nenhum", títulos de seção sozinhos na linha com `## `.
 
@@ -221,6 +228,13 @@ Todos incluem o contexto (cabeçalho da tarefa, histórico resumido, passos em a
 
 **Se mudar o formato pedido em qualquer prompt, atualize `interpretarResposta` e o `MAPA` de títulos junto, e teste com uma resposta colada de verdade.**
 
+### Bloco de notas: resposta em JSON (`lib/notas.ts`)
+É o único prompt que pede **JSON**, porque uma folha pode render vários itens em várias tarefas. O contrato está no cabeçalho de `lib/notas.ts`: `{ "nexo": 1, "itens": [...], "sobras": "..." }`, com itens de tipo `registro`, `tarefa` e `passo_concluido`.
+- As tarefas abertas vão no prompt com um **apelido** (`[T1]`, `[T2]`...), que a IA copia com mais segurança do que o id. `apelidosDasTarefas()` dá sempre a mesma ordem (criação, depois id). O leitor confere o apelido contra o título que a IA devolve e, se não baterem, deixa o item em dúvida para o usuário escolher a tarefa.
+- `interpretarNotas()` só devolve **propostas**: não grava nada. Acha o JSON puro, dentro de cercas de código ou com conversa em volta; se vier cortado, devolve erro claro.
+- A primeira versão não deixa a IA mudar status, prazo ou prioridade de tarefa existente, de propósito: é arriscado aplicar em lote.
+- **Se mudar o contrato, mude o prompt, o leitor e `testes/notas.test.mjs` juntos.**
+
 ---
 
 ## 8. Estrutura do código
@@ -236,6 +250,7 @@ app/
   tarefas/[id]/page.tsx   página da tarefa + timeline (CardRegistro)
   categorias/             lista e página de cada categoria ([id])
   pendencias/page.tsx     passos em aberto
+  notas/page.tsx          bloco de notas (folhas abertas e arquivadas)
   pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
   links/page.tsx          banco de links e arquivos
   revisao/page.tsx        revisão semanal guiada
@@ -251,6 +266,7 @@ app/
     links/       PUT   { items, revEsperada }
     pessoas/     PUT   { items, revEsperada }   (ids validados por ID_VALIDO, sem repetição)
     times/       PUT   { items, revEsperada }
+    notas/       PUT   { items, revEsperada }   (folhas do bloco de notas)
     arquivos/    POST  multipart "arquivo" → { arquivo, nomeArquivo, tamanho }
                  GET   ?p=<caminho relativo>[&baixar=1]  (inline com CSP sandbox)
     backup/      GET lista, POST backup manual
@@ -277,6 +293,7 @@ components/
   tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
   tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral
   pendencias/             tela de pendências: agrupamento e linhas
+  notas/                  bloco de notas: EditorNota (grava sozinho) e OrganizarNota (prompt, JSON, prévia, aplicar)
   categorias/             cartões de categoria, emblema e ações
   pessoas/                lista e detalhe de pessoas e times
     AbasPessoas.tsx       alternância Pessoas | Times
@@ -304,7 +321,8 @@ lib/
   lembretes.ts            motor de lembretes (função pura sobre os dados)
   preferencias.ts         usePref() e useRotina() (localStorage com prefixo nexo:)
   prompts.ts              prompts do Copilot e parser da resposta
-  rascunhos.ts            rascunho automático do editor de registro (localStorage, só cliente)
+  rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
+  notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
   pessoas.ts              diretório unificado (cadastradas + nomes soltos), pessoasDaCategoria, nomesConhecidos
   importar-pessoas.ts     importador do Outlook sem API (colagem, CSV, vCard, ANSI) e compararComCadastro
   markdown.ts             espelho .md de cada tarefa
@@ -321,6 +339,7 @@ testes/api.sh             testes de fumaça da API e da segurança
 testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node)
 testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável (--so-pessoas: só pessoas e times)
 testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
+testes/notas.test.mjs     testes do prompt e do leitor de JSON do bloco de notas (node testes/notas.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -359,6 +378,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - IDs validados por regex antes de virar caminho; leitura de anexos confere se o caminho resolvido está dentro de `arquivos/` (path traversal).
 - Anexos são servidos com `X-Content-Type-Options: nosniff` e `Content-Security-Policy: sandbox`; HTML e SVG de terceiros não executam no origin do app (HTML é servido como texto).
 - Upload grava com flag `wx` (nunca sobrescreve) e nome saneado.
+- **A resposta da IA é entrada não confiável.** O JSON colado no bloco de notas (`lib/notas.ts`) é validado campo a campo: tipos em lista fechada, datas reais no formato `AAAA-MM-DD`, tamanhos limitados (texto, itens, passos, pessoas), tarefa precisa existir e estar aberta. Ids são sempre gerados pelo app, nunca aceitos da resposta. Nada do que vem dela vira caminho, id ou código, e nada é gravado sem a prévia e a confirmação do usuário.
 - Nada de telemetria, analytics ou chamadas externas em tempo de execução.
 
 ---
@@ -374,6 +394,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Não usamos notificações do sistema operacional: os lembretes vivem dentro do app (sino, Hoje, ritual do dia).
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
 - **Rascunho do editor de registro fica no `localStorage`**, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. "Atualizar a tarefa junto" só entra no rascunho se foi mexido, para um rascunho antigo não desfazer uma mudança de status feita depois. Fechar o editor guarda o rascunho em vez de perguntar "descartar?", porque assim dá para fechar no meio de uma reunião, olhar a timeline e voltar.
+- **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)

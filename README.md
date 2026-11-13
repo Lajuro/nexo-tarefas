@@ -36,6 +36,10 @@ Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como u
 
 A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia e uma captura rápida de tarefa.
 
+### Bloco de notas
+
+Em **Notas** você escreve solto, sem escolher tarefa nem campo, e pode misturar assuntos na mesma folha. A folha grava sozinha. Depois, **Organizar com o Copilot** copia um prompt com a folha e as suas tarefas abertas; você cola no Copilot, traz o JSON de volta e o Nexo mostra uma prévia do que vai criar: registro numa tarefa existente, tarefa nova ou passo antigo concluído. Nada é gravado antes de você conferir e aplicar, e a folha fica arquivada com o texto original e a lista do que criou.
+
 Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
 
 ### Fluxo com o Copilot
