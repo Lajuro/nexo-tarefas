@@ -19,7 +19,9 @@
 // conclui passo antigo, passo marcado na página da tarefa, troca de status com
 // marco, conclusão, lista/quadro/filtro em /tarefas, pendências, busca, pessoas,
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
-// ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K e tema escuro.
+// ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K,
+// moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
+// painel Personalizar: cor de destaque, esconder item e ferramenta) e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -306,7 +308,9 @@ async function main() {
     // a tarefa já foi concluída e o padrão é "Só abertas": pede "Todas"
     await pg.locator('[data-slot=select-trigger][aria-label="Filtrar por status"]').click();
     await pg.locator("[data-slot=select-item]", { hasText: /^\s*Todas\s*$/ }).click();
-    await pg.getByText(TITULO).first().waitFor();
+    // só a área de conteúdo: o título também aparece em "Recentes", na barra lateral
+    const conteudo = pg.locator("[data-slot=conteudo]");
+    await conteudo.getByText(TITULO).first().waitFor();
     for (const v of ["Lista", "Quadro"]) {
       await pg.getByRole("radio", { name: v }).click();
       await pg.waitForTimeout(300);
@@ -314,7 +318,7 @@ async function main() {
     await pg.locator("[data-slot=quadro-tarefas]").waitFor();
     await pg.getByLabel("Filtrar tarefas por texto").fill("nada-que-exista-xyz");
     await pg.waitForTimeout(300);
-    afirmar((await pg.getByText(TITULO).count()) === 0, "filtro por texto não escondeu a tarefa");
+    afirmar((await conteudo.getByText(TITULO).count()) === 0, "filtro por texto não escondeu a tarefa");
     await pg.getByLabel("Filtrar tarefas por texto").fill("");
   });
 
@@ -520,11 +524,110 @@ async function main() {
     await pg.waitForURL("**/tarefas/" + idTarefa);
   });
 
+  // ---------- moldura: barra lateral e barra superior ----------
+  await etapa("fixar a tarefa na barra lateral", async () => {
+    const lateral = pg.locator("[data-slot=lateral]");
+    // abrir a tarefa já a colocou em "Recentes"
+    await lateral.locator("[data-secao=recentes] [data-slot=tarefa-nav]", { hasText: "Onboarding do squad" }).waitFor();
+    await pg.getByRole("button", { name: "Mais ações" }).first().click();
+    await pg.getByRole("menuitem", { name: "Fixar na barra lateral" }).click();
+    const fixada = lateral.locator("[data-secao=fixadas] [data-slot=tarefa-nav]", { hasText: "Onboarding do squad" });
+    await fixada.waitFor();
+    const d = await (await pg.request.get(B + "/api/dados")).json();
+    afirmar(d.tarefas.find((t) => t.id === idTarefa).fixada === true, "a tarefa não foi gravada como fixada");
+    // recolher a seção guarda a escolha e esconde as linhas
+    await lateral.locator("[data-secao=fixadas] button[aria-expanded]").click();
+    await fixada.waitFor({ state: "detached" });
+    await lateral.locator("[data-secao=fixadas] button[aria-expanded]").click();
+    await fixada.waitFor();
+  });
+
+  await etapa("anotar rápido pelo atalho A", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click(); // tira o foco de qualquer campo
+    await pg.keyboard.press("a");
+    const campo = pg.locator("[data-slot=anotar-tarefa]");
+    await campo.waitFor();
+    await campo.fill("Conferir o relatório de cobertura");
+    // o que foi digitado sobrevive a fechar o balão
+    await pg.keyboard.press("Escape");
+    await campo.waitFor({ state: "detached" });
+    await pg.locator("[data-slot=ferramenta-anotar]").click();
+    afirmar((await campo.inputValue()) === "Conferir o relatório de cobertura", "o texto do anotar rápido se perdeu ao fechar");
+    await campo.press("Enter");
+    await pg.waitForFunction(async (b) => {
+      const d = await (await fetch(b + "/api/dados")).json();
+      return d.tarefas.some((t) => t.titulo === "Conferir o relatório de cobertura" && t.status === "a_fazer");
+    }, B);
+    // agora uma nota, que vira folha do bloco de notas
+    await pg.getByRole("radio", { name: "Nota" }).click();
+    await pg.locator("[data-slot=anotar-nota]").fill("lembrar de pedir o acesso ao painel\nfalar com o time de plataforma");
+    await pg.keyboard.press("Control+Enter");
+    await pg.waitForFunction(async (b) => {
+      const d = await (await fetch(b + "/api/dados")).json();
+      return d.notas.items.some((n) => !n.arquivadaEm && n.texto.startsWith("lembrar de pedir o acesso"));
+    }, B);
+    await pg.keyboard.press("Escape");
+  });
+
+  await etapa("foco de hoje na barra superior", async () => {
+    await pg.locator("[data-slot=ferramenta-foco]").click();
+    await pg.getByText("Foco de hoje", { exact: true }).last().waitFor();
+    await pg.getByRole("button", { name: "Planejar o dia" }).last().waitFor();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=ferramenta-agenda]").click();
+    await pg.getByRole("group", { name: "Escolher um dia" }).waitFor();
+    await pg.keyboard.press("Escape");
+  });
+
+  await etapa("personalizar: cor, item da lateral e ferramenta", async () => {
+    await pg.locator("[data-slot=abrir-personalizar]").click();
+    const painel = pg.locator("[data-slot=personalizar]");
+    await painel.waitFor();
+    // esconder um item de navegação e trazê-lo de volta
+    const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: nome });
+    await nav("Relatórios").waitFor();
+    await painel.getByRole("switch", { name: "Mostrar Relatórios" }).click();
+    await nav("Relatórios").waitFor({ state: "detached" });
+    afirmar(JSON.parse(await pg.evaluate(() => localStorage.getItem("nexo:moldura"))).ocultos.includes("/relatorios"), "o item escondido não foi guardado");
+    await painel.getByRole("switch", { name: "Mostrar Relatórios" }).click();
+    await nav("Relatórios").waitFor();
+    // mudar a ordem pelo teclado: Notas sobe uma posição
+    await painel.getByRole("button", { name: /^Mover Notas/ }).press("ArrowUp");
+    await pg.waitForFunction(() => {
+      const nomes = [...document.querySelectorAll("[data-slot=lateral] [data-slot=nav-item]")].map((e) => e.textContent);
+      return nomes.findIndex((n) => n.startsWith("Notas")) < nomes.findIndex((n) => n.startsWith("Pendências"));
+    });
+    // ferramenta da barra superior
+    await painel.getByRole("radio", { name: "Superior" }).click();
+    await painel.getByRole("switch", { name: "Mostrar Data e agenda" }).click();
+    await pg.locator("[data-slot=ferramenta-agenda]").waitFor({ state: "detached" });
+    // cor de destaque
+    await painel.getByRole("radio", { name: "Aparência" }).click();
+    await painel.getByRole("radio", { name: "Verde" }).click();
+    await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "155");
+    await painel.getByRole("radio", { name: "Redondos" }).click();
+    await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--radius") === "0.95rem");
+    // a escolha vale depois de recarregar, antes mesmo de o app montar
+    await pg.reload();
+    await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "155");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    afirmar((await pg.locator("[data-slot=ferramenta-agenda]").count()) === 0, "a ferramenta escondida voltou depois de recarregar");
+    // voltar tudo ao padrão
+    await pg.locator("[data-slot=abrir-personalizar]").click();
+    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
+    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+    await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "275");
+    await pg.locator("[data-slot=ferramenta-agenda]").waitFor();
+    await painel.getByRole("button", { name: "Pronto" }).click();
+    await painel.waitFor({ state: "detached" });
+  });
+
   // ---------- tema ----------
   await etapa("tema escuro", async () => {
     await pg.locator("[data-slot=botao-tema]").click();
-    await pg.getByRole("menuitemradio", { name: "Escuro" }).click();
+    await pg.getByRole("radio", { name: "Escuro" }).click();
     await pg.waitForFunction(() => document.documentElement.classList.contains("dark"));
+    await pg.keyboard.press("Escape");
   });
 
   await navegador.close();

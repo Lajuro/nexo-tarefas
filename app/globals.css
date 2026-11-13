@@ -278,6 +278,73 @@ html[data-fundo="pontilhado"] [data-slot="pagina"] > header {
   }
 }
 
+/* Painel "Personalizar" aberto em tela larga: o app encolhe para o painel caber ao lado. */
+[data-slot="app"] {
+  transition: padding-right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (min-width: 1180px) {
+  html[data-personalizando] [data-slot="app"] {
+    padding-right: 384px;
+  }
+}
+
+/* Blocos de cada tela entram em cascata, logo depois da tela (app/template.tsx). */
+@keyframes nexo-subir {
+  from {
+    opacity: 0;
+    transform: translateY(var(--nexo-desloca, 8px));
+  }
+}
+[data-slot="pagina-corpo"] [data-slot="secao"],
+[data-slot="pagina-corpo"] [data-slot="painel"] {
+  animation: nexo-subir 0.36s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+[data-slot="pagina-corpo"] [data-slot="secao"]:nth-of-type(2),
+[data-slot="pagina-corpo"] [data-slot="painel"]:nth-of-type(2) {
+  animation-delay: 45ms;
+}
+[data-slot="pagina-corpo"] [data-slot="secao"]:nth-of-type(3),
+[data-slot="pagina-corpo"] [data-slot="painel"]:nth-of-type(3) {
+  animation-delay: 90ms;
+}
+[data-slot="pagina-corpo"] [data-slot="secao"]:nth-of-type(n + 4),
+[data-slot="pagina-corpo"] [data-slot="painel"]:nth-of-type(n + 4) {
+  animation-delay: 135ms;
+}
+
+/* O cabeçalho da tela ganha uma sombra assim que o conteúdo rola por baixo dele. */
+@supports (animation-timeline: scroll()) and (timeline-scope: --a) {
+  [data-slot="pagina"] {
+    timeline-scope: --nexo-pagina;
+  }
+  [data-slot="pagina-corpo"] {
+    scroll-timeline: --nexo-pagina block;
+  }
+  html:not([data-movimento="nenhum"]) [data-slot="pagina"] > header {
+    position: relative;
+    z-index: 1;
+    animation: nexo-sombra-rolagem linear both;
+    animation-timeline: --nexo-pagina;
+    animation-range: 0 56px;
+  }
+}
+@keyframes nexo-sombra-rolagem {
+  to {
+    box-shadow: 0 10px 18px -16px oklch(0 0 0 / 0.5);
+  }
+}
+
+/* Movimento "sutil": as coisas só esmaecem. Nada desliza nem cresce ao entrar ou sair. */
+html[data-movimento="sutil"] * {
+  --nexo-desloca: 0px;
+  --tw-enter-translate-x: 0 !important;
+  --tw-enter-translate-y: 0 !important;
+  --tw-exit-translate-x: 0 !important;
+  --tw-exit-translate-y: 0 !important;
+  --tw-enter-scale: 1 !important;
+  --tw-exit-scale: 1 !important;
+}
+
 /* Enquanto a largura da barra lateral é arrastada, nada de seleção de texto nem cursor piscando. */
 body:has([data-slot="lateral"][data-arrastando]) {
   cursor: col-resize;

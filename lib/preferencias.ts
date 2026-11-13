@@ -33,7 +33,10 @@ export function gravarPref<T>(chave: string, valor: T) {
  * por exemplo antes de abrir sozinho o ritual do dia).
  */
 export function usePref<T>(chave: string, padrao: T): [T, (v: T | ((atual: T) => T)) => void, boolean] {
-  const [valor, setValor] = useState<T>(padrao);
+  // No navegador o valor já nasce lido, para a tela não montar no padrão e "pular" para a escolha do usuário
+  // (largura da barra lateral, itens escondidos, visão da lista). Isso não causa diferença na hidratação
+  // porque nada que depende de preferência é desenhado no servidor: o Shell só mostra "Carregando" até ler os dados.
+  const [valor, setValor] = useState<T>(() => (typeof window === "undefined" ? padrao : lerPref(chave, padrao)));
   const [carregado, setCarregado] = useState(false);
 
   useEffect(() => {

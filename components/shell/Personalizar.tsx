@@ -180,6 +180,12 @@ export function Personalizar() {
     return () => window.removeEventListener("nexo:personalizar", abrir);
   }, []);
 
+  // Em tela larga o app encolhe para o painel caber ao lado (app/globals.css), e nada fica escondido atrás dele.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-personalizando", aberto);
+    return () => document.documentElement.removeAttribute("data-personalizando");
+  }, [aberto]);
+
   const restaurar = async () => {
     const ok = await confirmar({
       titulo: "Voltar tudo ao padrão?",
