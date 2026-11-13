@@ -70,6 +70,10 @@ teste("prompt: traz notas, tarefas com apelido, passos em aberto e o formato", (
   assert.ok(!p.includes("Passo já feito"), "passo feito não entra");
   assert.match(p, /marina liberou o acesso/);
   assert.match(p, /"nexo": 1/);
+  assert.match(p, /NÃO PERCA INFORMAÇÃO/);
+  assert.ok(!/3 a 6 linhas/.test(p), "o prompt não pode mandar encurtar o resumo");
+  assert.match(p, /"ref": "N1"/);
+  assert.match(p, /Reunião nunca vira tarefa/);
   assert.ok(p.includes("Ferramenta X") && !p.includes("Antiga"), "categoria arquivada não entra");
   assert.ok(!p.includes("—"), "sem travessão");
 });
@@ -204,7 +208,7 @@ teste("passo concluído: casa pelo texto com um passo em aberto", () => {
 // ---------- robustez ----------
 teste("itens estranhos são ignorados sem quebrar", () => {
   const r = ler({ itens: [null, 7, "texto", [], { tipo: "apagar_tudo" }, { sem: "tipo" }, MINIMO.itens[0]], sobras: ["fofoca do café", ""] });
-  assert.equal(r.propostas.length, 1);
+  assert.equal(r.propostas.filter((p) => p.origem !== "sobras").length, 1);
   assert.equal(r.avisos.filter((a) => a.includes("tipo desconhecido")).length, 2);
   assert.equal(r.sobras, "fofoca do café");
 });
@@ -236,7 +240,91 @@ teste("campos extras e tipos trocados não vazam para o registro", () => {
 teste("só sobras também é uma leitura válida", () => {
   const r = ler({ itens: [], sobras: "não consegui encaixar isto" });
   assert.equal(r.ok, true);
-  assert.equal(r.propostas.length, 0);
+  assert.equal(r.propostas.length, 1);
+  assert.equal(r.propostas[0].origem, "sobras");
+});
+
+// ---------- nada se perde ----------
+teste("sobras viram uma proposta de nota, sem tarefa, para o usuário guardar onde quiser", () => {
+  const r = ler({ itens: [MINIMO.itens[0]], sobras: "lembrar de ver a gravação depois" });
+  const s = r.propostas.find((p) => p.origem === "sobras");
+  assert.ok(s, "faltou a proposta das sobras");
+  assert.deepEqual([s.tipo, s.tarefaId, s.novaChave, s.registro.tipo], ["registro", null, null, "nota"]);
+  assert.equal(s.registro.anotacoes, "lembrar de ver a gravação depois");
+  assert.equal(r.propostas.at(-1), s, "as sobras ficam por último");
+});
+teste("registro sem data: usa hoje e marca para conferir, sem tratar como erro", () => {
+  for (const d of [null, undefined, ""]) {
+    const r = ler({ itens: [{ tipo: "registro", tarefa: "T1", data: d, titulo: "x" }] });
+    assert.equal(r.propostas[0].registro.data, T.hojeISO());
+    assert.equal(r.propostas[0].semData, true);
+    assert.ok(!r.avisos.some((a) => a.includes("Data inválida")));
+  }
+  assert.equal(ler(MINIMO).propostas[0].semData, false);
+});
+teste("registro pode entrar numa tarefa nova da mesma resposta (ref), em qualquer ordem", () => {
+  const r = ler({ itens: [
+    { tipo: "registro", tarefa: "n1", tarefaTitulo: "Automação do processo", registroTipo: "reuniao", titulo: "Explicação do processo", participantes: ["Marina"], resumo: "Como funciona." },
+    { tipo: "tarefa", ref: "N1", titulo: "Automação do processo", descricao: "Ajudar a automatizar." },
+    { tipo: "registro", tarefa: "T2", titulo: "outro assunto" },
+  ] });
+  const [reg, tar, outro] = r.propostas;
+  assert.equal(tar.ref, "N1");
+  assert.deepEqual([reg.tarefaId, reg.novaChave, reg.duvida], [null, tar.chave, ""]);
+  assert.equal(reg.registro.tipo, "reuniao");
+  assert.deepEqual([outro.tarefaId, outro.novaChave], ["tb", null]);
+});
+teste("ref que imita o apelido de uma tarefa existente é ignorado", () => {
+  const r = ler({ itens: [{ tipo: "tarefa", ref: "T1", titulo: "Tarefa nova" }, { tipo: "registro", tarefa: "T1", titulo: "x" }] });
+  assert.equal(r.propostas[0].ref, "");
+  assert.deepEqual([r.propostas[1].tarefaId, r.propostas[1].novaChave], ["ta", null]);
+});
+teste("avisa quando a IA copiou só uma parte pequena do texto", () => {
+  const texto = "palavra ".repeat(200); // 1600 caracteres
+  const curto = N.interpretarNotas(JSON.stringify({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "x", trecho: "palavra ".repeat(20) }] }), tarefas, cats, texto);
+  assert.ok(curto.avisos.some((a) => /copiou só cerca de \d+%/.test(a)), JSON.stringify(curto.avisos));
+  const inteiro = N.interpretarNotas(JSON.stringify({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "x", trecho: texto }] }), tarefas, cats, texto);
+  assert.ok(!inteiro.avisos.some((a) => a.includes("copiou só")));
+  const comSobras = N.interpretarNotas(JSON.stringify({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "x", trecho: "palavra ".repeat(20) }], sobras: "palavra ".repeat(170) }), tarefas, cats, texto);
+  assert.ok(!comSobras.avisos.some((a) => a.includes("copiou só")), "o que foi para as sobras conta como aproveitado");
+});
+teste("levaTextoInteiro: só quando um único item carrega o conteúdo da folha", () => {
+  const r = ler({ itens: [
+    { tipo: "tarefa", ref: "N1", titulo: "Nova" },
+    { tipo: "registro", tarefa: "N1", titulo: "reunião na nova" },
+    { tipo: "registro", tarefa: "T1", titulo: "outro" },
+    { tipo: "passo_concluido", tarefa: "T1", passo: "Liberar acesso ao repositório de checkout" },
+  ], sobras: "resto" });
+  const [tar, regNova, regOutro, passo, sobra] = r.propostas;
+  assert.equal(N.levaTextoInteiro([regOutro]), true);
+  assert.equal(N.levaTextoInteiro([tar, regNova]), true, "tarefa nova com seu registro conta como um conteúdo só");
+  assert.equal(N.levaTextoInteiro([tar, regNova, passo, sobra]), true, "passo concluído e sobras não contam");
+  assert.equal(N.levaTextoInteiro([tar]), true);
+  assert.equal(N.levaTextoInteiro([regNova, regOutro]), false);
+  assert.equal(N.levaTextoInteiro([tar, regOutro]), false);
+});
+teste("registroDaProposta: liga à folha e guarda o texto original inteiro", () => {
+  const r = ler({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "x", resumo: "curto", trecho: "só um pedaço" }], sobras: "resto" });
+  const [reg, sobra] = r.propostas;
+  const inteiro = N.registroDaProposta(reg, nota, { textoInteiro: true, data: "2026-11-01" });
+  assert.deepEqual([inteiro.notaId, inteiro.anotacoes, inteiro.data, inteiro.resumoIA], ["n1", nota.texto, "2026-11-01", "curto"]);
+  const parte = N.registroDaProposta(reg, nota, { textoInteiro: false, data: "ontem" });
+  assert.deepEqual([parte.anotacoes, parte.data], ["só um pedaço", reg.registro.data], "data inválida não entra");
+  const s = N.registroDaProposta(sobra, nota, { textoInteiro: true });
+  assert.deepEqual([s.notaId, s.anotacoes], ["n1", "resto"], "as sobras guardam só o próprio texto");
+});
+teste("tarefaDaProposta: com registros da folha não repete o texto numa nota inicial", () => {
+  const semPassos = ler({ itens: [{ tipo: "tarefa", titulo: "Nova", trecho: "pedaço" }] }).propostas[0];
+  assert.deepEqual(N.tarefaDaProposta(semPassos, nota, { temRegistros: true }).registros.map((x) => x.tipo), ["marco"]);
+  const comPassos = ler({ itens: [{ tipo: "tarefa", titulo: "Nova", trecho: "pedaço", passos: [{ texto: "primeiro" }] }] }).propostas[0];
+  const t = N.tarefaDaProposta(comPassos, nota, { temRegistros: true });
+  assert.deepEqual([t.registros[1].tipo, t.registros[1].anotacoes, t.registros[1].proximosPassos.length, t.registros[1].notaId], ["nota", "", 1, "n1"]);
+  const sozinha = N.tarefaDaProposta(semPassos, nota, { textoInteiro: true });
+  assert.equal(sozinha.registros[1].anotacoes, nota.texto);
+  // o marco de criação acompanha o registro mais antigo, mas nunca vai para o futuro
+  assert.equal(N.tarefaDaProposta(semPassos, nota, { temRegistros: true, dataMarco: "2026-01-05" }).registros[0].data, "2026-01-05");
+  assert.equal(N.tarefaDaProposta(semPassos, nota, { temRegistros: true, dataMarco: "2999-01-01" }).registros[0].data, T.hojeISO());
+  assert.equal(N.tarefaDaProposta(semPassos, nota, { temRegistros: true, dataMarco: "ontem" }).registros[0].data, T.hojeISO());
 });
 
 // ---------- aplicação ----------

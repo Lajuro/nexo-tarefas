@@ -4,9 +4,10 @@
 // Registros comuns viram cards; marcos (tarefa criada, mudança de status) ficam numa linha só,
 // e o marco de "concluída" é o card verde que fecha a linha, como no esboço do dono.
 
+import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronRight, Gavel, ListChecks, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
 import { ChipPessoa, IconeTipo, STATUS_VISUAL, StatusBadge, TipoBadge } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
@@ -160,6 +161,15 @@ function CardRegistro({
       )}
 
       <Alteracoes r={r} />
+
+      {r.notaId && (
+        <div className="mt-2.5 px-4">
+          <Link href={`/notas?n=${encodeURIComponent(r.notaId)}`} data-slot="registro-folha"
+            className="-ml-1.5 inline-flex h-6 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-muted-foreground outline-none sem-selecao hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35">
+            <NotebookPen className="size-3.5" /> Veio do bloco de notas: abrir a folha original
+          </Link>
+        </div>
+      )}
 
       {temDetalhe && (
         <Collapsible open={aberto} onOpenChange={setAberto} className="mt-2.5 px-4">

@@ -164,8 +164,10 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
     const criadas = new Map<string, Tarefa>();
     for (const p of aplicaveis) {
       if (p.tipo !== "tarefa") continue;
-      const temRegistros = aplicaveis.some((r) => r.tipo === "registro" && destinos[r.chave] === NOVA + p.chave);
-      const t = await criarTarefa(tarefaDaProposta(p, nota, { textoInteiro, temRegistros }));
+      const dela = aplicaveis.filter((r) => r.tipo === "registro" && destinos[r.chave] === NOVA + p.chave);
+      // O marco "Tarefa criada" leva a data do registro mais antigo que vai entrar nela.
+      const dataMarco = dela.map((r) => datas[r.chave]).filter(Boolean).sort()[0];
+      const t = await criarTarefa(tarefaDaProposta(p, nota, { textoInteiro, temRegistros: dela.length > 0, dataMarco }));
       if (t) { criadas.set(p.chave, t); frutos.push(frutoDe(p, t)); feitas.add(p.chave); }
     }
     // 2. registros e passos concluídos

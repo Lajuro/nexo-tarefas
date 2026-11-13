@@ -409,12 +409,23 @@ export function comRegistroDaNota(t: Tarefa, registro: Registro): Tarefa {
  * `temRegistros`: há registros desta folha que vão entrar nela. Nesse caso a nota inicial só existe
  * se houver passos, para não repetir o texto que já vai nos registros.
  */
-export function tarefaDaProposta(p: PropostaTarefa, nota: Nota, opcoes: { textoInteiro?: boolean; temRegistros?: boolean } = {}): Tarefa {
+export function tarefaDaProposta(
+  p: PropostaTarefa, nota: Nota,
+  opcoes: {
+    textoInteiro?: boolean; temRegistros?: boolean;
+    /** Data do marco "Tarefa criada". Use a do registro mais antigo que vai entrar nela, para a
+     *  linha do tempo não mostrar uma reunião acontecendo antes de a tarefa existir. */
+    dataMarco?: string;
+  } = {},
+): Tarefa {
   const t = normalizarTarefa({
     id: novoId("t"), titulo: p.titulo, descricao: p.descricao, categoriaId: p.categoriaId, prioridade: p.prioridade, prazo: p.prazo, status: "a_fazer",
   });
   t.registros.push(
-    normalizarRegistro({ tipo: "marco", data: hojeISO(), titulo: "Tarefa criada", anotacoes: "", alteracoes: { status: { de: "", para: "a_fazer" } } }),
+    normalizarRegistro({
+      tipo: "marco", data: opcoes.dataMarco && dataValida(opcoes.dataMarco) && opcoes.dataMarco < hojeISO() ? opcoes.dataMarco : hojeISO(),
+      titulo: "Tarefa criada", anotacoes: "", alteracoes: { status: { de: "", para: "a_fazer" } },
+    }),
   );
   const texto = opcoes.temRegistros ? "" : opcoes.textoInteiro ? nota.texto : p.trecho;
   if (p.passos.length || texto)

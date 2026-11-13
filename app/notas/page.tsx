@@ -5,8 +5,9 @@
 // (com prévia e confirmação) e a folha é arquivada. Nada é apagado: excluir manda para a lixeira.
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArchiveRestore, NotebookPen, Plus, Trash2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { ArchiveRestore, NotebookPen, Plus, Trash2, TriangleAlert } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { Contador, Pagina, Vazio } from "@/components/comum";
@@ -24,7 +25,14 @@ type Aba = "abertas" | "arquivadas";
 const nomeDaFolha = (n: Nota) => n.titulo.trim() || n.texto.trim().split("\n")[0].slice(0, 80) || "Folha sem título";
 
 export default function Notas() {
+  // useSearchParams exige Suspense no Next 16.
+  return <Suspense><Conteudo /></Suspense>;
+}
+
+function Conteudo() {
   const { dados, salvarNotas, toast } = useNexo();
+  const router = useRouter();
+  const pedida = useSearchParams().get("n");
   const confirmar = useConfirmar();
   const [aba, setAba] = useState<Aba>("abertas");
   const [sel, setSel] = useState<string | null>(null);
@@ -39,6 +47,17 @@ export default function Notas() {
     [notas],
   );
   const lista = aba === "abertas" ? abertas : arquivadas;
+
+  // /notas?n=<id> (link "abrir a folha original" na timeline): abre a folha na aba certa e limpa o endereço.
+  useEffect(() => {
+    if (!pedida || !dados) return;
+    const n = notas.find((x) => x.id === pedida);
+    if (n) {
+      setAba(n.arquivadaEm ? "arquivadas" : "abertas");
+      setSel(n.id);
+    }
+    router.replace("/notas");
+  }, [pedida, dados, notas, router]);
 
   // Folha em tela: a escolhida, se ainda estiver nesta aba; senão a primeira (ou uma em branco).
   const idAtual = lista.some((n) => n.id === sel)
@@ -115,6 +134,7 @@ export default function Notas() {
                   <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     {n.arquivadaEm ? `arquivada ${dataRelativa(n.arquivadaEm)}` : `criada ${dataRelativa(n.criadaEm)}`}
                     {!!n.gerou?.length && <Contador n={n.gerou.length} />}
+                    {!!n.sobras && <TriangleAlert aria-label="Tem anotações que não foram encaixadas" className="size-3 text-alerta" />}
                   </span>
                 </button>
               ))}
@@ -159,7 +179,15 @@ export default function Notas() {
                       </ul>
                     </div>
                   )}
-                  <p className="mt-4 max-w-[80ch] text-sm leading-relaxed texto-pre">{atual.texto || "(folha sem texto)"}</p>
+                  {atual.sobras && (
+                    <div data-slot="sobras-guardadas" className="mt-3 rounded-xl border border-alerta/40 bg-alerta/8 px-3.5 py-3">
+                      <p className="flex items-center gap-1.5 text-xs font-medium sem-selecao"><TriangleAlert className="size-3.5 text-alerta" /> Ficou de fora ao organizar</p>
+                      <p className="mt-1 text-[13px] leading-snug texto-pre">{atual.sobras}</p>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground">A IA não encaixou este trecho em nenhuma tarefa. Para aproveitar, reabra a folha e organize de novo, ou registre à mão.</p>
+                    </div>
+                  )}
+                  <p className="mt-4 text-xs font-medium text-muted-foreground sem-selecao">Texto original da folha</p>
+                  <p className="mt-1 max-w-[80ch] text-sm leading-relaxed texto-pre">{atual.texto || "(folha sem texto)"}</p>
                 </div>
                 <footer className="flex items-center justify-end gap-2 px-6 py-3">
                   <Button variant="ghost" onClick={() => excluir(atual)}><Trash2 /> Excluir</Button>

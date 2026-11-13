@@ -40,6 +40,8 @@ A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia 
 
 Em **Notas** você escreve solto, sem escolher tarefa nem campo, e pode misturar assuntos na mesma folha. A folha grava sozinha. Depois, **Organizar com o Copilot** copia um prompt com a folha e as suas tarefas abertas; você cola no Copilot, traz o JSON de volta e o Nexo mostra uma prévia do que vai criar: registro numa tarefa existente, tarefa nova ou passo antigo concluído. Nada é gravado antes de você conferir e aplicar, e a folha fica arquivada com o texto original e a lista do que criou.
 
+Se a folha é sobre uma demanda que ainda não está no app, o Copilot propõe a tarefa nova e já coloca a reunião dentro dela. Na prévia você pode trocar a tarefa de destino, criar uma tarefa digitando o nome e acertar a data em que a coisa aconteceu. O que a IA não conseguir encaixar aparece como "não coube em nenhum item": dá para guardar como nota numa tarefa ou deixar anotado na folha. Cada registro criado tem um link para a folha original, e o seu texto inteiro fica guardado junto.
+
 Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
 
 ### Fluxo com o Copilot
