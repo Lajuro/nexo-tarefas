@@ -399,7 +399,7 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="c14fda6 + alterações locais"
+MANIFEST_COMMIT="8fd5d50"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
