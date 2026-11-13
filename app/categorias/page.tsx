@@ -42,7 +42,7 @@ export default function Categorias() {
   return (
     <Pagina
       titulo="Categorias"
-      descricao="Os assuntos de onde as tarefas nascem. Abra um para ver tudo o que já saiu dele."
+      descricao="Os assuntos de onde nascem as tarefas. Abra um para ver tudo o que saiu dele."
       acoes={
         <>
           <CampoSwitch marcado={verArquivadas} aoMudar={setVerArquivadas} className="mr-1">

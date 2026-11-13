@@ -123,11 +123,11 @@ function Combobox({
       <PopoverTrigger asChild>
         <button type="button" id={id} role="combobox" aria-expanded={aberto} aria-label={ariaLabel} data-slot="combobox"
           className={cn(campoBase, "flex h-8 items-center justify-between gap-2 px-2.5 text-left sem-selecao", !atual && "text-muted-foreground/70", className)}>
-          <span className="flex min-w-0 items-center gap-2 truncate">{atual ? (atual.render ?? atual.rotulo) : placeholder}</span>
+          <span className="flex min-w-0 flex-1 items-center gap-2">{atual ? (atual.render ?? <span className="truncate">{atual.rotulo}</span>) : <span className="truncate">{placeholder}</span>}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) min-w-56 p-0">
+      <PopoverContent className="w-max max-w-[min(30rem,calc(100vw-2rem))] min-w-[max(14rem,var(--radix-popover-trigger-width))] p-0">
         <Command>
           <CommandInput placeholder={buscaPlaceholder} value={busca} onValueChange={setBusca} />
           <CommandList>
@@ -142,7 +142,7 @@ function Combobox({
               {opcoes.map((o) => (
                 <CommandItem key={o.valor} value={o.rotulo} keywords={[o.detalhe || "", o.valor]}
                   onSelect={() => { aoMudar(o.valor); setAberto(false); }}>
-                  <span className="flex min-w-0 flex-1 items-center gap-2 truncate">{o.render ?? o.rotulo}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2">{o.render ?? <span className="truncate">{o.rotulo}</span>}</span>
                   {o.detalhe && <span className="shrink-0 text-[11px] text-muted-foreground">{o.detalhe}</span>}
                   {o.valor === valor && <Check className="size-3.5 !text-primary" />}
                 </CommandItem>

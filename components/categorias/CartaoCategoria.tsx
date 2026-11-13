@@ -81,8 +81,8 @@ export function CartaoCategoria({ cat, tarefas, aoEditar }: { cat: Categoria; ta
             <div className="flex items-center gap-3 pr-7">
               <EmblemaCategoria nome={cat.nome} cor={cat.cor} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="truncate text-sm leading-tight font-semibold tracking-tight">{cat.nome}</h3>
+                <div className="flex h-5 items-center gap-2">
+                  <h3 className="truncate text-sm leading-5 font-semibold tracking-tight">{cat.nome}</h3>
                   {cat.arquivada && <Badge variant="outline"><Archive /> arquivada</Badge>}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">

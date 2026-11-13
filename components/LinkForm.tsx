@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, FileText, FolderOpen, Globe, Link2 } from "lucide-react";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, formatarTamanho } from "./comum";
+import { Campo, ChipsInput, IconeStatus, Modal, PontoCor, formatarTamanho } from "./comum";
 import { IconeLink } from "./links/IconeLink";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -95,7 +95,17 @@ export function LinkForm({
           const bb = STATUS_ABERTOS.includes(b.status) ? 0 : 1;
           return aa - bb || a.titulo.localeCompare(b.titulo, "pt-BR");
         })
-        .map((t) => ({ valor: t.id, rotulo: t.titulo, detalhe: nomeStatus(t.status) })),
+        .map((t) => ({
+          valor: t.id,
+          rotulo: t.titulo,
+          detalhe: nomeStatus(t.status),
+          render: (
+            <>
+              <IconeStatus status={t.status} />
+              <span className="truncate">{t.titulo}</span>
+            </>
+          ),
+        })),
     [dados],
   );
 
@@ -121,7 +131,7 @@ export function LinkForm({
   return (
     <Modal
       titulo={link ? "Editar link ou documento" : "Adicionar link ou documento"}
-      descricao="Guarde um endereço ou a cópia de um arquivo e ligue a uma tarefa ou categoria."
+      descricao="Guarde um endereço ou a cópia de um arquivo para achar depois."
       aberto={aberto}
       fechar={fechar}
       rodape={
@@ -200,32 +210,31 @@ export function LinkForm({
         <Campo rotulo="Descrição">
           <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Para que serve, quando usar" />
         </Campo>
-        <LinhaCampos>
-          <Campo rotulo="Vincular à tarefa">
-            <Combobox
-              aria-label="Vincular à tarefa"
-              valor={tId}
-              aoMudar={setTId}
-              opcoes={opcoesTarefa}
-              placeholder="Nenhuma"
-              rotuloLimpar="Nenhuma"
-              buscaPlaceholder="Buscar tarefa..."
-              vazio="Nenhuma tarefa com esse nome."
-            />
-          </Campo>
-          <Campo rotulo="Vincular à categoria">
-            <Combobox
-              aria-label="Vincular à categoria"
-              valor={cId}
-              aoMudar={setCId}
-              opcoes={opcoesCategoria}
-              placeholder="Nenhuma"
-              rotuloLimpar="Nenhuma"
-              buscaPlaceholder="Buscar categoria..."
-              vazio="Nenhuma categoria com esse nome."
-            />
-          </Campo>
-        </LinhaCampos>
+        {/* Um por linha: a lista do seletor tem a largura do campo e os títulos de tarefa são longos. */}
+        <Campo rotulo="Vincular à tarefa">
+          <Combobox
+            aria-label="Vincular à tarefa"
+            valor={tId}
+            aoMudar={setTId}
+            opcoes={opcoesTarefa}
+            placeholder="Nenhuma"
+            rotuloLimpar="Nenhuma"
+            buscaPlaceholder="Buscar tarefa..."
+            vazio="Nenhuma tarefa com esse nome."
+          />
+        </Campo>
+        <Campo rotulo="Vincular à categoria">
+          <Combobox
+            aria-label="Vincular à categoria"
+            valor={cId}
+            aoMudar={setCId}
+            opcoes={opcoesCategoria}
+            placeholder="Nenhuma"
+            rotuloLimpar="Nenhuma"
+            buscaPlaceholder="Buscar categoria..."
+            vazio="Nenhuma categoria com esse nome."
+          />
+        </Campo>
         <Campo rotulo="Tags">
           <ChipsInput valor={tags} mudar={setTags} sugestoes={tagsExist} placeholder="Ex.: runbook, padrão, acesso" />
         </Campo>
