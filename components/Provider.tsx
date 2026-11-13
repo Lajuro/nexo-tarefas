@@ -19,6 +19,10 @@ interface Ctx {
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
+  /** Quantas gravações estão em andamento agora (para o indicador "Salvando..."). */
+  gravando: number;
+  /** Carimbo ISO da última gravação que deu certo nesta sessão. */
+  ultimaGravacao: string | null;
 }
 
 const Contexto = createContext<Ctx | null>(null);
@@ -44,6 +48,8 @@ export function Provider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoApp | null>(null);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [gravando, setGravando] = useState(0);
+  const [ultimaGravacao, setUltimaGravacao] = useState<string | null>(null);
   const ref = useRef<Dados | null>(null);
   const filas = useRef(new Map<string, Promise<unknown>>());
   ref.current = dados;
@@ -77,8 +83,15 @@ export function Provider({ children }: { children: ReactNode }) {
   // Enfileira gravações do mesmo recurso para nunca disputarem a mesma revisão.
   const enfileirar = useCallback(<T,>(chave: string, fn: () => Promise<T>): Promise<T> => {
     const anterior = filas.current.get(chave) || Promise.resolve();
+    setGravando((n) => n + 1);
     const prox = anterior.catch(() => {}).then(fn);
     filas.current.set(chave, prox);
+    prox.then(
+      (r) => {
+        if (r) setUltimaGravacao(new Date().toISOString());
+      },
+      () => {},
+    ).finally(() => setGravando((n) => Math.max(0, n - 1)));
     return prox;
   }, []);
 
@@ -233,7 +246,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, enviarArquivo, toast, configurarPasta,
+        salvarCategorias, salvarLinks, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

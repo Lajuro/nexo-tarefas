@@ -549,9 +549,13 @@ export function Modal({
       <DialogContent
         className={cn(largo === "xl" ? "max-w-[1180px]" : largo ? "max-w-[960px]" : "max-w-lg", className)}
         onOpenAutoFocus={(e) => {
-          // Foca o primeiro campo marcado com autoFocus; senão deixa o Radix decidir.
-          const alvo = (e.currentTarget as HTMLElement).querySelector<HTMLElement>("[data-foco-inicial]");
-          if (alvo) { e.preventDefault(); alvo.focus(); }
+          // Com campos: o Radix foca o primeiro (ou o que tiver autoFocus). Sem campos: foca a janela,
+          // para o anel de foco não cair no botão de fechar.
+          const el = e.currentTarget as HTMLElement;
+          if (!el.querySelector("input, textarea, [data-slot=seletor-data], [role=combobox]")) {
+            e.preventDefault();
+            el.focus();
+          }
         }}
       >
         <DialogHeader>
