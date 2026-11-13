@@ -25,6 +25,7 @@ export function EtapaPronto({
   focos: Tarefa[]; tarefas: Tarefa[]; categorias: Categoria[]; contagem: ContagemPendencias; escolherFocos: () => void;
 }) {
   const resumo = resumoDoDia(tarefas);
+  const temAbertas = resumo.totalAbertas > 0;
   const passosHoje = resumo.passosDoDia.length;
   const radar = [
     resumo.venceHoje.length > 0 && plural(resumo.venceHoje.length, "prazo vence hoje", "prazos vencem hoje"),
@@ -49,9 +50,11 @@ export function EtapaPronto({
         <p className="mt-1 max-w-md text-[13px] text-muted-foreground">
           {focos.length
             ? `${plural(focos.length, "foco", "focos")} para hoje. Comece pelo primeiro; a tela Hoje guarda o resto para você.`
-            : "Você não escolheu nenhum foco, e tudo bem. Dá para focar uma tarefa a qualquer momento pelo menu dela."}
+            : temAbertas
+              ? "Você não escolheu nenhum foco, e tudo bem. Dá para focar uma tarefa a qualquer momento pelo menu dela."
+              : "Não há tarefas abertas agora. Quando você anotar a próxima, ela aparece na tela Hoje."}
         </p>
-        {focos.length === 0 && (
+        {focos.length === 0 && temAbertas && (
           <Button variant="outline" size="sm" className="mt-3" onClick={escolherFocos}>
             <Target /> Escolher focos
           </Button>

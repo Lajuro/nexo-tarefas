@@ -201,7 +201,11 @@ export default function PaginaCategoria() {
               icone={<Link2 />}
               contagem={links.length || undefined}
               corpoClassName="p-1.5"
-              acoes={<Button variant="ghost" size="sm" onClick={() => setLinkForm(true)}><Plus /> Adicionar</Button>}
+              acoes={
+                <Dica texto="Adicionar link ou documento">
+                  <Button variant="ghost" size="icon-sm" aria-label="Adicionar link ou documento" onClick={() => setLinkForm(true)}><Plus /></Button>
+                </Dica>
+              }
             >
               {links.length === 0 ? (
                 <p className="px-2 py-3 text-[13px] text-muted-foreground">

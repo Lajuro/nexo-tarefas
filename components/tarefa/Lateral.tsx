@@ -203,7 +203,7 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
     <section data-slot="resumo-tarefa" className="flex divide-x rounded-xl border bg-card shadow-xs">
       <div className={celula}>
         <span className={valor}>{dias}</span>
-        <span className={rotulo}>{dias === 1 ? "dia" : "dias"} {ehAberta ? "em aberto" : "do início ao fim"}</span>
+        <span className={rotulo}>{dias === 1 ? "dia" : "dias"} {ehAberta ? "em aberto" : "até fechar"}</span>
       </div>
       <div className={celula}>
         <span className={valor}>{reunioes}</span>

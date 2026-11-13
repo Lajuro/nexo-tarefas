@@ -121,7 +121,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 ```
 
 ### Modelo (fonte da verdade: `lib/tipos.ts`)
-- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`.
+- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje).
 - **Status**: `a_fazer | em_andamento | aguardando | bloqueada | concluida | cancelada`. "Abertos" = os quatro primeiros (`STATUS_ABERTOS`).
 - **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
 - **TipoRegistro**: `reuniao | atividade | impedimento | decisao | nota | marco`. `marco` é gerado pelo sistema (tarefa criada, mudança de status; o marco de status `concluida` é o card verde "Concluída" do esboço).
@@ -131,26 +131,47 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
+### Preferências de interface (localStorage, não são dados)
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`). Nada que o usuário não possa perder vai para o localStorage.
+
 ---
 
 ## 6. Funcionalidades (telas)
 
 | Rota | O que faz |
 |---|---|
-| `/` Painel | Números (abertas, atrasadas, bloqueadas, pendências, concluídas no mês), filtros (texto, categoria, status), ordenação (prioridade, prazo, última atividade, A-Z; lembrada em localStorage), grade de cards. |
-| `/tarefas/[id]` | Cabeçalho (categoria, status editável, prioridade, prazo, tags, descrição), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), barra lateral com Pendências, Links e docs da tarefa, Pessoas envolvidas, último Panorama IA. |
-| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, com filtro "só os meus" e lista de prazos. |
-| `/categorias` e `/categorias/[id]` | Cards de categoria com contagens; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links da categoria e prompt de panorama do assunto. Arquivar/desarquivar. |
-| `/pessoas` | Todos os participantes que já apareceram, com contagem e último contato; `?p=Nome` mostra todos os registros com aquela pessoa. |
+| `/` Hoje | Página inicial. Saudação, captura rápida de tarefa, **foco de hoje** (tarefas escolhidas, com os passos marcáveis ali), **precisa de você** (lembretes ativos, com adiar), faixa da semana (prazos dos próximos 7 dias), aguardando retorno, bloqueadas e paradas, progresso do dia. |
+| `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
+| `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), lateral com Pendências, Links e docs, Pessoas envolvidas e último Panorama IA. |
+| `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
+| `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
+| `/pessoas` | Todos os participantes que já apareceram, com contagem, último contato e quantos passos estão com cada um; `?p=Nome` mostra o que está com a pessoa e o histórico de registros. |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
+| `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/busca?q=` | Busca sem acento/maiúscula em tarefas, registros (todos os campos) e links, com trecho destacado. |
-| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, atalhos. |
+| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, aparência (tema), rotina e lembretes, atalhos. |
 
+### Moldura (components/Shell.tsx)
+- Barra lateral recolhível (`Ctrl B`) com contadores, barra superior (voltar/avançar, migalhas, busca, sino, tema, tela cheia, atalhos) e barra de status (pasta de dados, "Salvando..."/"Salvo às HH:MM", contagens, versão).
+- **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
+- **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos**: `N` nova tarefa, `/` busca global, `Esc` fecha modal.
-- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com autocompletar de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
-- Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `components/TarefaForm.tsx`), que gera o marco.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `G` depois `H/T/P/C/E/L/S/R` para navegar, `Ctrl Enter` salva formulários, `Esc` fecha.
+- Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
+
+### Rotina e lembretes (o app lembra o usuário do que fazer)
+- **Motor de lembretes** (`lib/lembretes.ts`, função pura sobre os dados): prazo vencido, prazo hoje, prazo chegando (3 dias), passo com prazo vencido ou para hoje, follow-up (`lembrarEm`) chegou, bloqueada sem novidade (3 dias), aguardando retorno (5 dias), parada (7 dias), passos antigos (14 dias) e em andamento sem próximo passo. Os limites estão em `LIMITES`.
+- Lembretes aparecem no sino, na tela Hoje e nos contadores da barra lateral. **Adiar** esconde um lembrete até uma data e fica só no localStorage.
+- **Planejar o dia** (`components/rotina/PlanejarDia.tsx`): ritual em 3 passos (o que ficou para trás, escolher os focos, pronto). Abre sozinho na primeira visita do dia (desligável) e pelo atalho `D`.
+- **Foco de hoje**: `tarefa.focoEm = hoje`. Vale só no dia; no dia seguinte a tarefa deixa de ser foco sem precisar limpar nada.
+- **Follow-up**: `tarefa.lembrarEm`. Definido no formulário, na página da tarefa ou pelo menu da tarefa ("Lembrar de voltar").
+- **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
+
+### Regras que continuam valendo
+- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com sugestão de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, prazo por passo, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
+- Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `lib/acoes.ts`), que gera o marco.
+- Toda tarefa mostrada na tela tem o menu de ações (`components/MenuTarefa.tsx`): botão direito ou "...".
 
 ---
 
@@ -270,17 +291,20 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Prioridade 1 a 10, quanto maior mais urgente.** Confirmado pelo usuário. Mudar o sentido no futuro altera o significado de um valor gravado, então **é migração** (seção 4).
 - Pasta de dados é um caminho digitado (o servidor é local, então pode ler qualquer pasta do usuário). Não há seletor de pasta nativo.
 - Timeline em ordem crescente por padrão (como no esboço), com alternância.
+- **v2: a página inicial é a tela Hoje** e a lista de tarefas foi para `/tarefas`. A ideia é abrir o app de manhã e já saber o que fazer.
+- **v2: interface com Tailwind + Shadcn/Radix + motion**, a pedido do dono (seção 13). A regra antiga de "sem Tailwind, sem libs de UI" deixou de valer.
+- Lembretes são calculados na hora a partir dos dados (não há tabela de lembretes para manter). O que é preferência (adiar, tema, rotina) fica no localStorage; o que é dado (`lembrarEm`, `focoEm`, prazo do passo) fica na tarefa.
+- Não usamos notificações do sistema operacional: os lembretes vivem dentro do app (sino, Hoje, ritual do dia).
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
 - Importar/colar a ata de reunião do Teams ou o texto de e-mail direto num registro.
-- Lembretes de follow-up ("passo sem andamento há X dias") e visão semanal tipo agenda.
+- Notificação do sistema (Windows) para lembretes críticos, se o dono quiser ser avisado com o app fechado.
 - Subtarefas/checklist próprio da tarefa (além dos passos dos registros).
 - Vincular tarefas entre si (dependências) e "tarefas relacionadas" na mesma categoria.
 - Templates por tipo de demanda (ex.: onboarding Security Champion) com passos padrão.
 - Exportar uma tarefa ou categoria como relatório em Markdown/HTML para mandar ao gestor.
 - Importar de volta um `nexo-export-*.json` (restauração completa).
-- Kanban por status no painel.
 - Histórico de prompts gerados e respostas coladas por tarefa.
 
 ---
@@ -293,8 +317,6 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela).
 5. Atualize este AGENTS.md (seções 5 a 8 e 11) e o README se o comportamento para o usuário mudou. Suba a `version` no `package.json` em mudanças relevantes.
 6. Commits em português, descritivos.
-
-<!-- BEGIN:nextjs-agent-rules -->
 
 ## 13. Interface (design system)
 
@@ -346,6 +368,8 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 ### Texto e testes
 - Português do Brasil, tom direto, sem travessão. Erros dizem o que aconteceu e o que fazer.
 - Os componentes do kit têm `data-slot` (ex.: `data-slot="seletor-data"`, `"seletor-status"`, `"passo"`, `"estatistica"`). O `testes/e2e.py` usa esses atributos e textos visíveis; ao criar componente novo que o teste precise achar, ponha um `data-slot`.
+
+<!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
 

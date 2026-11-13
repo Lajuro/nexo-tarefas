@@ -11,6 +11,7 @@ import pacote from "@/package.json";
 import { Painel } from "@/components/comum";
 import { Tema, useTema } from "@/components/Raiz";
 import { abrirPlanejarDia } from "@/components/Shell";
+import { ATALHOS } from "@/components/shell/navegacao";
 import { useLembretes } from "@/components/useLembretes";
 import { Button } from "@/components/ui/button";
 import { CampoSwitch, Segmentado } from "@/components/ui/controles";
@@ -175,36 +176,28 @@ function LinhaRotina({
 
 // ---------- Atalhos de teclado ----------
 
-const ATALHOS: { nome: string; teclas: string[]; depois?: boolean }[] = [
-  { nome: "Nova tarefa", teclas: ["N"] },
-  { nome: "Buscar em tudo", teclas: ["/"] },
-  { nome: "Paleta de comandos", teclas: ["Ctrl", "K"] },
-  { nome: "Ir para Hoje", teclas: ["G", "H"], depois: true },
-  { nome: "Ir para Tarefas", teclas: ["G", "T"], depois: true },
-  { nome: "Ir para Pendências", teclas: ["G", "P"], depois: true },
-  { nome: "Recolher a barra lateral", teclas: ["Ctrl", "B"] },
-  { nome: "Salvar formulários", teclas: ["Ctrl", "Enter"] },
-  { nome: "Fechar janelas", teclas: ["Esc"] },
-  { nome: "Ver os atalhos", teclas: ["?"] },
-];
-
+// A lista oficial mora na moldura (components/shell/navegacao.ts), junto de quem implementa as teclas.
+// Atalhos que começam com G são em sequência: G e depois a letra.
 export function PainelAtalhos() {
   return (
     <Painel titulo="Atalhos de teclado" icone={<Keyboard />} corpoClassName="@container">
       <ul className="grid gap-x-6 @md:grid-cols-2">
-        {ATALHOS.map((a) => (
-          <li key={a.nome} data-slot="atalho" className="flex h-8 items-center justify-between gap-3 border-b border-dashed text-[13px] last:border-0 @md:[&:nth-last-child(2)]:border-0">
-            <span className="truncate">{a.nome}</span>
-            <span className="flex shrink-0 items-center gap-1">
-              {a.teclas.map((t, i) => (
-                <span key={t} className="flex items-center gap-1">
-                  {i > 0 && a.depois && <span className="text-[11px] text-muted-foreground">depois</span>}
-                  <Kbd>{t}</Kbd>
-                </span>
-              ))}
-            </span>
-          </li>
-        ))}
+        {ATALHOS.map((a) => {
+          const emSequencia = a.teclas.length === 2 && a.teclas[0] === "G";
+          return (
+            <li key={a.descricao} data-slot="atalho" className="flex min-h-8 items-center justify-between gap-3 border-b border-dashed py-1 text-[13px] last:border-0 @md:[&:nth-last-child(2):nth-child(odd)]:border-0">
+              <span className="min-w-0 leading-snug">{a.descricao}</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {a.teclas.map((t, i) => (
+                  <span key={t} className="flex items-center gap-1">
+                    {i > 0 && emSequencia && <span className="text-[11px] text-muted-foreground">depois</span>}
+                    <Kbd>{t}</Kbd>
+                  </span>
+                ))}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </Painel>
   );

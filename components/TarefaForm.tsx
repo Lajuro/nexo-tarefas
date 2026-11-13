@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
+import { ComboCategoria } from "./tarefas/ComboCategoria";
 import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, SeletorPrioridade, opcoesStatus } from "./comum";
 import { Button } from "@/components/ui/button";
-import { Combobox, type OpcaoCombo } from "@/components/ui/command";
+import { type OpcaoCombo } from "@/components/ui/command";
 import { SeletorData } from "@/components/ui/data";
 import { Badge, Kbd } from "@/components/ui/diversos";
 import { Input, Textarea } from "@/components/ui/input";
@@ -187,17 +188,13 @@ export function TarefaForm({
         </Campo>
 
         <LinhaCampos>
-          <Campo rotulo="Categoria" dica="O assunto de onde a tarefa nasceu. Digite um nome novo para criar na hora.">
-            <Combobox
+          <Campo rotulo="Categoria" dica="O assunto de onde a tarefa nasceu.">
+            <ComboCategoria
               valor={categoriaId}
               aoMudar={setCategoriaId}
               opcoes={opcoesCategoria}
-              placeholder="Sem categoria"
-              rotuloLimpar="Sem categoria"
-              buscaPlaceholder="Buscar ou criar categoria..."
-              vazio="Nenhuma categoria ainda. Digite um nome para criar."
               aria-label="Categoria"
-              criar={(nome) => {
+              aoCriar={(nome) => {
                 setNovaCat(nome);
                 setCategoriaId(NOVA);
               }}
@@ -224,13 +221,13 @@ export function TarefaForm({
           </Campo>
         </LinhaCampos>
 
+        <Campo rotulo="Tags" dica="Enter ou vírgula para adicionar">
+          <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: pipeline, auditoria" />
+        </Campo>
+
         <Campo rotulo="Descrição / objetivo">
           <Textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)}
             placeholder="O que precisa ser entregue, quem pediu, contexto..." />
-        </Campo>
-
-        <Campo rotulo="Tags" dica="Enter ou vírgula para adicionar">
-          <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: pipeline, auditoria" />
         </Campo>
       </div>
     </Modal>

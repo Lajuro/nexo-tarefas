@@ -51,7 +51,7 @@ export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: Retu
       acoes={
         adiados > 0 ? (
           <Dica texto="Mostrar de novo os lembretes adiados">
-            <Button variant="ghost" size="sm" onClick={reativarTodos}>
+            <Button variant="ghost" size="sm" className="-my-1" onClick={reativarTodos}>
               <AlarmClockOff /> {adiados === 1 ? "1 adiado" : `${adiados} adiados`}
             </Button>
           </Dica>

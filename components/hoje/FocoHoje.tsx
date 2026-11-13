@@ -192,7 +192,7 @@ function AdicionarFoco({ sugestoes, focar }: { sugestoes: SugestaoFoco[]; focar:
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" data-acao="adicionar-foco">
+        <Button variant="ghost" size="sm" className="-my-1" data-acao="adicionar-foco">
           <Plus /> Adicionar foco
         </Button>
       </DropdownMenuTrigger>

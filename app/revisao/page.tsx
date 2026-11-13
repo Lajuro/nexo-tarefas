@@ -35,11 +35,15 @@ interface Inicial {
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
-/** O elemento focado deve tratar a tecla ele mesmo (em vez de a revisão navegar)? */
-function controleQuerATecla(alvo: EventTarget | null, tecla: string) {
+/**
+ * O elemento focado deve tratar a tecla ele mesmo (em vez de a revisão navegar)?
+ * Campos de texto sempre. Botões e seletores só quando o usuário chegou neles com Tab:
+ * depois de um clique de mouse o foco fica onde clicou, mas as teclas voltam a navegar.
+ */
+function controleQuerATecla(alvo: EventTarget | null, tecla: string, veioDoTeclado: boolean) {
   if (!(alvo instanceof HTMLElement) || alvo === document.body) return false;
   if (alvo.closest("input, textarea, select, [contenteditable='true']")) return true;
-  if (!alvo.matches(":focus-visible")) return false;
+  if (!veioDoTeclado) return false;
   return tecla === "Enter"
     ? Boolean(alvo.closest("button, a, summary, [role='button'], [role='checkbox'], [role='switch'], [role='combobox'], [role='radio']"))
     : Boolean(alvo.closest("[role='radiogroup'], [role='slider'], [role='tablist']"));
@@ -93,23 +97,32 @@ export default function Revisao() {
   );
 
   // Teclado: seta direita ou Enter avança, seta esquerda volta. A tecla fica com o controle quando o usuário
-  // está digitando ou chegou nele pelo teclado (anel de foco visível); depois de um clique de mouse o foco
-  // não aparece, então as teclas voltam a navegar. Com menu, calendário ou janela aberta, não faz nada.
+  // está digitando ou chegou nele com Tab; depois de um clique de mouse as teclas voltam a navegar.
+  // Com menu, calendário ou janela aberta, não faz nada.
+  const focoPorTeclado = useRef(false);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Tab") focoPorTeclado.current = true;
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Enter") return;
       if (fase === "fim" || (fase === "abertura" && (e.key !== "Enter" || !abertas.length))) return;
       if (document.querySelector("[role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox']")) return;
-      if (controleQuerATecla(e.target, e.key)) return;
+      if (controleQuerATecla(e.target, e.key, focoPorTeclado.current)) return;
       e.preventDefault();
       e.stopPropagation();
       if (fase === "abertura") comecar();
       else ir(e.key === "ArrowLeft" ? -1 : 1);
     };
+    const ponteiro = () => {
+      focoPorTeclado.current = false;
+    };
     // Na captura, para decidir antes dos controles (ex.: as setas do seletor de prioridade).
     window.addEventListener("keydown", tecla, true);
-    return () => window.removeEventListener("keydown", tecla, true);
+    window.addEventListener("pointerdown", ponteiro, true);
+    return () => {
+      window.removeEventListener("keydown", tecla, true);
+      window.removeEventListener("pointerdown", ponteiro, true);
+    };
   }, [fase, abertas.length, comecar, ir]);
 
   useEffect(() => {

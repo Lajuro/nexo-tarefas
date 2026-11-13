@@ -66,7 +66,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
   return (
     <MenuContextoTarefa tarefa={t}>
       <article data-slot="cartao-revisao" data-tarefa={t.id} className="@container overflow-hidden rounded-2xl border bg-card shadow-md">
-        <header className="flex items-start gap-4 border-b px-5 py-4">
+        <header className="flex items-start gap-4 border-b px-5 py-3.5">
           <Dica texto={parado === 0 ? "Teve atividade hoje" : `Último sinal de vida há ${parado} ${parado === 1 ? "dia" : "dias"} (registro, passo concluído ou criação)`}>
             <div data-slot="dias-parada" className={cn("flex w-[72px] shrink-0 flex-col items-center rounded-xl px-1 py-2 text-center ring-1 ring-inset sem-selecao", tomParado)}>
               <span className="text-2xl leading-none font-semibold tracking-tight tabular-nums">{parado}</span>
@@ -95,7 +95,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
         </header>
 
         <div className="flex flex-col @2xl:flex-row">
-          <div className="flex min-w-0 flex-1 flex-col gap-5 p-5">
+          <div className="flex min-w-0 flex-1 flex-col gap-4 px-5 py-4">
             <section data-slot="lembretes-revisao">
               <Titulo n={ativos.length || undefined}>Por que olhar para ela</Titulo>
               {ativos.length === 0 ? (
@@ -181,7 +181,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
             </section>
           </div>
 
-          <aside data-slot="decisoes-revisao" className="flex shrink-0 flex-col gap-3.5 border-t bg-muted/30 p-5 @2xl:w-[304px] @2xl:border-t-0 @2xl:border-l">
+          <aside data-slot="decisoes-revisao" className="flex shrink-0 flex-col gap-3.5 border-t bg-muted/30 px-5 py-4 @2xl:w-[304px] @2xl:border-t-0 @2xl:border-l">
             <Campo rotulo="Status" className="flex-none">
               <div><SeletorStatus status={t.status} aoMudar={(s) => atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x))} /></div>
             </Campo>

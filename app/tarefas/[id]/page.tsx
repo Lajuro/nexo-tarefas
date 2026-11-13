@@ -169,7 +169,9 @@ export default function PaginaTarefa() {
       >
         <div className="mx-auto h-full w-full max-w-[1360px] overflow-y-auto @5xl:flex @5xl:overflow-hidden">
           {/* Coluna principal: descrição, Copilot e a linha do tempo */}
-          <div data-slot="tarefa-principal" className="min-w-0 px-6 pt-5 pb-6 @5xl:flex-1 @5xl:overflow-y-auto @5xl:pb-12">
+          {/* Sem padding em cima no contêiner que rola: senão a barra fixa da timeline para abaixo da borda e o conteúdo aparece por trás. */}
+          <div data-slot="tarefa-principal" className="min-w-0 px-6 pb-6 @5xl:flex-1 @5xl:overflow-y-auto @5xl:pb-12">
+            <div aria-hidden className="h-5" />
             {tarefa.descricao && (
               <p data-slot="tarefa-descricao" className="mb-4 max-w-[78ch] text-sm leading-relaxed text-muted-foreground texto-pre">{tarefa.descricao}</p>
             )}
@@ -198,7 +200,7 @@ export default function PaginaTarefa() {
               </Dica>
             </div>
 
-            <div data-slot="timeline-barra" className="sticky top-0 z-10 -mx-2 mt-1.5 mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 bg-background/90 px-2 py-2 backdrop-blur-sm">
+            <div data-slot="timeline-barra" className="sticky top-0 z-10 -mx-2 mt-1.5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 bg-background/95 px-2 py-2 backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-background after:to-transparent">
               <Segmentado aria-label="Filtrar a linha do tempo" tamanho="sm" valor={filtro} aoMudar={setFiltro} opcoes={FILTROS} />
               <div className="ml-auto flex flex-wrap items-center gap-1.5">
                 <Button size="sm" data-slot="registrar" data-tipo="reuniao" onClick={() => registrar("reuniao")}><Plus /> Reunião</Button>

@@ -72,7 +72,7 @@ export function RegistroEditor({
   const [salvando, setSalvando] = useState(false);
   // Só interface: andamento dos 3 passos do Copilot, destaque dos campos preenchidos e foco do passo novo.
   const [jaCopiou, setJaCopiou] = useState(false);
-  const [preenchido, setPreenchido] = useState(false);
+  const [preenchido, setPreenchido] = useState<null | { ok: boolean; texto: string }>(null);
   const [realce, setRealce] = useState<{ campos: CampoIA[]; passos: string[] }>({ campos: [], passos: [] });
   const [focarPasso, setFocarPasso] = useState<string | null>(null);
   const [copiado, marcarCopiado] = useCopiado();
@@ -90,7 +90,7 @@ export function RegistroEditor({
     setConcluir([]);
     setSalvando(false);
     setJaCopiou(false);
-    setPreenchido(false);
+    setPreenchido(null);
     setRealce({ campos: [], passos: [] });
     setFocarPasso(null);
     inicial.current = retrato(base, registro?.respostaIABruta ?? "", tarefa.status, tarefa.prioridade, tarefa.prazo ?? "", []);
@@ -118,9 +118,9 @@ export function RegistroEditor({
     if (!r.anotacoes.trim()) toast("Dica: escreva suas anotações brutas antes, o prompt usa elas.", "info");
     const ok = await copiarTexto(promptRegistro(tarefa, cat, r));
     if (ok) {
+      // O retorno aparece no próprio passo (o aviso flutuante cobriria o botão de salvar).
       marcarCopiado();
       setJaCopiou(true);
-      toast("Prompt copiado. Cole no Copilot e traga a resposta pra cá.");
     } else {
       toast("Não consegui copiar o prompt. Tente de novo.", "erro");
     }
@@ -143,7 +143,6 @@ export function RegistroEditor({
     }));
     const ids = abertosOutros.filter((a) => res.concluidos.some((c) => mesmoTexto(c, a.passo.texto))).map((a) => a.passo.id);
     setConcluir(ids);
-    setPreenchido(true);
 
     const campos: CampoIA[] = [];
     if (res.resumo) campos.push("resumo");
@@ -155,12 +154,13 @@ export function RegistroEditor({
     if (relogioRealce.current) clearTimeout(relogioRealce.current);
     relogioRealce.current = setTimeout(() => setRealce({ campos: [], passos: [] }), 2400);
 
-    toast(
-      res.reconheceu
+    // Mesmo texto de sempre, agora dentro do passo 3 em vez de aviso flutuante.
+    setPreenchido({
+      ok: res.reconheceu,
+      texto: res.reconheceu
         ? `Campos preenchidos${ids.length ? ` e ${ids.length} passo(s) antigo(s) marcados para concluir` : ""}. Revise antes de salvar.`
         : "Não achei as seções do formato. Coloquei tudo no resumo.",
-      res.reconheceu ? "ok" : "erro",
-    );
+    });
   }
 
   function mudarPasso(i: number, campo: keyof Passo, v: string | boolean | null) {
@@ -310,9 +310,17 @@ export function RegistroEditor({
 
           <BlocoCopilot descricao="Sem API: o Nexo monta o prompt, você cola no Copilot do navegador e traz a resposta.">
             <PassoCopilot n={1} titulo="Copiar o prompt com o contexto da tarefa" feito={jaCopiou}>
-              <Button onClick={copiarPrompt}>
-                <IconeCopiar copiado={copiado} /> Copiar prompt para o Copilot
-              </Button>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <Button onClick={copiarPrompt}>
+                  <IconeCopiar copiado={copiado} /> Copiar prompt para o Copilot
+                </Button>
+                {jaCopiou && (
+                  <motion.span data-slot="retorno-copia" role="status" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}
+                    className="text-[11px] text-sucesso">
+                    Prompt copiado. Cole no Copilot e traga a resposta pra cá.
+                  </motion.span>
+                )}
+              </div>
             </PassoCopilot>
             <PassoCopilot n={2} titulo="Colar a resposta do Copilot" feito={temResposta}>
               <Textarea
@@ -320,20 +328,27 @@ export function RegistroEditor({
                 value={colado}
                 onChange={(e) => {
                   setColado(e.target.value);
-                  setPreenchido(false);
+                  setPreenchido(null);
                 }}
                 placeholder="Cole a resposta aqui..."
                 className="max-h-64 min-h-24"
               />
             </PassoCopilot>
-            <PassoCopilot n={3} titulo="Preencher os campos automaticamente" feito={preenchido && temResposta} ultimo>
+            <PassoCopilot n={3} titulo="Preencher os campos automaticamente" feito={!!preenchido?.ok && temResposta} ultimo>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                 <Button variant="outline" disabled={!temResposta} onClick={preencher}>
                   <WandSparkles /> Preencher campos com a resposta
                 </Button>
-                <span className="text-[11px] text-muted-foreground">
-                  {temResposta ? "Você revisa tudo antes de salvar." : <><ClipboardPaste className="mr-1 inline size-3 align-[-2px]" />Cole a resposta no passo 2 para liberar.</>}
-                </span>
+                {preenchido ? (
+                  <motion.span data-slot="retorno-preenchimento" role="status" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}
+                    className={cn("min-w-0 flex-1 basis-48 text-[11px] leading-snug", preenchido.ok ? "text-sucesso" : "text-alerta")}>
+                    {preenchido.texto}
+                  </motion.span>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">
+                    {temResposta ? "Você revisa tudo antes de salvar." : <><ClipboardPaste className="mr-1 inline size-3 align-[-2px]" />Cole a resposta no passo 2 para liberar.</>}
+                  </span>
+                )}
               </div>
             </PassoCopilot>
           </BlocoCopilot>

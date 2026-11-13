@@ -94,7 +94,7 @@ function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) 
             passou ? (t.status === "bloqueada" ? "bg-destructive/12 text-destructive" : "bg-alerta/16 text-alerta") : "bg-muted text-muted-foreground",
           )}
         >
-          {dias}d
+          {dias === 0 ? "hoje" : `${dias}d`}
         </span>
       </Link>
     </MenuContextoTarefa>

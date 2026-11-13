@@ -143,7 +143,7 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [rotinaCarregada, dados, rotina.abrirSozinho, rotina.ultimoPlanejamento, temAbertas, estado?.somenteLeitura]);
 
-  if (!estado) return <Carregando />;
+  if (!estado) return erro ? <TelaErro mensagem={erro} pasta={null} tentar={recarregar} /> : <Carregando />;
   if (!estado.configurado) return <Onboarding />;
   if (estado.erro || erro) return <TelaErro mensagem={estado.erro || erro || ""} pasta={estado.dataDir} tentar={recarregar} />;
   if (!dados) return <Carregando texto="Lendo seus dados..." />;
