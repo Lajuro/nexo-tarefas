@@ -5,10 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useNexo } from "./Provider";
 import { TarefaForm } from "./TarefaForm";
-import { passosAbertos, STATUS_ABERTOS } from "@/lib/tipos";
+import { PlanejarDia } from "./rotina/PlanejarDia";
 
 const NAV = [
-  { href: "/", nome: "Painel", icone: "▦" },
+  { href: "/", nome: "Hoje", icone: "▦" },
+  { href: "/tarefas", nome: "Tarefas", icone: "▦" },
   { href: "/pendencias", nome: "Pendências", icone: "☑" },
   { href: "/categorias", nome: "Categorias", icone: "◫" },
   { href: "/pessoas", nome: "Pessoas", icone: "◉" },
@@ -21,12 +22,16 @@ export function abrirNovaTarefa(categoriaId?: string | null) {
   window.dispatchEvent(new CustomEvent("nexo:nova-tarefa", { detail: { categoriaId } }));
 }
 
+/** Abre o ritual "Planejar o dia" de qualquer lugar. */
+export function abrirPlanejarDia() {
+  window.dispatchEvent(new CustomEvent("nexo:planejar-dia"));
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { estado, dados, erro, recarregar } = useNexo();
   const pathname = usePathname();
-  const router = useRouter();
-  const [busca, setBusca] = useState("");
   const [nova, setNova] = useState<{ aberto: boolean; cat?: string | null }>({ aberto: false });
+  const [ritual, setRitual] = useState(false);
   const buscaRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,9 +49,12 @@ export function Shell({ children }: { children: ReactNode }) {
         setNova({ aberto: true });
       }
     };
+    const planejar = () => setRitual(true);
+    window.addEventListener("nexo:planejar-dia", planejar);
     window.addEventListener("nexo:nova-tarefa", abrir);
     window.addEventListener("keydown", atalhos);
     return () => {
+      window.removeEventListener("nexo:planejar-dia", planejar);
       window.removeEventListener("nexo:nova-tarefa", abrir);
       window.removeEventListener("keydown", atalhos);
     };
@@ -71,65 +79,25 @@ export function Shell({ children }: { children: ReactNode }) {
     );
   }
 
-  const abertas = dados?.tarefas.filter((t) => STATUS_ABERTOS.includes(t.status)).length ?? 0;
-  const pend = dados?.tarefas.reduce((n, t) => n + (STATUS_ABERTOS.includes(t.status) ? passosAbertos(t).length : 0), 0) ?? 0;
 
   return (
-    <div className="app">
-      <aside className="lateral">
-        <Link href="/" className="marca">
-          <span className="logo">N</span>
-          <span>
-            <strong>Nexo</strong>
-            <small>cérebro de tarefas</small>
-          </span>
-        </Link>
-        <form
-          className="busca-global"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (busca.trim()) router.push(`/busca?q=${encodeURIComponent(busca.trim())}`);
-          }}
-        >
-          <input ref={buscaRef} value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar em tudo  ( / )" />
-        </form>
-        <button className="btn primario largo" onClick={() => setNova({ aberto: true })}>
-          + Nova tarefa <kbd>N</kbd>
-        </button>
-        <nav>
-          {NAV.map((n) => {
-            const ativo = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
-            return (
-              <Link key={n.href} href={n.href} className={ativo ? "ativo" : ""}>
-                <span className="ico">{n.icone}</span>
-                {n.nome}
-                {n.href === "/" && abertas > 0 && <span className="contador">{abertas}</span>}
-                {n.href === "/pendencias" && pend > 0 && <span className="contador">{pend}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="lateral-rodape" title={estado.dataDir ?? ""}>
-          <span className="ponto-ok" /> Dados locais
-          <small>{estado.dataDir}</small>
-        </div>
+    <div className="flex h-screen w-screen overflow-hidden">
+      <aside className="flex w-56 shrink-0 flex-col gap-1 border-r border-sidebar-border bg-sidebar p-3 text-sidebar-foreground">
+        <Link href="/" className="mb-2 px-2 text-sm font-semibold">Nexo</Link>
+        {NAV.map((n) => {
+          const ativo = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
+          return (
+            <Link key={n.href} href={n.href} className={`rounded-md px-2 py-1.5 text-[13px] ${ativo ? "bg-sidebar-accent font-medium text-foreground" : ""}`}>
+              {n.nome}
+            </Link>
+          );
+        })}
       </aside>
-      <main className="conteudo">
-        {estado.somenteLeitura && (
-          <div className="aviso erro">
-            Estes dados foram gravados por uma versão mais nova do Nexo (formato v{estado.schemaDados}). Estou em modo
-            somente leitura para não estragar nada. Atualize o app.
-          </div>
-        )}
-        {!!dados?.avisos.length && (
-          <div className="aviso">
-            <strong>Atenção com alguns arquivos:</strong>
-            <ul>{dados.avisos.map((a) => <li key={a}>{a}</li>)}</ul>
-          </div>
-        )}
-        {dados ? children : <div className="carregando">Lendo seus dados...</div>}
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {dados ? <div className="min-h-0 flex-1">{children}</div> : <div className="p-6 text-muted-foreground">Lendo seus dados...</div>}
       </main>
       <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} fechar={() => setNova({ aberto: false })} />
+      <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
     </div>
   );
 }
