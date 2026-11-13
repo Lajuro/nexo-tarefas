@@ -2,17 +2,19 @@
 
 // Coluna lateral da página da tarefa: pendências, links, pessoas, último panorama e um resumo em números.
 
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { ChevronRight, CircleCheck, FileText, Link2, ListChecks, Paperclip, Plus, RefreshCw, Unlink, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { hrefLink } from "@/components/LinkForm";
-import { ChipPessoa, Painel, copiarTexto, formatarTamanho } from "@/components/comum";
+import { AvatarPessoa, ChipPessoa, Painel, copiarTexto, formatarTamanho } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { itemLista, itemRemovivel, lista } from "@/lib/animacoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
+import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
 import { LinkDoc, Tarefa, diasAte, formatarData, passosAbertos } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -113,22 +115,70 @@ function Links({ links, aoAdicionar }: { links: LinkDoc[]; aoAdicionar: () => vo
 }
 
 function Pessoas({ tarefa }: { tarefa: Tarefa }) {
+  const { dados } = useNexo();
   const m = new Map<string, number>();
   for (const r of tarefa.registros) for (const p of r.participantes) m.set(p, (m.get(p) || 0) + 1);
   const pessoas = [...m.entries()].sort((a, b) => b[1] - a[1]);
   if (!pessoas.length) return null;
+  const cadastro = dados?.pessoas?.items ?? [];
   return (
     <Bloco slot="pessoas-tarefa">
       <Painel titulo="Pessoas envolvidas" icone={<Users />} contagem={pessoas.length}>
         <div className="flex flex-wrap gap-1.5">
-          {pessoas.map(([p, n]) => (
-            <Dica key={p} texto={n === 1 ? "Apareceu em 1 registro" : `Apareceu em ${n} registros`}>
-              <span className="inline-flex max-w-full">
-                <ChipPessoa nome={p} extra={n} href={`/pessoas?p=${encodeURIComponent(p)}`} />
-              </span>
-            </Dica>
-          ))}
+          {pessoas.map(([p, n]) => {
+            const cad = acharPessoa(cadastro, p);
+            const apareceu = n === 1 ? "Apareceu em 1 registro" : `Apareceu em ${n} registros`;
+            const funcao = cad ? [cad.cargo, cad.area].filter(Boolean).join(" · ") : "";
+            return (
+              <Dica key={p} texto={funcao ? `${funcao}. ${apareceu}` : apareceu}>
+                <span className="inline-flex max-w-full">
+                  <ChipPessoa nome={p} extra={n} href={`/pessoas?p=${encodeURIComponent(cad?.nome ?? p)}`} />
+                </span>
+              </Dica>
+            );
+          })}
         </div>
+      </Painel>
+    </Bloco>
+  );
+}
+
+/** Pessoas ligadas ao assunto da tarefa que ainda não participaram dela. */
+function QuemAjuda({ tarefa }: { tarefa: Tarefa }) {
+  const { dados } = useNexo();
+  const categoriaId = tarefa.categoriaId;
+  const candidatas = useMemo(() => {
+    if (!dados || !categoriaId) return [];
+    // Só quem foi ligado ao assunto de propósito (direto ou por time): ter participado de outra tarefa não basta.
+    return pessoasDaCategoria(dados, categoriaId).filter(
+      (x) => !x.entrada.tarefaIds.includes(tarefa.id) && x.motivos.some((m) => m.tipo === "direto" || m.tipo === "time"),
+    );
+  }, [dados, categoriaId, tarefa.id]);
+  if (!categoriaId || !candidatas.length) return null;
+  return (
+    <Bloco slot="quem-ajuda-tarefa">
+      <Painel titulo="Quem pode ajudar neste assunto" icone={<Users />} contagem={candidatas.length} corpoClassName="py-2">
+        <ul className="flex flex-col">
+          {candidatas.slice(0, 4).map(({ entrada }) => {
+            const ajuda = entrada.pessoa?.ajudaCom.replace(/\s+/g, " ").trim();
+            return (
+              <li key={entrada.chave} className="flex items-start gap-2 py-1">
+                <AvatarPessoa nome={entrada.nome} tamanho="sm" className="mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/pessoas?p=${encodeURIComponent(entrada.nome)}`}
+                    className="rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+                    {entrada.nome}
+                  </Link>
+                  {ajuda && <span className="block truncate text-[11px] leading-snug text-muted-foreground">{ajuda}</span>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <Link href={`/categorias/${encodeURIComponent(categoriaId)}`}
+          className="mt-1 inline-flex items-center gap-0.5 rounded-sm text-xs font-medium text-muted-foreground underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+          ver todos <ChevronRight className="size-3.5" />
+        </Link>
       </Painel>
     </Bloco>
   );
@@ -237,6 +287,7 @@ export function Lateral({
       <Bloco slot="pendencias-tarefa"><Pendencias tarefa={tarefa} aoIrPara={aoIrPara} /></Bloco>
       <Bloco slot="links-tarefa"><Links links={links} aoAdicionar={aoAdicionarLink} /></Bloco>
       <Pessoas tarefa={tarefa} />
+      <QuemAjuda tarefa={tarefa} />
       <Panorama tarefa={tarefa} aoGerar={aoGerarPanorama} />
       <Bloco slot="resumo"><Resumo tarefa={tarefa} /></Bloco>
     </motion.div>

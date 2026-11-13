@@ -17,6 +17,7 @@ import { Kbd } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
+import { nomesConhecidos } from "@/lib/pessoas";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import {
   Passo, Registro, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarData, hojeISO, nomeStatus,
@@ -104,11 +105,7 @@ export function RegistroEditor({
   const set = <K extends keyof Registro>(k: K, v: Registro[K]) => setR((x) => ({ ...x, [k]: v }));
   const cat = dados?.categorias.items.find((c) => c.id === tarefa.categoriaId);
 
-  const pessoas = useMemo(() => {
-    const s = new Set<string>();
-    for (const t of dados?.tarefas ?? []) for (const reg of t.registros) reg.participantes.forEach((p) => s.add(p));
-    return [...s].sort((a, b) => a.localeCompare(b));
-  }, [dados?.tarefas]);
+  const pessoas = useMemo(() => (dados ? nomesConhecidos(dados) : []), [dados]);
   const quem = useMemo(() => ["Eu", ...pessoas.filter((p) => p !== "Eu")], [pessoas]);
 
   const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro.id !== r.id);

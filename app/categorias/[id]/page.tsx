@@ -15,7 +15,7 @@ import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
 import {
-  ChipPessoa, Contador, Estatistica, IconeStatus, Pagina, Painel, PontoCor, Secao, Vazio, formatarTamanho,
+  AvatarPessoa, Contador, Estatistica, IconeStatus, Pagina, Painel, PontoCor, Secao, Vazio, formatarTamanho,
 } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dica } from "@/components/ui/popover";
 import { itemLista, lista } from "@/lib/animacoes";
 import { usePref } from "@/lib/preferencias";
+import { pessoasDaCategoria } from "@/lib/pessoas";
 import { promptCategoria } from "@/lib/prompts";
 import { LinkDoc, STATUS, STATUS_ABERTOS, Status } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -69,19 +70,12 @@ export default function PaginaCategoria() {
   const fechadas = ts.filter((t) => !STATUS_ABERTOS.includes(t.status));
   const reunioes = ts.reduce((n, t) => n + t.registros.filter((r) => r.tipo === "reuniao").length, 0);
 
-  // Quem aparece nos registros das tarefas deste assunto, com o número de registros de cada um.
-  const pessoas = useMemo(() => {
-    const mapa = new Map<string, { nome: string; n: number }>();
-    for (const t of ts)
-      for (const r of t.registros)
-        for (const bruto of new Set(r.participantes.map((p) => p.trim()).filter(Boolean))) {
-          const chave = bruto.toLowerCase();
-          const atual = mapa.get(chave);
-          if (atual) atual.n++;
-          else mapa.set(chave, { nome: bruto, n: 1 });
-        }
-    return [...mapa.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome));
-  }, [ts]);
+  // Quem pode ajudar neste assunto: ligadas direto, por time ou por participação nos registros.
+  const quemAjuda = useMemo(() => (dados ? pessoasDaCategoria(dados, id) : []), [dados, id]);
+  const times = useMemo(
+    () => (dados?.times?.items ?? []).filter((t) => !t.arquivado && t.categoriaIds.includes(id)),
+    [dados, id],
+  );
 
   if (!dados) return null;
 
@@ -240,19 +234,47 @@ export default function PaginaCategoria() {
               )}
             </Painel>
 
-            <Painel titulo="Pessoas do assunto" icone={<Users />} contagem={pessoas.length || undefined}>
-              {pessoas.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">Quem participar das reuniões e atividades deste assunto aparece aqui.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {pessoas.map((p) => (
-                    <Dica key={p.nome} texto={`${p.n} ${p.n === 1 ? "registro" : "registros"} com ${p.nome}`}>
-                      <span className="inline-flex max-w-full">
-                        <ChipPessoa nome={p.nome} extra={p.n} href={`/pessoas?p=${encodeURIComponent(p.nome)}`} />
-                      </span>
-                    </Dica>
+            <Painel titulo="Quem pode ajudar" icone={<Users />} contagem={quemAjuda.length || undefined} corpoClassName="p-1.5">
+              {times.length > 0 && (
+                <div data-slot="times-do-assunto" className="flex flex-wrap gap-1.5 px-2 pt-1.5 pb-2">
+                  {times.map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/pessoas?time=${encodeURIComponent(t.id)}`}
+                      data-slot="time-do-assunto"
+                      className="inline-flex h-6 max-w-full items-center gap-1.5 rounded-full border bg-card px-2 text-xs font-medium outline-none transition-colors hover:border-ring/40 hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35"
+                    >
+                      <PontoCor cor={t.cor} />
+                      <span className="truncate">{t.nome}</span>
+                    </Link>
                   ))}
                 </div>
+              )}
+              {quemAjuda.length === 0 ? (
+                <p className="px-2 py-3 text-[13px] text-muted-foreground">
+                  Ligue pessoas e times a este assunto no cadastro de pessoas. Quem participar das reuniões e atividades dele também aparece aqui.
+                </p>
+              ) : (
+                <ul className="flex flex-col">
+                  {quemAjuda.map(({ entrada, motivos }) => {
+                    const p = entrada.pessoa;
+                    const funcao = [p?.cargo, p?.area].filter(Boolean).join(" · ");
+                    return (
+                      <li key={entrada.chave} data-slot="quem-ajuda" className="flex items-start gap-2.5 rounded-lg px-2 py-2">
+                        <AvatarPessoa nome={entrada.nome} tamanho="lg" className="mt-px" />
+                        <div className="min-w-0 flex-1">
+                          <Link href={`/pessoas?p=${encodeURIComponent(entrada.nome)}`}
+                            className="rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+                            {entrada.nome}
+                          </Link>
+                          {funcao && <span className="block text-[11px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">{funcao}</span>}
+                          {p?.ajudaCom && <span className="mt-1 block text-xs leading-snug text-foreground/85 [overflow-wrap:anywhere] line-clamp-3 texto-pre">{p.ajudaCom}</span>}
+                          <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{motivos.map((m) => m.descricao).join(" · ")}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </Painel>
           </aside>

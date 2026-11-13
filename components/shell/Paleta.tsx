@@ -10,6 +10,7 @@ import { filtroSemAcento } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/diversos";
 import { aberta } from "@/lib/lembretes";
+import { montarDiretorio } from "@/lib/pessoas";
 import { type Categoria, hojeISO, type Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { TODOS_NAV } from "./navegacao";
@@ -73,11 +74,8 @@ export function Paleta({
 
   const cats = useMemo(() => dados?.categorias.items ?? [], [dados?.categorias.items]);
   const catDe = (t: Tarefa) => cats.find((c) => c.id === t.categoriaId);
-  const pessoas = useMemo(() => {
-    const s = new Set<string>();
-    for (const t of dados?.tarefas ?? []) for (const r of t.registros) r.participantes.forEach((p) => s.add(p.trim()));
-    return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b));
-  }, [dados?.tarefas]);
+  const diretorio = useMemo(() => (dados ? montarDiretorio(dados) : []), [dados]);
+  const times = useMemo(() => (dados?.times?.items ?? []).filter((t) => !t.arquivado), [dados?.times?.items]);
 
   const termo = q.trim();
   const buscando = termo.length > 0;
@@ -108,7 +106,17 @@ export function Paleta({
   const temasVis = buscando ? TEMAS.filter((t) => casa(t.palavras)) : TEMAS;
   const telasVis = buscando ? telas.filter((t) => casa(`ir para ${t.nav.nome}`)) : telas;
   const catsVis = buscando ? cats.filter((c) => casa(`categoria ${c.nome}`)) : [];
-  const pessoasVis = buscando ? pessoas.filter((p) => casa(`pessoa ${p}`)).slice(0, 12) : [];
+  const pessoasVis = buscando
+    ? diretorio
+        .filter((e) => !e.pessoa?.arquivada)
+        .filter((e) => {
+          const p = e.pessoa;
+          return casa(`pessoa ${e.nome} ${p ? `${p.apelidos.join(" ")} ${p.cargo} ${p.area} ${p.ajudaCom}` : ""}`);
+        })
+        .sort((a, b) => Number(b.cadastrada) - Number(a.cadastrada))
+        .slice(0, 12)
+    : [];
+  const timesVis = buscando ? times.filter((t) => casa(`time ${t.nome} ${t.descricao}`)).slice(0, 8) : [];
 
   // ---------- ordem de leitura (a mesma do DOM) e o que cada item faz ----------
   const ir = (href: string) => {
@@ -148,7 +156,8 @@ export function Paleta({
     regTemas();
     regTelas();
     catsVis.forEach((c) => pos(`cat:${c.id}`, () => ir(`/categorias/${c.id}`)));
-    pessoasVis.forEach((p, i) => pos(`pessoa:${i}`, () => ir(`/pessoas?p=${encodeURIComponent(p)}`)));
+    timesVis.forEach((t) => pos(`time:${t.id}`, () => ir(`/pessoas?time=${encodeURIComponent(t.id)}`)));
+    pessoasVis.forEach((p, i) => pos(`pessoa:${i}`, () => ir(`/pessoas?p=${encodeURIComponent(p.nome)}`)));
     pos("busca", () => ir(`/busca?q=${encodeURIComponent(termo)}`));
   }
 
@@ -355,15 +364,26 @@ export function Paleta({
                 </Bloco>
               )}
 
-              {pessoasVis.length > 0 && (
+              {(pessoasVis.length > 0 || timesVis.length > 0) && (
                 <Bloco titulo="Pessoas">
                   <div className="flex flex-wrap gap-1.5">
-                    {pessoasVis.map((p, i) => (
-                      <Opcao key={p} {...props(`pessoa:${i}`)} className="h-8 rounded-full border bg-card pr-3 pl-1.5 text-[13px] transition-colors aria-selected:border-primary/40">
-                        <AvatarPessoa nome={p} tamanho="sm" className="mr-2" />
-                        <span className="max-w-48 truncate">{p}</span>
+                    {timesVis.map((t) => (
+                      <Opcao key={t.id} {...props(`time:${t.id}`)} className="h-8 rounded-full border bg-card px-3 text-[13px] transition-colors aria-selected:border-primary/40">
+                        <PontoCor cor={t.cor} className="mr-2" />
+                        <span className="max-w-48 truncate">{t.nome}</span>
+                        <span className="ml-2 text-[11px] text-muted-foreground">time</span>
                       </Opcao>
                     ))}
+                    {pessoasVis.map((e, i) => {
+                      const detalhe = [e.pessoa?.cargo, e.pessoa?.area].filter(Boolean).join(" · ");
+                      return (
+                        <Opcao key={e.chave} {...props(`pessoa:${i}`)} className="h-8 rounded-full border bg-card pr-3 pl-1.5 text-[13px] transition-colors aria-selected:border-primary/40">
+                          <AvatarPessoa nome={e.nome} tamanho="sm" className="mr-2" />
+                          <span className="max-w-48 truncate">{e.nome}</span>
+                          {detalhe && <span className="ml-2 max-w-44 truncate text-[11px] text-muted-foreground">{detalhe}</span>}
+                        </Opcao>
+                      );
+                    })}
                   </div>
                 </Bloco>
               )}

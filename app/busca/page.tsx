@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, ExternalLink, Library, ListTodo, MessagesSquare, Search, SearchX, Sparkles } from "lucide-react";
+import { ChevronRight, ExternalLink, Library, ListTodo, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { hrefLink } from "@/components/LinkForm";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
@@ -12,13 +12,13 @@ import { CampoBusca } from "@/components/busca/CampoBusca";
 import { IconeLink, enderecoCurto } from "@/components/links/IconeLink";
 import { montarPessoas } from "@/components/pessoas/dados";
 import {
-  CatTag, ChipPessoa, Destaque, Etiqueta, IconeStatus, IconeTipo, Pagina, PrazoTag, PrioBadge, Secao, StatusBadge, TipoBadge, Vazio,
+  AvatarPessoa, CatTag, ChipPessoa, Destaque, Etiqueta, IconeStatus, IconeTipo, Pagina, PontoCor, PrazoTag, PrioBadge, Secao, StatusBadge, TipoBadge, Vazio,
 } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
-import { LinkDoc, Registro, STATUS_ABERTOS, Tarefa, formatarData, semAcento } from "@/lib/tipos";
+import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, formatarData, semAcento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export default function Busca() {
@@ -32,11 +32,35 @@ function trecho(texto: string, termo: string) {
   return (ini > 0 ? "…" : "") + texto.slice(ini, i + termo.length + 120) + (i + termo.length + 120 < texto.length ? "…" : "");
 }
 
-type Aba = "tudo" | "tarefas" | "registros" | "links";
+type Aba = "tudo" | "tarefas" | "registros" | "links" | "pessoas";
 // Mesma ordem dos campos pesquisados em cada registro.
 const CAMPOS_REGISTRO = ["Título", "Resumo", "Anotações", "Decisões", "Impedimentos", "Participantes", "Próximos passos"];
 
 interface AchadoRegistro { t: Tarefa; reg: Registro; achado: string; campo: number }
+interface AchadoPessoa { pessoa: Pessoa; rotulo: string; texto: string; termo: string }
+interface AchadoTime { time: Time; rotulo: string; texto: string; termo: string }
+
+// Palavras de pergunta que não ajudam a achar ninguém ("quem me ajuda com deploy?").
+const PALAVRAS_VAZIAS = new Set(["quem", "ajuda", "ajudar", "pode", "podem", "para", "sobre", "como", "algu", "alguem", "pessoa", "pessoas", "time", "times", "tem", "falar", "procurar"]);
+
+/** Termos para casar texto livre do cadastro: a busca inteira, ou (se não achar) as palavras que importam. */
+function termosDoCadastro(termo: string): string[] {
+  const palavras = semAcento(termo).split(/[^\p{L}\p{N}@._-]+/u).filter((w) => w.length >= 4 && !PALAVRAS_VAZIAS.has(w));
+  return palavras.length > 1 || (palavras.length === 1 && palavras[0] !== semAcento(termo)) ? palavras : [];
+}
+
+/** Primeiro campo que contém a busca (ou todas as palavras relevantes dela). */
+function acharCampo(campos: [string, string][], termo: string): { rotulo: string; texto: string; termo: string } | null {
+  const inteira = campos.find(([, c]) => c && semAcento(c).includes(semAcento(termo)));
+  if (inteira) return { rotulo: inteira[0], texto: inteira[1], termo };
+  const palavras = termosDoCadastro(termo);
+  if (!palavras.length) return null;
+  const tudo = semAcento(campos.map(([, c]) => c).join(" "));
+  if (!palavras.every((w) => tudo.includes(w))) return null;
+  const onde = campos.find(([, c]) => c && palavras.some((w) => semAcento(c).includes(w)));
+  if (!onde) return null;
+  return { rotulo: onde[0], texto: onde[1], termo: palavras.find((w) => semAcento(onde[1]).includes(w))! };
+}
 
 function Conteudo() {
   const { dados } = useNexo();
@@ -85,7 +109,7 @@ function Conteudo() {
   const n = semAcento(termo);
 
   const r = useMemo(() => {
-    if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[] };
+    if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[], cadastro: [] as AchadoPessoa[], times: [] as AchadoTime[] };
     const tem = (s: string) => semAcento(s).includes(n);
     const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""}`));
     const registros = dados!.tarefas.flatMap((t) =>
@@ -99,8 +123,19 @@ function Conteudo() {
         .filter(Boolean) as AchadoRegistro[],
     ).sort((a, b) => b.reg.data.localeCompare(a.reg.data));
     const links = dados!.links.items.filter((l) => tem(`${l.titulo} ${l.descricao} ${l.url} ${l.nomeArquivo} ${l.tags.join(" ")}`));
-    return { tarefas, registros, links };
-  }, [dados, n]);
+    const cadastro = (dados!.pessoas?.items ?? []).flatMap((pessoa) => {
+      const a = acharCampo([
+        ["Nome", pessoa.nome], ["Apelido", pessoa.apelidos.join(", ")], ["E-mail", pessoa.email], ["Cargo", pessoa.cargo],
+        ["Área", pessoa.area], ["Ajuda com", pessoa.ajudaCom], ["Anotações", pessoa.anotacoes], ["Tags", pessoa.tags.join(", ")],
+      ], termo);
+      return a ? [{ pessoa, ...a }] : [];
+    });
+    const times = (dados!.times?.items ?? []).flatMap((time) => {
+      const a = acharCampo([["Nome", time.nome], ["Descrição", time.descricao]], termo);
+      return a ? [{ time, ...a }] : [];
+    });
+    return { tarefas, registros, links, cadastro, times };
+  }, [dados, n, termo]);
 
   const pessoas = useMemo(() => (n ? montarPessoas(dados!.tarefas).filter((p) => p.chave.includes(n)).slice(0, 6) : []), [dados, n]);
   const sugestoes = useMemo(() => {
@@ -112,10 +147,11 @@ function Conteudo() {
     return [...new Set([...gente, ...tags])];
   }, [dados, n]);
 
-  const total = r.tarefas.length + r.registros.length + r.links.length;
+  const qtdPessoas = r.cadastro.length + r.times.length;
+  const total = r.tarefas.length + r.registros.length + r.links.length + qtdPessoas;
   const cat = (id: string | null) => dados!.categorias.items.find((c) => c.id === id);
   const mostra = (a: Exclude<Aba, "tudo">) => aba === "tudo" || aba === a;
-  const nesta = aba === "tudo" ? total : r[aba].length;
+  const nesta = aba === "tudo" ? total : aba === "pessoas" ? qtdPessoas : r[aba].length;
 
   // Setas percorrem os resultados como numa lista de app de desktop.
   const mover = (delta: number) => {
@@ -167,6 +203,7 @@ function Conteudo() {
                   { valor: "tarefas", rotulo: rotuloAba("Tarefas", r.tarefas.length) },
                   { valor: "registros", rotulo: rotuloAba("Registros", r.registros.length) },
                   { valor: "links", rotulo: rotuloAba("Links", r.links.length) },
+                  { valor: "pessoas", rotulo: rotuloAba("Pessoas", qtdPessoas) },
                 ]}
               />
               <span data-slot="contagem" className="ml-auto text-xs text-muted-foreground tabular-nums sem-selecao">
@@ -206,7 +243,7 @@ function Conteudo() {
           )}
 
           {nesta === 0 && (
-            <Vazio compacto titulo={aba === "tarefas" ? "Nenhuma tarefa com esse termo" : aba === "registros" ? "Nenhum registro com esse termo" : "Nenhum link com esse termo"} icone={<SearchX />}>
+            <Vazio compacto titulo={aba === "tarefas" ? "Nenhuma tarefa com esse termo" : aba === "registros" ? "Nenhum registro com esse termo" : aba === "pessoas" ? "Nenhuma pessoa ou time com esse termo" : "Nenhum link com esse termo"} icone={<SearchX />}>
               <p>{total === 1 ? "Há 1 resultado em outra seção." : `Há ${total} resultados nas outras seções.`}</p>
               <Button variant="outline" size="sm" onClick={() => setAba("tudo")}>Ver tudo</Button>
             </Vazio>
@@ -293,6 +330,58 @@ function Conteudo() {
             </Secao>
           )}
 
+          {mostra("pessoas") && r.cadastro.length > 0 && (
+            <Secao titulo="Pessoas" icone={<Users />} contagem={r.cadastro.length}>
+              <ListaResultados>
+                {r.cadastro.map(({ pessoa, rotulo, texto, termo: achou }) => {
+                  const funcao = [pessoa.cargo, pessoa.area].filter(Boolean).join(" · ");
+                  return (
+                    <Resultado key={pessoa.id} tipo="pessoa">
+                      <Link href={`/pessoas?p=${encodeURIComponent(pessoa.nome)}`} className={CLASSE_RESULTADO}>
+                        <AvatarPessoa nome={pessoa.nome} tamanho="lg" />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-sm leading-snug font-medium"><Destaque texto={pessoa.nome} termo={achou} /></h3>
+                          {funcao && <p className="text-xs text-muted-foreground [&_mark]:text-foreground"><Destaque texto={funcao} termo={achou} /></p>}
+                          {rotulo !== "Nome" && (
+                            <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground [&_mark]:text-foreground">
+                              <RotuloCampo>{rotulo}</RotuloCampo>
+                              <Destaque texto={trecho(texto, achou)} termo={achou} />
+                            </p>
+                          )}
+                        </div>
+                        <Seta />
+                      </Link>
+                    </Resultado>
+                  );
+                })}
+              </ListaResultados>
+            </Secao>
+          )}
+
+          {mostra("pessoas") && r.times.length > 0 && (
+            <Secao titulo="Times" icone={<Users />} contagem={r.times.length}>
+              <ListaResultados>
+                {r.times.map(({ time, rotulo, texto, termo: achou }) => (
+                  <Resultado key={time.id} tipo="time">
+                    <Link href={`/pessoas?time=${encodeURIComponent(time.id)}`} className={CLASSE_RESULTADO}>
+                      <span className="mt-1 inline-flex size-6 shrink-0 items-center justify-center"><PontoCor cor={time.cor} className="size-3" /></span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm leading-snug font-medium"><Destaque texto={time.nome} termo={achou} /></h3>
+                        {rotulo !== "Nome" && (
+                          <p className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground [&_mark]:text-foreground">
+                            <RotuloCampo>{rotulo}</RotuloCampo>
+                            <Destaque texto={trecho(texto, achou)} termo={achou} />
+                          </p>
+                        )}
+                      </div>
+                      <Seta />
+                    </Link>
+                  </Resultado>
+                ))}
+              </ListaResultados>
+            </Secao>
+          )}
+
           {mostra("links") && r.links.length > 0 && (
             <Secao titulo="Links e documentos" icone={<Library />} contagem={r.links.length}>
               <ListaResultados>
@@ -337,7 +426,7 @@ function ListaResultados({ children }: { children: ReactNode }) {
   );
 }
 
-function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link"; children: ReactNode }) {
+function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | "pessoa" | "time"; children: ReactNode }) {
   return (
     <motion.div data-slot="resultado" data-tipo={tipo} variants={itemLista} className="border-b last:border-0">
       {children}
