@@ -60,6 +60,8 @@ export interface Registro {
   proximosPassos: Passo[];
   impedimentos: string;
   respostaIABruta?: string;
+  /** Folha do bloco de notas de onde este registro nasceu (para voltar ao texto original). */
+  notaId?: string;
   alteracoes?: {
     status?: Alteracao<string>;
     prioridade?: Alteracao<number>;
@@ -190,6 +192,8 @@ export interface Nota {
   arquivadaEm?: string | null;
   /** O que foi criado a partir dela. */
   gerou?: FrutoDaNota[];
+  /** O que a IA não conseguiu encaixar e o usuário não guardou em nenhuma tarefa. */
+  sobras?: string;
   criadaEm: string;
   atualizadaEm: string;
   [extra: string]: unknown;
@@ -270,6 +274,7 @@ export function normalizarRegistro(r: Partial<Registro>): Registro {
     proximosPassos: Array.isArray(r.proximosPassos) ? r.proximosPassos.map(normalizarPasso) : [],
     impedimentos: str(r.impedimentos),
     respostaIABruta: str(r.respostaIABruta),
+    notaId: str(r.notaId),
     criadoEm: str(r.criadoEm) || agoraISO(),
     atualizadoEm: str(r.atualizadoEm) || agoraISO(),
   };
@@ -392,6 +397,7 @@ export function normalizarNota(n: Partial<Nota>): Nota {
     texto: str(n.texto),
     arquivadaEm: typeof n.arquivadaEm === "string" && n.arquivadaEm ? n.arquivadaEm : null,
     gerou,
+    sobras: str(n.sobras),
     criadaEm: str(n.criadaEm) || agoraISO(),
     atualizadaEm: str(n.atualizadaEm) || agoraISO(),
   };
