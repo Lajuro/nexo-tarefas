@@ -74,6 +74,44 @@ export function apagarRascunho(tarefaId: string, registroId: string | null) {
   } catch {}
 }
 
+// ---------- bloco de notas ----------
+// A folha é gravada na pasta de dados alguns instantes depois de o usuário parar de digitar.
+// Nesse intervalo (ou se a gravação falhar) o texto fica aqui, para não se perder com F5,
+// janela fechada ou travamento. Some assim que a gravação de verdade dá certo.
+
+const PREFIXO_NOTA = "nexo:nota-pendente:";
+
+export interface NotaPendente {
+  titulo: string;
+  texto: string;
+  em: string;
+}
+
+export function lerNotaPendente(id: string): NotaPendente | null {
+  try {
+    const x = JSON.parse(localStorage.getItem(PREFIXO_NOTA + id) || "null") as Partial<NotaPendente> | null;
+    if (!x || typeof x.texto !== "string") return null;
+    return { titulo: typeof x.titulo === "string" ? x.titulo : "", texto: x.texto, em: typeof x.em === "string" ? x.em : agoraISO() };
+  } catch {
+    return null;
+  }
+}
+
+export function gravarNotaPendente(id: string, titulo: string, texto: string): boolean {
+  try {
+    localStorage.setItem(PREFIXO_NOTA + id, JSON.stringify({ titulo, texto, em: agoraISO() }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function apagarNotaPendente(id: string) {
+  try {
+    localStorage.removeItem(PREFIXO_NOTA + id);
+  } catch {}
+}
+
 export function listarRascunhos(tarefaId: string): Rascunho[] {
   const out: Rascunho[] = [];
   try {

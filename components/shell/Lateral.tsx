@@ -71,8 +71,10 @@ export function Lateral({
 
   const numeros = useMemo(() => {
     const tarefas = dados?.tarefas ?? [];
-    return { abertas: tarefas.filter(aberta).length, pendencias: passosAbertosDe(tarefas).length };
-  }, [dados?.tarefas]);
+    // folhas do bloco de notas que ainda não foram organizadas nem guardadas
+    const notas = (dados?.notas?.items ?? []).filter((n) => !n.arquivadaEm && (n.texto.trim() || n.titulo.trim())).length;
+    return { abertas: tarefas.filter(aberta).length, pendencias: passosAbertosDe(tarefas).length, notas };
+  }, [dados?.tarefas, dados?.notas]);
   const urgentes = lembretes.filter((l) => l.gravidade !== "info").length;
   const revisaoAtrasada = carregado && numeros.abertas > 0 && (!rotina.ultimaRevisao || (diasAte(rotina.ultimaRevisao) ?? 0) <= -7);
 
@@ -89,6 +91,7 @@ export function Lateral({
     if (href === "/") return { contador: urgentes, tom: criticos ? "perigo" : "alerta" };
     if (href === "/tarefas") return { contador: numeros.abertas };
     if (href === "/pendencias") return { contador: numeros.pendencias };
+    if (href === "/notas") return { contador: numeros.notas };
     if (href === "/revisao") return { ponto: revisaoAtrasada };
     return {};
   };
