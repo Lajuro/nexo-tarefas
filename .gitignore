@@ -1,0 +1,6 @@
+node_modules
+.next
+next-env.d.ts
+*.tsbuildinfo
+# Dados NUNCA ficam no repositório. Eles vivem na pasta configurada (ex.: OneDrive).
+dados-teste
