@@ -27,7 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenu
 import { Dica } from "@/components/ui/popover";
 import { aberta, passosAbertosDe } from "@/lib/lembretes";
 import { usePref, useRotina } from "@/lib/preferencias";
-import { hojeISO } from "@/lib/tipos";
+import { useHoje } from "./useHoje";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
 
@@ -60,7 +60,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const [cheia, setCheia] = useState(false);
   const { rotina, carregado: rotinaCarregada } = useRotina();
   const ultimoG = useRef(0);
-  const ritualOferecido = useRef(false);
+  const ritualOferecido = useRef(""); // dia (AAAA-MM-DD) em que o ritual já foi oferecido
+  const hoje = useHoje();
 
   const telaCheia = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -133,22 +134,22 @@ export function Shell({ children }: { children: ReactNode }) {
     };
   }, [router, setRecolhida]);
 
-  // Primeira visita do dia: oferece o ritual de planejar o dia (uma vez só por sessão).
+  // Primeira visita do dia: oferece o ritual de planejar o dia (uma vez por dia, mesmo com o app aberto direto).
   const temAbertas = !!dados?.tarefas.some(aberta);
   useEffect(() => {
-    if (ritualOferecido.current || !rotinaCarregada || !dados) return;
-    if (!rotina.abrirSozinho || rotina.ultimoPlanejamento === hojeISO() || !temAbertas || estado?.somenteLeitura) {
-      ritualOferecido.current = true;
+    if (ritualOferecido.current === hoje || !rotinaCarregada || !dados) return;
+    if (!rotina.abrirSozinho || rotina.ultimoPlanejamento === hoje || !temAbertas || estado?.somenteLeitura) {
+      ritualOferecido.current = hoje;
       return;
     }
     // Só marca como oferecido quando o tempo passa de fato: se o efeito for desfeito antes
     // (StrictMode ou dados recarregados), a próxima execução agenda de novo.
     const t = setTimeout(() => {
-      ritualOferecido.current = true;
+      ritualOferecido.current = hoje;
       if (!temAlgoAberto()) setRitual(true);
     }, 900);
     return () => clearTimeout(t);
-  }, [rotinaCarregada, dados, rotina.abrirSozinho, rotina.ultimoPlanejamento, temAbertas, estado?.somenteLeitura]);
+  }, [hoje, rotinaCarregada, dados, rotina.abrirSozinho, rotina.ultimoPlanejamento, temAbertas, estado?.somenteLeitura]);
 
   if (!estado) return erro ? <TelaErro mensagem={erro} pasta={null} tentar={recarregar} /> : <Carregando />;
   if (!estado.configurado) return <Onboarding />;

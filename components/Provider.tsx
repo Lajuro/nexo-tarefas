@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { toast as sonner } from "sonner";
+import { useHoje } from "./useHoje";
 import { Categoria, Dados, EstadoApp, LinkDoc, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
@@ -81,6 +82,16 @@ export function Provider({ children }: { children: ReactNode }) {
   useEffect(() => {
     recarregar();
   }, [recarregar]);
+
+  // Virou o dia com o app aberto: relê tudo do disco. Além de pegar o que mudou em outro PC,
+  // isso refaz as contas que dependem da data (lembretes, atrasos, "hoje").
+  const hoje = useHoje();
+  const diaCarregado = useRef(hoje);
+  useEffect(() => {
+    if (diaCarregado.current === hoje) return;
+    diaCarregado.current = hoje;
+    recarregar();
+  }, [hoje, recarregar]);
 
   // Enfileira gravações do mesmo recurso para nunca disputarem a mesma revisão.
   const enfileirar = useCallback(<T,>(chave: string, fn: () => Promise<T>): Promise<T> => {

@@ -176,6 +176,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Foco de hoje**: `tarefa.focoEm = hoje`. Vale só no dia; no dia seguinte a tarefa deixa de ser foco sem precisar limpar nada.
 - **Follow-up**: `tarefa.lembrarEm`. Definido no formulário, na página da tarefa ou pelo menu da tarefa ("Lembrar de voltar").
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
+- **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
 
 ### Pessoas e times
 - **Dois arquivos novos** na pasta de dados: `pessoas.json` (`{ rev, items: Pessoa[] }`) e `times.json` (`{ rev, items: Time[] }`). Se faltarem, valem como vazios (rev 0). Não houve migração: `SCHEMA_APP` continua 1, e uma versão antiga do app simplesmente ignora os dois arquivos.
@@ -262,6 +263,7 @@ components/
   MenuTarefa.tsx          menu de ações da tarefa (botão direito e "...") e useAcoesTarefa()
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
   useLembretes.ts         lembretes ativos e adiar()
+  useHoje.ts              dia de hoje que se atualiza sozinho na virada do dia
   TarefaForm.tsx          criar e editar tarefa, aplicarStatus() na tela
   RegistroEditor.tsx      editor de registro com fluxo Copilot
   PromptModal.tsx         copiar prompt / colar resposta genérico

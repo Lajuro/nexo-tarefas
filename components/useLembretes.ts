@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { useNexo } from "./Provider";
+import { useHoje } from "./useHoje";
 import { Lembrete, gerarLembretes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { hojeISO } from "@/lib/tipos";
@@ -22,8 +23,10 @@ export function useLembretes() {
   const { dados } = useNexo();
   const [adiados, setAdiados] = usePref<Record<string, string>>("lembretesAdiados", {});
 
-  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? []), [dados?.tarefas]);
-  const hoje = hojeISO();
+  // `hoje` entra nas dependências: os lembretes mudam quando o dia vira, mesmo sem mudar os dados.
+  const hoje = useHoje();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? []), [dados?.tarefas, hoje]);
   const ativos = useMemo(() => todos.filter((l) => !(adiados[l.id] && adiados[l.id] > hoje)), [todos, adiados, hoje]);
 
   /** Esconde o lembrete pelos próximos `dias` (1 = volta amanhã). */
