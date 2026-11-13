@@ -97,6 +97,10 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   - item removido de categorias/links → `_lixeira/<colecao>-removidos-<carimbo>.json`;
   - registro removido da timeline → fica dentro da própria tarefa em `registrosRemovidos[]`.
 - **Espelho em Markdown** (`markdown/<slug>--<id>.md`) regenerado a cada gravação: se o app morrer, os dados continuam legíveis e pesquisáveis no Windows.
+- **Nada digitado se perde antes de salvar**:
+  - o editor de registro guarda um **rascunho automático** a cada mudança (`lib/rascunhos.ts`, no `localStorage`, chave `nexo:rascunho:<tarefaId>:<registroId|novo>`). Esc, clique fora, F5 ou navegador travado não perdem as anotações: o rascunho volta ao reabrir o editor e a página da tarefa mostra um aviso com Continuar/Descartar. Só some ao salvar ou ao descartar com confirmação;
+  - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
+  - os outros formulários (tarefa, link, resposta colada do Copilot) não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`fecharComCuidado()` em `components/ui.tsx`). **Formulário novo com texto digitado tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
 
@@ -146,8 +150,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 | `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, atalhos. |
 
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos**: `N` nova tarefa, `/` busca global, `Esc` fecha modal.
-- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com autocompletar de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco).
+- **Atalhos**: `N` nova tarefa, `/` busca global, `Esc` fecha modal (no editor de registro guarda o rascunho; nos outros formulários pergunta antes se houver texto digitado).
+- **Editor de registro** (`components/RegistroEditor.tsx`): tipo, data/hora, título, participantes (com autocompletar de nomes já usados), anotações brutas, bloco Copilot em 3 passos, campos estruturados, "passos anteriores resolvidos aqui?" e "atualizar a tarefa junto" (status/prioridade/prazo; mudança de status gera um marco). Tem rascunho automático (seção 4): fechar com algo digitado guarda o rascunho em vez de perder, e o rodapé ganha "Descartar" e "Fechar e continuar depois". O componente interno só é montado quando o editor abre, e o estado inicial vem do rascunho (se houver) ou do registro.
 - Nova tarefa cria automaticamente um marco "Tarefa criada"; mudar status em qualquer lugar passa por `aplicarStatus()` (em `components/TarefaForm.tsx`), que gera o marco.
 
 ---
@@ -210,12 +214,13 @@ components/
   RegistroEditor.tsx      editor de registro com fluxo Copilot
   PromptModal.tsx         copiar prompt / colar resposta genérico
   LinkForm.tsx            link/arquivo + hrefLink()
-  CategoriaForm.tsx, CardTarefa.tsx, ui.tsx (Modal, badges, ChipsInput, Campo, copiarTexto...)
+  CategoriaForm.tsx, CardTarefa.tsx, ui.tsx (Modal, fecharComCuidado, badges, ChipsInput, Campo, copiarTexto...)
 lib/
   tipos.ts                tipos, normalização, helpers (servidor e cliente)
   armazenamento.ts        TODO acesso a disco (só servidor)
   migracoes.ts            SCHEMA_APP e MIGRACOES
   prompts.ts              prompts e parser da resposta
+  rascunhos.ts            rascunho automático do editor de registro (localStorage, só cliente)
   markdown.ts             espelho .md
   resposta.ts             tratar(): erro → 409 (conflito), 423 (somente leitura), 500
 proxy.ts                  segurança das rotas /api (ver seção 10)
@@ -268,6 +273,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Prioridade 1 a 10, quanto maior mais urgente.** Confirmado pelo usuário. Mudar o sentido no futuro altera o significado de um valor gravado, então **é migração** (seção 4).
 - Pasta de dados é um caminho digitado (o servidor é local, então pode ler qualquer pasta do usuário). Não há seletor de pasta nativo.
 - Timeline em ordem crescente por padrão (como no esboço), com alternância.
+- Rascunho do editor fica no `localStorage`, não na pasta de dados: gravar em disco a cada tecla faria o OneDrive sincronizar sem parar. Consequência aceita: o rascunho vale só naquele navegador e naquele endereço (`127.0.0.1:3210` e `localhost:3210` são origens diferentes) e some se o navegador limpar os dados do site. Os campos de "atualizar a tarefa junto" só entram no rascunho se foram mexidos, para um rascunho antigo não desfazer uma mudança de status feita depois.
 - Categorias e links são salvos como lista inteira (arquivo único), tarefas são um arquivo cada, para reduzir conflito no OneDrive.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)

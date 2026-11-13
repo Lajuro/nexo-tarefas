@@ -148,6 +148,8 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acento);
 .aviso ul { margin: 4px 0 0; padding-left: 18px; }
 .aviso.erro { background: #fdecec; border-color: #f2b8b9; color: #8a1f22; }
 .aviso.info { background: var(--acento-suave); border-color: transparent; color: var(--acento-texto); }
+.rascunho-aviso { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rascunho-estado { margin-right: auto; align-self: center; font-size: 12px; color: var(--sutil); }
 @media (prefers-color-scheme: dark) {
   .aviso { background: #2e2610; border-color: #5a4714; color: #f3d98b; }
   .aviso.erro { background: #3a1617; border-color: #6b2526; color: #f5b3b4; }

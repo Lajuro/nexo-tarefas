@@ -268,6 +268,15 @@ export function formatarData(iso: string | null | undefined, comAno = true) {
   return comAno ? `${d}/${m}/${a.slice(2)}` : `${d}/${m}`;
 }
 
+// Carimbo ISO (UTC) mostrado no fuso local, ex.: "13/11 14:32".
+export function formatarDataHora(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function semAcento(s: string) {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }

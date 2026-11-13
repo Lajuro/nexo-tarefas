@@ -29,6 +29,14 @@ export function Modal({
   );
 }
 
+// Para formulários sem rascunho: se a pessoa já digitou algo, Esc, clique fora e Cancelar
+// perguntam antes de jogar fora. Use o retorno como `fechar` do Modal e do botão Cancelar.
+export function fecharComCuidado(sujo: boolean, fechar: () => void) {
+  return () => {
+    if (!sujo || confirm("Fechar sem salvar? O que você digitou aqui será perdido.")) fechar();
+  };
+}
+
 export async function copiarTexto(texto: string) {
   try {
     await navigator.clipboard.writeText(texto);

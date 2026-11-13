@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal } from "./ui";
+import { Campo, ChipsInput, Modal, fecharComCuidado } from "./ui";
 import {
   CORES, STATUS, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarCategoria, normalizarRegistro,
   normalizarTarefa, novoId,
@@ -43,6 +43,11 @@ export function TarefaForm({
     () => [...new Set((dados?.tarefas ?? []).flatMap((t) => t.tags))].sort(),
     [dados?.tarefas],
   );
+
+  const sujo =
+    titulo !== (tarefa?.titulo ?? "") || descricao !== (tarefa?.descricao ?? "") ||
+    tags.join("\n") !== (tarefa?.tags ?? []).join("\n") || novaCat.trim() !== "";
+  const tentarFechar = fecharComCuidado(sujo, fechar);
 
   async function salvar() {
     if (!titulo.trim()) return;
@@ -90,10 +95,10 @@ export function TarefaForm({
     <Modal
       titulo={tarefa ? "Editar tarefa" : "Nova tarefa"}
       aberto={aberto}
-      fechar={fechar}
+      fechar={tentarFechar}
       rodape={
         <>
-          <button className="btn" onClick={fechar}>Cancelar</button>
+          <button className="btn" onClick={tentarFechar}>Cancelar</button>
           <button className="btn primario" onClick={salvar} disabled={salvando || !titulo.trim()}>
             {salvando ? "Salvando..." : "Salvar"}
           </button>

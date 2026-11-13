@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNexo } from "./Provider";
-import { Campo, ChipsInput, Modal, formatarTamanho } from "./ui";
+import { Campo, ChipsInput, Modal, fecharComCuidado, formatarTamanho } from "./ui";
 import { LinkDoc, normalizarLink, novoId } from "@/lib/tipos";
 
 export function LinkForm({
@@ -64,13 +64,17 @@ export function LinkForm({
     if (ok) fechar();
   }
 
+  const sujo =
+    titulo !== (link?.titulo ?? "") || url !== (link?.url ?? "") || descricao !== (link?.descricao ?? "") || arquivo !== null;
+  const tentarFechar = fecharComCuidado(sujo, fechar);
+
   const tagsExist = [...new Set((dados?.links.items ?? []).flatMap((l) => l.tags))];
 
   return (
-    <Modal titulo={link ? "Editar link/documento" : "Adicionar link ou documento"} aberto={aberto} fechar={fechar}
+    <Modal titulo={link ? "Editar link/documento" : "Adicionar link ou documento"} aberto={aberto} fechar={tentarFechar}
       rodape={
         <>
-          <button className="btn" onClick={fechar}>Cancelar</button>
+          <button className="btn" onClick={tentarFechar}>Cancelar</button>
           <button className="btn primario" disabled={!valido || !podeSalvar || salvando} onClick={salvar}>
             {salvando ? "Salvando..." : "Salvar"}
           </button>

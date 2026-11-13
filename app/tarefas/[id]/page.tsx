@@ -10,8 +10,10 @@ import { PromptModal } from "@/components/PromptModal";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { CatTag, PrazoTag, PrioBadge, Vazio, formatarTamanho } from "@/components/ui";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
+import { Rascunho, apagarRascunho, listarRascunhos } from "@/lib/rascunhos";
 import {
-  Registro, STATUS, Status, TipoRegistro, agoraISO, formatarData, nomeStatus, ordenarRegistros, passosAbertos, tipoInfo,
+  Registro, STATUS, Status, TipoRegistro, agoraISO, formatarData, formatarDataHora, nomeStatus, ordenarRegistros, passosAbertos,
+  tipoInfo,
 } from "@/lib/tipos";
 
 export default function PaginaTarefa() {
@@ -24,6 +26,13 @@ export default function PaginaTarefa() {
   const [prompt, setPrompt] = useState<null | "panorama" | "reuniao">(null);
   const [linkForm, setLinkForm] = useState(false);
   const [recentes, setRecentes] = useState(false);
+  const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
+
+  // Rascunhos de registro que ficaram sem salvar (editor fechado, F5, navegador travado).
+  // Relê sempre que o editor fecha.
+  useEffect(() => {
+    if (!editor.aberto) setRascunhos(listarRascunhos(id));
+  }, [editor.aberto, id]);
 
   useEffect(() => {
     try { setRecentes(localStorage.getItem("nexo:recentesPrimeiro") === "1"); } catch {}
@@ -113,6 +122,26 @@ export default function PaginaTarefa() {
               <button className="btn primario pequeno" onClick={() => setEditor({ aberto: true, tipo: "reuniao" })}>+ Reunião</button>
             </div>
           </div>
+          {rascunhos.map((x) => {
+            const reg = x.registroId ? tarefa.registros.find((r) => r.id === x.registroId) : null;
+            if (x.registroId && !reg) return null; // o registro saiu da timeline; o rascunho não tem onde entrar
+            const oQue = reg
+              ? `edição de "${reg.titulo || tipoInfo(reg.tipo).nome}"`
+              : `registro novo: ${tipoInfo(x.r.tipo).nome.toLowerCase()}${x.r.titulo ? `, "${x.r.titulo}"` : ""}`;
+            return (
+              <div key={x.registroId ?? "novo"} className="aviso info rascunho-aviso">
+                <span>Rascunho não salvo ({oQue}), de {formatarDataHora(x.salvoEm)}.</span>
+                <span className="acoes">
+                  <button className="btn pequeno primario" onClick={() => setEditor({ aberto: true, registro: reg })}>Continuar</button>
+                  <button className="btn pequeno" onClick={() => {
+                    if (!confirm("Descartar este rascunho? Não dá pra desfazer.")) return;
+                    apagarRascunho(tarefa.id, x.registroId);
+                    setRascunhos(listarRascunhos(tarefa.id));
+                  }}>Descartar</button>
+                </span>
+              </div>
+            );
+          })}
           {regs.length === 0 ? (
             <Vazio titulo="Nada registrado ainda">Registre a primeira reunião ou atividade desta tarefa.</Vazio>
           ) : (

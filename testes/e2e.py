@@ -5,7 +5,8 @@
 # e rode:  python3 testes/e2e.py   (screenshots vão para /tmp/nexo-e2e-*.png)
 # Cobre: criar categorias, criar tarefa pelo atalho N, registrar reunião,
 # copiar prompt, colar resposta do Copilot, preencher campos, concluir passo
-# antigo por resposta da IA, pendências, busca e pessoas.
+# antigo por resposta da IA, rascunho do editor (Esc, F5, continuar, descartar),
+# pendências, busca e pessoas.
 import asyncio, sys
 from playwright.async_api import async_playwright
 import os
@@ -75,6 +76,21 @@ async def main():
         await pg.screenshot(path="/tmp/nexo-e2e-04-editor.png")
         await pg.click(".modal-rodape >> text=Salvar registro")
         await pg.wait_for_selector(".reg >> text=Kickoff com o squad")
+        # rascunho: Esc no meio da digitação não perde nada, e descartar limpa
+        pg.on("dialog", lambda d: asyncio.ensure_future(d.accept()))
+        notas = ".modal textarea[placeholder^='O que foi falado']"
+        await pg.click("text=+ Reunião")
+        await pg.fill(notas, "anotação que não pode sumir")
+        await pg.keyboard.press("Escape")
+        await pg.wait_for_selector(".rascunho-aviso >> text=Rascunho não salvo")
+        await pg.reload(); await pg.wait_for_selector(".rascunho-aviso")
+        await pg.click(".rascunho-aviso >> text=Continuar")
+        assert await pg.input_value(notas) == "anotação que não pode sumir", "rascunho não voltou"
+        await pg.click(".modal-rodape >> text=Descartar")
+        await pg.wait_for_selector(".modal", state="detached")
+        await pg.wait_for_selector(".rascunho-aviso", state="detached", timeout=3000)
+        sobras = await pg.evaluate("Object.keys(localStorage).filter(k => k.startsWith('nexo:rascunho:')).length")
+        assert sobras == 0, "rascunho não foi descartado"
         # atividade concluindo passo antigo via resposta
         await pg.click("text=🛠️ Atividade")
         await pg.fill(".modal input[placeholder^='Resumo em uma linha']", "Enviei a documentação de integração")
