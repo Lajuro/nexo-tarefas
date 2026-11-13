@@ -38,6 +38,16 @@ checa "JSON corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/cate
 
 # ---------- pessoas e times ----------
 checa "dados trazem pessoas e times vazios" '"pessoas":{"rev":0,"items":[]},"times":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+# ---------- bloco de notas ----------
+checa "dados trazem notas vazias" '"notas":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/notas -H "$J" -d '{"items":[{"id":"n1","titulo":"Reunião das 10h","texto":"squad topou o piloto","campoFuturo":"x"},{"id":"n2","texto":"ideia solta"}],"revEsperada":0}')
+checa "cria notas" '"rev":1' "$R"
+checa "nota preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "nota ganha padrões" '"arquivadaEm":null,"gerou":[]' "$R"
+checa "notas: recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/notas -H "$J" -d '{"items":[],"revEsperada":0}')"
+checa "notas: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/notas -H "$J" -d '{"items":[{"id":"../x"}],"revEsperada":1}')"
+curl -s -X PUT $B/api/notas -H "$J" -d '{"items":[{"id":"n1","titulo":"Reunião das 10h","texto":"squad topou o piloto"}],"revEsperada":1}' >/dev/null
+checa "nota removida vai para a lixeira" 'ideia solta' "$(cat "$TMP/dados/_lixeira/"notas-removidos-*.json 2>/dev/null)"
 R=$(curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[{"id":"pe1","nome":"Ana Teste","email":"ana@exemplo.local","campoFuturo":"x"},{"id":"pe2","nome":"Beto Teste"}],"revEsperada":0}')
 checa "cria pessoas" '"rev":1' "$R"
 checa "pessoa ganha padrões" '"apelidos":[]' "$R"

@@ -169,12 +169,39 @@ export interface Colecao<T> {
   [extra: string]: unknown;
 }
 
+/** O que nasceu de uma nota quando ela foi organizada (para achar depois de onde veio cada coisa). */
+export interface FrutoDaNota {
+  tipo: "registro" | "tarefa" | "passo";
+  tarefaId: string;
+  registroId?: string;
+  /** Texto curto para mostrar na nota arquivada. Ex.: "Reunião em Onboarding do squad X". */
+  rotulo: string;
+}
+
+/**
+ * Folha do bloco de notas: texto livre, escrito sem escolher tarefa nem campo.
+ * Depois o Copilot organiza (prompt + JSON de volta) e a folha é arquivada, nunca apagada.
+ */
+export interface Nota {
+  id: string; // novoId("n")
+  titulo: string;
+  texto: string;
+  /** Preenchido quando a nota foi organizada ou guardada à mão. Arquivada sai da lista do dia. */
+  arquivadaEm?: string | null;
+  /** O que foi criado a partir dela. */
+  gerou?: FrutoDaNota[];
+  criadaEm: string;
+  atualizadaEm: string;
+  [extra: string]: unknown;
+}
+
 export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
   links: Colecao<LinkDoc>;
   pessoas: Colecao<Pessoa>;
   times: Colecao<Time>;
+  notas: Colecao<Nota>;
   avisos: string[];
 }
 
@@ -341,6 +368,32 @@ export function normalizarTime(t: Partial<Time>): Time {
     arquivado: Boolean(t.arquivado),
     criadoEm: str(t.criadoEm) || agoraISO(),
     atualizadoEm: str(t.atualizadoEm) || agoraISO(),
+  };
+}
+
+const TIPOS_FRUTO = ["registro", "tarefa", "passo"] as const;
+
+export function normalizarNota(n: Partial<Nota>): Nota {
+  const gerou = Array.isArray(n.gerou)
+    ? n.gerou
+        .filter((f): f is FrutoDaNota => !!f && typeof f === "object" && typeof f.tarefaId === "string" && !!f.tarefaId)
+        .map((f) => ({
+          ...f,
+          tipo: TIPOS_FRUTO.includes(f.tipo) ? f.tipo : "registro",
+          tarefaId: f.tarefaId,
+          registroId: typeof f.registroId === "string" && f.registroId ? f.registroId : undefined,
+          rotulo: str(f.rotulo),
+        }))
+    : [];
+  return {
+    ...n,
+    id: str(n.id) || novoId("n"),
+    titulo: str(n.titulo),
+    texto: str(n.texto),
+    arquivadaEm: typeof n.arquivadaEm === "string" && n.arquivadaEm ? n.arquivadaEm : null,
+    gerou,
+    criadaEm: str(n.criadaEm) || agoraISO(),
+    atualizadaEm: str(n.atualizadaEm) || agoraISO(),
   };
 }
 

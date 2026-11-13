@@ -3,8 +3,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import {
-  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Pessoa, Tarefa, Time, ID_VALIDO,
-  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarPessoa, normalizarTarefa,
+  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Nota, Pessoa, Tarefa, Time, ID_VALIDO,
+  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarNota, normalizarPessoa, normalizarTarefa,
   normalizarTime,
 } from "./tipos";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
@@ -18,6 +18,7 @@ import { tarefaParaMarkdown } from "./markdown";
   links.json             -> banco de links e documentos
   pessoas.json           -> pessoas cadastradas (ausente = nenhuma)
   times.json             -> times, com responsáveis e membros (ausente = nenhum)
+  notas.json             -> folhas do bloco de notas (ausente = nenhuma)
   tarefas/<id>.json      -> uma tarefa por arquivo, com toda a timeline dentro
   arquivos/AAAA/...      -> documentos anexados (nunca são sobrescritos)
   markdown/*.md          -> espelho legível das tarefas (gerado, pode apagar)
@@ -30,10 +31,10 @@ import { tarefaParaMarkdown } from "./markdown";
 */
 
 /** Coleções gravadas como arquivo único { rev, items } na raiz da pasta de dados. */
-export const COLECOES = ["categorias", "links", "pessoas", "times"] as const;
+export const COLECOES = ["categorias", "links", "pessoas", "times", "notas"] as const;
 export type NomeColecao = (typeof COLECOES)[number];
 /** Coleções novas: cada item precisa ter id válido (ID_VALIDO) e único para ser gravado. */
-const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times"];
+const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times", "notas"];
 
 const CONFIG_DIR = path.join(os.homedir(), ".nexo");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -285,7 +286,8 @@ export async function lerTudo(): Promise<Dados> {
   const links = await lerColecao<LinkDoc>(dir, "links", normalizarLink, avisos);
   const pessoas = await lerColecao<Pessoa>(dir, "pessoas", normalizarPessoa, avisos);
   const times = await lerColecao<Time>(dir, "times", normalizarTime, avisos);
-  return { tarefas, categorias, links, pessoas, times, avisos };
+  const notas = await lerColecao<Nota>(dir, "notas", normalizarNota, avisos);
+  return { tarefas, categorias, links, pessoas, times, notas, avisos };
 }
 
 async function lerColecao<T>(
