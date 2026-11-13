@@ -1,99 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "./Provider";
 import { Campo, ChipsInput, Modal, copiarTexto } from "./ui";
 import { aplicarStatus } from "./TarefaForm";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
-import { apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
 import {
-  Passo, Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarDataHora, hojeISO,
-  mapearPassos, normalizarPasso, normalizarRegistro, novoId, passosAbertos,
+  Passo, Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, hojeISO,
+  normalizarPasso, normalizarRegistro, novoId, passosAbertos,
 } from "@/lib/tipos";
 
-interface Props {
+export function RegistroEditor({
+  aberto, fechar, tarefa, registro, tipoInicial = "reuniao",
+}: {
   aberto: boolean; fechar: () => void; tarefa: Tarefa; registro?: Registro | null; tipoInicial?: TipoRegistro;
-}
-
-// Tudo o que o editor guarda enquanto está aberto. É o que vai para o rascunho.
-interface Edicao {
-  r: Registro; colado: string; status: Status; prioridade: number; prazo: string; concluir: string[];
-}
-
-const foto = (e: Edicao) =>
-  JSON.stringify({ r: e.r, colado: e.colado, status: e.status, prioridade: e.prioridade, prazo: e.prazo, concluir: e.concluir });
-
-// O editor só é montado quando abre: o estado inicial vem do rascunho (se houver) ou do registro.
-export function RegistroEditor(props: Props) {
-  if (!props.aberto) return null;
-  return <Editor key={props.registro?.id ?? "novo"} {...props} />;
-}
-
-function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
+}) {
   const { dados, atualizarTarefa, toast } = useNexo();
-  const regId = registro?.id ?? null;
-  const [ini] = useState(() => {
-    const base: Edicao = {
-      r: registro ? structuredClone(registro) : normalizarRegistro({ tipo: tipoInicial, data: hojeISO() }),
-      colado: registro?.respostaIABruta ?? "",
-      status: tarefa.status,
-      prioridade: tarefa.prioridade,
-      prazo: tarefa.prazo ?? "",
-      concluir: [],
-    };
-    const lido = lerRascunho(tarefa.id, regId);
-    const rasc = lido && (!registro || lido.r.id === registro.id) ? lido : null;
-    const atual: Edicao = rasc
-      ? {
-          r: rasc.r,
-          colado: rasc.colado,
-          status: rasc.status ?? base.status,
-          prioridade: rasc.prioridade ?? base.prioridade,
-          prazo: rasc.prazo ?? base.prazo,
-          concluir: rasc.concluir,
-        }
-      : structuredClone(base);
-    return { base, atual, rasc, fotoBase: foto(base), fotoRasc: rasc ? foto(atual) : null };
-  });
-  const [r, setR] = useState<Registro>(ini.atual.r);
-  const [colado, setColado] = useState(ini.atual.colado);
-  const [status, setStatus] = useState<Status>(ini.atual.status);
-  const [prioridade, setPrioridade] = useState(ini.atual.prioridade);
-  const [prazo, setPrazo] = useState(ini.atual.prazo);
-  const [concluir, setConcluir] = useState<string[]>(ini.atual.concluir);
+  const [r, setR] = useState<Registro>(() => normalizarRegistro({}));
+  const [colado, setColado] = useState("");
+  const [status, setStatus] = useState<Status>(tarefa.status);
+  const [prioridade, setPrioridade] = useState(tarefa.prioridade);
+  const [prazo, setPrazo] = useState(tarefa.prazo ?? "");
+  const [concluir, setConcluir] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);
-  const [recuperado, setRecuperado] = useState(Boolean(ini.rasc));
-  const [rascunhoOk, setRascunhoOk] = useState(true);
-  const gravada = useRef<string | null>(ini.fotoRasc);
-  const encerrado = useRef(false); // salvo ou descartado: não recria o rascunho
 
-  const fotoAtual = foto({ r, colado, status, prioridade, prazo, concluir });
-  const sujo = fotoAtual !== ini.fotoBase;
-
-  // Rascunho automático: a cada mudança, guarda no navegador o que ainda não foi salvo.
   useEffect(() => {
-    if (encerrado.current) return;
-    if (!sujo) {
-      apagarRascunho(tarefa.id, regId);
-      gravada.current = null;
-      return;
-    }
-    if (gravada.current === fotoAtual) return;
-    const e = JSON.parse(fotoAtual) as Edicao;
-    const ok = gravarRascunho({
-      tarefaId: tarefa.id,
-      registroId: regId,
-      r: e.r,
-      colado: e.colado,
-      status: e.status !== ini.base.status ? e.status : undefined,
-      prioridade: e.prioridade !== ini.base.prioridade ? e.prioridade : undefined,
-      prazo: e.prazo !== ini.base.prazo ? e.prazo : undefined,
-      concluir: e.concluir,
-      baseAtualizadoEm: registro?.atualizadoEm ?? null,
-    });
-    gravada.current = ok ? fotoAtual : null;
-    setRascunhoOk(ok);
-  }, [fotoAtual, sujo, tarefa.id, regId, ini, registro?.atualizadoEm]);
+    if (!aberto) return;
+    setR(registro ? structuredClone(registro) : normalizarRegistro({ tipo: tipoInicial, data: hojeISO() }));
+    setColado(registro?.respostaIABruta ?? "");
+    setStatus(tarefa.status);
+    setPrioridade(tarefa.prioridade);
+    setPrazo(tarefa.prazo ?? "");
+    setConcluir([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto, registro?.id]);
 
   const set = <K extends keyof Registro>(k: K, v: Registro[K]) => setR((x) => ({ ...x, [k]: v }));
   const cat = dados?.categorias.items.find((c) => c.id === tarefa.categoriaId);
@@ -104,37 +44,7 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [dados?.tarefas]);
 
-  const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro?.id !== r.id);
-  const registroMudou = Boolean(registro && ini.rasc?.baseAtualizadoEm && ini.rasc.baseAtualizadoEm !== registro.atualizadoEm);
-
-  // Esc, clique fora, ✕ e o botão Fechar: nada se perde, o rascunho fica guardado.
-  function fecharEditor() {
-    if (sujo && !rascunhoOk) {
-      if (!confirm("Não consegui guardar o rascunho neste navegador. Fechar mesmo assim e perder o que você digitou?")) return;
-    } else if (sujo) {
-      toast("Rascunho guardado. Ele volta quando você abrir o editor de novo.");
-    }
-    fechar();
-  }
-
-  function descartar(fecharDepois: boolean) {
-    if (!confirm("Descartar o que você digitou neste registro? Não dá pra desfazer.")) return;
-    apagarRascunho(tarefa.id, regId);
-    gravada.current = null;
-    if (fecharDepois) {
-      encerrado.current = true;
-      fechar();
-      return;
-    }
-    const b = structuredClone(ini.base);
-    setR(b.r);
-    setColado(b.colado);
-    setStatus(b.status);
-    setPrioridade(b.prioridade);
-    setPrazo(b.prazo);
-    setConcluir(b.concluir);
-    setRecuperado(false);
-  }
+  const abertosOutros = passosAbertos(tarefa).filter((x) => x.registro.id !== r.id);
 
   async function copiarPrompt() {
     if (!r.anotacoes.trim()) toast("Dica: escreva suas anotações brutas antes, o prompt usa elas.", "erro");
@@ -172,7 +82,7 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
     setR((x) => ({
       ...x,
       proximosPassos: x.proximosPassos.map((p, j) =>
-        j === i ? { ...p, [campo]: campo === "prazo" ? v || null : v, ...(campo === "feito" ? { feitoEm: v ? agoraISO() : null } : {}) } : p,
+        j === i ? { ...p, [campo]: v, ...(campo === "feito" ? { feitoEm: v ? agoraISO() : null } : {}) } : p,
       ),
     }));
   }
@@ -190,21 +100,18 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
     novo.alteracoes = alteracoes;
 
     const ok = await atualizarTarefa(tarefa.id, (t) => {
-      // Decide pelo que está no disco agora: se o registro já existe, troca; se não, acrescenta.
-      const regs = t.registros.some((x) => x.id === novo.id)
-        ? t.registros.map((x) => (x.id === novo.id ? novo : x))
-        : [...t.registros, novo];
-      // passos antigos resolvidos aqui (de outros registros ou avulsos)
-      const comConcluidos = mapearPassos({ ...t, registros: regs }, (p) =>
-        concluir.includes(p.id) ? { ...p, feito: true, feitoEm: agoraISO() } : p,
-      );
+      const regs = registro ? t.registros.map((x) => (x.id === registro.id ? novo : x)) : [...t.registros, novo];
+      const regsComConcluidos = regs.map((x) => ({
+        ...x,
+        proximosPassos: x.proximosPassos.map((p) =>
+          concluir.includes(p.id) ? { ...p, feito: true, feitoEm: agoraISO() } : p,
+        ),
+      }));
       // mudança de status vira um marco próprio na timeline (ex.: o card "Concluída")
-      return aplicarStatus({ ...comConcluidos, prioridade, prazo: prazo || null }, status, t);
+      return aplicarStatus({ ...t, registros: regsComConcluidos, prioridade, prazo: prazo || null }, status, t);
     });
     setSalvando(false);
     if (ok) {
-      encerrado.current = true;
-      apagarRascunho(tarefa.id, regId);
       toast("Registro salvo.");
       fechar();
     }
@@ -213,33 +120,18 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
   return (
     <Modal
       titulo={registro ? "Editar registro" : "Novo registro na timeline"}
-      aberto
-      fechar={fecharEditor}
+      aberto={aberto}
+      fechar={fechar}
       largo
       rodape={
         <>
-          {sujo && (
-            <span className="rascunho-estado">
-              {rascunhoOk ? "Rascunho guardado neste navegador" : "Atenção: o rascunho não está sendo guardado"}
-            </span>
-          )}
-          {sujo && <button className="btn fantasma perigo" onClick={() => descartar(true)}>Descartar</button>}
-          <button className="btn" onClick={fecharEditor}>{sujo ? "Fechar e continuar depois" : "Cancelar"}</button>
+          <button className="btn" onClick={fechar}>Cancelar</button>
           <button className="btn primario" onClick={salvar} disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar registro"}
           </button>
         </>
       }
     >
-      {recuperado && ini.rasc && (
-        <div className="aviso info rascunho-aviso">
-          <span>
-            Continuando o rascunho de {formatarDataHora(ini.rasc.salvoEm)}, que não tinha sido salvo.
-            {registroMudou && " O registro foi alterado depois disso: salvar grava a versão do rascunho."}
-          </span>
-          <button className="btn pequeno" onClick={() => descartar(false)}>Descartar rascunho</button>
-        </div>
-      )}
       <div className="editor-grid">
         <div>
           <div className="segmentado">
@@ -293,15 +185,9 @@ function Editor({ fechar, tarefa, registro, tipoInicial = "reuniao" }: Props) {
               {r.proximosPassos.map((p, i) => (
                 <div key={p.id} className="editor-passo">
                   <input type="checkbox" checked={p.feito} onChange={(e) => mudarPasso(i, "feito", e.target.checked)} />
-                  <div className="editor-passo-campos">
-                    <input type="text" value={p.texto} onChange={(e) => mudarPasso(i, "texto", e.target.value)} placeholder="Ação" />
-                    <div className="editor-passo-extra">
-                      <input type="text" className="resp" value={p.responsavel || ""} list="pessoas-lista"
-                        onChange={(e) => mudarPasso(i, "responsavel", e.target.value)} placeholder="Quem" />
-                      <input type="date" value={p.prazo || ""} aria-label="Prazo do passo" title="Prazo do passo"
-                        onChange={(e) => mudarPasso(i, "prazo", e.target.value)} />
-                    </div>
-                  </div>
+                  <input type="text" value={p.texto} onChange={(e) => mudarPasso(i, "texto", e.target.value)} placeholder="Ação" />
+                  <input type="text" className="resp" value={p.responsavel || ""} list="pessoas-lista"
+                    onChange={(e) => mudarPasso(i, "responsavel", e.target.value)} placeholder="Quem" />
                   <button className="btn-icone" aria-label="Remover passo"
                     onClick={() => set("proximosPassos", r.proximosPassos.filter((_, j) => j !== i))}>✕</button>
                 </div>

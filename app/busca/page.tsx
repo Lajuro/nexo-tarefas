@@ -27,7 +27,7 @@ function Conteudo() {
   const r = useMemo(() => {
     if (!n) return { tarefas: [], registros: [], links: [] };
     const tem = (s: string) => semAcento(s).includes(n);
-    const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""} ${t.aguardandoQuem ?? ""} ${(t.passos ?? []).map((p) => `${p.texto} ${p.responsavel}`).join(" ")}`));
+    const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""}`));
     const registros = dados!.tarefas.flatMap((t) =>
       t.registros
         .map((reg) => {

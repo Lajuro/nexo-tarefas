@@ -148,8 +148,6 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acento);
 .aviso ul { margin: 4px 0 0; padding-left: 18px; }
 .aviso.erro { background: #fdecec; border-color: #f2b8b9; color: #8a1f22; }
 .aviso.info { background: var(--acento-suave); border-color: transparent; color: var(--acento-texto); }
-.rascunho-aviso { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.rascunho-estado { margin-right: auto; align-self: center; font-size: 12px; color: var(--sutil); }
 @media (prefers-color-scheme: dark) {
   .aviso { background: #2e2610; border-color: #5a4714; color: #f3d98b; }
   .aviso.erro { background: #3a1617; border-color: #6b2526; color: #f5b3b4; }
@@ -282,23 +280,9 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acento);
 .passo-ia .titulo { font-weight: 650; color: var(--acento-texto); font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .num-passo { width: 20px; height: 20px; border-radius: 50%; background: var(--acento); color: #fff; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; }
 .editor-passos { display: flex; flex-direction: column; gap: 6px; }
-.editor-passo { display: flex; gap: 6px; align-items: flex-start; }
-.editor-passo > input[type="checkbox"] { margin-top: 9px; }
-.editor-passo input[type="text"], .editor-passo input[type="date"] { padding: 6px 8px; font-size: 13px; }
-.editor-passo-campos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.editor-passo-extra, .form-passo-extra { display: flex; gap: 6px; }
-.editor-passo-extra .resp { flex: 1; min-width: 0; }
-.editor-passo-extra input[type="date"], .form-passo-extra input[type="date"] { width: 150px; flex-shrink: 0; }
-.form-passo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.form-passo input { padding: 6px 8px; font-size: 13px; }
-.form-passo-extra input[type="text"] { flex: 1; min-width: 0; }
-.passo > span { flex: 1; min-width: 0; }
-.passo .btn-icone { padding: 0 4px; font-size: 13px; }
-.passo small .prazo { font-size: inherit; }
-.espera-linha { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 10px; font-size: 13px; }
-.espera-linha label { display: flex; align-items: center; gap: 8px; }
-.espera-linha input { padding: 5px 8px; font-size: 13px; width: auto; }
-.espera-linha input[type="text"] { width: 220px; }
+.editor-passo { display: flex; gap: 6px; align-items: center; }
+.editor-passo input[type="text"] { padding: 6px 8px; font-size: 13px; }
+.editor-passo .resp { max-width: 140px; }
 .separador { border: none; border-top: 1px solid var(--borda); margin: 4px 0; }
 
 /* listas genéricas */

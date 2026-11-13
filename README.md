@@ -36,10 +36,6 @@ Abra pelo atalho (ou `Iniciar Nexo.cmd`). O app roda em `http://127.0.0.1:3210` 
 
 Atalhos: `N` nova tarefa · `/` buscar · `Esc` fechar janela.
 
-Na página da tarefa, a caixa **Pendências** tem **+ Adicionar** para criar um passo direto, sem precisar de um registro, e o lápis ao lado de cada passo edita texto, responsável e prazo. Quando a tarefa fica em "Aguardando terceiros" ou "Bloqueada", o cabeçalho pede **com quem está** e **quando cobrar**; a tela Pendências junta tudo isso em "Aguardando terceiros" e em "Prazos". Em Configurações dá para dizer como seu nome aparece nos passos, para o filtro "Só os meus" funcionar.
-
-Pode fechar o editor de registro no meio da digitação (Esc, clique fora, F5, navegador travado): o que você escreveu fica como rascunho e volta quando abrir de novo. A página da tarefa mostra um aviso com **Continuar** e **Descartar**. O rascunho fica guardado no navegador, então vale para aquele navegador e some se você limpar os dados do site.
-
 ### Fluxo com o Copilot
 
 1. Em uma tarefa, clique em **+ Reunião** (ou Atividade) e escreva suas anotações brutas.
@@ -67,7 +63,6 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 
 ## Proteções contra perda de dados
 
-- Rascunho automático no editor de registro e confirmação antes de fechar os outros formulários com texto digitado.
 - Escrita atômica (arquivo temporário + troca), com nova tentativa se o OneDrive estiver segurando o arquivo.
 - Arquivo corrompido nunca é tratado como vazio: o app avisa e não grava por cima.
 - Controle de revisão: se a mesma tarefa for alterada em duas abas ou dois PCs, a segunda gravação é recusada em vez de sobrescrever.

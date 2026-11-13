@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal, copiarTexto, fecharComCuidado } from "./ui";
+import { Modal, copiarTexto } from "./ui";
 import { useNexo } from "./Provider";
 
 export function PromptModal({
@@ -25,14 +25,11 @@ export function PromptModal({
     else toast("Não consegui copiar automaticamente. Selecione o texto e copie.", "erro");
   };
 
-  // Resposta colada e ainda não guardada: pergunta antes de fechar.
-  const tentarFechar = fecharComCuidado(Boolean(aoSalvarResposta && resposta.trim()), fechar);
-
   return (
-    <Modal titulo={titulo} aberto={aberto} fechar={tentarFechar} largo
+    <Modal titulo={titulo} aberto={aberto} fechar={fechar} largo
       rodape={
         <>
-          <button className="btn" onClick={tentarFechar}>Fechar</button>
+          <button className="btn" onClick={fechar}>Fechar</button>
           {aoSalvarResposta && (
             <button className="btn primario" disabled={!resposta.trim()}
               onClick={async () => { await aoSalvarResposta(resposta.trim()); fechar(); }}>

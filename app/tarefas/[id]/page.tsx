@@ -6,15 +6,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { TarefaForm, aplicarStatus } from "@/components/TarefaForm";
 import { RegistroEditor } from "@/components/RegistroEditor";
-import { PassosTarefa } from "@/components/PassosTarefa";
 import { PromptModal } from "@/components/PromptModal";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
-import { CatTag, CobrarTag, PrazoTag, PrioBadge, Vazio, formatarTamanho } from "@/components/ui";
+import { CatTag, PrazoTag, PrioBadge, Vazio, formatarTamanho } from "@/components/ui";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
-import { Rascunho, apagarRascunho, listarRascunhos } from "@/lib/rascunhos";
 import {
-  Registro, STATUS, STATUS_ESPERA, Status, Tarefa, TipoRegistro, agoraISO, formatarData, formatarDataHora, marcarPasso, nomeStatus,
-  ordenarRegistros, tipoInfo,
+  Registro, STATUS, Status, TipoRegistro, agoraISO, formatarData, nomeStatus, ordenarRegistros, passosAbertos, tipoInfo,
 } from "@/lib/tipos";
 
 export default function PaginaTarefa() {
@@ -27,13 +24,6 @@ export default function PaginaTarefa() {
   const [prompt, setPrompt] = useState<null | "panorama" | "reuniao">(null);
   const [linkForm, setLinkForm] = useState(false);
   const [recentes, setRecentes] = useState(false);
-  const [rascunhos, setRascunhos] = useState<Rascunho[]>([]);
-
-  // Rascunhos de registro que ficaram sem salvar (editor fechado, F5, navegador travado).
-  // Relê sempre que o editor fecha.
-  useEffect(() => {
-    if (!editor.aberto) setRascunhos(listarRascunhos(id));
-  }, [editor.aberto, id]);
 
   useEffect(() => {
     try { setRecentes(localStorage.getItem("nexo:recentesPrimeiro") === "1"); } catch {}
@@ -47,21 +37,6 @@ export default function PaginaTarefa() {
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [tarefa]);
 
-  // nomes já usados em qualquer tarefa, para sugerir em "quem"
-  const todasPessoas = useMemo(() => {
-    const s = new Set<string>();
-    for (const t of dados!.tarefas) {
-      for (const r of t.registros) {
-        r.participantes.forEach((p) => s.add(p));
-        r.proximosPassos.forEach((p) => p.responsavel && s.add(p.responsavel));
-      }
-      (t.passos ?? []).forEach((p) => p.responsavel && s.add(p.responsavel));
-      if (t.aguardandoQuem) s.add(t.aguardandoQuem);
-    }
-    s.delete("Eu");
-    return [...s].sort((a, b) => a.localeCompare(b));
-  }, [dados]);
-
   if (!tarefa) {
     return (
       <Vazio titulo="Tarefa não encontrada">
@@ -71,8 +46,17 @@ export default function PaginaTarefa() {
   }
 
   const regs = ordenarRegistros(tarefa.registros, recentes);
+  const abertos = passosAbertos(tarefa);
 
-  const alternarPasso = (passoId: string, feito: boolean) => atualizarTarefa(tarefa.id, (t) => marcarPasso(t, passoId, feito));
+  const alternarPasso = (regId: string, passoId: string, feito: boolean) =>
+    atualizarTarefa(tarefa.id, (t) => ({
+      ...t,
+      registros: t.registros.map((r) =>
+        r.id !== regId ? r : {
+          ...r,
+          proximosPassos: r.proximosPassos.map((p) => (p.id === passoId ? { ...p, feito, feitoEm: feito ? agoraISO() : null } : p)),
+        }),
+    }));
 
   const mudarStatus = (s: Status) => atualizarTarefa(tarefa.id, (t) => aplicarStatus(t, s, t));
 
@@ -105,7 +89,6 @@ export default function PaginaTarefa() {
           <span>Criada em {formatarData(tarefa.criadaEm)}</span>
           {tarefa.tags.map((t) => <span key={t} className="chip so-leitura">{t}</span>)}
         </div>
-        {STATUS_ESPERA.includes(tarefa.status) && <EsperaLinha tarefa={tarefa} pessoas={todasPessoas} />}
         {tarefa.descricao && <p className="desc">{tarefa.descricao}</p>}
         <div className="barra-ia">
           <span className="rotulo">Copilot</span>
@@ -130,26 +113,6 @@ export default function PaginaTarefa() {
               <button className="btn primario pequeno" onClick={() => setEditor({ aberto: true, tipo: "reuniao" })}>+ Reunião</button>
             </div>
           </div>
-          {rascunhos.map((x) => {
-            const reg = x.registroId ? tarefa.registros.find((r) => r.id === x.registroId) : null;
-            if (x.registroId && !reg) return null; // o registro saiu da timeline; o rascunho não tem onde entrar
-            const oQue = reg
-              ? `edição de "${reg.titulo || tipoInfo(reg.tipo).nome}"`
-              : `registro novo: ${tipoInfo(x.r.tipo).nome.toLowerCase()}${x.r.titulo ? `, "${x.r.titulo}"` : ""}`;
-            return (
-              <div key={x.registroId ?? "novo"} className="aviso info rascunho-aviso">
-                <span>Rascunho não salvo ({oQue}), de {formatarDataHora(x.salvoEm)}.</span>
-                <span className="acoes">
-                  <button className="btn pequeno primario" onClick={() => setEditor({ aberto: true, registro: reg })}>Continuar</button>
-                  <button className="btn pequeno" onClick={() => {
-                    if (!confirm("Descartar este rascunho? Não dá pra desfazer.")) return;
-                    apagarRascunho(tarefa.id, x.registroId);
-                    setRascunhos(listarRascunhos(tarefa.id));
-                  }}>Descartar</button>
-                </span>
-              </div>
-            );
-          })}
           {regs.length === 0 ? (
             <Vazio titulo="Nada registrado ainda">Registre a primeira reunião ou atividade desta tarefa.</Vazio>
           ) : (
@@ -165,14 +128,29 @@ export default function PaginaTarefa() {
                         registrosRemovidos: [...((t.registrosRemovidos as Registro[]) || []), { ...r, removidoEm: agoraISO() }],
                       }));
                   }}
-                  alternar={alternarPasso} />
+                  alternar={(pid, f) => alternarPasso(r.id, pid, f)} />
               ))}
             </div>
           )}
         </section>
 
         <aside className="lado">
-          <PassosTarefa tarefa={tarefa} pessoas={todasPessoas} />
+          <div className="caixa">
+            <header><h3>Pendências ({abertos.length})</h3></header>
+            {abertos.length === 0 ? <p className="sutil" style={{ margin: 0, fontSize: 13 }}>Nenhum passo em aberto.</p> : (
+              <ul className="lista-limpa">
+                {abertos.map(({ registro, passo }) => (
+                  <li key={passo.id} className="passo">
+                    <input type="checkbox" checked={false} onChange={() => alternarPasso(registro.id, passo.id, true)} />
+                    <span>
+                      {passo.texto}
+                      <small>{passo.responsavel ? `${passo.responsavel} · ` : ""}desde {formatarData(registro.data)}</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
           <div className="caixa">
             <header>
@@ -240,38 +218,6 @@ export default function PaginaTarefa() {
   );
 }
 
-// "Aguardando quem" e "cobrar em": aparecem no cabeçalho enquanto a tarefa está parada com alguém.
-function EsperaLinha({ tarefa, pessoas }: { tarefa: Tarefa; pessoas: string[] }) {
-  const { atualizarTarefa } = useNexo();
-  const [quem, setQuem] = useState(tarefa.aguardandoQuem ?? "");
-  useEffect(() => setQuem(tarefa.aguardandoQuem ?? ""), [tarefa.aguardandoQuem]);
-  const gravarQuem = () => {
-    const v = quem.trim();
-    if (v !== (tarefa.aguardandoQuem ?? "")) atualizarTarefa(tarefa.id, (t) => ({ ...t, aguardandoQuem: v }));
-  };
-  return (
-    <div className="espera-linha">
-      <label>
-        <span className="rotulo">{tarefa.status === "bloqueada" ? "Depende de" : "Aguardando"}</span>
-        <input type="text" value={quem} list="pessoas-espera" placeholder="Quem? (pessoa ou time)"
-          onChange={(e) => setQuem(e.target.value)} onBlur={gravarQuem}
-          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()} />
-        <datalist id="pessoas-espera">{pessoas.map((p) => <option key={p} value={p} />)}</datalist>
-      </label>
-      <label>
-        <span className="rotulo">Cobrar em</span>
-        <input type="date" value={tarefa.cobrarEm ?? ""}
-          onChange={(e) => {
-            // lê o valor já: a gravação entra numa fila e o campo pode ter sido redesenhado até lá
-            const v = e.target.value || null;
-            atualizarTarefa(tarefa.id, (t) => ({ ...t, cobrarEm: v }));
-          }} />
-      </label>
-      <CobrarTag data={tarefa.cobrarEm} />
-    </div>
-  );
-}
-
 function CardRegistro({
   r, editar, excluir, alternar,
 }: {
@@ -332,15 +278,7 @@ function CardRegistro({
             {r.proximosPassos.map((p) => (
               <li key={p.id} className={`passo ${p.feito ? "feito" : ""}`}>
                 <input type="checkbox" checked={p.feito} onChange={(e) => alternar(p.id, e.target.checked)} />
-                <span>
-                  {p.texto}
-                  {(p.responsavel || p.prazo) && (
-                    <small>
-                      {p.responsavel}{p.responsavel && p.prazo ? " · " : ""}
-                      {p.prazo && <PrazoTag prazo={p.prazo} concluida={p.feito} />}
-                    </small>
-                  )}
-                </span>
+                <span>{p.texto}{p.responsavel && <small>{p.responsavel}</small>}</span>
               </li>
             ))}
           </ul>
