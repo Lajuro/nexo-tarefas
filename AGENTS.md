@@ -60,7 +60,7 @@ npm run build       # build de produção
 npm start           # produção em 127.0.0.1:3210
 npm run typecheck   # tsc --noEmit
 bash testes/api.sh  # testes de fumaça da camada de dados e segurança (precisa de build)
-python3 testes/e2e.py  # teste ponta a ponta da interface (Playwright), ver cabeçalho do arquivo
+NEXO_URL=http://127.0.0.1:3311 node testes/e2e.cjs  # ponta a ponta da interface (Playwright para Node), pasta de dados VAZIA, ver cabeçalho
 node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e descartável
 ```
 
@@ -69,7 +69,7 @@ Para desenvolver sem sujar dados reais, use pasta descartável:
 HOME=/tmp/nexo-home NEXO_DATA_DIR=/tmp/nexo-dados npm run dev
 ```
 
-**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.py` ou ao menos abra no navegador e confira.
+**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.cjs` ou ao menos abra no navegador e confira.
 
 ---
 
@@ -281,7 +281,7 @@ components.json           configuração do kit Shadcn (estilo, aliases)
 next.config.ts            configuração do Next.js
 scripts/                  instalação/atualização sem git (seção 9)
 testes/api.sh             testes de fumaça da API e da segurança
-testes/e2e.py             teste ponta a ponta da interface (Playwright)
+testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node)
 testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
@@ -406,7 +406,7 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 
 ### Texto e testes
 - Português do Brasil, tom direto, sem travessão. Erros dizem o que aconteceu e o que fazer.
-- Os componentes do kit têm `data-slot` (ex.: `data-slot="seletor-data"`, `"seletor-status"`, `"passo"`, `"estatistica"`). O `testes/e2e.py` usa esses atributos e textos visíveis; ao criar componente novo que o teste precise achar, ponha um `data-slot`.
+- Os componentes do kit têm `data-slot` (ex.: `data-slot="seletor-data"`, `"seletor-status"`, `"passo"`, `"estatistica"`). O `testes/e2e.cjs` usa esses atributos e textos visíveis; ao criar componente novo que o teste precise achar, ponha um `data-slot`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
