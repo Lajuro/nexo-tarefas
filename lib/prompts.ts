@@ -1,5 +1,5 @@
 import {
-  Categoria, Registro, Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
+  type Categoria, type Registro, type Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
 } from "./tipos";
 
 // Todos os prompts que o Nexo monta para colar no Copilot.
