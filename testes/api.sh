@@ -35,4 +35,39 @@ checa "JSON corrompido gera aviso" 'não é um JSON válido' "$(curl -s $B/api/d
 curl -s -X PUT $B/api/categorias -H "$J" -d '{"items":[],"revEsperada":0}' >/dev/null
 checa "JSON corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/categorias.json")"
 
+
+# ---------- pessoas e times ----------
+checa "dados trazem pessoas e times vazios" '"pessoas":{"rev":0,"items":[]},"times":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[{"id":"pe1","nome":"Ana Teste","email":"ana@exemplo.local","campoFuturo":"x"},{"id":"pe2","nome":"Beto Teste"}],"revEsperada":0}')
+checa "cria pessoas" '"rev":1' "$R"
+checa "pessoa ganha padrões" '"apelidos":[]' "$R"
+checa "pessoa preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "pessoas: recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":0}')"
+checa "pessoas: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[{"id":"../x","nome":"X"}],"revEsperada":1}')"
+checa "pessoas: recusa id repetido" 'repetido' "$(curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[{"id":"pe1"},{"id":"pe1"}],"revEsperada":1}')"
+checa "pessoas: id inválido não grava nada" '"rev": 1' "$(cat "$TMP/dados/pessoas.json")"
+R=$(curl -s -X PUT $B/api/times -H "$J" -d '{"items":[{"id":"ti1","nome":"Time A","responsavelIds":["pe1"],"membroIds":["pe2"]}],"revEsperada":0}')
+checa "cria time" '"rev":1' "$R"
+checa "responsável vira membro" '"membroIds":["pe2","pe1"]' "$R"
+checa "times: recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/times -H "$J" -d '{"items":[],"revEsperada":5}')"
+checa "times: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/times -H "$J" -d '{"items":[{"id":"a/b"}],"revEsperada":1}')"
+R=$(curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[{"id":"pe1","nome":"Ana Teste 2"}],"revEsperada":1}')
+checa "mescla com o disco ao gravar" '"email":"ana@exemplo.local"' "$R"
+checa "pessoa removida vai para a lixeira" 'pessoas-removidos-' "$(ls "$TMP/dados/_lixeira")"
+checa "lixeira guarda a pessoa removida" 'Beto Teste' "$(cat "$TMP/dados/_lixeira/"pessoas-removidos-*.json)"
+curl -s -X PUT $B/api/times -H "$J" -d '{"items":[],"revEsperada":1}' >/dev/null
+checa "time removido vai para a lixeira" 'times-removidos-' "$(ls "$TMP/dados/_lixeira")"
+curl -s -X POST $B/api/backup >/dev/null
+checa "backup manual inclui pessoas.json" 'pessoas.json' "$(ls "$TMP/dados/_backups/"manual-*/)"
+checa "backup manual inclui times.json" 'times.json' "$(ls "$TMP/dados/_backups/"manual-*/)"
+E=$(curl -s $B/api/exportar)
+checa "exportar inclui pessoas" '"pessoas": {' "$E"
+checa "exportar inclui times" '"times": {' "$E"
+echo '{ quebrado' >"$TMP/dados/pessoas.json"
+checa "pessoas corrompido gera aviso" 'pessoas.json não é um JSON válido' "$(curl -s $B/api/dados)"
+checa "pessoas corrompido volta com rev -1" '"pessoas":{"rev":-1' "$(curl -s $B/api/dados)"
+curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":2}' >/dev/null
+curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":-1}' >/dev/null
+checa "pessoas corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/pessoas.json")"
+
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }

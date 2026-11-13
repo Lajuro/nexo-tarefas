@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
-import { Categoria, Dados, EstadoApp, LinkDoc, Tarefa, normalizarTarefa } from "@/lib/tipos";
+import { toast as sonner } from "sonner";
+import { Categoria, Dados, EstadoApp, LinkDoc, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
-type Toast = { id: number; texto: string; tipo: "ok" | "erro" };
+type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
 interface Ctx {
   estado: EstadoApp | null;
@@ -15,9 +16,15 @@ interface Ctx {
   excluirTarefa: (id: string) => Promise<boolean>;
   salvarCategorias: (fn: (items: Categoria[]) => Categoria[]) => Promise<boolean>;
   salvarLinks: (fn: (items: LinkDoc[]) => LinkDoc[]) => Promise<boolean>;
+  salvarPessoas: (fn: (items: Pessoa[]) => Pessoa[]) => Promise<boolean>;
+  salvarTimes: (fn: (items: Time[]) => Time[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
+  /** Quantas gravações estão em andamento agora (para o indicador "Salvando..."). */
+  gravando: number;
+  /** Carimbo ISO da última gravação que deu certo nesta sessão. */
+  ultimaGravacao: string | null;
 }
 
 const Contexto = createContext<Ctx | null>(null);
@@ -43,15 +50,17 @@ export function Provider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoApp | null>(null);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [gravando, setGravando] = useState(0);
+  const [ultimaGravacao, setUltimaGravacao] = useState<string | null>(null);
   const ref = useRef<Dados | null>(null);
   const filas = useRef(new Map<string, Promise<unknown>>());
   ref.current = dados;
 
+  // Avisos passam pelo Sonner (o <Toaster/> fica em components/Raiz.tsx).
   const toast = useCallback((texto: string, tipo: Toast["tipo"] = "ok") => {
-    const id = Date.now() + Math.random();
-    setToasts((t) => [...t, { id, texto, tipo }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), tipo === "erro" ? 7000 : 2600);
+    if (tipo === "erro") sonner.error(texto, { duration: 7000 });
+    else if (tipo === "info") sonner(texto, { duration: 3200 });
+    else sonner.success(texto, { duration: 2600 });
   }, []);
 
   const recarregar = useCallback(async () => {
@@ -76,8 +85,15 @@ export function Provider({ children }: { children: ReactNode }) {
   // Enfileira gravações do mesmo recurso para nunca disputarem a mesma revisão.
   const enfileirar = useCallback(<T,>(chave: string, fn: () => Promise<T>): Promise<T> => {
     const anterior = filas.current.get(chave) || Promise.resolve();
+    setGravando((n) => n + 1);
     const prox = anterior.catch(() => {}).then(fn);
     filas.current.set(chave, prox);
+    prox.then(
+      (r) => {
+        if (r) setUltimaGravacao(new Date().toISOString());
+      },
+      () => {},
+    ).finally(() => setGravando((n) => Math.max(0, n - 1)));
     return prox;
   }, []);
 
@@ -153,7 +169,7 @@ export function Provider({ children }: { children: ReactNode }) {
   );
 
   const salvarColecao = useCallback(
-    <T,>(nome: "categorias" | "links", fn: (items: T[]) => T[]) =>
+    <T,>(nome: "categorias" | "links" | "pessoas" | "times", fn: (items: T[]) => T[]) =>
       enfileirar(nome, async () => {
         const d = ref.current;
         if (!d) return false;
@@ -189,6 +205,14 @@ export function Provider({ children }: { children: ReactNode }) {
   );
   const salvarLinks = useCallback(
     (fn: (items: LinkDoc[]) => LinkDoc[]) => salvarColecao<LinkDoc>("links", fn),
+    [salvarColecao],
+  );
+  const salvarPessoas = useCallback(
+    (fn: (items: Pessoa[]) => Pessoa[]) => salvarColecao<Pessoa>("pessoas", fn),
+    [salvarColecao],
+  );
+  const salvarTimes = useCallback(
+    (fn: (items: Time[]) => Time[]) => salvarColecao<Time>("times", fn),
     [salvarColecao],
   );
 
@@ -232,17 +256,10 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, enviarArquivo, toast, configurarPasta,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}
-      <div className="toasts">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.tipo}`}>
-            {t.texto}
-          </div>
-        ))}
-      </div>
     </Contexto.Provider>
   );
 }

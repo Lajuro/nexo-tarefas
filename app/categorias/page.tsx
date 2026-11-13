@@ -1,59 +1,112 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArchiveRestore, ArrowRight, FolderPlus, Plus, Tag } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { CategoriaForm } from "@/components/CategoriaForm";
-import { Vazio } from "@/components/ui";
-import { STATUS_ABERTOS, formatarData, ultimoRegistro } from "@/lib/tipos";
+import { CartaoCategoria } from "@/components/categorias/CartaoCategoria";
+import { Pagina, Vazio } from "@/components/comum";
+import { Button } from "@/components/ui/button";
+import { CampoSwitch } from "@/components/ui/controles";
+import { lista } from "@/lib/animacoes";
+import { usePref } from "@/lib/preferencias";
+import { Categoria, Tarefa } from "@/lib/tipos";
 
 export default function Categorias() {
   const { dados } = useNexo();
-  const [form, setForm] = useState(false);
-  const [verArquivadas, setVerArquivadas] = useState(false);
-  const cats = dados!.categorias.items.filter((c) => verArquivadas || !c.arquivada);
-  const semCat = dados!.tarefas.filter((t) => !t.categoriaId);
+  const [form, setForm] = useState<{ aberto: boolean; cat?: Categoria }>({ aberto: false });
+  const [verArquivadas, setVerArquivadas, carregado] = usePref("mostrarArquivadas", false);
+
+  const todas = dados?.categorias.items ?? [];
+  const tarefas = dados?.tarefas ?? [];
+  const arquivadas = todas.filter((c) => c.arquivada).length;
+  const cats = todas.filter((c) => verArquivadas || !c.arquivada);
+  const semCat = tarefas.filter((t) => !t.categoriaId).length;
+
+  const porCategoria = useMemo(() => {
+    const mapa = new Map<string, Tarefa[]>();
+    for (const t of tarefas) {
+      if (!t.categoriaId) continue;
+      const l = mapa.get(t.categoriaId);
+      if (l) l.push(t);
+      else mapa.set(t.categoriaId, [t]);
+    }
+    return mapa;
+  }, [tarefas]);
+
+  const nova = () => setForm({ aberto: true });
+  const ativas = todas.length - arquivadas;
 
   return (
-    <>
-      <div className="cabecalho">
-        <div>
-          <h1>Categorias</h1>
-          <p>Os assuntos de onde as tarefas nascem. Abra uma para ver tudo o que já saiu dela.</p>
-        </div>
-        <div className="acoes">
-          <label className="acoes sutil" style={{ cursor: "pointer" }}>
-            <input type="checkbox" checked={verArquivadas} onChange={(e) => setVerArquivadas(e.target.checked)} /> Arquivadas
-          </label>
-          <button className="btn primario" onClick={() => setForm(true)}>+ Nova categoria</button>
-        </div>
-      </div>
-      {cats.length === 0 ? (
-        <Vazio titulo="Nenhuma categoria ainda">Ex.: Security Champion, gestão de vulnerabilidades, um sistema específico...</Vazio>
+    <Pagina
+      titulo="Categorias"
+      descricao="Os assuntos de onde nascem as tarefas. Abra um para ver tudo o que saiu dele."
+      acoes={
+        <>
+          <CampoSwitch marcado={verArquivadas} aoMudar={setVerArquivadas} className="mr-1">
+            Mostrar arquivadas
+            {arquivadas > 0 && <span className="ml-1 tabular-nums opacity-70">({arquivadas})</span>}
+          </CampoSwitch>
+          <Button onClick={nova}><Plus /> Nova categoria</Button>
+        </>
+      }
+    >
+      {!dados || !carregado ? null : todas.length === 0 ? (
+        <Vazio titulo="Nenhuma categoria ainda" icone={<FolderPlus />}>
+          <p>
+            Uma categoria é um assunto ou aplicação de onde saem várias tarefas, como Security Champion,
+            gestão de vulnerabilidades ou um sistema específico.
+          </p>
+          <Button onClick={nova}><Plus /> Criar a primeira categoria</Button>
+        </Vazio>
+      ) : cats.length === 0 ? (
+        <Vazio titulo="Todas as categorias estão arquivadas" icone={<ArchiveRestore />}>
+          <p>Ligue “Mostrar arquivadas” para ver e desarquivar o que precisar.</p>
+          <Button variant="outline" onClick={() => setVerArquivadas(true)}>Ver as arquivadas</Button>
+        </Vazio>
       ) : (
-        <div className="grade">
-          {cats.map((c) => {
-            const ts = dados!.tarefas.filter((t) => t.categoriaId === c.id);
-            const abertas = ts.filter((t) => STATUS_ABERTOS.includes(t.status)).length;
-            const ultima = ts.map((t) => ultimoRegistro(t)?.data).filter(Boolean).sort().pop();
-            return (
-              <Link key={c.id} href={`/categorias/${c.id}`} className="card-cat" style={{ "--cor": c.cor } as React.CSSProperties}>
-                <h3 style={{ fontSize: 16 }}>{c.nome}{c.arquivada && <span className="badge" style={{ marginLeft: 8 }}>arquivada</span>}</h3>
-                {c.descricao && <p className="sutil" style={{ margin: 0, fontSize: 13 }}>{c.descricao}</p>}
-                <div className="card-meta">
-                  <span><strong>{abertas}</strong> abertas</span>
-                  <span><strong>{ts.length - abertas}</strong> fechadas</span>
-                  {ultima && <span>última atividade {formatarData(ultima)}</span>}
-                </div>
-              </Link>
-            );
-          })}
+        <motion.div
+          variants={lista}
+          initial="escondido"
+          animate="visivel"
+          data-slot="grade-categorias"
+          className="grid grid-cols-[repeat(auto-fill,minmax(288px,1fr))] gap-4"
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            {cats.map((c) => (
+              <CartaoCategoria key={c.id} cat={c} tarefas={porCategoria.get(c.id) ?? VAZIA} aoEditar={(cat) => setForm({ aberto: true, cat })} />
+            ))}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {dados && (todas.length > 0 || semCat > 0) && (
+        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {todas.length > 0 && (
+            <span className="tabular-nums">
+              {ativas} {ativas === 1 ? "categoria ativa" : "categorias ativas"}
+              {arquivadas > 0 && `, ${arquivadas} ${arquivadas === 1 ? "arquivada" : "arquivadas"}`}
+            </span>
+          )}
+          {semCat > 0 && (
+            <Link
+              href="/tarefas?cat=__sem"
+              data-slot="sem-categoria"
+              className="group/sem inline-flex items-center gap-1.5 rounded-md outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35"
+            >
+              <Tag className="size-3 opacity-70" />
+              <span className="tabular-nums">{semCat} {semCat === 1 ? "tarefa sem categoria" : "tarefas sem categoria"}</span>
+              <ArrowRight className="size-3 opacity-0 transition-[opacity,transform] duration-150 group-hover/sem:translate-x-0.5 group-hover/sem:opacity-100 group-focus-visible/sem:opacity-100" />
+            </Link>
+          )}
         </div>
       )}
-      {semCat.length > 0 && (
-        <p className="sutil" style={{ marginTop: 20 }}>{semCat.length} tarefa(s) sem categoria.</p>
-      )}
-      <CategoriaForm aberto={form} fechar={() => setForm(false)} />
-    </>
+
+      <CategoriaForm aberto={form.aberto} fechar={() => setForm((f) => ({ ...f, aberto: false }))} cat={form.cat} />
+    </Pagina>
   );
 }
+
+const VAZIA: Tarefa[] = [];

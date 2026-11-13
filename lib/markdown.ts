@@ -9,6 +9,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
   L.push(`- **Status:** ${nomeStatus(t.status)}`);
   L.push(`- **Prioridade:** ${t.prioridade}`);
   if (t.prazo) L.push(`- **Prazo:** ${formatarData(t.prazo)}`);
+  if (t.lembrarEm) L.push(`- **Lembrar em:** ${formatarData(t.lembrarEm)}`);
   if (t.tags.length) L.push(`- **Tags:** ${t.tags.join(", ")}`);
   L.push(`- **Criada em:** ${formatarData(t.criadaEm)}`);
   if (t.descricao) L.push("", t.descricao);
@@ -23,7 +24,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
     if (r.decisoes) L.push("", "**Decisões:**", r.decisoes);
     if (r.proximosPassos.length) {
       L.push("", "**Próximos passos:**");
-      for (const p of r.proximosPassos) L.push(`- [${p.feito ? "x" : " "}] ${p.texto}${p.responsavel ? ` (${p.responsavel})` : ""}`);
+      for (const p of r.proximosPassos) L.push(`- [${p.feito ? "x" : " "}] ${p.texto}${p.responsavel ? ` (${p.responsavel})` : ""}${p.prazo ? ` até ${formatarData(p.prazo)}` : ""}`);
     }
     if (r.impedimentos) L.push("", "**Impedimentos:**", r.impedimentos);
     const a = r.alteracoes;

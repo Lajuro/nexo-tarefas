@@ -1,115 +1,88 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNexo } from "@/components/Provider";
-import { Campo, copiarTexto } from "@/components/ui";
+import { Pagina } from "@/components/comum";
+import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao } from "@/components/configuracoes/dados";
+import { PainelAparencia, PainelAtalhos, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
 
-type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
+async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(url, { cache: "no-store", ...init });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.erro) throw new Error(j.erro || `Erro ${r.status}`);
+  return j as T;
+}
 
 export default function Configuracoes() {
-  const { estado, dados, configurarPasta, toast, recarregar } = useNexo();
-  const [dir, setDir] = useState(estado?.dataDir ?? "");
-  const [backups, setBackups] = useState<string[]>([]);
-  const [lixeira, setLixeira] = useState<ItemLixeira[]>([]);
+  const { dados, toast, recarregar } = useNexo();
+  const [backups, setBackups] = useState<string[] | null>(null);
+  const [lixeira, setLixeira] = useState<ItemLixeira[] | null>(null);
+  const [fazendoBackup, setFazendoBackup] = useState(false);
+  const [restaurando, setRestaurando] = useState<string | null>(null);
 
-  const carregar = async () => {
+  const carregar = useCallback(async () => {
     const [b, l] = await Promise.all([
-      fetch("/api/backup", { cache: "no-store" }).then((r) => r.json()),
-      fetch("/api/lixeira", { cache: "no-store" }).then((r) => r.json()),
+      pedir<{ backups?: string[] }>("/api/backup").catch(() => ({ backups: [] })),
+      pedir<{ itens?: ItemLixeira[] }>("/api/lixeira").catch(() => ({ itens: [] })),
     ]);
     setBackups(b.backups || []);
     setLixeira(l.itens || []);
-  };
-  useEffect(() => { carregar(); }, []);
+  }, []);
 
-  const totalRegs = dados!.tarefas.reduce((n, t) => n + t.registros.length, 0);
+  // A lixeira muda quando uma tarefa é excluída em qualquer lugar: relê junto com os dados.
+  const totalTarefas = dados?.tarefas.length ?? 0;
+  useEffect(() => {
+    carregar();
+  }, [carregar, totalTarefas]);
+
+  const fazerBackup = async () => {
+    setFazendoBackup(true);
+    try {
+      await pedir("/api/backup", { method: "POST" });
+      toast("Backup manual criado.");
+      await carregar();
+    } catch (e) {
+      toast((e as Error).message, "erro");
+    }
+    setFazendoBackup(false);
+  };
+
+  const restaurar = async (i: ItemLixeira) => {
+    setRestaurando(i.arquivo);
+    try {
+      await pedir("/api/lixeira", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ arquivo: i.arquivo }),
+      });
+      toast("Tarefa restaurada.");
+      await recarregar();
+      await carregar();
+    } catch (e) {
+      toast((e as Error).message, "erro");
+    }
+    setRestaurando(null);
+  };
+
+  if (!dados) return null;
 
   return (
-    <>
-      <div className="cabecalho">
-        <div>
-          <h1>Configurações</h1>
-          <p>Onde seus dados moram e como eles são protegidos.</p>
+    <Pagina titulo="Configurações" descricao="Onde seus dados moram, como eles são protegidos e como o Nexo te ajuda a lembrar de tudo.">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-4">
+          <PainelPasta />
+          <PainelProtecao backups={backups} aoFazerBackup={fazerBackup} fazendo={fazendoBackup} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <PainelAparencia />
+          <PainelRotina />
+          <PainelAtalhos />
         </div>
       </div>
-
-      <div className="dois-col" style={{ alignItems: "start" }}>
-        <div className="caixa form">
-          <h2>Pasta de dados</h2>
-          <Campo rotulo="Caminho atual" dica={estado?.origem === "env" ? "Fixado pela variável de ambiente NEXO_DATA_DIR." : "Para trocar, cole outro caminho e salve. Os dados NÃO são movidos automaticamente: copie a pasta antes, se quiser levar tudo."}>
-            <input value={dir} onChange={(e) => setDir(e.target.value)} disabled={estado?.origem === "env"} />
-          </Campo>
-          <div className="acoes">
-            <button className="btn" disabled={!dir.trim() || dir === estado?.dataDir || estado?.origem === "env"}
-              onClick={() => confirm("Trocar a pasta de dados? O app vai passar a ler e gravar na nova pasta.") && configurarPasta(dir)}>
-              Usar esta pasta
-            </button>
-            <button className="btn fantasma" onClick={async () => (await copiarTexto(estado?.dataDir ?? "")) && toast("Caminho copiado. Cole no Explorer para abrir.")}>
-              Copiar caminho
-            </button>
-          </div>
-          <p className="sutil" style={{ margin: 0, fontSize: 13 }}>
-            {dados!.tarefas.length} tarefas · {totalRegs} registros · {dados!.categorias.items.length} categorias · {dados!.links.items.length} links/docs
-            <br />Formato dos dados: v{estado?.schemaDados} (app suporta até v{estado?.schemaApp})
-          </p>
-        </div>
-
-        <div className="caixa form">
-          <h2>Proteção dos dados</h2>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }} className="sutil">
-            <li>Cada tarefa é um arquivo JSON separado. Um problema num arquivo não afeta os outros.</li>
-            <li>Toda gravação é atômica: escreve num arquivo temporário e só então troca. Se o PC desligar no meio, o arquivo antigo fica intacto.</li>
-            <li>Todo dia, antes da primeira alteração, é tirada uma foto dos dados em <code>_backups/AAAA-MM-DD</code> (guarda as últimas 45).</li>
-            <li>Antes de qualquer atualização de formato, uma cópia completa vai para <code>_backups/pre-migracao-*</code>.</li>
-            <li>Nada é apagado de verdade: tarefas e itens removidos vão para <code>_lixeira</code>. Registros removidos ficam guardados dentro da própria tarefa.</li>
-            <li>A pasta <code>markdown/</code> tem uma versão legível de cada tarefa, caso um dia você precise ler sem o app.</li>
-          </ul>
-          <div className="acoes">
-            <button className="btn" onClick={async () => {
-              const r = await fetch("/api/backup", { method: "POST" }).then((x) => x.json());
-              if (r.erro) toast(r.erro, "erro"); else { toast("Backup manual criado."); carregar(); }
-            }}>Fazer backup agora</button>
-            <a className="btn" href="/api/exportar">Exportar tudo (JSON)</a>
-            <button className="btn fantasma" onClick={recarregar}>Recarregar dados da pasta</button>
-          </div>
-          {backups.length > 0 && (
-            <details>
-              <summary className="sutil" style={{ cursor: "pointer", fontSize: 13 }}>{backups.length} backups em _backups</summary>
-              <ul style={{ fontSize: 12, fontFamily: "var(--mono)" }}>{backups.slice(0, 60).map((b) => <li key={b}>{b}</li>)}</ul>
-            </details>
-          )}
-        </div>
+      <PainelLixeira className="mt-4" itens={lixeira} aoRestaurar={restaurar} restaurando={restaurando} />
+      <div className="mt-4">
+        <PainelSobre />
       </div>
-
-      <section className="secao">
-        <h2>Lixeira</h2>
-        {lixeira.length === 0 ? <p className="sutil">Vazia.</p> : (
-          <table className="tabela">
-            <thead><tr><th>Item</th><th>Arquivo</th><th></th></tr></thead>
-            <tbody>
-              {lixeira.map((i) => (
-                <tr key={i.arquivo}>
-                  <td>{i.tipo === "tarefa" ? i.titulo : `${i.tipo} removidos`}</td>
-                  <td className="sutil"><code>{i.arquivo}</code></td>
-                  <td>
-                    {i.tipo === "tarefa" && (
-                      <button className="btn pequeno" onClick={async () => {
-                        const r = await fetch("/api/lixeira", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arquivo: i.arquivo }) }).then((x) => x.json());
-                        if (r.erro) toast(r.erro, "erro"); else { toast("Tarefa restaurada."); await recarregar(); carregar(); }
-                      }}>Restaurar</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section className="secao">
-        <h2>Atalhos</h2>
-        <p className="sutil"><kbd>N</kbd> nova tarefa · <kbd>/</kbd> buscar em tudo · <kbd>Esc</kbd> fechar janelas</p>
-      </section>
-    </>
+    </Pagina>
   );
 }
