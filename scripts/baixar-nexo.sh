@@ -399,12 +399,12 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="162ef94"
+MANIFEST_COMMIT="2173a37"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 d519a775e666557dae83e8e6b9711203df5ace24 AGENTS.md
+100644 cf5343bc72d992d83098f8deabf8f3a005b85019 AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
 100644 8d01aa33852947b9f0f40944453441569031ce93 README.md
@@ -442,10 +442,10 @@ manifest() {
 100644 93a0b6f3fbf90d955dbf754c70406d5ffb33d7f1 components/LinkForm.tsx
 100644 14a00edc715f600ab1c8f772351f9b8b7c6142f9 components/MenuTarefa.tsx
 100644 45cc0682abc77b0c3c8ed8fe1fed7ad9d7b46e20 components/PromptModal.tsx
-100644 35d37c637ce58cfd47df7c81348afe6ae21bf2a3 components/Provider.tsx
+100644 7492fa34ef3ddd9b686f9d568056531744a916f0 components/Provider.tsx
 100644 55ab790a3587bfcda534123dc4e5c34f31a34bea components/Raiz.tsx
 100644 5007343501fcb51c0fd6f872114149341f53e9d4 components/RegistroEditor.tsx
-100644 f9ee3626d7ff105972db3930a42e9aef2c3ed7da components/Shell.tsx
+100644 32bda50eac729dd84ab669615503a196f8c2af59 components/Shell.tsx
 100644 50a53c0af3e3d0734245214b9c2aa55f960d3730 components/TarefaForm.tsx
 100644 853b57ea933d3108e61b2f0a42b3d35c2dd88083 components/busca/CampoBusca.tsx
 100644 057d16d862d907a36f53fc2ad3b9844d01024f41 components/categorias/CartaoCategoria.tsx
@@ -514,7 +514,8 @@ manifest() {
 100644 6d90a099ff8e9f00d6884c17f663444022900ba1 components/ui/menu.tsx
 100644 9eb2e21ee8fd73cca539db959dee0e35a336ba38 components/ui/popover.tsx
 100644 51214c2655f5397adeffa78f66daaea73438b08e components/ui/select.tsx
-100644 c5962da92660c8292882bf03f68f0a8d94bbccaf components/useLembretes.ts
+100644 7c74bc378088e2976702b69195074adcd069d8d3 components/useHoje.ts
+100644 4394aaa6e3f005eee4789f769d5f150de89424a3 components/useLembretes.ts
 100644 d1b1dc05aee43290461a30e33e8f91762a9e616a lib/acoes.ts
 100644 3198e421c5ca7157371f58d197959a2d2849ce76 lib/animacoes.ts
 100644 1813aac061be8da8e20209ed23e8df1aefdc57bf lib/armazenamento.ts
@@ -531,8 +532,8 @@ manifest() {
 100644 f2246db4cd974921435129d7ea79dd0fa8a0f3db lib/tipos.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 47b9f102f4b8b34b862fa295f5108806e1198d79 next.config.ts
-100644 2726bbe69a55023040e11ee9def366151403a597 package-lock.json
-100644 86de5262607a079fc2943b9bf5878910e861416e package.json
+100644 9597f2c5e5b4e1dc113759db33b19bc9d23daa34 package-lock.json
+100644 8b2757d894ee27554247a852a5e23a72f35d6966 package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 ff217c0e0a103de9951a58cdc113c13f3dd18df8 proxy.ts
 100755 - scripts/baixar-nexo.sh
