@@ -5,27 +5,26 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  ChevronLeft, ChevronRight, CircleHelp, Check, HardDrive, Loader2, Lock, Maximize, Minimize, Monitor, Moon, PanelLeft, Search, Sun,
-  TriangleAlert, X,
-} from "lucide-react";
+import { Check, HardDrive, Loader2, Lock, TriangleAlert, X } from "lucide-react";
 import { useNexo } from "./Provider";
-import { useTema } from "./Raiz";
 import { TarefaForm } from "./TarefaForm";
 import { PlanejarDia } from "./rotina/PlanejarDia";
-import { PontoCor, copiarTexto } from "./comum";
+import { NumeroAnimado, copiarTexto } from "./comum";
+import { BarraSuperior } from "./shell/BarraSuperior";
+import { abrirAnotar } from "./shell/Ferramentas";
 import { Lateral } from "./shell/Lateral";
 import { Paleta } from "./shell/Paleta";
-import { Sino } from "./shell/Sino";
+import { Personalizar } from "./shell/Personalizar";
 import { Carregando, JanelaAtalhos, Onboarding, TelaErro } from "./shell/Telas";
 import { NAV, nomeDaRota } from "./shell/navegacao";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger, Kbd } from "@/components/ui/diversos";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
+import { suave } from "@/lib/animacoes";
 import { aberta, passosAbertosDe } from "@/lib/lembretes";
+import { abrirPersonalizar, registrarRecente, useMoldura } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
@@ -60,6 +59,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const [recolhida, setRecolhida] = usePref("lateralRecolhida", false);
   const [cheia, setCheia] = useState(false);
   const { rotina, carregado: rotinaCarregada } = useRotina();
+  const { moldura } = useMoldura();
   const ultimoG = useRef(0);
   const ritualOferecido = useRef(""); // dia (AAAA-MM-DD) em que o ritual já foi oferecido
   const hoje = useHoje();
@@ -77,6 +77,9 @@ export function Shell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.title = `${nomeDaRota(pathname)} · Nexo`;
+    // Tarefa aberta entra em "Recentes" na barra lateral.
+    const [, raiz, id] = pathname.split("/");
+    if (raiz === "tarefas" && id) registrarRecente(id);
   }, [pathname]);
 
   useEffect(() => {
@@ -118,6 +121,9 @@ export function Shell({ children }: { children: ReactNode }) {
       } else if (k === "d") {
         e.preventDefault();
         setRitual(true);
+      } else if (k === "a") {
+        e.preventDefault();
+        abrirAnotar();
       } else if (e.key === "?") {
         e.preventDefault();
         setAtalhos(true);
@@ -159,7 +165,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div data-slot="app" className="flex h-screen w-screen overflow-hidden bg-background">
-      <Lateral recolhida={recolhida} novaTarefa={() => setNova({ aberto: true })} abrirPaleta={() => setPaleta(true)} />
+      <Lateral
+        recolhida={recolhida}
+        alternar={() => setRecolhida((r) => !r)}
+        novaTarefa={() => setNova({ aberto: true })}
+        abrirPaleta={() => setPaleta(true)}
+        planejarDia={() => setRitual(true)}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <BarraSuperior
@@ -169,15 +181,24 @@ export function Shell({ children }: { children: ReactNode }) {
           abrirAtalhos={() => setAtalhos(true)}
           cheia={cheia}
           telaCheia={telaCheia}
+          planejarDia={() => setRitual(true)}
         />
         <Avisos />
-        <main data-slot="conteudo" className="min-h-0 flex-1 overflow-hidden">{children}</main>
-        <BarraStatus />
+        <main data-slot="conteudo" className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
+        <AnimatePresence initial={false}>
+          {moldura.barraStatus && (
+            <motion.div key="status" initial={{ height: 0, opacity: 0 }} animate={{ height: 24, opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={suave}
+              className="shrink-0 overflow-hidden">
+              <BarraStatus />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} fechar={() => setNova({ aberto: false })} />
       <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
       <MoverEJuntar />
+      <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
       <Paleta
         aberta={paleta}
@@ -187,6 +208,8 @@ export function Shell({ children }: { children: ReactNode }) {
           planejarDia: () => setRitual(true),
           alternarLateral: () => setRecolhida((r) => !r),
           telaCheia,
+          anotar: abrirAnotar,
+          personalizar: () => abrirPersonalizar("aparencia"),
         }}
       />
     </div>
@@ -194,110 +217,6 @@ export function Shell({ children }: { children: ReactNode }) {
 }
 
 // ---------------------------------------------------------------------------
-
-function Migalhas() {
-  const pathname = usePathname();
-  const { dados } = useNexo();
-  const partes: { nome: ReactNode; href?: string }[] = [];
-  const [, raiz, id] = pathname.split("/");
-
-  if (raiz === "tarefas" && id) {
-    const t = dados?.tarefas.find((x) => x.id === id);
-    const cat = dados?.categorias.items.find((c) => c.id === t?.categoriaId);
-    partes.push({ nome: "Tarefas", href: "/tarefas" });
-    if (cat) partes.push({ nome: <span className="flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span>, href: `/categorias/${cat.id}` });
-    partes.push({ nome: t?.titulo ?? "Tarefa" });
-  } else if (raiz === "categorias" && id) {
-    const cat = dados?.categorias.items.find((c) => c.id === id);
-    partes.push({ nome: "Categorias", href: "/categorias" });
-    partes.push({ nome: cat ? <span className="flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span> : "Categoria" });
-  } else partes.push({ nome: nomeDaRota(pathname) });
-
-  return (
-    <nav aria-label="Você está em" data-slot="migalhas" className="flex min-w-0 items-center gap-1 text-[13px] sem-selecao">
-      {partes.map((p, i) => {
-        const ultima = i === partes.length - 1;
-        return (
-          <Fragment key={i}>
-            {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />}
-            {p.href && !ultima ? (
-              <Link href={p.href} className="shrink-0 rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
-                {p.nome}
-              </Link>
-            ) : (
-              <span className={cn("truncate px-1 py-0.5", ultima ? "font-medium text-foreground" : "text-muted-foreground")}>{p.nome}</span>
-            )}
-          </Fragment>
-        );
-      })}
-    </nav>
-  );
-}
-
-function BarraSuperior({
-  recolhida, alternarLateral, abrirPaleta, abrirAtalhos, cheia, telaCheia,
-}: {
-  recolhida: boolean; alternarLateral: () => void; abrirPaleta: () => void; abrirAtalhos: () => void; cheia: boolean; telaCheia: () => void;
-}) {
-  const router = useRouter();
-  const { tema, resolvido, definirTema } = useTema();
-  return (
-    <header data-slot="barra-superior" className="flex h-11 shrink-0 items-center gap-1 border-b bg-background px-2">
-      <Dica texto={recolhida ? "Abrir a barra lateral" : "Recolher a barra lateral"} atalho="Ctrl B">
-        <Button variant="ghost" size="icon" aria-label="Recolher ou abrir a barra lateral" onClick={alternarLateral}><PanelLeft /></Button>
-      </Dica>
-      <Dica texto="Voltar">
-        <Button variant="ghost" size="icon" aria-label="Voltar" onClick={() => router.back()}><ChevronLeft /></Button>
-      </Dica>
-      <Dica texto="Avançar">
-        <Button variant="ghost" size="icon" aria-label="Avançar" onClick={() => router.forward()}><ChevronRight /></Button>
-      </Dica>
-      <div className="mx-1 h-4 w-px bg-border" />
-      <Migalhas />
-      <div className="flex-1" />
-
-      <button type="button" onClick={abrirPaleta} data-slot="busca-topo"
-        className="mr-1 hidden h-7 w-56 items-center gap-2 rounded-md border bg-muted/50 px-2 text-xs text-muted-foreground transition-colors outline-none sem-selecao hover:border-ring/40 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 lg:flex">
-        <Search className="size-3.5" />
-        <span className="flex-1 text-left">Buscar em tudo</span>
-        <Kbd>/</Kbd>
-      </button>
-
-      <Sino />
-
-      <DropdownMenu>
-        <Dica texto="Tema">
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Mudar tema" data-slot="botao-tema">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span key={resolvido} initial={{ rotate: -60, opacity: 0, scale: 0.6 }} animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                  exit={{ rotate: 60, opacity: 0, scale: 0.6 }} transition={{ duration: 0.16 }} className="inline-flex">
-                  {resolvido === "escuro" ? <Moon className="size-4" /> : <Sun className="size-4" />}
-                </motion.span>
-              </AnimatePresence>
-            </Button>
-          </DropdownMenuTrigger>
-        </Dica>
-        <DropdownMenuContent>
-          <DropdownMenuRadioGroup value={tema} onValueChange={(t) => definirTema(t as typeof tema)}>
-            <DropdownMenuRadioItem value="sistema"><Monitor /> Igual ao sistema</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="claro"><Sun /> Claro</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="escuro"><Moon /> Escuro</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Dica texto={cheia ? "Sair da tela cheia" : "Tela cheia"} atalho="F11">
-        <Button variant="ghost" size="icon" aria-label={cheia ? "Sair da tela cheia" : "Tela cheia"} onClick={telaCheia}>
-          {cheia ? <Minimize /> : <Maximize />}
-        </Button>
-      </Dica>
-      <Dica texto="Atalhos de teclado" atalho="?">
-        <Button variant="ghost" size="icon" aria-label="Atalhos de teclado" onClick={abrirAtalhos}><CircleHelp /></Button>
-      </Dica>
-    </header>
-  );
-}
 
 /** Faixas de aviso: somente leitura (dados de versão mais nova) e arquivos com problema. */
 function Avisos() {
@@ -358,16 +277,21 @@ function BarraStatus() {
       </Dica>
       <div className="flex-1" />
       <span data-slot="estado-gravacao" data-gravando={gravando > 0 || undefined} className="flex h-full shrink-0 items-center gap-1.5 whitespace-nowrap px-2">
-        {estado?.somenteLeitura ? (
-          <><Lock className="size-3" /> Somente leitura</>
-        ) : gravando > 0 ? (
-          <><Loader2 className="size-3 animate-spin" /> Salvando...</>
-        ) : (
-          <><Check className="size-3 text-sucesso" /> {hora ? `Salvo às ${hora}` : "Tudo salvo"}</>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span key={estado?.somenteLeitura ? "leitura" : gravando > 0 ? "gravando" : "salvo"} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.14 }} className="flex items-center gap-1.5">
+            {estado?.somenteLeitura ? (
+              <><Lock className="size-3" /> Somente leitura</>
+            ) : gravando > 0 ? (
+              <><Loader2 className="size-3 animate-spin" /> Salvando...</>
+            ) : (
+              <><Check className="size-3 text-sucesso" /> {hora ? `Salvo às ${hora}` : "Tudo salvo"}</>
+            )}
+          </motion.span>
+        </AnimatePresence>
       </span>
-      <Link href="/tarefas" className={cn(item, "shrink-0 whitespace-nowrap")}><span className="tabular-nums">{abertas}</span> {abertas === 1 ? "aberta" : "abertas"}</Link>
-      <Link href="/pendencias" className={cn(item, "shrink-0 whitespace-nowrap")}><span className="tabular-nums">{pend}</span> {pend === 1 ? "pendência" : "pendências"}</Link>
+      <Link href="/tarefas" className={cn(item, "shrink-0 whitespace-nowrap")}><NumeroAnimado valor={abertas} /> {abertas === 1 ? "aberta" : "abertas"}</Link>
+      <Link href="/pendencias" className={cn(item, "shrink-0 whitespace-nowrap")}><NumeroAnimado valor={pend} /> {pend === 1 ? "pendência" : "pendências"}</Link>
       <span className="flex h-full items-center px-2 font-mono text-[10px]">v{versao.version}</span>
     </footer>
   );

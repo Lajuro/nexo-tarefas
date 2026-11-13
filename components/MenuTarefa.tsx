@@ -6,7 +6,7 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Merge, Target, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Merge, Pin, PinOff, Target, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
@@ -14,7 +14,7 @@ import { IconeStatus, copiarTexto } from "./comum";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
-import { aplicarStatus, comFoco, comLembrete, ehFocoHoje } from "@/lib/acoes";
+import { aplicarStatus, comFixada, comFoco, comLembrete, ehFocoHoje } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
 import { STATUS, Status, Tarefa, formatarData, hojeISO } from "@/lib/tipos";
 
@@ -30,6 +30,10 @@ export function useAcoesTarefa() {
     alternarFoco: async (t: Tarefa) => {
       const ligar = !ehFocoHoje(t);
       if (await atualizarTarefa(t.id, (x) => comFoco(x, ligar))) toast(ligar ? "Entrou no foco de hoje." : "Saiu do foco de hoje.", "info");
+    },
+    alternarFixada: async (t: Tarefa) => {
+      const ligar = !t.fixada;
+      if (await atualizarTarefa(t.id, (x) => comFixada(x, ligar))) toast(ligar ? "Fixada na barra lateral." : "Saiu das fixadas.", "info");
     },
     lembrarEm: async (t: Tarefa, data: string | null) => {
       if (await atualizarTarefa(t.id, (x) => comLembrete(x, data)))
@@ -83,6 +87,9 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
           <Target className={foco ? "!text-primary" : undefined} /> {foco ? "Tirar do foco de hoje" : "Focar hoje"}
         </k.Item>
       )}
+      <k.Item onSelect={() => a.alternarFixada(t)}>
+        {t.fixada ? <PinOff /> : <Pin />} {t.fixada ? "Tirar das fixadas" : "Fixar na barra lateral"}
+      </k.Item>
       <k.Separator />
       <k.Sub>
         <k.SubTrigger><IconeStatus status={t.status} /> Status</k.SubTrigger>

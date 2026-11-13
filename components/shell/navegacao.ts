@@ -63,6 +63,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "S"], descricao: "Ir para a Revisão semanal" },
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },
   { teclas: ["D"], descricao: "Planejar o dia" },
+  { teclas: ["A"], descricao: "Anotar rápido: tarefa ou nota, de qualquer tela" },
   { teclas: ["Ctrl", "B"], descricao: "Recolher ou abrir a barra lateral" },
   { teclas: ["Ctrl", "Enter"], descricao: "Salvar o formulário aberto" },
   { teclas: ["Esc"], descricao: "Fechar janelas e menus" },

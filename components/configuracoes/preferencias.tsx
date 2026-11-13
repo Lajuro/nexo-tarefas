@@ -5,19 +5,21 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import {
-  ArrowRight, BellRing, CalendarCheck2, Keyboard, Monitor, Moon, Palette, Repeat2, RotateCcw, ShieldCheck, Sun, Sunrise,
+  ArrowRight, BellRing, CalendarCheck2, Keyboard, Palette, Repeat2, RotateCcw, ShieldCheck, SlidersHorizontal, Sunrise,
   UserRound,
 } from "lucide-react";
 import pacote from "@/package.json";
 import { ChipsInput, Painel } from "@/components/comum";
-import { Tema, useTema } from "@/components/Raiz";
+import { useAparencia } from "@/components/Raiz";
 import { abrirPlanejarDia } from "@/components/Shell";
+import { OpcoesAparencia } from "@/components/shell/Aparencia";
 import { ATALHOS } from "@/components/shell/navegacao";
 import { useLembretes } from "@/components/useLembretes";
 import { Button } from "@/components/ui/button";
-import { CampoSwitch, Segmentado } from "@/components/ui/controles";
+import { CampoSwitch } from "@/components/ui/controles";
 import { Badge, Kbd } from "@/components/ui/diversos";
 import { LIMITES, dataRelativa } from "@/lib/lembretes";
+import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { diasAte, formatarData, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -25,26 +27,22 @@ import { cn } from "@/lib/utils";
 // ---------- Aparência ----------
 
 export function PainelAparencia() {
-  const { tema, resolvido, definirTema } = useTema();
+  const { restaurarAparencia } = useAparencia();
   return (
-    <Painel titulo="Aparência" icone={<Palette />}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-        <Segmentado<Tema>
-          aria-label="Tema"
-          valor={tema}
-          aoMudar={definirTema}
-          opcoes={[
-            { valor: "sistema", rotulo: "Sistema", icone: <Monitor /> },
-            { valor: "claro", rotulo: "Claro", icone: <Sun /> },
-            { valor: "escuro", rotulo: "Escuro", icone: <Moon /> },
-          ]}
-        />
-        <p className="min-w-48 flex-1 text-xs leading-relaxed text-muted-foreground">
-          {tema === "sistema"
-            ? `Acompanha o tema do Windows. Agora está ${resolvido}.`
-            : `Sempre ${tema}, não importa o tema do Windows.`}
-        </p>
-      </div>
+    <Painel
+      titulo="Aparência"
+      icone={<Palette />}
+      acoes={
+        <>
+          <Button variant="ghost" size="sm" onClick={restaurarAparencia}><RotateCcw /> Padrão</Button>
+          <Button variant="outline" size="sm" onClick={() => abrirPersonalizar("lateral")}><SlidersHorizontal /> Barras lateral e superior</Button>
+        </>
+      }
+    >
+      <OpcoesAparencia />
+      <p className="mt-4 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+        Para aumentar ou diminuir tudo de uma vez, use <Kbd>Ctrl</Kbd> <Kbd>+</Kbd> e <Kbd>Ctrl</Kbd> <Kbd>-</Kbd>. O Edge lembra do tamanho escolhido.
+      </p>
     </Painel>
   );
 }

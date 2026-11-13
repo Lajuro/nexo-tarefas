@@ -1,13 +1,14 @@
 "use client";
 
 import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { MotionConfig } from "motion/react";
+import { MotionConfig, MotionGlobalConfig } from "motion/react";
 import { TriangleAlert } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/popover";
 import { Toaster } from "@/components/ui/diversos";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle,
 } from "@/components/ui/dialog";
+import { APARENCIA_PADRAO, Aparencia, aplicarAparencia, normalizarAparencia } from "@/lib/aparencia";
 import { gravarPref, lerPref } from "@/lib/preferencias";
 
 // Provedores de interface que valem para o app inteiro: tema (claro/escuro/sistema),
@@ -24,6 +25,17 @@ interface CtxTema {
 }
 const ContextoTema = createContext<CtxTema>({ tema: "sistema", resolvido: "claro", definirTema: () => {} });
 export const useTema = () => useContext(ContextoTema);
+
+// ---------- Aparência (cor de destaque, cantos, fonte, movimento, estilo da barra lateral) ----------
+
+interface CtxAparencia {
+  aparencia: Aparencia;
+  /** Muda um ou mais campos. Aplica na hora e guarda no navegador. */
+  mudarAparencia: (parte: Partial<Aparencia>) => void;
+  restaurarAparencia: () => void;
+}
+const ContextoAparencia = createContext<CtxAparencia>({ aparencia: APARENCIA_PADRAO, mudarAparencia: () => {}, restaurarAparencia: () => {} });
+export const useAparencia = () => useContext(ContextoAparencia);
 
 // ---------- Confirmação (substitui o confirm() do navegador) ----------
 
@@ -83,14 +95,59 @@ export function Raiz({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", aplicar);
   }, [tema]);
 
+  const [aparencia, setAparencia] = useState<Aparencia>(APARENCIA_PADRAO);
+  useEffect(() => {
+    setAparencia(normalizarAparencia(lerPref<unknown>("aparencia", {})));
+  }, []);
+  const mudarAparencia = useCallback((parte: Partial<Aparencia>) => {
+    setAparencia((atual) => {
+      const nova = normalizarAparencia({ ...atual, ...parte });
+      aplicarAparencia(nova);
+      gravarPref("aparencia", nova);
+      return nova;
+    });
+  }, []);
+  const restaurarAparencia = useCallback(() => mudarAparencia(APARENCIA_PADRAO), [mudarAparencia]);
+
+  // "nenhum": o motion pula todas as animações (o CSS zera as transições, ver app/globals.css).
+  useEffect(() => {
+    MotionGlobalConfig.skipAnimations = aparencia.movimento === "nenhum";
+  }, [aparencia.movimento]);
+
+  // Onde foi o último clique: é de lá que o tema novo "abre" na troca.
+  const clique = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    const aoClicar = (e: PointerEvent) => {
+      clique.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointerdown", aoClicar, true);
+    return () => window.removeEventListener("pointerdown", aoClicar, true);
+  }, []);
+  const movimento = useRef(aparencia.movimento);
+  movimento.current = aparencia.movimento;
+
   const definirTema = useCallback((t: Tema) => {
-    // Troca sem animar cada cor individualmente (evita o "arrastar" de transições).
-    const css = document.createElement("style");
-    css.textContent = "*,*::before,*::after{transition:none!important}";
-    document.head.appendChild(css);
-    setTema(t);
-    gravarPref("tema", t);
-    setTimeout(() => css.remove(), 80);
+    const raiz = document.documentElement;
+    const escuro = t === "escuro" || (t === "sistema" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const trocar = () => {
+      // Troca sem animar cada cor individualmente (evita o "arrastar" de transições).
+      const css = document.createElement("style");
+      css.textContent = "*,*::before,*::after{transition:none!important}";
+      document.head.appendChild(css);
+      raiz.classList.toggle("dark", escuro);
+      setTema(t);
+      gravarPref("tema", t);
+      setTimeout(() => css.remove(), 80);
+    };
+    // Com movimento completo, o tema novo se abre em círculo a partir do clique (View Transitions do Edge/Chrome).
+    const doc = document as Document & { startViewTransition?: (fn: () => void) => unknown };
+    const muda = escuro !== raiz.classList.contains("dark");
+    const podeAnimar = muda && movimento.current === "completo" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (podeAnimar && typeof doc.startViewTransition === "function") {
+      raiz.style.setProperty("--vt-x", `${clique.current.x}px`);
+      raiz.style.setProperty("--vt-y", `${clique.current.y}px`);
+      doc.startViewTransition(trocar);
+    } else trocar();
   }, []);
 
   const [pedido, setPedido] = useState<OpcoesConfirmar | null>(null);
@@ -112,7 +169,9 @@ export function Raiz({ children }: { children: ReactNode }) {
 
   return (
     <ContextoTema.Provider value={{ tema, resolvido, definirTema }}>
-      <MotionConfig reducedMotion="user">
+     <ContextoAparencia.Provider value={{ aparencia, mudarAparencia, restaurarAparencia }}>
+      {/* "completo" respeita o "reduzir movimento" do Windows; "sutil" e "nenhum" sempre reduzem (só esmaecer). */}
+      <MotionConfig reducedMotion={aparencia.movimento === "completo" ? "user" : "always"}>
         <TooltipProvider delayDuration={350} skipDelayDuration={200}>
           <ContextoConfirmar.Provider value={confirmar}>{children}</ContextoConfirmar.Provider>
           <AlertDialog open={aberto} onOpenChange={(a) => !a && responder(false)}>
@@ -141,6 +200,7 @@ export function Raiz({ children }: { children: ReactNode }) {
           <Toaster tema={resolvido === "escuro" ? "dark" : "light"} />
         </TooltipProvider>
       </MotionConfig>
+     </ContextoAparencia.Provider>
     </ContextoTema.Provider>
   );
 }

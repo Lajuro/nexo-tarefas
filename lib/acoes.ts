@@ -2,7 +2,7 @@
 //   atualizarTarefa(t.id, (x) => comFoco(x, true))
 // Assim toda tela muda a tarefa do mesmo jeito (e os marcos da timeline nunca são esquecidos).
 
-import { Registro, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarRegistro } from "./tipos";
+import { Registro, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
 
 /** Muda o status e registra um marco na timeline (o marco de "concluida" é o card verde do fim). */
 export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa = t, obs = ""): Tarefa {
@@ -26,12 +26,29 @@ export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa = t, obs
   };
 }
 
+/** Tarefa "A fazer" só com o título e o marco de criação: a captura rápida (tela Hoje e barra superior). */
+export function tarefaRapida(titulo: string): Tarefa {
+  const base = normalizarTarefa({ id: novoId("t"), titulo, status: "a_fazer" });
+  base.registros.push(
+    normalizarRegistro({
+      tipo: "marco", data: hojeISO(), titulo: "Tarefa criada",
+      anotacoes: "", alteracoes: { status: { de: "", para: "a_fazer" } },
+    }),
+  );
+  return base;
+}
+
 /** Marca (ou desmarca) a tarefa como foco de hoje. */
 export function comFoco(t: Tarefa, ligado: boolean): Tarefa {
   return { ...t, focoEm: ligado ? hojeISO() : null };
 }
 
 export const ehFocoHoje = (t: Tarefa) => t.focoEm === hojeISO();
+
+/** Prende (ou solta) a tarefa na barra lateral. */
+export function comFixada(t: Tarefa, ligado: boolean): Tarefa {
+  return { ...t, fixada: ligado };
+}
 
 /** Define a data de follow-up ("me lembre de voltar nisso em..."). null remove. */
 export function comLembrete(t: Tarefa, data: string | null): Tarefa {

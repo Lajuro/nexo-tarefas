@@ -93,6 +93,8 @@ export interface Tarefa {
   lembrarEm?: string | null;
   /** Dia (AAAA-MM-DD) em que a tarefa foi escolhida como foco. Só vale como foco se for hoje. */
   focoEm?: string | null;
+  /** Presa na barra lateral, para abrir com um clique. */
+  fixada?: boolean;
   [extra: string]: unknown;
 }
 
@@ -304,6 +306,7 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     concluidaEm: t.concluidaEm ?? null,
     lembrarEm: typeof t.lembrarEm === "string" && t.lembrarEm ? t.lembrarEm : null,
     focoEm: typeof t.focoEm === "string" && t.focoEm ? t.focoEm : null,
+    fixada: t.fixada === true,
   };
 }
 

@@ -2,7 +2,9 @@
 
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, Crosshair, type LucideIcon, Maximize, Monitor, Moon, PanelLeft, Plus, Search, SearchX, Sun, Sunrise } from "lucide-react";
+import {
+  CornerDownLeft, Crosshair, type LucideIcon, Maximize, Monitor, Moon, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
+} from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { type Tema, useTema } from "@/components/Raiz";
 import { AvatarPessoa, IconeStatus, PontoCor, PrioBadge } from "@/components/comum";
@@ -33,9 +35,11 @@ interface Comando {
 
 const ACOES: Comando[] = [
   { id: "acao:nova", nome: "Nova tarefa", palavras: "criar adicionar nova tarefa", icone: Plus, tecla: ["N"], tom: "bg-primary/12 text-primary" },
+  { id: "acao:anotar", nome: "Anotar rápido", palavras: "anotar rapido nota folha capturar escrever bloco de notas", icone: PenLine, tecla: ["A"], tom: "bg-st-andamento/14 text-st-andamento" },
   { id: "acao:dia", nome: "Planejar o dia", palavras: "ritual foco planejar dia manhã", icone: Sunrise, tecla: ["D"], tom: "bg-alerta/15 text-alerta" },
   { id: "acao:cheia", nome: "Tela cheia", palavras: "entrar sair tela cheia fullscreen maximizar", icone: Maximize, tecla: ["F11"], tom: "bg-info/12 text-info" },
   { id: "acao:lateral", nome: "Barra lateral", palavras: "recolher abrir barra lateral menu", icone: PanelLeft, tecla: ["Ctrl", "B"], tom: "bg-sucesso/12 text-sucesso" },
+  { id: "acao:personalizar", nome: "Personalizar", palavras: "personalizar aparencia cor de destaque cores cantos letra fonte barra lateral superior animacao movimento", icone: SlidersHorizontal, tom: "bg-foreground/8 text-foreground" },
 ];
 
 const TEMAS: { tema: Tema; nome: string; icone: LucideIcon; palavras: string }[] = [
@@ -53,7 +57,7 @@ export function Paleta({
 }: {
   aberta: boolean;
   fechar: () => void;
-  acoes: { novaTarefa: () => void; planejarDia: () => void; alternarLateral: () => void; telaCheia: () => void };
+  acoes: { novaTarefa: () => void; planejarDia: () => void; alternarLateral: () => void; telaCheia: () => void; anotar: () => void; personalizar: () => void };
 }) {
   const { dados } = useNexo();
   const { tema, definirTema } = useTema();
@@ -133,6 +137,8 @@ export function Paleta({
     "acao:dia": () => fazer(acoes.planejarDia),
     "acao:cheia": () => fazer(acoes.telaCheia),
     "acao:lateral": () => fazer(acoes.alternarLateral),
+    "acao:anotar": () => fazer(acoes.anotar),
+    "acao:personalizar": () => fazer(acoes.personalizar),
   };
 
   const ordem: string[] = [];
@@ -285,7 +291,7 @@ export function Paleta({
           {!buscando ? (
             <div className="flex flex-col gap-4">
               <Bloco titulo="Ações">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {ACOES.map((a) => <CartaoAcao key={a.id} cmd={a} {...props(a.id)} />)}
                 </div>
               </Bloco>

@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Provider } from "@/components/Provider";
 import { Raiz } from "@/components/Raiz";
+import { SCRIPT_APARENCIA } from "@/lib/aparencia";
 import { SCRIPT_TEMA } from "@/lib/tema";
 import { Shell } from "@/components/Shell";
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_APARENCIA }} />
       </head>
       <body>
         <Raiz>

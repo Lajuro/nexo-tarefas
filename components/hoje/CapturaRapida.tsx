@@ -10,10 +10,9 @@ import { IconeStatus } from "@/components/comum";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
-import { comFoco, ehFocoHoje } from "@/lib/acoes";
+import { comFoco, ehFocoHoje, tarefaRapida } from "@/lib/acoes";
 import { suave } from "@/lib/animacoes";
 import { aberta } from "@/lib/lembretes";
-import { hojeISO, normalizarRegistro, normalizarTarefa, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,14 +31,7 @@ export function CapturaRapida({ className }: { className?: string }) {
     if (!titulo) return;
     // Limpa na hora para dar para emendar a próxima; se a gravação falhar, o texto volta.
     setTexto("");
-    const base = normalizarTarefa({ id: novoId("t"), titulo, status: "a_fazer" });
-    base.registros.push(
-      normalizarRegistro({
-        tipo: "marco", data: hojeISO(), titulo: "Tarefa criada",
-        anotacoes: "", alteracoes: { status: { de: "", para: "a_fazer" } },
-      }),
-    );
-    const criada = await criarTarefa(base);
+    const criada = await criarTarefa(tarefaRapida(titulo));
     if (criada) {
       setRecentes((r) => [criada.id, ...r].slice(0, 4));
       toast(`“${criada.titulo}” anotada em A fazer.`);
