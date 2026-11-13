@@ -162,6 +162,19 @@ input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--acento);
 .num strong { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
 .num span { font-size: 12px; color: var(--sutil); }
 .num.alerta strong { color: var(--erro); }
+button.num, a.num { font: inherit; color: inherit; text-align: left; cursor: pointer; display: block; text-decoration: none; }
+button.num:hover, a.num:hover { border-color: var(--borda-forte); }
+.num.ativo { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento); }
+.hoje { margin-bottom: 22px; }
+.hoje-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hoje-topo h2 { display: flex; align-items: center; gap: 8px; }
+.hoje-topo .contador { margin-left: 0; }
+.hoje-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+.hoje-secao.alerta { border-left: 3px solid var(--erro); }
+.hoje-secao .lista-limpa { gap: 10px; }
+.hoje-tarefa > a { font-weight: 600; font-size: 13px; }
+.hoje-acoes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 12px; }
+.hoje-vazio { margin: 0; font-size: 13px; }
 .filtros { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
 .filtros select, .filtros input { width: auto; padding: 6px 10px; font-size: 13px; }
 .filtros input { min-width: 220px; }

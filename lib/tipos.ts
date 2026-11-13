@@ -361,6 +361,45 @@ export function ehMeu(responsavel: string | undefined, meusNomes: string[] = [])
   return EU.test(r) || meusNomes.some((n) => semAcento(n.trim()) === r);
 }
 
+// Tarefa aberta sem nenhum sinal de vida há este tanto de dias conta como "parada".
+export const DIAS_PARADA = 7;
+
+// Data (AAAA-MM-DD) do último sinal de vida da tarefa: registro na timeline, passo concluído
+// ou pendência avulsa criada. Editar título ou prioridade não conta.
+export function ultimaAtividade(t: Tarefa) {
+  let d = dataLocalDe(t.criadaEm);
+  const ve = (x: string) => { if (x && x > d) d = x; };
+  for (const r of t.registros) {
+    ve(r.data);
+    for (const p of r.proximosPassos) ve(dataLocalDe(p.feitoEm));
+  }
+  for (const p of t.passos ?? []) {
+    ve(dataLocalDe(p.criadoEm));
+    ve(dataLocalDe(p.feitoEm));
+  }
+  return d;
+}
+
+export function diasSemAtividade(t: Tarefa) {
+  return Math.max(0, -(diasAte(ultimaAtividade(t)) ?? 0));
+}
+
+// "Parada" = aberta e esquecida. Tarefa em espera com cobrança marcada não conta:
+// ela está parada de propósito e quem avisa é a data de cobrança.
+export function estaParada(t: Tarefa) {
+  if (!STATUS_ABERTOS.includes(t.status)) return false;
+  if (STATUS_ESPERA.includes(t.status) && t.cobrarEm) return false;
+  return diasSemAtividade(t) >= DIAS_PARADA;
+}
+
+// Soma dias a hoje e devolve AAAA-MM-DD (fuso local).
+export function hojeMais(dias: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export function ultimoRegistro(t: Tarefa) {
   const o = ordenarRegistros(t.registros, true);
   return o[0] ?? null;

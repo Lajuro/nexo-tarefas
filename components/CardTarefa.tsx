@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CatTag, CobrarTag, PrazoTag, PrioBadge, StatusBadge } from "./ui";
-import { Categoria, STATUS_ABERTOS, STATUS_ESPERA, Tarefa, formatarData, passosAbertos, tipoInfo, ultimoRegistro } from "@/lib/tipos";
+import { Categoria, STATUS_ABERTOS, STATUS_ESPERA, Tarefa, diasSemAtividade, estaParada, formatarData, passosAbertos, tipoInfo, ultimoRegistro } from "@/lib/tipos";
 
 export function CardTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
   const ult = ultimoRegistro(t);
@@ -26,6 +26,7 @@ export function CardTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
         {pend > 0 && <span>☐ {pend} pendente{pend > 1 ? "s" : ""}</span>}
         {STATUS_ESPERA.includes(t.status) && t.aguardandoQuem && <span>⏳ {t.aguardandoQuem}</span>}
         {STATUS_ESPERA.includes(t.status) && <CobrarTag data={t.cobrarEm} />}
+        {estaParada(t) && <span title="Dias desde o último registro ou passo concluído">💤 parada há {diasSemAtividade(t)}d</span>}
       </div>
       {ult && (
         <div className="card-ultimo">

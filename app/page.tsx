@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { CardTarefa } from "@/components/CardTarefa";
+import { Hoje } from "@/components/Hoje";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { Vazio } from "@/components/ui";
 import { lerPref } from "@/lib/preferencias";
@@ -13,7 +15,7 @@ type Ordem = "prioridade" | "prazo" | "atividade" | "titulo";
 export default function Painel() {
   const { dados } = useNexo();
   const [filtroCat, setFiltroCat] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<"abertas" | Status | "todas">("abertas");
+  const [filtroStatus, setFiltroStatus] = useState<"abertas" | Status | "todas" | "atrasadas">("abertas");
   const [ordem, setOrdem] = useState<Ordem>("prioridade");
   const [texto, setTexto] = useState("");
 
@@ -47,8 +49,12 @@ export default function Painel() {
     const q = semAcento(texto.trim());
     const l = tarefas.filter((t) => {
       if (filtroCat && (filtroCat === "__sem" ? t.categoriaId : t.categoriaId !== filtroCat)) return false;
-      if (filtroStatus === "abertas" && !STATUS_ABERTOS.includes(t.status)) return false;
-      if (filtroStatus !== "abertas" && filtroStatus !== "todas" && t.status !== filtroStatus) return false;
+      if (filtroStatus === "atrasadas") {
+        if (!STATUS_ABERTOS.includes(t.status) || !t.prazo || diasAte(t.prazo)! >= 0) return false;
+      } else {
+        if (filtroStatus === "abertas" && !STATUS_ABERTOS.includes(t.status)) return false;
+        if (filtroStatus !== "abertas" && filtroStatus !== "todas" && t.status !== filtroStatus) return false;
+      }
       if (q && !semAcento(`${t.titulo} ${t.descricao} ${t.tags.join(" ")}`).includes(q)) return false;
       return true;
     });
@@ -70,13 +76,27 @@ export default function Painel() {
         </div>
       </div>
 
+      {/* os números filtram a lista de baixo; clicar de novo no mesmo volta para "só abertas" */}
       <div className="resumo-num">
-        <div className="num"><strong>{numeros.abertas}</strong><span>tarefas abertas</span></div>
-        <div className={`num ${numeros.atrasadas ? "alerta" : ""}`}><strong>{numeros.atrasadas}</strong><span>com prazo vencido</span></div>
-        <div className={`num ${numeros.bloqueadas ? "alerta" : ""}`}><strong>{numeros.bloqueadas}</strong><span>bloqueadas</span></div>
-        <div className="num"><strong>{numeros.pendencias}</strong><span>próximos passos em aberto</span></div>
-        <div className="num"><strong>{numeros.concluidasMes}</strong><span>concluídas este mês</span></div>
+        <button className={`num ${filtroStatus === "abertas" ? "ativo" : ""}`} onClick={() => setFiltroStatus("abertas")}>
+          <strong>{numeros.abertas}</strong><span>tarefas abertas</span>
+        </button>
+        <button className={`num ${numeros.atrasadas ? "alerta" : ""} ${filtroStatus === "atrasadas" ? "ativo" : ""}`}
+          onClick={() => setFiltroStatus(filtroStatus === "atrasadas" ? "abertas" : "atrasadas")}>
+          <strong>{numeros.atrasadas}</strong><span>com prazo vencido</span>
+        </button>
+        <button className={`num ${numeros.bloqueadas ? "alerta" : ""} ${filtroStatus === "bloqueada" ? "ativo" : ""}`}
+          onClick={() => setFiltroStatus(filtroStatus === "bloqueada" ? "abertas" : "bloqueada")}>
+          <strong>{numeros.bloqueadas}</strong><span>bloqueadas</span>
+        </button>
+        <Link className="num" href="/pendencias"><strong>{numeros.pendencias}</strong><span>próximos passos em aberto</span></Link>
+        <button className={`num ${filtroStatus === "concluida" ? "ativo" : ""}`}
+          onClick={() => setFiltroStatus(filtroStatus === "concluida" ? "abertas" : "concluida")}>
+          <strong>{numeros.concluidasMes}</strong><span>concluídas este mês</span>
+        </button>
       </div>
+
+      <Hoje />
 
       <div className="filtros">
         <input placeholder="Filtrar por título, descrição ou tag..." value={texto} onChange={(e) => setTexto(e.target.value)} />
@@ -87,6 +107,7 @@ export default function Painel() {
         </select>
         <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value as typeof filtroStatus)}>
           <option value="abertas">Só abertas</option>
+          <option value="atrasadas">Com prazo vencido</option>
           <option value="todas">Todas</option>
           {STATUS.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
         </select>
