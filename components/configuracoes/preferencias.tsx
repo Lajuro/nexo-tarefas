@@ -6,9 +6,10 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import {
   ArrowRight, BellRing, CalendarCheck2, Keyboard, Monitor, Moon, Palette, Repeat2, RotateCcw, ShieldCheck, Sun, Sunrise,
+  UserRound,
 } from "lucide-react";
 import pacote from "@/package.json";
-import { Painel } from "@/components/comum";
+import { ChipsInput, Painel } from "@/components/comum";
 import { Tema, useTema } from "@/components/Raiz";
 import { abrirPlanejarDia } from "@/components/Shell";
 import { ATALHOS } from "@/components/shell/navegacao";
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { CampoSwitch, Segmentado } from "@/components/ui/controles";
 import { Badge, Kbd } from "@/components/ui/diversos";
 import { LIMITES, dataRelativa } from "@/lib/lembretes";
-import { useRotina } from "@/lib/preferencias";
+import { usePref, useRotina } from "@/lib/preferencias";
 import { diasAte, formatarData, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +71,23 @@ function N({ children }: { children: ReactNode }) {
 /** Datas no futuro ou vazias contam como "nunca" (não faz sentido um planejamento de amanhã). */
 function quando(iso: string) {
   return iso && iso <= hojeISO() ? iso : "";
+}
+
+/** Como o usuário aparece nos passos: sem isso, só "Eu" conta como dele. */
+export function PainelQuemSouEu() {
+  const [nomes, setNomes] = usePref<string[]>("meusNomes", []);
+  return (
+    <Painel titulo="Como você aparece nos passos" icone={<UserRound />}>
+      <p className="text-[13px] leading-snug text-muted-foreground">
+        Passos sem responsável ou com “Eu” já contam como seus. Se o Copilot ou você costumam escrever o seu nome, coloque aqui:
+        esses passos entram em “Só os meus” e nos seus passos do foco, e os prompts passam a dizer ao Copilot quem é você.
+      </p>
+      <div data-slot="meus-nomes" className="mt-3 max-w-md">
+        <ChipsInput valor={Array.isArray(nomes) ? nomes : []} mudar={setNomes} placeholder="Seu nome e apelidos. Enter para adicionar." />
+      </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">Fica guardado só neste navegador.</p>
+    </Painel>
+  );
 }
 
 export function PainelRotina() {

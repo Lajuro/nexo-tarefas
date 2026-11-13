@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { toast as sonner } from "sonner";
 import { useHoje } from "./useHoje";
+import { definirMeusNomes } from "@/lib/lembretes";
+import { usePref } from "@/lib/preferencias";
 import { Categoria, Dados, EstadoApp, LinkDoc, Nota, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
@@ -83,6 +85,19 @@ export function Provider({ children }: { children: ReactNode }) {
   useEffect(() => {
     recarregar();
   }, [recarregar]);
+
+  // Nomes pelos quais o usuário aparece nos passos (Configurações). Definidos durante o render,
+  // antes de as telas calcularem o que é "meu". Quando mudam, relê os dados para tudo se recalcular.
+  const [meusNomes, , nomesCarregados] = usePref<string[]>("meusNomes", []);
+  const chaveNomes = Array.isArray(meusNomes) ? meusNomes.join("\n") : "";
+  definirMeusNomes(Array.isArray(meusNomes) ? meusNomes : []);
+  const nomesAplicados = useRef<string | null>(null);
+  useEffect(() => {
+    if (!nomesCarregados) return;
+    const antes = nomesAplicados.current;
+    nomesAplicados.current = chaveNomes;
+    if (antes !== null && antes !== chaveNomes) recarregar(); // a primeira leitura não conta como mudança
+  }, [nomesCarregados, chaveNomes, recarregar]);
 
   // Virou o dia com o app aberto: relê tudo do disco. Além de pegar o que mudou em outro PC,
   // isso refaz as contas que dependem da data (lembretes, atrasos, "hoje").

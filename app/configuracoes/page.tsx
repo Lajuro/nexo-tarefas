@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { Pagina } from "@/components/comum";
 import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao } from "@/components/configuracoes/dados";
-import { PainelAparencia, PainelAtalhos, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
+import { PainelAparencia, PainelAtalhos, PainelQuemSouEu, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, { cache: "no-store", ...init });
@@ -76,6 +76,7 @@ export default function Configuracoes() {
         <div className="flex min-w-0 flex-col gap-4">
           <PainelAparencia />
           <PainelRotina />
+          <PainelQuemSouEu />
           <PainelAtalhos />
         </div>
       </div>

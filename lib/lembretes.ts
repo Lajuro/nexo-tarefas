@@ -2,7 +2,7 @@
 // É função pura (sem estado, sem disco): a interface decide o que mostrar e o que adiar.
 // Nada aqui é gravado. "Adiar" um lembrete fica em localStorage (ver components/useLembretes.ts).
 
-import { type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO } from "./tipos";
+import { type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO, semAcento } from "./tipos";
 
 /** Limites, em dias, que disparam cada tipo de lembrete. */
 export const LIMITES = {
@@ -87,10 +87,24 @@ export function diasSemAtividade(t: Tarefa): number {
   return Math.max(0, -(diasAte(ultimaAtividade(t)) ?? 0));
 }
 
-/** Passo sem responsável ou atribuído a "Eu" conta como do próprio usuário. */
+// Nomes pelos quais o usuário aparece como responsável de um passo, além de "Eu".
+// A interface define isto a partir da preferência "meusNomes" (Configurações); ver components/Provider.tsx.
+// Fica aqui, e não como parâmetro, porque passoEhMeu() é chamada em muitos lugares.
+let nomesDoUsuario: string[] = [];
+let chavesDoUsuario: string[] = [];
+
+export function definirMeusNomes(nomes: string[]) {
+  nomesDoUsuario = nomes.map((n) => n.trim()).filter(Boolean);
+  chavesDoUsuario = nomesDoUsuario.map((n) => semAcento(n));
+}
+
+/** Os nomes como o usuário digitou (para os prompts dizerem ao Copilot quem é "eu"). */
+export const meusNomes = () => nomesDoUsuario;
+
+/** Passo sem responsável, atribuído a "Eu" ou a um dos nomes do usuário conta como dele. */
 export function passoEhMeu(p: Passo): boolean {
-  const r = (p.responsavel || "").trim();
-  return !r || /^(eu|eu mesmo|eu mesma|me|mim)$/i.test(r);
+  const r = semAcento((p.responsavel || "").trim());
+  return !r || /^(eu|eu mesmo|eu mesma|me|mim)$/.test(r) || chavesDoUsuario.includes(r);
 }
 
 export function passosAbertosDe(tarefas: Tarefa[]): PassoAberto[] {

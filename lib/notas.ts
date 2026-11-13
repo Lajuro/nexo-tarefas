@@ -22,7 +22,7 @@
 //       { "tipo": "passo_concluido", "tarefa": "T1", "tarefaTitulo": "...", "passo": "texto do passo" } ],
 //     "sobras": "o que não coube em lugar nenhum" }
 
-import { mesmoTexto } from "./prompts";
+import { mesmoTexto, quemSouEu } from "./prompts";
 import {
   type Categoria, type FrutoDaNota, type Nota, type Passo, type Registro, STATUS_ABERTOS, TIPOS_REGISTRO, type Tarefa, type TipoRegistro,
   formatarData, hojeISO, nomeStatus, normalizarPasso, normalizarRegistro, normalizarTarefa, novoId, ordenarRegistros, passosAbertos,
@@ -122,7 +122,7 @@ export function promptNotas(nota: Nota, tarefas: Tarefa[], categorias: Categoria
   return `Você é meu assistente de organização de trabalho. Abaixo estão minhas anotações soltas e a lista das minhas tarefas em aberto. Separe as anotações em itens e diga onde cada um se encaixa.
 
 Hoje é ${formatarData(hojeISO())} (${hojeISO()}).
-
+${quemSouEu()}
 === MINHAS TAREFAS EM ABERTO ===
 ${lista.join("\n\n") || "Nenhuma tarefa em aberto."}
 

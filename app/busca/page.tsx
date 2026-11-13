@@ -25,11 +25,22 @@ export default function Busca() {
   return <Suspense><Conteudo /></Suspense>;
 }
 
+/** Palavras da busca. Um resultado precisa ter TODAS, em qualquer ordem e em qualquer campo. */
+const palavrasDe = (termo: string) => semAcento(termo).split(/\s+/).filter(Boolean);
+
+/** Recorte do texto em volta da busca: a frase inteira se aparecer junta, senão a primeira palavra encontrada. */
 function trecho(texto: string, termo: string) {
-  const i = semAcento(texto).indexOf(semAcento(termo));
+  const base = semAcento(texto);
+  let alvo = semAcento(termo);
+  let i = base.indexOf(alvo);
+  if (i < 0)
+    for (const w of palavrasDe(termo)) {
+      const j = base.indexOf(w);
+      if (j >= 0 && (i < 0 || j < i)) { i = j; alvo = w; }
+    }
   if (i < 0) return texto.slice(0, 180);
   const ini = Math.max(0, i - 80);
-  return (ini > 0 ? "…" : "") + texto.slice(ini, i + termo.length + 120) + (i + termo.length + 120 < texto.length ? "…" : "");
+  return (ini > 0 ? "…" : "") + texto.slice(ini, i + alvo.length + 120) + (i + alvo.length + 120 < texto.length ? "…" : "");
 }
 
 type Aba = "tudo" | "tarefas" | "registros" | "links" | "pessoas";
@@ -110,15 +121,20 @@ function Conteudo() {
 
   const r = useMemo(() => {
     if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[], cadastro: [] as AchadoPessoa[], times: [] as AchadoTime[] };
-    const tem = (s: string) => semAcento(s).includes(n);
+    const palavras = palavrasDe(n);
+    const tem = (s: string) => { const x = semAcento(s); return palavras.every((w) => x.includes(w)); };
+    const quantas = (s: string) => { const x = semAcento(s); return palavras.filter((w) => x.includes(w)).length; };
     const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""}`));
     const registros = dados!.tarefas.flatMap((t) =>
       t.registros
         .map((reg) => {
           const campos = [reg.titulo, reg.resumoIA, reg.anotacoes, reg.decisoes, reg.impedimentos,
             reg.participantes.join(", "), reg.proximosPassos.map((p) => `${p.texto} ${p.responsavel}`).join("\n")];
-          const i = campos.findIndex((c) => c && tem(c));
-          return i >= 0 ? { t, reg, achado: campos[i], campo: i } : null;
+          if (!tem(campos.join("\n"))) return null;
+          // Mostra o campo que tem a busca inteira; se as palavras estão espalhadas, o que tem mais delas.
+          let i = campos.findIndex((c) => c && semAcento(c).includes(n));
+          if (i < 0) i = campos.reduce((melhor, c, j) => (quantas(c) > quantas(campos[melhor]) ? j : melhor), 0);
+          return { t, reg, achado: campos[i], campo: i };
         })
         .filter(Boolean) as AchadoRegistro[],
     ).sort((a, b) => b.reg.data.localeCompare(a.reg.data));
@@ -253,7 +269,7 @@ function Conteudo() {
             <Secao titulo="Tarefas" icone={<ListTodo />} contagem={r.tarefas.length}>
               <ListaResultados>
                 {r.tarefas.map((t) => {
-                  const noTexto = [t.descricao, t.panoramaIA?.texto ?? ""].find((c) => c && semAcento(c).includes(n));
+                  const noTexto = [t.descricao, t.panoramaIA?.texto ?? ""].find((c) => c && palavrasDe(n).some((w) => semAcento(c).includes(w)));
                   const fonte = noTexto ?? t.descricao;
                   const doPanorama = Boolean(noTexto) && noTexto !== t.descricao;
                   return (
@@ -296,11 +312,11 @@ function Conteudo() {
                 {r.registros.map(({ t, reg, achado, campo: onde }) => {
                   const apoio = reg.resumoIA || reg.anotacoes;
                   // Nos próximos passos, mostra só o passo que bateu (o campo pesquisado junta todos).
-                  const passo = onde === 6 ? reg.proximosPassos.find((p) => semAcento(`${p.texto} ${p.responsavel}`).includes(n)) : undefined;
+                  const passo = onde === 6 ? reg.proximosPassos.find((p) => palavrasDe(n).some((w) => semAcento(`${p.texto} ${p.responsavel}`).includes(w))) : undefined;
                   const mostrado = passo ? `${passo.texto}${passo.responsavel ? ` (${passo.responsavel})` : ""}` : achado;
                   return (
                     <Resultado key={t.id + reg.id} tipo="registro">
-                      <Link href={`/tarefas/${t.id}`} className={CLASSE_RESULTADO}>
+                      <Link href={`/tarefas/${t.id}?r=${encodeURIComponent(reg.id)}`} className={CLASSE_RESULTADO}>
                         <IconeTipo tipo={reg.tipo} comFundo className="mt-0.5" />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

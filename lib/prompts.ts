@@ -1,3 +1,4 @@
+import { meusNomes } from "./lembretes";
 import {
   type Categoria, type Registro, type Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
 } from "./tipos";
@@ -13,6 +14,12 @@ const SECOES = {
   participantes: "PARTICIPANTES",
   concluidos: "PASSOS CONCLUÍDOS",
 } as const;
+
+/** Frase que diz ao Copilot quem é "eu", para ele não tratar o usuário como outra pessoa. Vazia se o nome não foi informado. */
+export function quemSouEu() {
+  const nomes = meusNomes();
+  return nomes.length ? `Eu sou ${nomes[0]}${nomes.length > 1 ? ` (também apareço como ${nomes.slice(1).join(", ")})` : ""}. Quando as anotações falarem de mim, trate como "Eu".\n` : "";
+}
 
 const REGRAS = `Regras:
 - Responda em português do Brasil, de forma objetiva.
@@ -61,7 +68,7 @@ function listaAbertos(t: Tarefa, excluirId?: string) {
 export function promptRegistro(t: Tarefa, cat: Categoria | undefined, r: Registro) {
   const tipo = tipoInfo(r.tipo).nome.toLowerCase();
   return `Você é meu assistente de organização de trabalho. Vou te passar o contexto de uma tarefa e minhas anotações brutas de um(a) ${tipo}. Organize as anotações no formato pedido.
-
+${quemSouEu()}
 === CONTEXTO DA TAREFA ===
 ${cabecalhoTarefa(t, cat)}
 
@@ -84,7 +91,7 @@ ${r.anotacoes || "(sem anotações)"}
 - (uma decisão por linha)
 
 ## ${SECOES.passos}
-- (uma ação por linha; se houver responsável, termine com "(responsável: Nome)")
+- (uma ação por linha; se houver responsável, termine com "(responsável: Nome)"; quando o responsável for eu, escreva "(responsável: Eu)")
 
 ## ${SECOES.impedimentos}
 - (bloqueios, riscos ou dependências)

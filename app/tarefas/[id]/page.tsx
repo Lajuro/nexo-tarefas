@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, History, Pencil, Plus, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
@@ -61,8 +61,14 @@ function TituloTarefa({ texto }: { texto: string }) {
 }
 
 export default function PaginaTarefa() {
+  // useSearchParams exige Suspense no Next 16.
+  return <Suspense><Conteudo /></Suspense>;
+}
+
+function Conteudo() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const registroPedido = useSearchParams().get("r");
   const { dados, atualizarTarefa, toast } = useNexo();
   const acoes = useAcoesTarefa();
   const confirmar = useConfirmar();
@@ -114,6 +120,13 @@ export default function PaginaTarefa() {
     if (!novos.length) return;
     irPara((novos.find((r) => r.tipo !== "marco") ?? novos[novos.length - 1]).id, "nearest");
   }, [tarefa, irPara]);
+
+  // /tarefas/<id>?r=<registro> (resultado da busca): rola até o registro, acende o card e limpa o endereço.
+  useEffect(() => {
+    if (!registroPedido || !tarefa) return;
+    if (tarefa.registros.some((r) => r.id === registroPedido)) irPara(registroPedido);
+    router.replace(`/tarefas/${id}`);
+  }, [registroPedido, tarefa, irPara, router, id]);
 
   if (!tarefa) {
     return (

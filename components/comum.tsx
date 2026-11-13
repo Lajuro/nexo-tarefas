@@ -590,18 +590,32 @@ export async function copiarTexto(texto: string) {
   }
 }
 
+/** Marca no texto a busca inteira ou, se ela não aparecer junta, cada palavra dela (todas as ocorrências). */
 export function Destaque({ texto, termo }: { texto: string; termo: string }) {
-  if (!termo) return <>{texto}</>;
+  if (!termo.trim()) return <>{texto}</>;
   const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const i = norm(texto).indexOf(norm(termo));
-  if (i < 0) return <>{texto}</>;
-  return (
-    <>
-      {texto.slice(0, i)}
-      <mark>{texto.slice(i, i + termo.length)}</mark>
-      {texto.slice(i + termo.length)}
-    </>
-  );
+  const base = norm(texto);
+  const frase = norm(termo.trim());
+  const alvos = base.includes(frase) ? [frase] : frase.split(/\s+/).filter((w) => w.length >= 2);
+  const faixas: [number, number][] = [];
+  for (const w of alvos) for (let i = base.indexOf(w); i >= 0; i = base.indexOf(w, i + w.length)) faixas.push([i, i + w.length]);
+  if (!faixas.length) return <>{texto}</>;
+  faixas.sort((a, b) => a[0] - b[0]);
+  const juntas: [number, number][] = [];
+  for (const f of faixas) {
+    const ult = juntas[juntas.length - 1];
+    if (ult && f[0] <= ult[1]) ult[1] = Math.max(ult[1], f[1]);
+    else juntas.push([f[0], f[1]]);
+  }
+  const partes: ReactNode[] = [];
+  let pos = 0;
+  juntas.forEach(([a, b], i) => {
+    if (a > pos) partes.push(texto.slice(pos, a));
+    partes.push(<mark key={i}>{texto.slice(a, b)}</mark>);
+    pos = b;
+  });
+  if (pos < texto.length) partes.push(texto.slice(pos));
+  return <>{partes}</>;
 }
 
 export function formatarTamanho(b?: number) {
