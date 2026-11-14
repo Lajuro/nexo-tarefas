@@ -173,6 +173,33 @@ checa "vídeo local: o caminho do pedido é ignorado" 'não informado' "$(curl -
 checa "página de vídeo: guarda tipo e capítulos" '"capitulos":[{"t":30,"titulo":"Meio"}]' "$(curl -s $B/api/dados)"
 curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+1))}" >/dev/null
 
+# ---------- histórico de versões das páginas ----------
+RP=$(curl -s $B/api/dados | sed 's/.*"paginas":{"rev":\([0-9-]*\).*/\1/')
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo\",\"texto\":\"primeira versao\"}],\"revEsperada\":$RP}" >/dev/null
+checa "histórico: página nova ainda não tem versão" '"versoes":[]' "$(curl -s "$B/api/paginas/historico?id=pgh1")"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo\",\"texto\":\"segunda versao do texto\"}],\"revEsperada\":$((RP+1))}" >/dev/null
+H=$(curl -s "$B/api/paginas/historico?id=pgh1")
+checa "histórico: mudar o texto guarda como ele estava" '"palavras":2' "$H"
+VERSAO=$(echo "$H" | sed 's/.*"versao":"\([^"]*\)".*/\1/')
+checa "histórico: a versão guardada é a de antes da mudança" '"texto":"primeira versao"' "$(curl -s "$B/api/paginas/historico?id=pgh1&v=$VERSAO")"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo\",\"texto\":\"terceira\"}],\"revEsperada\":$((RP+2))}" >/dev/null
+checa "histórico: gravações seguidas não criam uma versão cada" '1' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo\",\"texto\":\"terceira\",\"estado\":\"publicada\"}],\"revEsperada\":$((RP+3))}" >/dev/null
+checa "histórico: mudar só o estado não guarda versão" '1' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo renomeado\",\"texto\":\"terceira\",\"estado\":\"publicada\"}],\"revEsperada\":$((RP+4))}" >/dev/null
+checa "histórico: renomear não guarda versão" '1' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
+LONGO="Passo um: abrir a ferramenta. Passo dois: conferir o resultado. Passo tres: registrar o que foi visto na tarefa."
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo renomeado\",\"texto\":\"$LONGO\"}],\"revEsperada\":$((RP+5))}" >/dev/null
+sleep 1
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgh1\",\"titulo\":\"Processo renomeado\",\"texto\":\"\"}],\"revEsperada\":$((RP+6))}" >/dev/null
+checa "histórico: apagar boa parte do texto guarda a versão na hora, sem esperar os 10 minutos" '2' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
+checa "histórico: a versão do corte tem o texto que foi apagado" 'Passo dois: conferir' "$(curl -s "$B/api/paginas/historico?id=pgh1&v=$(ls "$TMP/dados/_historico/paginas/pgh1" | sort | tail -1 | sed 's/\.json$//')")"
+checa "histórico: recusa id com path traversal" 'inválida' "$(curl -s "$B/api/paginas/historico?id=..%2F..%2Fx")"
+checa "histórico: recusa versão com path traversal" 'inválida' "$(curl -s "$B/api/paginas/historico?id=pgh1&v=..%2F..%2Fnexo")"
+checa "histórico: versão que não existe" 'não existe' "$(curl -s "$B/api/paginas/historico?id=pgh1&v=2020-01-01T00-00-00")"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+7))}" >/dev/null
+checa "histórico: excluir a página não apaga as versões" '2' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

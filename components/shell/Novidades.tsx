@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, MessageCircleQuestion, type LucideIcon, NotebookPen, Presentation, Radar, ShieldCheck, Sparkles, Trophy,
+  BookText, Clapperboard, Component, MessageCircleQuestion, type LucideIcon, Presentation, Radar, ShieldCheck, Sparkles, Waypoints,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,18 +16,19 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.0";
+export const VERSAO_NOVIDADES = "3.4";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
 
 const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string }[] = [
+  { icone: BookText, titulo: "Documentação de verdade", texto: "Páginas dentro de páginas, numa árvore que você arrasta. Abas, modo leitura com sumário, modelos (processo, guia, runbook) e [[ para ligar uma página à outra.", href: "/paginas", rotulo: "Abrir Páginas" },
+  { icone: Component, titulo: "Componentes no texto", texto: "Destaques coloridos, blocos que abrem e fecham, código com cores e botão copiar, índice automático, arquivos anexados e cartões vivos de tarefa.", href: "/paginas", rotulo: "Digite / numa página" },
+  { icone: Clapperboard, titulo: "Páginas de vídeo", texto: "A gravação com player próprio, a transcrição acompanhando o que é dito, capítulos e anotações com o instante. Clique numa fala e o vídeo vai até ela.", href: "/paginas", rotulo: "Criar uma página de vídeo" },
+  { icone: Waypoints, titulo: "Mapa e histórico", texto: "O mapa mostra quais páginas se citam e quais ficaram soltas. E cada página guarda como estava antes de cada edição, para você poder voltar.", href: "/paginas", rotulo: "Ver o mapa" },
   { icone: Presentation, titulo: "Modo reunião", texto: "Pauta montada sozinha, anotações, decisões e próximos passos numa tela, e a ata pronta para copiar. Fica no cabeçalho de cada tarefa.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: MessageCircleQuestion, titulo: "Perguntar ao Nexo", texto: "Escreva uma pergunta: o app acha os trechos do seu histórico que têm a ver e monta o prompt para o Copilot responder citando as fontes.", href: "/perguntar", rotulo: "Perguntar" },
   { icone: Radar, titulo: "Radar das frentes", texto: "A saúde de cada assunto (em risco, parado, pede atenção, em dia), os prazos das próximas semanas e um status em texto para o gestor.", href: "/radar", rotulo: "Abrir o radar" },
-  { icone: BookText, titulo: "Páginas de conhecimento e @", texto: "Guarde processos e passo a passo em páginas. Em qualquer texto, @ cita uma tarefa, pessoa ou página, e cada item mostra quem aponta para ele.", href: "/paginas", rotulo: "Abrir Páginas" },
-  { icone: NotebookPen, titulo: "Editor de texto completo", texto: "Títulos, listas de tarefas, tabelas e imagens coladas com Ctrl V nas folhas, nas anotações e nas páginas. Digite / para ver os blocos.", href: "/notas", rotulo: "Abrir Notas" },
-  { icone: Trophy, titulo: "Conquistas", texto: "Nível, meta do dia e conquistas calculados do que você registra. Dá para desligar em Configurações.", href: "/conquistas", rotulo: "Ver conquistas" },
   { icone: ShieldCheck, titulo: "Restaurar backup e saúde dos dados", texto: "Volte os dados a qualquer backup pelo app, com prévia do que muda e volta garantida. E um botão que confere se está tudo inteiro na pasta.", href: "/configuracoes", rotulo: "Abrir Configurações" },
 ];
 
@@ -53,7 +54,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Modo reunião, perguntar ao histórico, radar das frentes e mais.",
+          description: "Documentação em árvore, componentes, páginas de vídeo com transcrição e mais.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });
@@ -86,7 +87,7 @@ export function Novidades() {
       </ul>
       <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
         <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
-        Também novos desde a 2.8: o Diário, &quot;esperando quem&quot; com mensagem de cobrança, modelos de tarefa e a sessão de foco. A lista de atalhos abre com a tecla ?.
+        Também novos desde a 2.8: o editor de texto completo, as conquistas, o Diário, &quot;esperando quem&quot; com mensagem de cobrança, modelos de tarefa e a sessão de foco. A lista de atalhos abre com a tecla ?.
       </p>
     </Modal>
   );

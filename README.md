@@ -115,6 +115,11 @@ No editor, digite `/` e escolha:
 
 Um link para uma tarefa, página ou pessoa **sozinho numa linha** vira um cartão que mostra o estado de agora (status, prazo, passos em aberto). Tudo isso continua sendo Markdown simples por baixo: um destaque é `> [!NOTA] Título`.
 
+## Mapa e histórico das páginas (3.4)
+
+- **Mapa**: em Páginas, escolha a visão **Mapa**. Cada página é um ponto e cada linha é uma citação (ou uma página dentro da outra). Dá para ver de relance o que está bem ligado e o que ficou **solto**, sem ninguém apontando. Arraste o fundo para mover, use a roda do mouse para aproximar, passe o ponteiro num ponto para destacar os vizinhos e clique para abrir. As chaves no topo incluem as tarefas e as pessoas citadas.
+- **Histórico de versões**: o botão do relógio no topo de cada página mostra como ela estava antes das últimas edições. Escolha uma versão para ler e, se quiser, **restaure**. Restaurar também guarda o texto que estava, então tem volta. O Nexo guarda até 40 versões por página, no máximo uma a cada 10 minutos, na pasta `_historico` dentro da sua pasta de dados. Se você apagar um pedaço grande do texto de uma vez, a versão é guardada na hora, sem esperar os 10 minutos.
+
 ## Nexo 3.0
 
 A 3.0 junta cinco frentes: **modo reunião**, **páginas de conhecimento com @**, **perguntar ao Nexo**, **radar das frentes** e **confiança**. As quatro primeiras estão descritas abaixo. Da última:
@@ -233,10 +238,14 @@ O app mostra uma prévia antes de gravar. Quem já existe no cadastro não é du
   links.json
   pessoas.json            pessoas cadastradas (opcional: sem o arquivo, a lista começa vazia)
   times.json              times (opcional, como as pessoas)
+  notas.json              folhas do bloco de notas
+  modelos.json            modelos de tarefa
+  paginas.json            páginas da documentação
   tarefas/<id>.json       uma tarefa por arquivo, com a timeline inteira
-  arquivos/AAAA/...       documentos anexados
+  arquivos/AAAA/...       documentos anexados, imagens coladas, vídeos e transcrições
   markdown/*.md           versão legível de cada tarefa (gerada automaticamente)
   _backups/AAAA-MM-DD/    foto diária (últimas 45) + manuais + pré-migração
+  _historico/paginas/     como cada página estava antes de ser editada
   _lixeira/               nada é apagado de verdade
 ```
 
@@ -246,6 +255,7 @@ A configuração (qual pasta usar) fica em `%USERPROFILE%\.nexo\config.json`. O 
 
 - Rascunho automático no editor de registro: pode fechar no meio da digitação (Esc, clique fora, F5, janela fechada, navegador travado) que o texto volta quando abrir de novo, e a página da tarefa avisa com **Continuar** e **Descartar**. O rascunho fica no navegador, então vale para aquele navegador e some se você limpar os dados do site.
 - Os formulários de tarefa, link e resposta colada do Copilot perguntam antes de fechar se houver texto digitado.
+- Cada página da documentação guarda as versões anteriores do texto, e dá para voltar a qualquer uma.
 - Escrita atômica (arquivo temporário + troca), com nova tentativa se o OneDrive estiver segurando o arquivo.
 - Arquivo corrompido nunca é tratado como vazio: o app avisa e não grava por cima.
 - Controle de revisão: se a mesma tarefa for alterada em duas abas ou dois PCs, a segunda gravação é recusada em vez de sobrescrever.

@@ -132,6 +132,16 @@ async function main() {
   };
   const dialogo = () => pg.locator('[role=dialog][data-state=open], [role=alertdialog][data-state=open]').last();
   const dados = async () => lista(await (await pg.request.get(B + "/api/dados")).json());
+  // Espera até os dados gravados ficarem do jeito pedido. (pg.waitForFunction com função async NÃO serve
+  // para isso: a Promise devolvida já conta como "verdadeiro" e a espera volta na hora.)
+  const ateOsDados = async (cond, msg, limite = 10000) => {
+    const fim = Date.now() + limite;
+    for (;;) {
+      if (cond(await dados())) return;
+      if (Date.now() > fim) throw new Error("os dados não ficaram como esperado: " + msg);
+      await new Promise((r) => setTimeout(r, 150));
+    }
+  };
   const escolherData = async (escopo, rotulo, texto) => {
     await escopo.locator(`[data-slot=seletor-data][aria-label="${rotulo}"]`).click();
     const campo = pg.getByLabel("Digitar data");
@@ -281,11 +291,7 @@ async function main() {
     const passo = pg.locator("[data-slot=lateral] [data-slot=passo], [data-slot=tarefa-lateral] [data-slot=passo]", { hasText: "Agendar follow-up" }).first();
     const alvo = (await passo.count()) ? passo : pg.locator("[data-slot=passo]", { hasText: "Agendar follow-up" }).first();
     await alvo.locator("[data-slot=checkbox]").click();
-    await pg.waitForFunction(async ({ id }) => {
-      const d = await (await fetch("/api/dados")).json();
-      const t = d.tarefas.find((x) => x.id === id);
-      return t.registros.flatMap((r) => r.proximosPassos).some((p) => p.texto.startsWith("Agendar follow-up") && p.feito);
-    }, { id: idTarefa }, { polling: 300 });
+    await ateOsDados((d) => d.tarefas.find((x) => x.id === idTarefa).registros.flatMap((r) => r.proximosPassos).some((p) => p.texto.startsWith("Agendar follow-up") && p.feito), "o passo não foi gravado como feito");
   });
 
   // ---------- status e conclusão ----------
@@ -675,18 +681,12 @@ async function main() {
     await pg.locator("[data-slot=ferramenta-anotar]").click();
     afirmar((await campo.inputValue()) === "Conferir o relatório de cobertura", "o texto do anotar rápido se perdeu ao fechar");
     await campo.press("Enter");
-    await pg.waitForFunction(async (b) => {
-      const d = await (await fetch(b + "/api/dados")).json();
-      return d.tarefas.some((t) => t.titulo === "Conferir o relatório de cobertura" && t.status === "a_fazer");
-    }, B);
+    await ateOsDados((d) => d.tarefas.some((t) => t.titulo === "Conferir o relatório de cobertura" && t.status === "a_fazer"), "o anotar rápido não criou a tarefa");
     // agora uma nota, que vira folha do bloco de notas
     await pg.getByRole("radio", { name: "Nota" }).click();
     await pg.locator("[data-slot=anotar-nota]").fill("lembrar de pedir o acesso ao painel\nfalar com o time de plataforma");
     await pg.keyboard.press("Control+Enter");
-    await pg.waitForFunction(async (b) => {
-      const d = await (await fetch(b + "/api/dados")).json();
-      return d.notas.items.some((n) => !n.arquivadaEm && n.texto.startsWith("lembrar de pedir o acesso"));
-    }, B);
+    await ateOsDados((d) => d.notas.items.some((n) => !n.arquivadaEm && n.texto.startsWith("lembrar de pedir o acesso")), "o anotar rápido não criou a folha");
     await pg.keyboard.press("Escape");
   });
 
@@ -934,7 +934,7 @@ async function main() {
     afirmar((await menu.locator("[role=option]").count()) === 1, "o menu de [[ ofereceu página errada para um título que não existe");
     await pg.keyboard.press("Enter");
     await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
-    await pg.waitForFunction(async () => (await (await fetch("/api/dados")).json()).paginas.items.some((p) => p.titulo === "Lista de agentes homologados"));
+    await ateOsDados((d) => d.paginas.items.some((p) => p.titulo === "Lista de agentes homologados"), "o [[ não criou a página");
     let d = await dados();
     const instalar = d.paginas.items.find((p) => p.titulo === "Instalar o agente");
     const criada = d.paginas.items.find((p) => p.titulo === "Lista de agentes homologados");
@@ -976,8 +976,9 @@ async function main() {
     await pg.mouse.move(origem.x + 70, origem.y + origem.height / 2 + 8, { steps: 4 });
     await pg.mouse.move(destino.x + 90, destino.y + destino.height / 2 + 4, { steps: 12 });
     await pg.mouse.up();
-    await pg.waitForFunction(async (ids) => (await (await fetch("/api/dados")).json()).paginas.items.find((p) => p.id === ids[0])?.paiId === ids[1], [idExcecao, idGuia]);
-    afirmar((await item(idExcecao).getAttribute("data-nivel")) === "1", "a página arrastada não entrou na página de destino");
+    await ateOsDados((d) => d.paginas.items.find((p) => p.id === idExcecao)?.paiId === idGuia, "arrastar não pôs a página dentro da outra");
+    // a tela acompanha quando a resposta da gravação chega: espera por ela, em vez de olhar no mesmo instante
+    await pg.locator(`[data-slot=item-pagina][data-id="${idExcecao}"][data-nivel="1"]`).waitFor();
     d = await dados();
     afirmar(d.paginas.items.length === 4, "arrastar mudou a quantidade de páginas");
   });
@@ -1018,7 +1019,7 @@ async function main() {
     await pg.mouse.move(cartao.x + 60, cartao.y + 30, { steps: 4 });
     await pg.mouse.move(coluna.x + coluna.width / 2, coluna.y + 120, { steps: 14 });
     await pg.mouse.up();
-    await pg.waitForFunction(async (id) => (await (await fetch("/api/dados")).json()).paginas.items.find((p) => p.id === id)?.estado === "publicada", guia.id);
+    await ateOsDados((d) => d.paginas.items.find((p) => p.id === guia.id)?.estado === "publicada", "arrastar no quadro não mudou o estado");
     await pg.locator(`[data-slot=coluna-de-paginas][data-estado=publicada] [data-slot=cartao-de-pagina][data-id="${guia.id}"]`).waitFor();
 
     // lista: filtra, ordena e abre
@@ -1205,6 +1206,45 @@ async function main() {
     afirmar((await cartao.innerText()).includes("0:40") && (await cartao.innerText()).includes("transcrição"), "o cartão do vídeo não mostra a duração e a transcrição");
     await cartao.click();
     await pg.locator(`[data-slot=editor-pagina][data-id="${p.id}"][data-tipo=video] [data-slot=player]`).waitFor();
+  });
+
+  // ---------- mapa das páginas e histórico de versões ----------
+  await etapa("mapa das páginas e histórico de versões", async () => {
+    await pg.goto(B + "/paginas");
+    await pg.getByRole("radio", { name: "Mapa" }).click();
+    await pg.locator("[data-slot=mapa-de-paginas]").waitFor();
+    const d = await dados();
+    const ativas = d.paginas.items.filter((p) => !p.arquivadaEm);
+    await pg.waitForFunction((n) => document.querySelectorAll("[data-slot=no-do-mapa][data-tipo=pagina]").length === n, ativas.length);
+    afirmar((await pg.locator("[data-slot=ligacao-do-mapa]").count()) >= 3, "o mapa não desenhou as ligações entre as páginas");
+    // as tarefas citadas entram quando pedidas
+    afirmar((await pg.locator("[data-slot=no-do-mapa][data-tipo=tarefa]").count()) === 0, "tarefa apareceu no mapa sem ser pedida");
+    await pg.getByText("Tarefas citadas").click();
+    await pg.locator(`[data-slot=no-do-mapa][data-id="tarefa:${idTarefa}"]`).waitFor();
+    // clicar num ponto abre a página
+    const guia = ativas.find((p) => p.titulo === "Guia do scan");
+    await pg.locator(`[data-slot=no-do-mapa][data-id="pagina:${guia.id}"]`).click();
+    await pg.locator(`[data-slot=editor-pagina][data-id="${guia.id}"]`).waitFor();
+
+    // histórico: escrever, apagar tudo sem querer e voltar ao que estava
+    await pg.getByRole("radio", { name: "Editar" }).click();
+    const ed = pg.locator("[data-slot=texto-da-pagina] [data-slot=editor-rico-conteudo]");
+    await ed.click();
+    await pg.keyboard.press("Control+End");
+    await pg.keyboard.type(" Frase que não pode sumir.");
+    const textoDoGuia = (d) => d.paginas.items.find((p) => p.id === guia.id).texto;
+    await ateOsDados((d) => textoDoGuia(d).includes("Frase que não pode sumir."), "a frase nova não foi gravada");
+    const antes = textoDoGuia(await dados());
+    await pg.keyboard.press("Control+A");
+    await pg.keyboard.press("Delete");
+    await ateOsDados((d) => textoDoGuia(d).trim() === "", "apagar tudo não foi gravado");
+    await pg.locator("[data-slot=abrir-historico]").click();
+    await pg.locator("[data-slot=versao]").first().waitFor();
+    await pg.locator("[data-slot=titulo-da-versao]", { hasText: "Guia do scan" }).waitFor();
+    afirmar((await pg.locator("[data-slot=historico-de-versoes]").innerText()).includes("Frase que não pode sumir."), "a versão mais nova do histórico não é o texto de antes do apagão");
+    await pg.locator("[data-slot=restaurar-versao]").click();
+    await ateOsDados((d) => textoDoGuia(d) === antes, "restaurar não devolveu o texto de antes");
+    await ed.getByText("Frase que não pode sumir.").waitFor();
   });
 
   // ---------- perguntar ao Nexo ----------

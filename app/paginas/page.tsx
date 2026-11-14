@@ -6,13 +6,14 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { BookText, Clapperboard, Columns3, FileText, PanelLeft, Plus, Rows3 } from "lucide-react";
+import { BookText, Clapperboard, Columns3, FileText, PanelLeft, Plus, Rows3, Waypoints } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Pagina, Vazio } from "@/components/comum";
 import { Abas } from "@/components/paginas/Abas";
 import { EditorPagina, type ModoDaPagina } from "@/components/paginas/EditorPagina";
 import { Explorador } from "@/components/paginas/Explorador";
 import { ListaPaginas } from "@/components/paginas/ListaPaginas";
+import { MapaDePaginas } from "@/components/paginas/MapaDePaginas";
 import { QuadroPaginas } from "@/components/paginas/QuadroPaginas";
 import { IconePagina, useAcoesDePagina } from "@/components/paginas/pecas";
 import { GaleriaDeVideos } from "@/components/paginas/video/GaleriaDeVideos";
@@ -22,8 +23,8 @@ import { Dica } from "@/components/ui/popover";
 import { MODELOS_DE_PAGINA, caminhoDaPagina } from "@/lib/paginas";
 import { usePref } from "@/lib/preferencias";
 
-type Visao = "docs" | "quadro" | "lista" | "videos";
-const VISOES: Visao[] = ["docs", "quadro", "lista", "videos"];
+type Visao = "docs" | "quadro" | "lista" | "videos" | "mapa";
+const VISOES: Visao[] = ["docs", "quadro", "lista", "videos", "mapa"];
 const MAX_ABAS = 12;
 
 /** Jeito de trabalhar nesta tela. Fica no navegador; tudo é conferido ao ler. */
@@ -152,6 +153,7 @@ function Conteudo() {
               { valor: "quadro", rotulo: "Quadro", icone: <Columns3 /> },
               { valor: "lista", rotulo: "Lista", icone: <Rows3 /> },
               { valor: "videos", rotulo: "Vídeos", icone: <Clapperboard /> },
+              { valor: "mapa", rotulo: "Mapa", icone: <Waypoints /> },
             ]} />
           <Button data-slot="nova-pagina-topo" onClick={() => nova()}><Plus /> Nova página</Button>
         </>
@@ -161,6 +163,8 @@ function Conteudo() {
         <QuadroPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
       ) : area.visao === "lista" ? (
         <ListaPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
+      ) : area.visao === "mapa" ? (
+        <MapaDePaginas dados={dados} aoAbrir={abrir} />
       ) : area.visao === "videos" ? (
         <GaleriaDeVideos paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} aoNova={() => nova("video")} />
       ) : (

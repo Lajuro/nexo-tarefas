@@ -804,3 +804,81 @@ export async function abrirMidia(ref: { rel?: string | null; paginaId?: string |
   const { createReadStream } = await import("node:fs");
   return { tipo, tamanho: st.size, inicio, fim, parcial, foraDaFaixa: false as const, fluxo: createReadStream(alvo, { start: inicio, end: fim }) };
 }
+
+// ---------- histórico de versões das páginas ----------
+// Antes de uma página mudar, o texto que ela tinha é guardado em _historico/paginas/<id>/<carimbo>.json.
+// Uma versão por "sessão de edição": enquanto a última guardada tiver menos de 10 minutos, as gravações
+// automáticas seguintes não criam outra. A exceção é o corte grande (apagar boa parte do texto de uma vez):
+// esse guarda a versão na hora, porque é justamente o acidente que o histórico existe para desfazer.
+// Só mudança de texto conta: renomear a página não gasta a versão da sessão.
+// Ficam as 40 mais recentes de cada página.
+
+const ESPERA_ENTRE_VERSOES_MS = 10 * 60 * 1000;
+const VERSOES_POR_PAGINA = 40;
+const VERSAO_VALIDA = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/;
+/** Perdeu de uma vez pelo menos 30% do texto (e não só meia dúzia de letras). */
+const corteGrande = (antigo: string, novo: string) => antigo.length - novo.length >= 40 && antigo.length - novo.length >= antigo.length * 0.3;
+const dataDaVersao = (v: string) => new Date(`${v.slice(0, 10)}T${v.slice(11).replace(/-/g, ":")}Z`).getTime();
+
+/** Chamada antes de gravar as páginas: guarda como estava cada página que vai mudar. Nunca impede a gravação. */
+export async function guardarVersoesDasPaginas(novas: Partial<Pagina>[]) {
+  try {
+    const { dir } = await pastaPronta();
+    const atual = await lerJson<Colecao<Partial<Pagina>>>(path.join(dir, "paginas.json"), { rev: 0, items: [] });
+    const porId = new Map(novas.filter((p) => p && typeof p.id === "string").map((p) => [p.id as string, p]));
+    for (const antiga of atual.items || []) {
+      const id = antiga.id;
+      if (typeof id !== "string" || !ID_VALIDO.test(id)) continue;
+      const nova = porId.get(id);
+      // página em branco ainda não tem o que guardar; quem não mudou de texto também não
+      const antes = str(antiga.texto);
+      if (!nova || !antes.trim()) continue;
+      if (typeof nova.texto !== "string" || nova.texto === antes) continue;
+      const pasta = path.join(dir, "_historico", "paginas", id);
+      const versoes = existsSync(pasta) ? (await fs.readdir(pasta)).filter((n) => VERSAO_VALIDA.test(n.replace(/\.json$/, ""))).sort() : [];
+      const ultima = versoes.at(-1)?.replace(/\.json$/, "");
+      if (ultima && Date.now() - dataDaVersao(ultima) < ESPERA_ENTRE_VERSOES_MS && !corteGrande(antes, nova.texto)) continue;
+      const arquivo = path.join(pasta, `${carimbo()}.json`);
+      // duas gravações no mesmo segundo: a primeira guardou o estado mais antigo, que é o que vale
+      if (existsSync(arquivo)) continue;
+      await escreverAtomico(arquivo, json({ titulo: str(antiga.titulo), texto: antes, atualizadaEm: str(antiga.atualizadaEm), guardadaEm: agoraISO() }));
+      for (const velha of versoes.slice(0, Math.max(0, versoes.length + 1 - VERSOES_POR_PAGINA))) await fs.unlink(path.join(pasta, velha)).catch(() => {});
+    }
+  } catch {
+    // o histórico é uma rede a mais: falha aqui não pode impedir o usuário de salvar
+  }
+}
+
+const str = (x: unknown) => (typeof x === "string" ? x : "");
+
+async function pastaDoHistorico(paginaId: string) {
+  const { dir } = await pastaPronta();
+  if (!ID_VALIDO.test(paginaId)) throw new Error("Página inválida.");
+  return path.join(dir, "_historico", "paginas", paginaId);
+}
+
+/** As versões guardadas de uma página, da mais nova para a mais antiga. */
+export async function listarVersoes(paginaId: string) {
+  const pasta = await pastaDoHistorico(paginaId);
+  if (!existsSync(pasta)) return [];
+  const out: { versao: string; titulo: string; palavras: number; guardadaEm: string }[] = [];
+  for (const n of (await fs.readdir(pasta)).sort().reverse()) {
+    const versao = n.replace(/\.json$/, "");
+    if (!VERSAO_VALIDA.test(versao)) continue;
+    try {
+      const v = await lerJson<{ titulo?: unknown; texto?: unknown; guardadaEm?: unknown }>(path.join(pasta, n), {});
+      out.push({ versao, titulo: str(v.titulo), palavras: (str(v.texto).match(/\S+/g) ?? []).length, guardadaEm: str(v.guardadaEm) || new Date(dataDaVersao(versao)).toISOString() });
+    } catch {
+      // versão ilegível não aparece na lista (o arquivo continua na pasta)
+    }
+  }
+  return out;
+}
+
+export async function lerVersao(paginaId: string, versao: string) {
+  const pasta = await pastaDoHistorico(paginaId);
+  if (!VERSAO_VALIDA.test(versao)) throw new Error("Versão inválida.");
+  const v = await lerJson<{ titulo?: unknown; texto?: unknown; guardadaEm?: unknown } | null>(path.join(pasta, `${versao}.json`), null);
+  if (!v) throw new Error("Esta versão não existe mais.");
+  return { versao, titulo: str(v.titulo), texto: str(v.texto), guardadaEm: str(v.guardadaEm) };
+}

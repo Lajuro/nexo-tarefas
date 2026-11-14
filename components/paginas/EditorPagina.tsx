@@ -5,7 +5,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArchiveRestore, ArrowLeft, ArrowRight, BookOpenText, Bookmark, Check, ChevronRight, CloudOff, FilePlus2, LoaderCircle, PanelRight, PencilLine,
+  ArchiveRestore, ArrowLeft, ArrowRight, BookOpenText, Bookmark, Check, ChevronRight, CloudOff, FilePlus2, History, LoaderCircle, PanelRight, PencilLine,
 } from "lucide-react";
 import { PainelCitacoes } from "@/components/Citacoes";
 import { useNexo } from "@/components/Provider";
@@ -24,6 +24,7 @@ import { caminhoDaPagina, nomeDaPagina, sumarioDoMarkdown, tamanhoDaLeitura, viz
 import { ESTADOS_PAGINA, type EstadoPagina, type Pagina, agoraISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { type AcoesDePagina, BotaoMenuPagina, IconePagina, SeletorDeIcone, SeloEstado } from "./pecas";
+import { Historico } from "./Historico";
 import { VisaoDeVideo } from "./video/VisaoDeVideo";
 
 export type ModoDaPagina = "editar" | "ler";
@@ -90,6 +91,7 @@ export function EditorPagina({
   // página de vídeo aberta já num instante (busca na transcrição): vale o primeiro pedido
   const [tempoInicial] = useState(() => irPara?.tempo ?? null);
   const apiDoEditor = useRef<ApiDoEditor | null>(null);
+  const [historico, setHistorico] = useState(false);
   useEffect(() => {
     const el = corpo.current;
     if (!el) return;
@@ -142,6 +144,10 @@ export function EditorPagina({
               <Bookmark className={cn(pagina.fixada && "fill-primary text-primary")} />
             </Button>
           </Dica>
+          <Dica texto="Histórico de versões">
+            <Button variant="ghost" size="icon-sm" aria-label="Histórico de versões" data-slot="abrir-historico" onClick={() => setHistorico(true)}><History /></Button>
+          </Dica>
+          <Historico paginaId={id} aberto={historico} fechar={() => setHistorico(false)} aoRestaurar={(t, texto) => mudar({ titulo: t, texto })} />
           <Dica texto={painel ? "Esconder o sumário" : "Mostrar o sumário"}>
             <Button variant="ghost" size="icon-sm" aria-label="Sumário e citações" aria-pressed={painel} onClick={aoAlternarPainel}><PanelRight className={cn(painel && "text-primary")} /></Button>
           </Dica>
