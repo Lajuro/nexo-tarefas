@@ -8,6 +8,7 @@ import { useConfirmar } from "./Raiz";
 import { Campo, ChipsInput, IconeTipo, LinhaCampos, Modal, SeletorPrioridade, copiarTexto, opcoesStatus } from "./comum";
 import { BlocoCopilot, IconeCopiar, PassoCopilot, useCopiado } from "./tarefa/Copilot";
 import { Button } from "@/components/ui/button";
+import { EditorRico } from "@/components/editor/EditorRico";
 import { Input, Textarea } from "@/components/ui/input";
 import { Seletor } from "@/components/ui/select";
 import { Checkbox, Label, Segmentado } from "@/components/ui/controles";
@@ -404,13 +405,14 @@ export function RegistroEditor({
               <ChipsInput valor={r.participantes} mudar={(v) => set("participantes", v)} sugestoes={pessoas} placeholder="Nomes" />
             </Realce>
           </Campo>
-          <Campo rotulo="Anotações brutas" dica="Escreva do seu jeito, rápido. A IA organiza depois.">
-            <Textarea
-              rows={9}
-              value={r.anotacoes}
-              onChange={(e) => set("anotacoes", e.target.value)}
+          <Campo rotulo="Anotações brutas" dica="Escreva do seu jeito, rápido. A IA organiza depois. Dá para colar prints (Ctrl V) e usar / para listas, tarefas e tabelas.">
+            <EditorRico
+              data-slot="anotacoes"
+              valor={r.anotacoes}
+              aoMudar={(v) => set("anotacoes", v)}
               placeholder="O que foi falado, combinado, o que ficou pendente..."
-              className="min-h-44"
+              aria-label="Anotações brutas"
+              classeConteudo="min-h-44"
             />
           </Campo>
 

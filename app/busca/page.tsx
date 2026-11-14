@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, formatarData, semAcento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -128,7 +129,8 @@ function Conteudo() {
     const registros = dados!.tarefas.flatMap((t) =>
       t.registros
         .map((reg) => {
-          const campos = [reg.titulo, reg.resumoIA, reg.anotacoes, reg.decisoes, reg.impedimentos,
+          // anotações e resumo guardam Markdown: a busca e o trecho mostrado usam o texto sem a marcação
+          const campos = [reg.titulo, paraTextoPlano(reg.resumoIA), paraTextoPlano(reg.anotacoes), reg.decisoes, reg.impedimentos,
             reg.participantes.join(", "), reg.proximosPassos.map((p) => `${p.texto} ${p.responsavel}`).join("\n")];
           if (!tem(campos.join("\n"))) return null;
           // Mostra o campo que tem a busca inteira; se as palavras estão espalhadas, o que tem mais delas.
@@ -310,7 +312,7 @@ function Conteudo() {
             <Secao titulo="Registros na linha do tempo" icone={<MessagesSquare />} contagem={r.registros.length}>
               <ListaResultados>
                 {r.registros.map(({ t, reg, achado, campo: onde }) => {
-                  const apoio = reg.resumoIA || reg.anotacoes;
+                  const apoio = paraTextoPlano(reg.resumoIA || reg.anotacoes);
                   // Nos próximos passos, mostra só o passo que bateu (o campo pesquisado junta todos).
                   const passo = onde === 6 ? reg.proximosPassos.find((p) => palavrasDe(n).some((w) => semAcento(`${p.texto} ${p.responsavel}`).includes(w))) : undefined;
                   const mostrado = passo ? `${passo.texto}${passo.responsavel ? ` (${passo.responsavel})` : ""}` : achado;

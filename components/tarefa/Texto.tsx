@@ -1,88 +1,97 @@
 "use client";
 
+// Mostra texto longo (anotações, resumo do Copilot, folha do bloco de notas) com a forma do Markdown:
+// títulos, listas, tarefas, citação, código, tabela, links e imagens anexadas.
+// Quem interpreta e saneia é lib/texto-rico.ts: aqui só se desenha a árvore pronta. Nada de innerHTML.
+// A aparência vem da classe "prosa" (app/globals.css), a mesma do editor, para ler e editar terem a mesma cara.
+
 import { Fragment, ReactNode, useMemo } from "react";
+import { Bloco, Inline, analisarMarkdown } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
 
-// Mostra texto livre (escrito pelo usuário ou colado do Copilot) com um pouco de forma:
-// linhas "## TÍTULO" viram subtítulos, linhas com "-", "*", "•" ou "1." viram lista e o resto vira parágrafo.
-// É só apresentação: o texto gravado não muda.
-
-type Bloco =
-  | { tipo: "titulo"; texto: string }
-  | { tipo: "lista"; itens: { marca: string; texto: string }[] }
-  | { tipo: "paragrafo"; texto: string };
-
-const TITULO = /^\s*#{1,6}\s+(.+?)\s*#*\s*$/;
-const ITEM = /^\s*(?:([-*•])|(\d+)[.)])\s+(?:\[[ xX]?\]\s*)?(.+)$/;
-
-function montar(texto: string): Bloco[] {
-  const blocos: Bloco[] = [];
-  let paragrafo: string[] = [];
-  const fecharParagrafo = () => {
-    if (paragrafo.length) blocos.push({ tipo: "paragrafo", texto: paragrafo.join("\n") });
-    paragrafo = [];
-  };
-  for (const linha of texto.replace(/\r/g, "").split("\n")) {
-    if (!linha.trim()) {
-      fecharParagrafo();
-      continue;
+function desenharInlines(f: Inline[]): ReactNode {
+  return f.map((i, k) => {
+    switch (i.t) {
+      case "texto":
+        return <Fragment key={k}>{i.v}</Fragment>;
+      case "negrito":
+        return <strong key={k}>{desenharInlines(i.f)}</strong>;
+      case "italico":
+        return <em key={k}>{desenharInlines(i.f)}</em>;
+      case "riscado":
+        return <s key={k}>{desenharInlines(i.f)}</s>;
+      case "codigo":
+        return <code key={k}>{i.v}</code>;
+      case "quebra":
+        return <br key={k} />;
+      case "link":
+        return <a key={k} href={i.href} target="_blank" rel="noopener noreferrer nofollow">{desenharInlines(i.f)}</a>;
+      case "imagem":
+        // só chega aqui imagem que é anexo da pasta de dados (lib/texto-rico.ts barra as de fora)
+        return (
+          <a key={k} href={i.url} target="_blank" rel="noopener noreferrer" data-slot="imagem-anexada" className="!no-underline">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={i.url} alt={i.alt} loading="lazy" decoding="async" />
+          </a>
+        );
     }
-    const t = linha.match(TITULO);
-    if (t) {
-      fecharParagrafo();
-      blocos.push({ tipo: "titulo", texto: t[1].replace(/\*\*/g, "") });
-      continue;
-    }
-    const i = linha.match(ITEM);
-    if (i) {
-      fecharParagrafo();
-      const item = { marca: i[2] ? `${i[2]}.` : "", texto: i[3] };
-      const ultimo = blocos[blocos.length - 1];
-      if (ultimo?.tipo === "lista") ultimo.itens.push(item);
-      else blocos.push({ tipo: "lista", itens: [item] });
-      continue;
-    }
-    paragrafo.push(linha);
-  }
-  fecharParagrafo();
-  return blocos;
+  });
 }
 
-/** Só o **negrito** do Markdown, que é o que costuma sobrar quando se copia do Copilot. */
-function comNegrito(texto: string): ReactNode {
-  const partes = texto.split(/\*\*(.+?)\*\*/g);
-  if (partes.length === 1) return texto;
-  return partes.map((p, i) => (i % 2 ? <strong key={i} className="font-semibold">{p}</strong> : <Fragment key={i}>{p}</Fragment>));
+function desenharBlocos(bs: Bloco[]): ReactNode {
+  return bs.map((b, k) => {
+    switch (b.t) {
+      case "paragrafo":
+        return <p key={k}>{desenharInlines(b.f)}</p>;
+      case "titulo": {
+        const T = (["h1", "h2", "h3"] as const)[b.nivel - 1];
+        return <T key={k}>{desenharInlines(b.f)}</T>;
+      }
+      case "lista": {
+        const tarefas = b.itens.length > 0 && b.itens.every((i) => i.tarefa);
+        const itens = b.itens.map((it, j) =>
+          it.tarefa ? (
+            <li key={j} data-type="taskItem" data-checked={it.feito}>
+              <label><span role="img" aria-label={it.feito ? "Feito" : "A fazer"} data-caixa data-marcada={it.feito || undefined} /></label>
+              <div>{desenharBlocos(it.f)}</div>
+            </li>
+          ) : (
+            <li key={j}>{desenharBlocos(it.f)}</li>
+          ),
+        );
+        if (tarefas) return <ul key={k} data-type="taskList">{itens}</ul>;
+        return b.ordenada ? <ol key={k} start={b.inicio}>{itens}</ol> : <ul key={k}>{itens}</ul>;
+      }
+      case "citacao":
+        return <blockquote key={k}>{desenharBlocos(b.f)}</blockquote>;
+      case "codigo":
+        return <pre key={k}><code>{b.v}</code></pre>;
+      case "divisor":
+        return <hr key={k} />;
+      case "tabela":
+        return (
+          <div key={k} className="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>{b.cabecalho.map((c, j) => <th key={j} style={c.alinhar ? { textAlign: c.alinhar } : undefined}>{desenharInlines(c.f)}</th>)}</tr>
+              </thead>
+              <tbody>
+                {b.linhas.map((l, j) => (
+                  <tr key={j}>{l.map((c, m) => <td key={m} style={b.cabecalho[m]?.alinhar ? { textAlign: b.cabecalho[m].alinhar! } : undefined}>{desenharInlines(c)}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+    }
+  });
 }
 
 export function TextoRico({ texto, className }: { texto: string; className?: string }) {
-  const blocos = useMemo(() => montar(texto), [texto]);
+  const blocos = useMemo(() => analisarMarkdown(texto), [texto]);
   return (
-    <div data-slot="texto" className={cn("flex flex-col gap-1.5 leading-relaxed", className)}>
-      {blocos.map((b, i) => {
-        if (b.tipo === "titulo")
-          return (
-            <h4 key={i} className="mt-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase first:mt-0">
-              {b.texto}
-            </h4>
-          );
-        if (b.tipo === "lista")
-          return (
-            <ul key={i} className="flex flex-col gap-1">
-              {b.itens.map((it, j) => (
-                <li key={j} className="flex gap-2">
-                  {it.marca ? (
-                    <span aria-hidden className="min-w-4 shrink-0 text-right text-muted-foreground tabular-nums">{it.marca}</span>
-                  ) : (
-                    <span aria-hidden className="mt-[0.62em] size-1 shrink-0 rounded-full bg-muted-foreground/60" />
-                  )}
-                  <span className="min-w-0 flex-1 texto-pre">{comNegrito(it.texto)}</span>
-                </li>
-              ))}
-            </ul>
-          );
-        return <p key={i} className="texto-pre">{comNegrito(b.texto)}</p>;
-      })}
+    <div data-slot="texto" className={cn("prosa", className)}>
+      {desenharBlocos(blocos)}
     </div>
   );
 }

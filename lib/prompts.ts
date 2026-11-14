@@ -6,6 +6,9 @@ import {
 // Todos os prompts que o Nexo monta para colar no Copilot.
 // O formato de resposta é fixo para o app conseguir separar as partes sozinho.
 
+/** O Copilot não enxerga os anexos: no prompt, a imagem colada vira só uma menção ("[imagem anexada: nome]"). */
+export const semImagens = (md: string) => (md || "").replace(/!\[([^\]]*)\]\(arquivos\/[^)\s]+\)/g, (_t, alt: string) => `[imagem anexada${alt ? `: ${alt}` : ""}]`);
+
 const SECOES = {
   resumo: "RESUMO",
   decisoes: "DECISÕES",
@@ -41,7 +44,7 @@ function linhaRegistro(r: Registro, detalhado: boolean) {
   const tipo = tipoInfo(r.tipo).nome;
   const L = [`[${formatarData(r.data)}] ${tipo}${r.titulo ? `: ${r.titulo}` : ""}`];
   if (r.participantes.length) L.push(`  Participantes: ${r.participantes.join(", ")}`);
-  const corpo = r.resumoIA || (detalhado ? r.anotacoes : r.anotacoes.slice(0, 600));
+  const corpo = r.resumoIA || (detalhado ? semImagens(r.anotacoes) : semImagens(r.anotacoes).slice(0, 600));
   if (corpo) L.push(`  ${corpo.replace(/\n/g, "\n  ")}`);
   if (r.decisoes && r.decisoes !== "Nenhum") L.push(`  Decisões: ${r.decisoes.replace(/\n/g, " ")}`);
   if (r.impedimentos && r.impedimentos !== "Nenhum") L.push(`  Impedimentos: ${r.impedimentos.replace(/\n/g, " ")}`);
@@ -81,7 +84,7 @@ ${listaAbertos(t, r.id)}
 === ${tipo.toUpperCase()} DE ${formatarData(r.data)}${r.titulo ? ` (${r.titulo})` : ""} ===
 Participantes informados: ${r.participantes.join(", ") || "não informados"}
 Anotações brutas:
-${r.anotacoes || "(sem anotações)"}
+${semImagens(r.anotacoes) || "(sem anotações)"}
 
 === FORMATO DA RESPOSTA ===
 ## ${SECOES.resumo}

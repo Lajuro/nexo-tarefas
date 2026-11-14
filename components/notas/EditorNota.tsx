@@ -9,7 +9,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Archive, Check, CloudOff, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea } from "@/components/ui/input";
+import { EditorRico } from "@/components/editor/EditorRico";
+import { Input } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { apagarNotaPendente, gravarNotaPendente, lerNotaPendente } from "@/lib/rascunhos";
 import { Nota, agoraISO, normalizarNota } from "@/lib/tipos";
@@ -130,14 +131,17 @@ export function EditorNota({
           aria-label="Título da folha"
           className="h-9 text-sm font-medium"
         />
-        <Textarea
-          autoFocus
-          value={texto}
-          onChange={(e) => mudar("texto", e.target.value)}
-          disabled={somenteLeitura}
-          placeholder={"Escreva solto, do seu jeito. Pode misturar assuntos e tarefas na mesma folha.\n\nEx.: marina liberou o acesso ao repo. squad topou o piloto, começa segunda. auditoria pediu evidência dos acessos até dia 20."}
+        <EditorRico
+          data-slot="texto-da-folha"
+          variante="pagina"
+          focoInicial
+          valor={texto}
+          aoMudar={(v) => mudar("texto", v)}
+          desabilitado={somenteLeitura}
+          placeholder="Escreva solto, do seu jeito. Digite / para títulos, listas, tarefas e tabelas, ou cole um print com Ctrl V."
           aria-label="Texto da folha"
-          className="min-h-0 flex-1 resize-none text-sm leading-relaxed"
+          className="min-h-0 flex-1 rounded-md border border-input bg-card shadow-xs dark:bg-input/20"
+          classeConteudo="px-4 py-3.5 leading-relaxed"
         />
       </div>
       <footer className="flex flex-wrap items-center gap-2 px-6 py-3">

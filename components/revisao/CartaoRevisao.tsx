@@ -15,6 +15,7 @@ import { SeletorData, dataPorExtenso } from "@/components/ui/data";
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus, comFoco, comLembrete, comPassoAlternado, ehFocoHoje } from "@/lib/acoes";
 import { Gravidade, LIMITES, aberta, dataRelativa } from "@/lib/lembretes";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { Categoria, Tarefa, diasAte, formatarData, ordenarRegistros } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { Retrato } from "./retrato";
@@ -50,7 +51,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
 
   const recentes = ordenarRegistros(t.registros, true);
   const ultimo = recentes.find((r) => r.tipo !== "marco") ?? recentes[0] ?? null;
-  const resumo = ultimo ? (ultimo.resumoIA || ultimo.anotacoes).trim() : "";
+  const resumo = ultimo ? paraTextoPlano(ultimo.resumoIA || ultimo.anotacoes) : "";
 
   // Mostra os passos que estavam abertos quando a revisão começou: os que forem marcados ficam riscados (e dá para desfazer).
   const eramAbertos = new Set(antes.passosAbertos);

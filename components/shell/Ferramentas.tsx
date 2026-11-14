@@ -29,6 +29,7 @@ import { suave } from "@/lib/animacoes";
 import { aberta, dataLocal, dataRelativa, passoEhMeu, sugestoesDeFoco } from "@/lib/lembretes";
 import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { agoraISO, normalizarNota, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { SeletorAcento, SeletorCantos, SeletorTema } from "./Aparencia";
@@ -374,7 +375,7 @@ export function AnotarRapido() {
     const agora = agoraISO();
     setPendente({ ...pend, nota: "" });
     if (await salvarNotas((items) => [normalizarNota({ id, titulo: "", texto, criadaEm: agora, atualizadaEm: agora }), ...items])) {
-      setCriadas((l) => [{ id, href: `/notas?n=${id}`, rotulo: texto.split("\n")[0].slice(0, 80), tipo: "nota" as const }, ...l].slice(0, 3));
+      setCriadas((l) => [{ id, href: `/notas?n=${id}`, rotulo: (paraTextoPlano(texto).split("\n")[0] || "Folha").slice(0, 80), tipo: "nota" as const }, ...l].slice(0, 3));
       toast("Folha guardada no bloco de notas.");
     } else setPendente((p) => ({ ...PENDENTE_VAZIO, ...p, nota: p.nota || texto }));
     focar("nota");

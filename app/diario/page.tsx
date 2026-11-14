@@ -24,6 +24,7 @@ import {
 } from "@/lib/diario";
 import { dataRelativa } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { Categoria, formatarData } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -123,7 +124,7 @@ function Evento({ e, cat }: { e: EventoDiario; cat?: Categoria }) {
     );
   const r = e.registro;
   const marco = r.tipo === "marco";
-  const texto = resumoCurto(r.resumoIA || r.anotacoes);
+  const texto = resumoCurto(paraTextoPlano(r.resumoIA || r.anotacoes));
   return (
     <li data-slot="evento-diario" data-tipo={r.tipo} className="relative flex gap-3 py-1.5">
       <IconeTipo tipo={r.tipo} comFundo className="z-[1]" />

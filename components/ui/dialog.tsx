@@ -24,7 +24,15 @@ function DialogContent({
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay data-slot="dialog-overlay" className={fundo} />
-      <DialogPrimitive.Content data-slot="dialog" className={cn(caixa, "max-w-lg", className)} {...props}>
+      <DialogPrimitive.Content data-slot="dialog" className={cn(caixa, "max-w-lg", className)} {...props}
+        onEscapeKeyDown={(e) => {
+          // Esc com o menu de blocos do editor aberto fecha só o menu, não a janela. Como o Esc "cancelado" aqui
+          // não chega mais ao editor (o ProseMirror ignora eventos já tratados), o aviso vai por evento próprio.
+          if (document.querySelector("[data-slot=menu-editor]")) {
+            e.preventDefault();
+            document.dispatchEvent(new CustomEvent("nexo:fechar-menu-editor"));
+          } else props.onEscapeKeyDown?.(e);
+        }}>
         {children}
         {!semFechar && (
           <DialogPrimitive.Close

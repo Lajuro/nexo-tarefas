@@ -25,6 +25,7 @@ import { Dica } from "@/components/ui/popover";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { type EntradaPessoa, chaveNome, chavesDaPessoa, plural } from "@/lib/pessoas";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { type Categoria, type Pessoa, type Time, agoraISO, formatarData } from "@/lib/tipos";
 import { JuntarComo } from "./ListaPessoas";
 import { ListaPassos } from "./ListaPassos";
@@ -425,7 +426,7 @@ function Historico({ entrada }: { entrada: EntradaPessoa }) {
             const mes = r.data.slice(0, 7);
             const novoMes = i === 0 || regs[i - 1].registro.data.slice(0, 7) !== mes;
             const ultimo = i === regs.length - 1;
-            const texto = r.resumoIA || r.anotacoes;
+            const texto = paraTextoPlano(r.resumoIA || r.anotacoes);
             const outros = r.participantes.filter((n) => n.trim() && !minhas.has(chaveNome(n)));
             return (
               <Fragment key={t.id + r.id}>

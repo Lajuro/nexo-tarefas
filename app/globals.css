@@ -242,6 +242,226 @@ html[data-lateral="colorida"] [data-slot="lateral"] {
   background: linear-gradient(180deg, color-mix(in oklch, var(--primary) 13%, var(--background)), var(--sidebar) 45%);
 }
 
+/* ------------------------------------------------------------------
+   Prosa: a aparência do texto rico (Markdown), igual para ler (components/tarefa/Texto.tsx)
+   e para editar (components/editor/EditorRico.tsx). Tudo relativo ao tamanho da letra de quem usa.
+   ------------------------------------------------------------------ */
+.prosa {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.prosa > * + * {
+  margin-top: 0.55em;
+}
+.prosa h1,
+.prosa h2,
+.prosa h3 {
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+.prosa h1 {
+  font-size: 1.32em;
+  margin-top: 1.1em;
+}
+.prosa h2 {
+  font-size: 1.14em;
+  margin-top: 1em;
+}
+.prosa h3 {
+  font-size: 1em;
+  margin-top: 0.9em;
+}
+.prosa > :first-child {
+  margin-top: 0;
+}
+.prosa ul:not([data-type="taskList"]) {
+  list-style: disc;
+  padding-left: 1.35em;
+}
+.prosa ol {
+  list-style: decimal;
+  padding-left: 1.6em;
+}
+.prosa li::marker {
+  color: var(--muted-foreground);
+}
+.prosa li + li,
+.prosa li > * + * {
+  margin-top: 0.22em;
+}
+.prosa ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+.prosa ul[data-type="taskList"] ul[data-type="taskList"] {
+  padding-left: 0.2em;
+}
+.prosa ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+}
+.prosa ul[data-type="taskList"] > li > label {
+  flex: none;
+  margin-top: 0.26em;
+  line-height: 0;
+  user-select: none;
+}
+.prosa ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+/* a caixinha de tarefa: no editor é um input (o Tiptap o cria), na leitura é um span. A mesma cara nos dois. */
+.prosa ul[data-type="taskList"] input[type="checkbox"],
+.prosa [data-caixa] {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  width: 1.08em;
+  height: 1.08em;
+  margin: 0;
+  border: 1px solid var(--input);
+  border-radius: 0.3em;
+  background: var(--card);
+  transition: background-color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"] {
+  cursor: pointer;
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"]:hover {
+  border-color: color-mix(in oklch, var(--primary) 70%, transparent);
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"]:active {
+  transform: scale(0.9);
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"]:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--ring) 55%, transparent);
+  outline-offset: 2px;
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"]:checked,
+.prosa [data-caixa][data-marcada] {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.prosa ul[data-type="taskList"] input[type="checkbox"]:checked::after,
+.prosa [data-caixa][data-marcada]::after {
+  content: "";
+  width: 0.62em;
+  height: 0.34em;
+  border-left: 0.14em solid var(--primary-foreground);
+  border-bottom: 0.14em solid var(--primary-foreground);
+  transform: translateY(-0.06em) rotate(-45deg);
+}
+.prosa li[data-checked="true"] > div {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklch, var(--muted-foreground) 50%, transparent);
+}
+.prosa blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.9em;
+  color: var(--muted-foreground);
+}
+.prosa code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--muted);
+  border-radius: 0.3em;
+  padding: 0.1em 0.35em;
+}
+.prosa pre {
+  background: var(--muted);
+  border-radius: var(--radius-lg);
+  padding: 0.7em 0.9em;
+  overflow-x: auto;
+  font-size: 0.92em;
+  line-height: 1.5;
+}
+.prosa pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.prosa hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1em 0;
+}
+.prosa a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in oklch, var(--primary) 45%, transparent);
+}
+.prosa a:hover {
+  text-decoration-color: var(--primary);
+}
+.prosa img {
+  display: block;
+  max-width: 100%;
+  max-height: 30rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.prosa table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.95em;
+}
+.prosa th,
+.prosa td {
+  border: 1px solid var(--border);
+  padding: 0.35em 0.6em;
+  text-align: left;
+  vertical-align: top;
+  min-width: 3em;
+}
+.prosa th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+/* O que o editor (ProseMirror) precisa além da prosa. */
+.editor-rico .ProseMirror {
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.editor-rico[data-variante="pagina"] .ProseMirror {
+  min-height: 100%;
+}
+/* texto de ajuda no bloco vazio */
+.editor-rico .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklch, var(--muted-foreground) 70%, transparent);
+}
+/* imagem ou divisor selecionado */
+.editor-rico .ProseMirror-selectednode {
+  outline: 2px solid color-mix(in oklch, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+.editor-rico .ProseMirror .selectedCell {
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+}
+.editor-rico .ProseMirror-gapcursor::after {
+  border-top-color: var(--foreground);
+}
+/* o trecho "/busca" enquanto o menu de blocos está aberto */
+.editor-rico .ProseMirror .suggestion {
+  border-radius: 0.3em;
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+.editor-rico .ProseMirror ul[data-type="taskList"] > li > div > p {
+  margin: 0;
+}
+
 /* Fundo das telas. O conteúdo fica por cima (cartões têm fundo próprio). */
 html[data-fundo="aurora"] [data-slot="conteudo"] {
   background:

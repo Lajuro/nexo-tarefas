@@ -22,7 +22,7 @@
 //       { "tipo": "passo_concluido", "tarefa": "T1", "tarefaTitulo": "...", "passo": "texto do passo" } ],
 //     "sobras": "o que não coube em lugar nenhum" }
 
-import { mesmoTexto, quemSouEu } from "./prompts";
+import { mesmoTexto, quemSouEu, semImagens } from "./prompts";
 import {
   type Categoria, type FrutoDaNota, type Nota, type Passo, type Registro, STATUS_ABERTOS, TIPOS_REGISTRO, type Tarefa, type TipoRegistro,
   formatarData, hojeISO, nomeStatus, normalizarPasso, normalizarRegistro, normalizarTarefa, novoId, ordenarRegistros, passosAbertos,
@@ -131,7 +131,7 @@ ${lista.join("\n\n") || "Nenhuma tarefa em aberto."}
 ${cats.join(", ") || "Nenhuma"}
 
 === MINHAS ANOTAÇÕES${nota.titulo ? ` (${nota.titulo})` : ""} ===
-${nota.texto.trim() || "(vazio)"}
+${semImagens(nota.texto).trim() || "(vazio)"}
 
 === O QUE FAZER ===
 - Cada assunto das anotações vira um item. Uma mesma anotação pode render itens em tarefas diferentes.

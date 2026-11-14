@@ -178,7 +178,7 @@ export default function PaginaCategoria() {
                       <div className="mt-2 max-h-72 overflow-y-auto pr-1">
                         {r.resumoIA
                           ? <TextoRico texto={r.resumoIA} className="text-sm" />
-                          : <p className="text-sm leading-relaxed texto-pre">{r.anotacoes}</p>}
+                          : <TextoRico texto={r.anotacoes} className="text-sm" />}
                       </div>
                       <Link href={`/tarefas/${t.id}?r=${encodeURIComponent(r.id)}`}
                         className="mt-2 inline-flex items-center gap-1 rounded-sm text-xs font-medium text-muted-foreground underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">

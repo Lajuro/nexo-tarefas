@@ -13,16 +13,18 @@ import { useConfirmar } from "@/components/Raiz";
 import { Contador, Pagina, Vazio } from "@/components/comum";
 import { EditorNota } from "@/components/notas/EditorNota";
 import { OrganizarNota } from "@/components/notas/OrganizarNota";
+import { TextoRico } from "@/components/tarefa/Texto";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { apagarNotaPendente } from "@/lib/rascunhos";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { Nota, agoraISO, formatarData, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Aba = "abertas" | "arquivadas";
 
-const nomeDaFolha = (n: Nota) => n.titulo.trim() || n.texto.trim().split("\n")[0].slice(0, 80) || "Folha sem título";
+const nomeDaFolha = (n: Nota) => n.titulo.trim() || paraTextoPlano(n.texto).split("\n")[0].slice(0, 80) || "Folha sem título";
 
 export default function Notas() {
   // useSearchParams exige Suspense no Next 16.
@@ -187,7 +189,7 @@ function Conteudo() {
                     </div>
                   )}
                   <p className="mt-4 text-xs font-medium text-muted-foreground sem-selecao">Texto original da folha</p>
-                  <p className="mt-1 max-w-[80ch] text-sm leading-relaxed texto-pre">{atual.texto || "(folha sem texto)"}</p>
+                  {atual.texto ? <TextoRico texto={atual.texto} className="mt-1 max-w-[80ch] text-sm" /> : <p className="mt-1 text-sm text-muted-foreground">(folha sem texto)</p>}
                 </div>
                 <footer className="flex items-center justify-end gap-2 px-6 py-3">
                   <Button variant="ghost" onClick={() => excluir(atual)}><Trash2 /> Excluir</Button>

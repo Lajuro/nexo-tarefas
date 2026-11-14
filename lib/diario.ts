@@ -2,6 +2,7 @@
 // (nada é gravado: é só outro jeito de olhar os registros e os passos concluídos).
 
 import { dataLocal } from "./lembretes";
+import { paraTextoPlano } from "./texto-rico";
 import { type Passo, type Registro, type Tarefa, type TipoRegistro, formatarData, semAcento, tipoInfo } from "./tipos";
 
 export type EventoDiario =
@@ -137,7 +138,7 @@ export function nivelDeAtividade(n: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 const resumo = (r: Registro, max = 220) => {
-  const t = (r.resumoIA || r.anotacoes).replace(/\s+/g, " ").trim();
+  const t = paraTextoPlano(r.resumoIA || r.anotacoes).replace(/\s+/g, " ").trim();
   return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
 };
 

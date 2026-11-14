@@ -160,7 +160,7 @@ function CardRegistro({
       {r.resumoIA ? (
         <TextoRico texto={r.resumoIA} className="mt-2.5 px-4 text-sm" />
       ) : r.anotacoes ? (
-        <p className="mt-2.5 px-4 text-sm leading-relaxed texto-pre">{r.anotacoes}</p>
+        <TextoRico texto={r.anotacoes} className="mt-2.5 px-4 text-sm" />
       ) : null}
 
       {r.decisoes && (
@@ -218,7 +218,7 @@ function CardRegistro({
               {r.resumoIA && r.anotacoes && (
                 <div>
                   <Rotulo>Anotações brutas</Rotulo>
-                  <div className="rounded-lg bg-muted/60 px-3 py-2.5 text-[13px] leading-relaxed text-muted-foreground texto-pre">{r.anotacoes}</div>
+                  <TextoRico texto={r.anotacoes} className="rounded-lg bg-muted/60 px-3 py-2.5 text-[13px] text-muted-foreground" />
                 </div>
               )}
               {r.respostaIABruta && (

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const TIPOS: Record<string, string> = {
   ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-  ".gif": "image/gif", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8",
+  ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".txt": "text/plain; charset=utf-8",
   ".md": "text/plain; charset=utf-8", ".json": "application/json", ".csv": "text/csv; charset=utf-8",
   ".html": "text/plain; charset=utf-8",
 };

@@ -22,6 +22,7 @@ import { itemLista, lista } from "@/lib/animacoes";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { promptRelatorio } from "@/lib/prompts";
+import { paraTextoPlano } from "@/lib/texto-rico";
 import { Categoria, Registro, Tarefa, formatarData, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +61,7 @@ interface Item {
 }
 
 const ordem = (r: Registro) => `${r.data} ${r.hora || "99:99"} ${r.criadoEm}`;
-const resumoCurto = (r: Registro) => (r.resumoIA || r.anotacoes).replace(/\s+/g, " ").trim().slice(0, 160);
+const resumoCurto = (r: Registro) => paraTextoPlano(r.resumoIA || r.anotacoes).replace(/\s+/g, " ").trim().slice(0, 160);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 export default function Relatorios() {

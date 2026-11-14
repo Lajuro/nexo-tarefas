@@ -22,7 +22,8 @@
 // ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K,
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
 // painel Personalizar: cor de destaque, esconder item e ferramenta), esperando quem (cobrança),
-// modelos de tarefa, sessão de foco, diário e tema escuro.
+// modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
+// perigoso barrado) e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -203,7 +204,7 @@ async function main() {
     const chips = d.locator("[data-slot=campo-chips] input").first();
     await chips.fill("Marina");
     await chips.press("Enter");
-    await d.getByPlaceholder("O que foi falado, combinado, o que ficou pendente...").fill(ANOTACOES);
+    await d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").fill(ANOTACOES);
     await d.getByRole("button", { name: "Copiar prompt para o Copilot" }).click();
     await d.locator("[data-slot=retorno-copia]").waitFor();
     const prompt = await pg.evaluate(() => navigator.clipboard.readText());
@@ -231,7 +232,7 @@ async function main() {
     await pg.locator('[data-slot=registrar][data-tipo=reuniao]').click();
     let d = dialogo();
     await d.locator("[data-slot=editor-registro]").waitFor();
-    await d.getByPlaceholder("O que foi falado").fill("anotação que não pode sumir");
+    await d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").fill("anotação que não pode sumir");
     await d.locator("[data-slot=rascunho-estado]").waitFor();
     await pg.keyboard.press("Escape");
     await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
@@ -240,7 +241,9 @@ async function main() {
     await pg.locator("[data-slot=rascunho-aviso]").getByRole("button", { name: "Continuar" }).click();
     d = dialogo();
     await d.locator("[data-slot=rascunho-recuperado]").waitFor();
-    afirmar((await d.getByPlaceholder("O que foi falado").inputValue()) === "anotação que não pode sumir", "o rascunho não voltou depois do F5");
+    const anotacoes = d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]");
+    await anotacoes.getByText("anotação que não pode sumir").waitFor();
+    afirmar((await anotacoes.innerText()).trim() === "anotação que não pode sumir", "o rascunho não voltou depois do F5");
     await d.getByRole("button", { name: "Descartar", exact: true }).click();
     await pg.locator("[role=alertdialog][data-state=open]").getByRole("button", { name: "Descartar" }).click();
     await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
@@ -507,9 +510,12 @@ async function main() {
   // ---------- paleta ----------
   await etapa("bloco de notas: escrever, organizar com o Copilot e aplicar", async () => {
     await pg.goto(B + "/notas");
-    const texto = pg.locator("[data-slot=editor-nota] textarea");
+    const texto = pg.locator("[data-slot=texto-da-folha] [data-slot=editor-rico-conteudo]");
     await texto.waitFor();
-    await texto.fill("squad confirmou a data do treinamento. preciso mandar o convite.\nauditoria pediu um relatório novo.");
+    await texto.click();
+    await pg.keyboard.type("squad confirmou a data do treinamento. preciso mandar o convite.");
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("auditoria pediu um relatório novo.");
     await pg.locator("[data-slot=nota-situacao][data-situacao=salvo]").waitFor();
     afirmar((await dados()).notas.items.length === 1, "a folha não foi gravada sozinha");
     await pg.locator("[data-slot=organizar]").click();
@@ -543,6 +549,87 @@ async function main() {
     afirmar(depois.tarefas.some((t) => t.titulo === "Relatório novo para a auditoria"), "a tarefa nova não foi criada");
     const folha = depois.notas.items[0];
     afirmar(folha.arquivadaEm && folha.gerou.length === 2, "a folha não foi arquivada com o que criou");
+  });
+
+  // ---------- editor de texto rico ----------
+  await etapa("editor rico: blocos pelo menu /, imagem colada e leitura na linha do tempo", async () => {
+    const externas = [];
+    const olheiro = (r) => { if (!r.url().startsWith(B) && !r.url().startsWith("data:") && !r.url().startsWith("blob:")) externas.push(r.url()); };
+    pg.on("request", olheiro);
+    await pg.goto(B + "/tarefas/" + idTarefa);
+    await pg.locator('[data-slot=registrar][data-tipo=atividade]').click();
+    const d = dialogo();
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    await d.getByPlaceholder("Resumo em uma linha").fill("Evidência da varredura");
+    const ed = d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]");
+    await ed.click();
+    await pg.keyboard.type("## Resultado");            // atalho de Markdown vira título
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("Rodei a varredura e 3 < 5 achados eram críticos.");
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("/taref");                   // menu de blocos
+    const menu = d.locator("[data-slot=menu-editor]");
+    await menu.locator("[data-item=tarefas]").waitFor();
+    // Esc com o menu aberto fecha só o menu, não a janela do registro
+    await pg.keyboard.press("Escape");
+    await menu.waitFor({ state: "detached" });
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    for (let i = 0; i < 6; i++) await pg.keyboard.press("Backspace");
+    await pg.keyboard.type("/taref");
+    await menu.locator("[data-item=tarefas]").waitFor();
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("abrir chamado da correção");
+    await ed.locator("ul[data-type=taskList] > li input").first().waitFor();
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.press("Enter");
+    // colar um print (PNG de 2x2)
+    await pg.evaluate(() => {
+      const b64 = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP8z8DAwMDAxAAAAAYAAfc5cLUAAAAASUVORK5CYII=";
+      const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const dt = new DataTransfer();
+      dt.items.add(new File([bin], "image.png", { type: "image/png" }));
+      document.querySelector("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await ed.locator("img[data-anexo]").waitFor();
+    await pg.waitForFunction(() => { const i = document.querySelector("[data-slot=anotacoes] img[data-anexo]"); return i && i.complete && i.naturalWidth > 0; });
+    // colar HTML de uma página: imagem de fora, link perigoso e script não entram
+    await pg.keyboard.press("Control+End");
+    await pg.evaluate(() => {
+      const dt = new DataTransfer();
+      dt.setData("text/html", '<p>trecho colado</p><img src="https://exemplo.invalid/pixel.png" onerror="window.__xss=1"><a href="javascript:window.__xss=2">link ruim</a><script>window.__xss=3</script>');
+      dt.setData("text/plain", "trecho colado link ruim");
+      document.querySelector("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await ed.getByText("trecho colado").waitFor();
+    const perigo = await ed.evaluate((e) => ({
+      // (o ProseMirror usa um <img class="ProseMirror-separator"> sem endereço como marcador de cursor: esse não conta)
+      imgs: [...e.querySelectorAll("img:not(.ProseMirror-separator)")].filter((i) => !(i.getAttribute("src") || "").startsWith("/api/arquivos?p=")).length,
+      links: [...e.querySelectorAll("a")].filter((a) => /^javascript:/i.test(a.getAttribute("href") || "")).length,
+      scripts: e.querySelectorAll("script").length,
+      xss: window.__xss ?? null,
+    }));
+    afirmar(perigo.imgs === 0 && perigo.links === 0 && perigo.scripts === 0 && perigo.xss === null, "conteúdo perigoso entrou no editor: " + JSON.stringify(perigo));
+    await d.getByRole("button", { name: "Salvar registro" }).click();
+    await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
+
+    // o que foi gravado é Markdown, com a imagem apontando para a pasta de anexos
+    const reg = (await dados()).tarefas.find((t) => t.id === idTarefa).registros.find((r) => r.titulo === "Evidência da varredura");
+    afirmar(/^## Resultado/.test(reg.anotacoes), "o título não foi gravado como Markdown: " + reg.anotacoes.slice(0, 60));
+    afirmar(reg.anotacoes.includes("- [ ] abrir chamado da correção"), "a lista de tarefas não foi gravada como Markdown");
+    afirmar(/!\[[^\]]*\]\(arquivos\/\d{4}\/[^)]+\.png\)/.test(reg.anotacoes), "a imagem colada não foi gravada como anexo");
+    afirmar(!/exemplo\.invalid\/pixel|javascript:/.test(reg.anotacoes), "sobrou endereço perigoso no texto gravado");
+    // e aparece formatado na linha do tempo
+    const card = pg.locator("[data-slot=registro]", { hasText: "Evidência da varredura" }).first();
+    await card.locator("[data-slot=texto] h2", { hasText: "Resultado" }).waitFor();
+    await card.getByText("3 < 5 achados").waitFor();
+    await card.locator("[data-slot=texto] ul[data-type=taskList]").waitFor();
+    await pg.waitForFunction(() => {
+      const i = [...document.querySelectorAll("[data-slot=registro] [data-slot=imagem-anexada] img")][0];
+      return i && i.complete && i.naturalWidth > 0;
+    });
+    // o espelho em Markdown aponta para a pasta de anexos ao lado
+    pg.off("request", olheiro);
+    afirmar(externas.length === 0, "o editor fez chamada externa: " + externas.join(", "));
   });
 
   await etapa("paleta Ctrl+K abre a tarefa", async () => {
@@ -635,9 +722,13 @@ async function main() {
     await pg.keyboard.press("n");
     await pg.locator("[data-slot=form-tarefa]").waitFor();
     await pg.locator("[data-slot=escolher-modelo]", { hasText: "Levar a Ferramenta X" }).click();
-    const titulo = pg.getByLabel("Título da tarefa");
-    await pg.waitForFunction(() => document.querySelector("[data-slot=form-tarefa] input")?.value.includes("..."));
-    await titulo.fill("Onboarding do squad de Crédito na Ferramenta X");
+    // o "..." do título sugerido já vem selecionado: é só digitar o que muda
+    await pg.waitForFunction(() => {
+      const c = document.querySelector("[data-slot=form-tarefa] input[aria-label='Título da tarefa']");
+      return c && document.activeElement === c && c.value.slice(c.selectionStart, c.selectionEnd) === "...";
+    });
+    await pg.keyboard.type("de Crédito");
+    afirmar((await pg.getByLabel("Título da tarefa").inputValue()) === "Onboarding do squad de Crédito na Ferramenta X", "digitar por cima do ... não deu o título esperado");
     const caixas = pg.locator("[data-slot=passos-do-modelo] [data-slot=checkbox]");
     afirmar((await caixas.count()) === passos.length, "os passos do modelo não apareceram no formulário");
     await caixas.last().click(); // este não vale para a tarefa nova

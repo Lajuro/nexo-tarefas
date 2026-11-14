@@ -1,4 +1,7 @@
-import { Tarefa, formatarData, nomeStatus, ordenarRegistros, tipoInfo } from "./tipos";
+import { type Tarefa, formatarData, nomeStatus, ordenarRegistros, tipoInfo } from "./tipos";
+
+/** No texto, a imagem anexada é "arquivos/AAAA/nome". O espelho mora em markdown/, então o caminho ganha "../". */
+const paraOEspelho = (md: string) => md.replace(/(!\[[^\]]*\]\()(arquivos\/)/g, "$1../$2");
 
 // Espelho legível de cada tarefa. Se um dia o app parar de funcionar,
 // tudo continua legível na pasta markdown/ (e pesquisável pelo Windows).
@@ -23,7 +26,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
     if (r.duracaoMin) L.push(`**Duração:** ${r.duracaoMin} min`);
     if (r.participantes.length) L.push(`**Participantes:** ${r.participantes.join(", ")}`);
     if (r.resumoIA) L.push("", "**Resumo:**", r.resumoIA);
-    if (r.anotacoes) L.push("", "**Anotações:**", r.anotacoes);
+    if (r.anotacoes) L.push("", "**Anotações:**", paraOEspelho(r.anotacoes));
     if (r.decisoes) L.push("", "**Decisões:**", r.decisoes);
     if (r.proximosPassos.length) {
       L.push("", "**Próximos passos:**");

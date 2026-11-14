@@ -95,12 +95,13 @@ export function Shell({ children }: { children: ReactNode }) {
         setPaleta((p) => !p);
         return;
       }
-      if ((e.ctrlKey || e.metaKey) && k === "b") {
+      const alvo = e.target as HTMLElement;
+      // dentro do editor de texto rico, Ctrl B é negrito
+      if ((e.ctrlKey || e.metaKey) && k === "b" && !alvo.isContentEditable) {
         e.preventDefault();
         setRecolhida((r) => !r);
         return;
       }
-      const alvo = e.target as HTMLElement;
       const digitando = ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName) || alvo.isContentEditable;
       if (digitando || e.ctrlKey || e.metaKey || e.altKey || temAlgoAberto()) return;
 
