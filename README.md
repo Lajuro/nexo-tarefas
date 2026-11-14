@@ -89,6 +89,19 @@ As **Páginas** viraram um lugar para documentar de verdade:
 - **Busca na documentação** (`Ctrl P`): mostra em que seção de cada página o trecho está e abre direto nela.
 - **Quadro e Lista**: veja as páginas por estado (rascunho, em revisão, pronta), arrastando entre as colunas, ou numa tabela com filtro.
 
+## Páginas de vídeo (3.3)
+
+Em Páginas, no botão ao lado de "Nova página", escolha **Página de vídeo**. Serve para a gravação de uma reunião ou de um treinamento:
+
+- **O vídeo**: envie o arquivo (fica na pasta de dados), aponte para um arquivo do computador (não copia, bom para gravação grande) ou só guarde o link.
+- **Player próprio**: `Espaço` toca e pausa, as setas pulam 5 segundos; com um clique no vídeo, `J` e `L` pulam 10 s, `<` e `>` mudam a velocidade, `C` liga a legenda, `F` a tela cheia. Ele lembra onde você parou.
+- **Transcrição que acompanha**: envie o VTT ou SRT (o Teams exporta VTT) ou cole o texto. A fala de agora fica destacada, clicar numa fala leva o vídeo até ela, e a busca acha qualquer palavra.
+- **Anotar neste instante**: põe o tempo nas suas anotações; depois é só clicar nele para voltar àquele ponto. Um `[12:34]` escrito à mão também vira botão.
+- **Capítulos**: marque onde o assunto muda; eles aparecem na barra do vídeo.
+- **Resumir**: copia um prompt com a transcrição para o Copilot devolver resumo, decisões e próximos passos com os tempos.
+
+A visão **Vídeos** mostra todas as páginas de vídeo como uma galeria.
+
 ## Componentes nas páginas (3.2)
 
 No editor, digite `/` e escolha:

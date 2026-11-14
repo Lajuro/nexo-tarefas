@@ -6,7 +6,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { BookText, Columns3, FileText, PanelLeft, Plus, Rows3 } from "lucide-react";
+import { BookText, Clapperboard, Columns3, FileText, PanelLeft, Plus, Rows3 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Pagina, Vazio } from "@/components/comum";
 import { Abas } from "@/components/paginas/Abas";
@@ -15,14 +15,15 @@ import { Explorador } from "@/components/paginas/Explorador";
 import { ListaPaginas } from "@/components/paginas/ListaPaginas";
 import { QuadroPaginas } from "@/components/paginas/QuadroPaginas";
 import { IconePagina, useAcoesDePagina } from "@/components/paginas/pecas";
+import { GaleriaDeVideos } from "@/components/paginas/video/GaleriaDeVideos";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { Dica } from "@/components/ui/popover";
 import { MODELOS_DE_PAGINA, caminhoDaPagina } from "@/lib/paginas";
 import { usePref } from "@/lib/preferencias";
 
-type Visao = "docs" | "quadro" | "lista";
-const VISOES: Visao[] = ["docs", "quadro", "lista"];
+type Visao = "docs" | "quadro" | "lista" | "videos";
+const VISOES: Visao[] = ["docs", "quadro", "lista", "videos"];
 const MAX_ABAS = 12;
 
 /** Jeito de trabalhar nesta tela. Fica no navegador; tudo é conferido ao ler. */
@@ -68,7 +69,8 @@ function Conteudo() {
   const [bruta, setBruta] = usePref<unknown>("paginasArea", AREA_PADRAO);
   const area = useMemo(() => normalizarArea(bruta), [bruta]);
   const mudarArea = useCallback((fn: (a: AreaDePaginas) => Partial<AreaDePaginas>) => setBruta((atual: unknown) => { const a = normalizarArea(atual); return { ...a, ...fn(a) }; }), [setBruta]);
-  const [irPara, setIrPara] = useState<{ id: string; titulo: number; vez: number } | null>(null);
+  const [irPara, setIrPara] = useState<{ id: string; titulo?: number; tempo?: number; vez: number } | null>(null);
+  const tempoPedido = params.get("t");
 
   const paginas = useMemo(() => dados?.paginas?.items ?? [], [dados?.paginas]);
   const porId = useMemo(() => new Map(paginas.map((p) => [p.id, p])), [paginas]);
@@ -76,14 +78,14 @@ function Conteudo() {
   const abertas = useMemo(() => area.abas.map((id) => porId.get(id)).filter((p): p is NonNullable<typeof p> => !!p), [area.abas, porId]);
   const ativa = (area.ativa && porId.get(area.ativa)) || abertas[0] || null;
 
-  const abrir = useCallback((id: string, titulo?: number) => {
+  const abrir = useCallback((id: string, titulo?: number, tempo?: number) => {
     mudarArea((a) => {
       const abas = a.abas.includes(id) ? a.abas : [...a.abas, id];
       // passou do limite: sai a aba mais antiga que não é a que está sendo aberta
       while (abas.length > MAX_ABAS) abas.splice(abas.findIndex((x) => x !== id), 1);
       return { visao: "docs", abas, ativa: id };
     });
-    if (titulo !== undefined) setIrPara((v) => ({ id, titulo, vez: (v?.vez ?? 0) + 1 }));
+    if (titulo !== undefined || tempo !== undefined) setIrPara((v) => ({ id, titulo, tempo, vez: (v?.vez ?? 0) + 1 }));
   }, [mudarArea]);
 
   const fechar = useCallback((id: string) => mudarArea((a) => {
@@ -110,7 +112,9 @@ function Conteudo() {
   useEffect(() => {
     if (!dados) return;
     if (pedida) {
-      if (porId.has(pedida)) abrir(pedida);
+      // &t=<segundos>: abre a página de vídeo já naquele instante
+      const t = Number(tempoPedido);
+      if (porId.has(pedida)) abrir(pedida, undefined, tempoPedido !== null && Number.isFinite(t) && t >= 0 ? t : undefined);
       router.replace("/paginas");
     } else if (catPedida) {
       router.replace("/paginas");
@@ -147,6 +151,7 @@ function Conteudo() {
               { valor: "docs", rotulo: "Documentos", icone: <FileText /> },
               { valor: "quadro", rotulo: "Quadro", icone: <Columns3 /> },
               { valor: "lista", rotulo: "Lista", icone: <Rows3 /> },
+              { valor: "videos", rotulo: "Vídeos", icone: <Clapperboard /> },
             ]} />
           <Button data-slot="nova-pagina-topo" onClick={() => nova()}><Plus /> Nova página</Button>
         </>
@@ -156,6 +161,8 @@ function Conteudo() {
         <QuadroPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
       ) : area.visao === "lista" ? (
         <ListaPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
+      ) : area.visao === "videos" ? (
+        <GaleriaDeVideos paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} aoNova={() => nova("video")} />
       ) : (
         <div data-slot="area-de-paginas" className="flex h-full min-h-0">
           {area.explorador && (

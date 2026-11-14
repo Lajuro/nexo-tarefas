@@ -159,6 +159,14 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   const noDisco = new Map(inv.anexos.map((a) => [a.rel, a.tamanho]));
   const citados = new Map<string, string>(); // rel -> onde
   for (const l of dados.links.items) if (l.tipo === "arquivo" && l.arquivo) citados.set(l.arquivo, `documento "${l.titulo}"`);
+  for (const p of dados.paginas?.items ?? []) {
+    const v = p.video;
+    if (!v) continue;
+    const de = `página de vídeo "${p.titulo || "sem título"}"`;
+    if (v.arquivo) citados.set(v.arquivo, `vídeo da ${de}`);
+    if (v.transcricao) citados.set(v.transcricao, `transcrição da ${de}`);
+    if (v.capa) citados.set(v.capa, `capa da ${de}`);
+  }
   for (const { onde, texto } of todosOsTextos)
     for (const m of (texto || "").matchAll(IMAGEM)) {
       const rel = anexoDoSrc(m[1]);

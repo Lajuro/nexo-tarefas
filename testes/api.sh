@@ -137,6 +137,42 @@ checa "página: filha com a mãe gravada" '"paiId":"pgarv1"' "$R"
 checa "página: mãe inválida, ícone, estado e favorita estranhos viram padrão" '"id":"pgarv3","titulo":"Torta","paiId":null,"icone":"","estado":"rascunho","fixada":false,"ordem":0' "$R"
 curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+1))}" >/dev/null
 
+# ---------- vídeo: enviar em pedaços e tocar com Range ----------
+head -c 2000 /dev/urandom >"$TMP/video.bin"
+R=$(curl -s -X POST "$B/api/midia?nome=Reuni%C3%A3o%20de%20teste.mp4" --data-binary @"$TMP/video.bin" -H 'Content-Type: application/octet-stream')
+checa "vídeo: envio grava na pasta de dados" '"tamanho":2000' "$R"
+MIDIA=$(echo "$R" | sed 's/.*"arquivo":"\([^"]*\)".*/\1/')
+MIDIA_URL=${MIDIA// /%20}
+checa "vídeo: o arquivo gravado é igual ao enviado" "$(sha256sum <"$TMP/video.bin")" "$(sha256sum <"$TMP/dados/arquivos/$MIDIA")"
+CAB=$(curl -s -D - -o "$TMP/pedaco.bin" "$B/api/midia?p=$MIDIA_URL" -H 'Range: bytes=100-199')
+checa "vídeo: Range devolve 206" 'HTTP/1.1 206' "$CAB"
+checa "vídeo: Range diz qual pedaço mandou" 'bytes 100-199/2000' "$CAB"
+checa "vídeo: tipo certo e sem adivinhação" 'video/mp4' "$CAB"
+checa "vídeo: o pedaço é o pedido" "$(tail -c +101 "$TMP/video.bin" | head -c 100 | sha256sum)" "$(sha256sum <"$TMP/pedaco.bin")"
+checa "vídeo: Range aberto vai até o fim" 'bytes 1990-1999/2000' "$(curl -s -D - -o /dev/null "$B/api/midia?p=$MIDIA_URL" -H 'Range: bytes=1990-')"
+checa "vídeo: Range do fim" 'bytes 1995-1999/2000' "$(curl -s -D - -o /dev/null "$B/api/midia?p=$MIDIA_URL" -H 'Range: bytes=-5')"
+checa "vídeo: Range fora do arquivo devolve 416" '416' "$(curl -s -o /dev/null -w '%{http_code}' "$B/api/midia?p=$MIDIA_URL" -H 'Range: bytes=5000-')"
+checa "vídeo: sem Range devolve tudo e avisa que aceita Range" 'accept-ranges: bytes' "$(curl -s -D - -o /dev/null "$B/api/midia?p=$MIDIA_URL" | tr 'A-Z' 'a-z')"
+checa "vídeo: recusa tipo que não é vídeo nem áudio" 'não é aceito' "$(curl -s -X POST "$B/api/midia?nome=virus.exe" --data-binary @"$TMP/video.bin")"
+checa "vídeo: recusa envio vazio" 'vazio' "$(curl -s -X POST "$B/api/midia?nome=vazio.mp4" --data-binary '')"
+curl -s -X POST "$B/api/midia?nome=..%2F..%2Ffora.mp4" --data-binary @"$TMP/video.bin" >/dev/null
+checa "vídeo: nome com ../ não sai da pasta de anexos" '' "$(ls "$TMP/dados" "$TMP" | grep -x 'fora.mp4' || true)"
+checa "vídeo: CSRF recusa Origin de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/midia?nome=x.mp4" -H 'Origin: https://evil.example' --data-binary @"$TMP/video.bin")"
+checa "vídeo: recusa caminho fora de arquivos/" 'inválid' "$(curl -s "$B/api/midia?p=../nexo.json")"
+echo "nao e video" >"$TMP/dados/arquivos/$(date +%Y)/nota.txt"
+checa "vídeo: não toca arquivo que não é vídeo" 'não é um vídeo' "$(curl -s "$B/api/midia?p=$(date +%Y)/nota.txt")"
+# vídeo num caminho do computador: o caminho vem da página gravada, nunca do pedido
+cp "$TMP/video.bin" "$TMP/local.webm"
+RP=$(curl -s $B/api/dados | sed 's/.*"paginas":{"rev":\([0-9-]*\).*/\1/')
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgvid1\",\"titulo\":\"Video local\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMP/local.webm\",\"capitulos\":[{\"t\":30,\"titulo\":\"Meio\"}]}},{\"id\":\"pgvid2\",\"titulo\":\"Aponta para segredo\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMP/dados/nexo.json\"}},{\"id\":\"pgvid3\",\"titulo\":\"Sem video\"}],\"revEsperada\":$RP}" >/dev/null
+checa "vídeo local: toca pelo id da página" 'video/webm' "$(curl -s -D - -o /dev/null "$B/api/midia?pagina=pgvid1")"
+checa "vídeo local: recusa arquivo que não é vídeo, mesmo gravado na página" 'não é um vídeo' "$(curl -s "$B/api/midia?pagina=pgvid2")"
+checa "vídeo local: página sem vídeo" 'não aponta' "$(curl -s "$B/api/midia?pagina=pgvid3")"
+checa "vídeo local: id inválido" 'não informado' "$(curl -s "$B/api/midia?pagina=..%2Fx")"
+checa "vídeo local: o caminho do pedido é ignorado" 'não informado' "$(curl -s "$B/api/midia?caminho=$TMP/local.webm")"
+checa "página de vídeo: guarda tipo e capítulos" '"capitulos":[{"t":30,"titulo":"Meio"}]' "$(curl -s $B/api/dados)"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+1))}" >/dev/null
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

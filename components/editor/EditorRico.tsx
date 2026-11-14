@@ -48,6 +48,14 @@ function nomeDoPrint(tipo: string) {
   return `print-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.${EXTENSAO[tipo] ?? "png"}`;
 }
 
+/** O que quem está em volta do editor pode pedir a ele (a página de vídeo põe instantes e citações no texto). */
+export interface ApiDoEditor {
+  /** Põe um link no cursor (ou no fim, se o editor não está em foco). */
+  inserirLink: (rotulo: string, href: string) => void;
+  /** Põe um trecho em Markdown como um bloco novo. */
+  inserirMarkdown: (markdown: string) => void;
+}
+
 /** O Markdown do editor como vai para o campo: sem os parágrafos vazios do fim (que ele grava como "&nbsp;"). */
 const paraGuardar = (ed: Editor) => (ed.isEmpty ? "" : ed.getMarkdown().replace(/(?:\s|&nbsp;)+$/, ""));
 
@@ -82,7 +90,7 @@ function BotaoBarra({
 }
 
 export function EditorRico({
-  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId,
+  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId, aoPronto,
   "aria-label": rotulo, "data-slot": slot = "editor-rico",
 }: {
   /** Markdown. */
@@ -99,6 +107,8 @@ export function EditorRico({
   variante?: "campo" | "pagina" | "documento";
   /** Página em que o editor está: página criada por "[[" ou pelo bloco "Subpágina" nasce dentro dela. */
   paginaAtualId?: string;
+  /** Recebe a API do editor quando ele fica pronto (e null quando sai da tela). */
+  aoPronto?: (api: ApiDoEditor | null) => void;
   focoInicial?: boolean;
   desabilitado?: boolean;
   "aria-label"?: string;
@@ -370,6 +380,22 @@ export function EditorRico({
   useEffect(() => {
     editor?.setEditable(!desabilitado);
   }, [editor, desabilitado]);
+
+  const aoProntoRef = useRef(aoPronto);
+  aoProntoRef.current = aoPronto;
+  useEffect(() => {
+    if (!editor) return;
+    aoProntoRef.current?.({
+      inserirLink: (rotulo, href) => {
+        const c = editor.isFocused ? editor.chain() : editor.chain().focus("end");
+        c.insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href } }] }, { type: "text", text: " " }]).run();
+      },
+      inserirMarkdown: (markdown) => {
+        editor.chain().focus("end").insertContent(markdown, { contentType: "markdown" }).run();
+      },
+    });
+    return () => aoProntoRef.current?.(null);
+  }, [editor]);
 
   // Esc dentro de uma janela (components/ui/dialog.tsx): fecha o menu de blocos sem fechar a janela.
   useEffect(() => {

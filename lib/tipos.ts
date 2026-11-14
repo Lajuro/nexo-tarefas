@@ -265,9 +265,68 @@ export interface Pagina {
   estado?: EstadoPagina;
   /** Presa em "Favoritas" no explorador. É dado, para valer em qualquer PC. */
   fixada?: boolean;
+  /** "video": a página gira em torno de um vídeo (player, transcrição, capítulos). Ausente = documento. */
+  tipo?: "doc" | "video";
+  /** O vídeo da página (3.3). O texto da página são as anotações sobre ele. */
+  video?: VideoDaPagina | null;
   criadaEm: string;
   atualizadaEm: string;
   [extra: string]: unknown;
+}
+
+/**
+ * O vídeo (ou áudio) de uma página de vídeo. De onde ele vem, em ordem de preferência:
+ * `arquivo` (copiado para a pasta de dados), `caminho` (um arquivo deste computador, não copiado: só toca aqui)
+ * ou `url` (link de fora: o app não toca, só abre em outra aba).
+ */
+export interface VideoDaPagina {
+  /** Caminho relativo dentro de arquivos/ ("2026/abc-gravacao.mp4"). */
+  arquivo?: string;
+  nomeArquivo?: string;
+  tamanho?: number;
+  /** Caminho completo de um arquivo neste computador. Não é copiado nem vai para o backup. */
+  caminho?: string;
+  /** Link de fora (http ou https). */
+  url?: string;
+  /** Duração em segundos, anotada quando o vídeo abre. */
+  duracao?: number;
+  /** Transcrição: arquivo dentro de arquivos/ (VTT, SRT ou texto com tempos). */
+  transcricao?: string;
+  nomeTranscricao?: string;
+  /** Capa: imagem dentro de arquivos/ (um quadro do vídeo). */
+  capa?: string;
+  /** Capítulos marcados pelo usuário, em ordem de tempo. */
+  capitulos?: { t: number; titulo: string }[];
+  [extra: string]: unknown;
+}
+
+const ANEXO_VALIDO = /^\d{4}\/[^/\\?#]{1,200}$/;
+const anexo = (x: unknown) => (typeof x === "string" && ANEXO_VALIDO.test(x) && !x.includes("..") ? x : undefined);
+
+export function normalizarVideo(v: unknown): VideoDaPagina | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const x = v as Partial<VideoDaPagina>;
+  const duracao = Number(x.duracao);
+  const url = typeof x.url === "string" && /^https?:\/\/[^\s]{1,2000}$/i.test(x.url.trim()) ? x.url.trim() : undefined;
+  const caminho = typeof x.caminho === "string" && x.caminho.trim() && x.caminho.length <= 1000 && !/[\u0000-\u001f]/.test(x.caminho) ? x.caminho.trim() : undefined;
+  const capitulos = (Array.isArray(x.capitulos) ? x.capitulos : [])
+    .filter((c): c is { t: number; titulo: string } => !!c && typeof c === "object" && Number.isFinite(Number((c as { t?: unknown }).t)) && Number((c as { t: unknown }).t) >= 0)
+    .slice(0, 200)
+    .map((c) => ({ t: Math.round(Number(c.t)), titulo: str(c.titulo).slice(0, 200) }))
+    .sort((a, b) => a.t - b.t);
+  return {
+    ...x,
+    arquivo: anexo(x.arquivo),
+    nomeArquivo: typeof x.nomeArquivo === "string" ? x.nomeArquivo.slice(0, 300) : undefined,
+    tamanho: Number.isFinite(Number(x.tamanho)) && Number(x.tamanho) > 0 ? Number(x.tamanho) : undefined,
+    caminho,
+    url,
+    duracao: Number.isFinite(duracao) && duracao > 0 ? Math.round(duracao) : undefined,
+    transcricao: anexo(x.transcricao),
+    nomeTranscricao: typeof x.nomeTranscricao === "string" ? x.nomeTranscricao.slice(0, 300) : undefined,
+    capa: anexo(x.capa),
+    capitulos,
+  };
 }
 
 export type EstadoPagina = "rascunho" | "revisao" | "publicada";
@@ -422,6 +481,8 @@ export function normalizarPagina(p: Partial<Pagina>): Pagina {
     icone: typeof p.icone === "string" && /^[a-z0-9-]{1,30}$/.test(p.icone) ? p.icone : "",
     estado: ESTADOS_PAGINA.some((e) => e.id === p.estado) ? (p.estado as EstadoPagina) : "rascunho",
     fixada: p.fixada === true,
+    tipo: p.tipo === "video" ? "video" : "doc",
+    video: p.tipo === "video" ? normalizarVideo(p.video) ?? {} : p.video ? normalizarVideo(p.video) : null,
     criadaEm: str(p.criadaEm) || agoraISO(),
     atualizadaEm: str(p.atualizadaEm) || agoraISO(),
   };

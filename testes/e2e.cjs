@@ -1133,6 +1133,80 @@ async function main() {
     afirmar(p.texto === textoFinal, "abrir a página com componentes no editor mudou o texto guardado");
   });
 
+  // ---------- página de vídeo ----------
+  await etapa("página de vídeo: enviar, transcrição que acompanha, anotar o instante, capítulo e galeria", async () => {
+    // um áudio de 40 segundos feito aqui mesmo (WAV, 8 kHz, mono): o player toca áudio e vídeo do mesmo jeito
+    const wav = (segundos) => {
+      const taxa = 8000;
+      const n = taxa * segundos;
+      const b = Buffer.alloc(44 + n, 128);
+      b.write("RIFF", 0); b.writeUInt32LE(36 + n, 4); b.write("WAVEfmt ", 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+      b.writeUInt32LE(taxa, 24); b.writeUInt32LE(taxa, 28); b.writeUInt16LE(1, 32); b.writeUInt16LE(8, 34); b.write("data", 36); b.writeUInt32LE(n, 40);
+      return b;
+    };
+    await pg.goto(B + "/paginas");
+    await pg.locator("[data-slot=nova-de-modelo]").click();
+    await pg.locator("[data-modelo=video]").click();
+    await pg.locator("[data-slot=fonte-do-video]").waitFor();
+    await pg.getByLabel("Título da página").fill("Gravação do alinhamento");
+    await pg.locator("[data-slot=fonte-do-video] [data-slot=area-arquivo] input[type=file]").setInputFiles({ name: "alinhamento.wav", mimeType: "audio/wav", buffer: wav(40) });
+    const tempo = pg.locator("[data-slot=player-tempo]");
+    await pg.locator("[data-slot=player]").waitFor();
+    await pg.waitForFunction(() => document.querySelector("[data-slot=player-tempo]")?.textContent?.includes("0:40"));
+
+    // transcrição colada, com o tempo no começo de cada fala
+    await pg.locator("[data-slot=colar-transcricao]").fill("[00:02] Marina: Vamos começar pelo scan.\n[00:10] Bruno: Três achados são críticos.\n[00:25] Marina: Triagem na quinta.");
+    await pg.locator("[data-slot=usar-transcricao-colada]").click();
+    await pg.locator("[data-slot=trecho]").nth(2).waitFor();
+    afirmar((await pg.locator("[data-slot=trecho]").first().innerText()).includes("Marina"), "a transcrição não mostrou quem fala");
+
+    // clicar numa fala leva o player até ela, e a fala passa a ser a de agora
+    await pg.locator("[data-fala='1']").click();
+    await pg.waitForFunction(() => /^0:1\d/.test(document.querySelector("[data-slot=player-tempo]")?.textContent ?? ""));
+    await pg.locator("[data-fala='1'][data-agora]").waitFor();
+    await pg.locator("[data-slot=player] [data-slot=player-tocar]").click({ force: true });
+    await pg.waitForFunction(() => !document.querySelector("[data-slot=player]")?.hasAttribute("data-tocando"));
+
+    // busca na transcrição
+    await pg.locator("[data-slot=busca-na-transcricao]").fill("triagem");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=contagem-da-transcricao]")?.textContent === "1 de 1");
+    await pg.locator("[data-slot=busca-na-transcricao]").fill("");
+
+    // anotar neste instante e marcar um capítulo
+    await pg.locator("[data-slot=anotar-instante]").click();
+    await pg.locator('[data-slot=texto-da-pagina] a[href^="nexo:tempo/1"]').waitFor();
+    await pg.locator("[data-slot=marcar-capitulo]").click();
+    const nomeDoCapitulo = pg.getByLabel(/Nome do capítulo/);
+    await nomeDoCapitulo.fill("Achados críticos");
+    await nomeDoCapitulo.press("Enter");
+    await pg.locator("[data-slot=player-marca]").waitFor();
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+
+    const p = (await dados()).paginas.items.find((x) => x.titulo === "Gravação do alinhamento");
+    afirmar(p && p.tipo === "video" && p.video.arquivo && p.video.transcricao && p.video.duracao === 40, "a página de vídeo não guardou o vídeo, a transcrição e a duração: " + JSON.stringify(p && p.video));
+    afirmar(p.video.capitulos.length === 1 && p.video.capitulos[0].titulo === "Achados críticos" && p.video.capitulos[0].t >= 10 && p.video.capitulos[0].t <= 16, "o capítulo não foi gravado no instante certo");
+    afirmar(/\]\(nexo:tempo\/1\d\)/.test(p.texto), "o instante anotado não foi para o texto: " + p.texto);
+    const pedaco = await pg.request.get(`${B}/api/midia?p=${encodeURIComponent(p.video.arquivo)}`, { headers: { Range: "bytes=0-9" } });
+    afirmar(pedaco.status() === 206 && (await pedaco.body()).length === 10, "o vídeo não foi servido em pedaços (Range)");
+
+    // na leitura, o instante anotado é um botão que leva o player até lá
+    await pg.locator("[data-slot=player-barra]").click({ position: { x: 2, y: 8 }, force: true });
+    await pg.waitForFunction(() => (document.querySelector("[data-slot=player-tempo]")?.textContent ?? "").startsWith("0:00"));
+    await pg.getByRole("radio", { name: "Ler" }).click();
+    await pg.locator("[data-slot=texto] [data-slot=tempo]").first().click();
+    await pg.waitForFunction(() => /^0:1\d/.test(document.querySelector("[data-slot=player-tempo]")?.textContent ?? ""));
+    await pg.locator("[data-slot=player] [data-slot=player-tocar]").click({ force: true });
+    await pg.getByRole("radio", { name: "Editar" }).click();
+
+    // a galeria mostra a página de vídeo, com a duração
+    await pg.getByRole("radio", { name: "Vídeos" }).click();
+    const cartao = pg.locator(`[data-slot=cartao-de-video][data-id="${p.id}"]`);
+    await cartao.waitFor();
+    afirmar((await cartao.innerText()).includes("0:40") && (await cartao.innerText()).includes("transcrição"), "o cartão do vídeo não mostra a duração e a transcrição");
+    await cartao.click();
+    await pg.locator(`[data-slot=editor-pagina][data-id="${p.id}"][data-tipo=video] [data-slot=player]`).waitFor();
+  });
+
   // ---------- perguntar ao Nexo ----------
   await etapa("perguntar: achar os trechos, copiar o prompt, colar a resposta e guardar como página", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();

@@ -299,10 +299,16 @@ export interface ModeloDePagina {
   /** Título sugerido ("..." é o que o usuário troca). */
   titulo: string;
   texto: string;
+  /** "video": a página nasce como página de vídeo. */
+  tipo?: "video";
 }
 
 export const MODELOS_DE_PAGINA: ModeloDePagina[] = [
   { id: "branco", nome: "Em branco", descricao: "Só o título e o cursor.", icone: "arquivo", titulo: "", texto: "" },
+  {
+    id: "video", nome: "Página de vídeo", descricao: "Um vídeo com player, transcrição sincronizada e anotações.", icone: "video", titulo: "", tipo: "video",
+    texto: "## Do que se trata\n\n\n## Pontos principais\n\n- \n\n## O que fazer com isso\n\n- [ ] ",
+  },
   {
     id: "processo", nome: "Processo", descricao: "Como algo funciona, do pedido à entrega.", icone: "processo", titulo: "Como funciona ...",
     texto: "> [!NOTA] Para que serve\n> Em uma frase: o que este processo resolve e para quem.\n\n## Quando usar\n\n- \n\n## Quem participa\n\n| Papel | Quem | O que faz |\n| --- | --- | --- |\n|  |  |  |\n\n## Passo a passo\n\n1. \n2. \n3. \n\n## Prazos e exceções\n\n> [!ATENCAO] Atenção\n> O que costuma dar errado e como evitar.\n\n## Onde está cada coisa\n\n- ",
@@ -332,7 +338,7 @@ export const MODELOS_DE_PAGINA: ModeloDePagina[] = [
 /** Uma página nova a partir de um modelo. */
 export function paginaDoModelo(modeloId: string, parte: Partial<Pagina> = {}): Pagina {
   const m = MODELOS_DE_PAGINA.find((x) => x.id === modeloId) ?? MODELOS_DE_PAGINA[0];
-  return paginaNova({ titulo: m.titulo, texto: m.texto, icone: m.icone === "arquivo" ? "" : m.icone, ...parte });
+  return paginaNova({ titulo: m.titulo, texto: m.texto, icone: m.icone === "arquivo" || m.tipo === "video" ? "" : m.icone, ...(m.tipo === "video" ? { tipo: "video" as const, video: {} } : {}), ...parte });
 }
 
 // ---------- quadro (páginas por estado) ----------

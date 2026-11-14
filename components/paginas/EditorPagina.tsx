@@ -10,7 +10,7 @@ import {
 import { PainelCitacoes } from "@/components/Citacoes";
 import { useNexo } from "@/components/Provider";
 import { ChipsInput, PontoCor } from "@/components/comum";
-import { EditorRico } from "@/components/editor/EditorRico";
+import { type ApiDoEditor, EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { useGravacao } from "@/components/useGravacao";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { caminhoDaPagina, nomeDaPagina, sumarioDoMarkdown, tamanhoDaLeitura, viz
 import { ESTADOS_PAGINA, type EstadoPagina, type Pagina, agoraISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { type AcoesDePagina, BotaoMenuPagina, IconePagina, SeletorDeIcone, SeloEstado } from "./pecas";
+import { VisaoDeVideo } from "./video/VisaoDeVideo";
 
 export type ModoDaPagina = "editar" | "ler";
 
@@ -44,8 +45,8 @@ export function EditorPagina({
   acoes: AcoesDePagina;
   aoAbrir: (id: string) => void;
   aoFechar: () => void;
-  /** Pedido de ir a uma seção: posição no sumário e um contador, para o mesmo pedido valer duas vezes. */
-  irPara: { titulo: number; vez: number } | null;
+  /** Pedido de ir a uma seção (posição no sumário) ou a um instante do vídeo; `vez` faz o mesmo pedido valer duas vezes. */
+  irPara: { titulo?: number; tempo?: number; vez: number } | null;
 }) {
   const { dados, salvarPaginas, estado } = useNexo();
   const id = pagina.id;
@@ -80,11 +81,15 @@ export function EditorPagina({
     else corpo.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
   useEffect(() => {
-    if (!irPara) return;
+    if (!irPara || irPara.titulo === undefined) return;
+    const indice = irPara.titulo;
     // espera o texto estar na tela (aba recém-aberta, editor montando)
-    const t = setTimeout(() => irParaTitulo(irPara.titulo), 120);
+    const t = setTimeout(() => irParaTitulo(indice), 120);
     return () => clearTimeout(t);
   }, [irPara, irParaTitulo]);
+  // página de vídeo aberta já num instante (busca na transcrição): vale o primeiro pedido
+  const [tempoInicial] = useState(() => irPara?.tempo ?? null);
+  const apiDoEditor = useRef<ApiDoEditor | null>(null);
   useEffect(() => {
     const el = corpo.current;
     if (!el) return;
@@ -104,10 +109,9 @@ export function EditorPagina({
 
   const titulo = valor.titulo;
 
-  return (
-    <div data-slot="editor-pagina" data-id={id} data-modo={lendo ? "ler" : "editar"} className="flex h-full min-h-0">
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* faixa fixa: onde estou, se está salvo, ler ou editar */}
+  // ---------- as partes da página (o documento e a página de vídeo arrumam as mesmas peças de jeitos diferentes) ----------
+  // faixa fixa: onde estou, se está salvo, ler ou editar
+  const faixa = (
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-4">
           <nav aria-label="Caminho da página" data-slot="caminho-da-pagina" className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden text-xs text-muted-foreground sem-selecao">
             {caminho.map((p) => (
@@ -143,16 +147,18 @@ export function EditorPagina({
           </Dica>
           <BotaoMenuPagina pagina={pagina} acoes={acoes} aoAbrir={aoAbrir} aoExcluir={aoFechar} />
         </div>
-
-        <div ref={corpo} data-slot="corpo-da-pagina" className="min-h-0 flex-1 overflow-y-auto scroll-pt-4">
-          <div className="mx-auto w-full max-w-[860px] px-8 pt-7 pb-24">
+  );
+  const aviso = (
+    <>
             {pagina.arquivadaEm && (
               <div role="status" className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-alerta/30 bg-alerta/10 px-3.5 py-2.5 text-[13px]">
                 <span className="min-w-0 flex-1">Esta página está arquivada. Os links para ela continuam funcionando.</span>
                 <Button size="sm" variant="outline" onClick={() => acoes.arquivar(pagina, false)}><ArchiveRestore /> Desarquivar</Button>
               </div>
             )}
-
+    </>
+  );
+  const cabecalho = (
             <div className="flex items-start gap-3">
               {lendo ? (
                 <span className="mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><IconePagina pagina={pagina} temFilhas={filhas.length > 0} className="size-5" /></span>
@@ -183,7 +189,9 @@ export function EditorPagina({
                 />
               )}
             </div>
-
+  );
+  const propriedades = (
+    <>
             {/* propriedades */}
             <div data-slot="propriedades-da-pagina" className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b pb-4 text-xs text-muted-foreground">
               {lendo ? (
@@ -212,16 +220,18 @@ export function EditorPagina({
                 editada {dataRelativa(pagina.atualizadaEm)}
               </span>
             </div>
-
-            {/* o texto */}
-            <div className="mt-4">
+    </>
+  );
+  const texto = (aoIrParaTempo?: (segundos: number) => void) => (
+    <>
               {lendo ? (
-                <TextoRico texto={valor.texto} ancoras cartoes className="text-[15px] leading-relaxed [&_h1]:scroll-mt-4 [&_h2]:scroll-mt-4 [&_h3]:scroll-mt-4" />
+                <TextoRico texto={valor.texto} ancoras cartoes aoIrParaTempo={aoIrParaTempo} className="text-[15px] leading-relaxed [&_h1]:scroll-mt-4 [&_h2]:scroll-mt-4 [&_h3]:scroll-mt-4" />
               ) : (
                 <EditorRico
                   data-slot="texto-da-pagina"
                   variante="documento"
                   paginaAtualId={id}
+                  aoPronto={(api) => { apiDoEditor.current = api; }}
                   valor={valor.texto}
                   aoMudar={(v) => mudar({ texto: v })}
                   desabilitado={somenteLeitura}
@@ -231,8 +241,10 @@ export function EditorPagina({
                   classeConteudo="px-0 pt-4 pb-2 text-[15px] leading-relaxed min-h-[40vh] [&_h1]:scroll-mt-16 [&_h2]:scroll-mt-16 [&_h3]:scroll-mt-16"
                 />
               )}
-            </div>
-
+    </>
+  );
+  const rodape = (
+    <>
             {/* páginas de dentro desta */}
             {(filhas.length > 0 || lendo) && filhas.length > 0 && (
               <section data-slot="paginas-de-dentro" className="mt-10 border-t pt-5">
@@ -276,12 +288,10 @@ export function EditorPagina({
                 )}
               </nav>
             )}
-          </div>
-        </div>
-      </div>
-
-      {painel && (
-        <aside data-slot="painel-da-pagina" className="hidden w-[248px] shrink-0 flex-col gap-5 overflow-y-auto border-l px-3.5 py-4 lg:flex">
+    </>
+  );
+  const sumarioECitacoes = (
+    <>
           <section>
             <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase sem-selecao">Nesta página</h3>
             {sumario.length === 0 ? (
@@ -305,6 +315,58 @@ export function EditorPagina({
             )}
           </section>
           <PainelCitacoes tipo="pagina" alvo={id} titulo="Quem aponta para cá" />
+    </>
+  );
+
+  if (pagina.tipo === "video") {
+    return (
+      <div data-slot="editor-pagina" data-id={id} data-tipo="video" data-modo={lendo ? "ler" : "editar"} className="flex h-full min-h-0 flex-col">
+        {faixa}
+        <div className="min-h-0 flex-1">
+          <VisaoDeVideo
+            pagina={pagina}
+            acoes={acoes}
+            lendo={lendo}
+            cabecalho={<>{aviso}{cabecalho}</>}
+            propriedades={propriedades}
+            anotacoes={texto}
+            rodape={rodape}
+            painelDaPagina={<div className="flex flex-col gap-5">{sumarioECitacoes}</div>}
+            painel={painel}
+            refDoCorpo={corpo}
+            inicio={tempoInicial}
+            tempoPedido={irPara?.tempo !== undefined ? { tempo: irPara.tempo, vez: irPara.vez } : null}
+            aoAnotar={(rotulo, href) => {
+              if (apiDoEditor.current && !lendo) apiDoEditor.current.inserirLink(rotulo, href);
+              else mudar({ texto: `${valor.texto.replace(/\s+$/, "")}${valor.texto.trim() ? "\n\n" : ""}[${rotulo}](${href}) ` });
+            }}
+            aoCitar={(md) => {
+              if (apiDoEditor.current && !lendo) apiDoEditor.current.inserirMarkdown(md);
+              else mudar({ texto: `${valor.texto.replace(/\s+$/, "")}${valor.texto.trim() ? "\n\n" : ""}${md}\n` });
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div data-slot="editor-pagina" data-id={id} data-modo={lendo ? "ler" : "editar"} className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {faixa}
+        <div ref={corpo} data-slot="corpo-da-pagina" className="min-h-0 flex-1 overflow-y-auto scroll-pt-4">
+          <div className="mx-auto w-full max-w-[860px] px-8 pt-7 pb-24">
+            {aviso}
+            {cabecalho}
+            {propriedades}
+            <div className="mt-4">{texto()}</div>
+            {rodape}
+          </div>
+        </div>
+      </div>
+      {painel && (
+        <aside data-slot="painel-da-pagina" className="hidden w-[248px] shrink-0 flex-col gap-5 overflow-y-auto border-l px-3.5 py-4 lg:flex">
+          {sumarioECitacoes}
         </aside>
       )}
     </div>

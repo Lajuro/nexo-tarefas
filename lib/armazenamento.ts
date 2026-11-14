@@ -719,3 +719,88 @@ export async function inventarioDaPasta() {
   const espelhos = (await listar(path.join(dir, "markdown"))).filter((f) => f.isFile() && f.name.endsWith(".md")).map((f) => f.name);
   return { anexos, raiz, tarefas, bytes, maior, lixeira, backups, espelhos };
 }
+
+// ---------- mídia das páginas de vídeo ----------
+// Vídeo e áudio são grandes: entram em disco em pedaços (nunca inteiros na memória) e saem em pedaços,
+// com suporte a "Range", que é o que deixa o player pular para qualquer ponto.
+
+const TIPOS_DE_MIDIA: Record<string, string> = {
+  ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm", ".ogv": "video/ogg", ".mov": "video/quicktime", ".mkv": "video/x-matroska",
+  ".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".aac": "audio/aac", ".wav": "audio/wav", ".ogg": "audio/ogg", ".oga": "audio/ogg", ".opus": "audio/ogg", ".flac": "audio/flac",
+};
+export const TETO_DE_MIDIA = 4 * 1024 * 1024 * 1024;
+const tipoDeMidia = (arquivo: string) => TIPOS_DE_MIDIA[path.extname(arquivo).toLowerCase()];
+
+/** Grava um vídeo ou áudio na pasta de dados, lendo o corpo do pedido aos poucos. Nunca sobrescreve. */
+export async function salvarMidia(nomeOriginal: string, corpo: ReadableStream<Uint8Array> | null) {
+  const dir = await paraEscrita();
+  if (!corpo) throw new Error("Nenhum arquivo enviado.");
+  if (!tipoDeMidia(nomeOriginal)) throw new Error("Esse tipo de arquivo não é aceito como vídeo. Use MP4, WebM, MOV, MKV, MP3, M4A, WAV ou OGG.");
+  const ano = String(new Date().getFullYear());
+  const limpo = nomeOriginal.replace(/[^a-zA-Z0-9._ -]/g, "_").replace(/\s+/g, " ").slice(-120) || "video";
+  const nome = `${Date.now().toString(36)}-${limpo}`;
+  const destino = path.join(dir, "arquivos", ano, nome);
+  await fs.mkdir(path.dirname(destino), { recursive: true });
+  const arquivo = await fs.open(destino, "wx"); // nunca sobrescreve
+  let tamanho = 0;
+  try {
+    const leitor = corpo.getReader();
+    for (;;) {
+      const { done, value } = await leitor.read();
+      if (done) break;
+      tamanho += value.byteLength;
+      if (tamanho > TETO_DE_MIDIA) throw new Error("Arquivo grande demais (o limite é 4 GB). Deixe o vídeo numa pasta do computador e aponte para ele, sem copiar.");
+      await arquivo.write(value);
+    }
+    await arquivo.close();
+  } catch (e) {
+    // envio interrompido ou grande demais: não fica um arquivo pela metade na pasta
+    await arquivo.close().catch(() => {});
+    await fs.unlink(destino).catch(() => {});
+    throw e;
+  }
+  if (!tamanho) {
+    await fs.unlink(destino).catch(() => {});
+    throw new Error("O arquivo chegou vazio.");
+  }
+  return { arquivo: `${ano}/${nome}`, nomeArquivo: nomeOriginal, tamanho };
+}
+
+/**
+ * Abre um vídeo para tocar: `rel` é um arquivo de arquivos/; `paginaId` é o vídeo que a página aponta num
+ * caminho deste computador. O caminho vem do que está gravado na página, nunca do pedido, e só toca arquivo
+ * com extensão de vídeo ou áudio.
+ */
+export async function abrirMidia(ref: { rel?: string | null; paginaId?: string | null }, faixa: string | null) {
+  let alvo: string;
+  if (ref.rel) alvo = await caminhoArquivo(ref.rel);
+  else {
+    const { dir } = await pastaPronta();
+    if (!ref.paginaId || !ID_VALIDO.test(ref.paginaId)) throw new Error("Vídeo não informado.");
+    const paginas = await lerJson<Colecao<Partial<Pagina>>>(path.join(dir, "paginas.json"), { rev: 0, items: [] });
+    const pagina = (paginas.items || []).find((p) => p.id === ref.paginaId);
+    const caminho = pagina ? normalizarPagina(pagina).video?.caminho : undefined;
+    if (!caminho) throw new Error("Esta página não aponta para um vídeo deste computador.");
+    alvo = path.resolve(caminho);
+  }
+  const tipo = tipoDeMidia(alvo);
+  if (!tipo) throw new Error("Esse arquivo não é um vídeo nem um áudio que o Nexo saiba tocar.");
+  const st = await fs.stat(alvo).catch(() => null);
+  if (!st?.isFile()) throw new Error("O arquivo do vídeo não foi encontrado neste computador.");
+
+  // "bytes=inicio-fim", "bytes=inicio-" ou "bytes=-ultimos"
+  let inicio = 0;
+  let fim = st.size - 1;
+  let parcial = false;
+  const m = /^bytes=(\d*)-(\d*)$/.exec((faixa || "").trim());
+  if (m && (m[1] || m[2])) {
+    if (m[1]) {
+      inicio = Number(m[1]);
+      if (m[2]) fim = Math.min(Number(m[2]), st.size - 1);
+    } else inicio = Math.max(0, st.size - Number(m[2]));
+    if (!Number.isFinite(inicio) || !Number.isFinite(fim) || inicio > fim || inicio >= st.size) return { tipo, tamanho: st.size, foraDaFaixa: true as const };
+    parcial = true;
+  }
+  const { createReadStream } = await import("node:fs");
+  return { tipo, tamanho: st.size, inicio, fim, parcial, foraDaFaixa: false as const, fluxo: createReadStream(alvo, { start: inicio, end: fim }) };
+}

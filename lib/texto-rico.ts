@@ -203,7 +203,14 @@ function inlines(tokens: Token[] | undefined, nivel: number): Inline[] {
         if ("raw" in tk && typeof tk.raw === "string") out.push(texto(tk.raw));
     }
   }
-  return out;
+  // junta pedaços de texto vizinhos: o editor escapa "[", "]" e "*", e cada escape chega como um pedaço à parte
+  const juntos: Inline[] = [];
+  for (const x of out) {
+    const ultimo = juntos[juntos.length - 1];
+    if (x.t === "texto" && ultimo?.t === "texto") juntos[juntos.length - 1] = { t: "texto", v: ultimo.v + x.v };
+    else juntos.push(x);
+  }
+  return juntos;
 }
 
 function blocos(tokens: Token[] | undefined, nivel: number): Bloco[] {

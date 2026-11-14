@@ -25,6 +25,8 @@ interface Ctx {
   salvarModelos: (fn: (items: Modelo[]) => Modelo[]) => Promise<boolean>;
   salvarPaginas: (fn: (items: Pagina[]) => Pagina[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
+  /** Vídeo ou áudio: vai em pedaços para a pasta de dados, avisando o progresso (0 a 1). */
+  enviarMidia: (f: File, aoProgresso?: (parte: number) => void) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
   /** Quantas gravações estão em andamento agora (para o indicador "Salvando..."). */
@@ -273,6 +275,27 @@ export function Provider({ children }: { children: ReactNode }) {
     [falha],
   );
 
+  // Vídeo é grande: XMLHttpRequest (e não fetch) porque é o que avisa o quanto já subiu.
+  const enviarMidia = useCallback(
+    (f: File, aoProgresso?: (parte: number) => void) =>
+      new Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>((resolver) => {
+        const x = new XMLHttpRequest();
+        x.open("POST", `/api/midia?nome=${encodeURIComponent(f.name)}`);
+        x.setRequestHeader("Content-Type", "application/octet-stream");
+        x.upload.onprogress = (e) => { if (e.lengthComputable) aoProgresso?.(e.loaded / e.total); };
+        const erro = (mensagem: string) => { toast(mensagem, "erro"); resolver(null); };
+        x.onerror = () => erro("Não consegui enviar o vídeo. Confira se o Nexo continua aberto e tente de novo.");
+        x.onload = () => {
+          let r: { erro?: string; arquivo?: string; nomeArquivo?: string; tamanho?: number } = {};
+          try { r = JSON.parse(x.responseText); } catch {}
+          if (x.status >= 200 && x.status < 300 && r.arquivo) resolver({ arquivo: r.arquivo, nomeArquivo: r.nomeArquivo ?? f.name, tamanho: r.tamanho ?? f.size });
+          else erro(r.erro || `Não consegui enviar o vídeo (erro ${x.status}).`);
+        };
+        x.send(f);
+      }),
+    [toast],
+  );
+
   const configurarPasta = useCallback(
     async (dir: string) => {
       try {
@@ -296,7 +319,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

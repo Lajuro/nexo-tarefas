@@ -37,8 +37,8 @@ const NOME_DO_ICONE: Record<IconeDePagina, string> = {
 const ehIcone = (x: unknown): x is IconeDePagina => typeof x === "string" && (ICONES_DE_PAGINA as readonly string[]).includes(x);
 
 /** O ícone de uma página: o escolhido, ou o padrão (documento; pasta se tem filhas). */
-export function IconePagina({ pagina, temFilhas, className }: { pagina: Pick<Pagina, "icone">; temFilhas?: boolean; className?: string }) {
-  const I = ehIcone(pagina.icone) ? ICONES[pagina.icone] : temFilhas ? Folder : FileText;
+export function IconePagina({ pagina, temFilhas, className }: { pagina: Pick<Pagina, "icone"> & { tipo?: Pagina["tipo"] }; temFilhas?: boolean; className?: string }) {
+  const I = ehIcone(pagina.icone) ? ICONES[pagina.icone] : pagina.tipo === "video" ? Clapperboard : temFilhas ? Folder : FileText;
   return <I aria-hidden className={cn("size-3.5 shrink-0", className)} />;
 }
 

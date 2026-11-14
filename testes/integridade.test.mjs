@@ -92,6 +92,17 @@ teste("anexo citado que falta é erro; anexo que ninguém cita é só informaç�
   assert.equal(achado(I.verificarIntegridade(d, inventario({ anexos: [{ rel: "2026/abc-laudo.pdf", tamanho: 1 }] }), HOJE), "anexo-faltando"), undefined);
 });
 
+teste("página de vídeo: o vídeo, a transcrição e a capa contam como anexos citados", () => {
+  const d = base();
+  d.paginas.items.push(T.normalizarPagina({ id: "pgv", titulo: "Gravação", tipo: "video", video: { arquivo: "2026/v-gravacao.mp4", transcricao: "2026/v-fala.vtt", capa: "2026/v-capa.png", caminho: "C:\\Videos\\x.mp4" } }));
+  const tem = I.verificarIntegridade(d, inventario({ anexos: [...inventario().anexos, { rel: "2026/v-gravacao.mp4", tamanho: 9 }, { rel: "2026/v-fala.vtt", tamanho: 1 }, { rel: "2026/v-capa.png", tamanho: 1 }] }), HOJE);
+  assert.deepEqual(tem.achados, []); // nada sobrando, nada faltando
+  const falta = I.verificarIntegridade(d, inventario(), HOJE);
+  assert.deepEqual(achado(falta, "anexo-faltando").itens, [
+    '2026/v-gravacao.mp4 (vídeo da página de vídeo "Gravação")', '2026/v-fala.vtt (transcrição da página de vídeo "Gravação")', '2026/v-capa.png (capa da página de vídeo "Gravação")',
+  ]);
+});
+
 teste("vínculos e citações que apontam para o que não existe mais", () => {
   const d = base();
   d.tarefas.push(T.normalizarTarefa({ id: "t2", titulo: "Solta", categoriaId: "c-sumiu", descricao: "depende de [outra](nexo:tarefa/t-lixo) e de [mais uma](nexo:tarefa/t-nada), ver [pg](nexo:pagina/pg-nada)", registros: [{ id: "r2", tipo: "nota", data: "2026-11-11", notaId: "n-sumiu" }] }));

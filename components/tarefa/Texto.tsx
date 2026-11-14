@@ -15,6 +15,7 @@ import { type ItemDoSumario, nomeDaPagina, sumarioDosBlocos } from "@/lib/pagina
 import { NOMES_DE_LINGUAGEM, realcar } from "@/lib/realce";
 import { Bloco, Inline, NOME_DO_DESTAQUE, type TipoDeDestaque, analisarMarkdown, paraTextoPlano } from "@/lib/texto-rico";
 import { formatarData, nomeStatus } from "@/lib/tipos";
+import { lerTempo } from "@/lib/transcricao";
 import { cn } from "@/lib/utils";
 
 /** O que muda no desenho conforme o lugar: documento com sumário, cartões vivos, player de vídeo por perto. */
@@ -28,10 +29,32 @@ const ICONE_DO_DESTAQUE: Record<TipoDeDestaque, LucideIcon> = {
   nota: Info, dica: Lightbulb, importante: CircleAlert, atencao: TriangleAlert, perigo: OctagonAlert, sucesso: CircleCheckBig, pergunta: CircleHelp, exemplo: FlaskConical, detalhes: ChevronRight,
 };
 
+const TEMPO_ENTRE_COLCHETES = /\[((?:\d{1,2}:)?\d{1,2}:\d{2})\]/g;
+/** Troca cada "[12:34]" de um texto por um botão que leva o vídeo até aquele instante. */
+function comTempos(texto: string, aoIrParaTempo: (segundos: number) => void): ReactNode[] {
+  const out: ReactNode[] = [];
+  let fim = 0;
+  for (const m of texto.matchAll(TEMPO_ENTRE_COLCHETES)) {
+    const segundos = lerTempo(m[1]);
+    if (segundos === null) continue;
+    if (m.index > fim) out.push(texto.slice(fim, m.index));
+    out.push(
+      <button key={m.index} type="button" data-slot="tempo" data-segundos={Math.round(segundos)} onClick={() => aoIrParaTempo(segundos)}>
+        <Clock aria-hidden />{m[1]}
+      </button>,
+    );
+    fim = m.index + m[0].length;
+  }
+  if (fim < texto.length) out.push(texto.slice(fim));
+  return out;
+}
+
 function desenharInlines(f: Inline[], o: Opcoes = {}): ReactNode {
   return f.map((i, k) => {
     switch (i.t) {
       case "texto":
+        // onde há um player, "[12:34]" escrito à mão (ou vindo do resumo do Copilot) já leva o vídeo até lá
+        if (o.aoIrParaTempo && i.v.includes("[")) return <Fragment key={k}>{comTempos(i.v, o.aoIrParaTempo)}</Fragment>;
         return <Fragment key={k}>{i.v}</Fragment>;
       case "negrito":
         return <strong key={k}>{desenharInlines(i.f, o)}</strong>;
