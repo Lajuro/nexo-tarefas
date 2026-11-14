@@ -5,10 +5,11 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import {
-  ArrowRight, BellRing, CalendarCheck2, Keyboard, Palette, Repeat2, RotateCcw, ShieldCheck, SlidersHorizontal, Sunrise, Trophy,
+  ArrowRight, BellRing, CalendarCheck2, Keyboard, Palette, Repeat2, RotateCcw, ShieldCheck, SlidersHorizontal, Sparkles, Sunrise, Trophy,
   UserRound,
 } from "lucide-react";
 import pacote from "@/package.json";
+import { abrirNovidades } from "@/components/shell/Novidades";
 import { ChipsInput, Painel } from "@/components/comum";
 import { useAparencia } from "@/components/Raiz";
 import { abrirPlanejarDia } from "@/components/Shell";
@@ -265,6 +266,7 @@ export function PainelSobre() {
           <ShieldCheck className="size-3.5" />
           100% local, nada sai da sua máquina
         </span>
+        <Button variant="outline" size="sm" data-slot="ver-novidades" onClick={abrirNovidades}><Sparkles /> O que há de novo</Button>
       </div>
     </Painel>
   );

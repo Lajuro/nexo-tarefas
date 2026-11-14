@@ -76,6 +76,42 @@ function acharCampo(campos: [string, string][], termo: string): { rotulo: string
   return { rotulo: onde[0], texto: onde[1], termo: palavras.find((w) => semAcento(onde[1]).includes(w))! };
 }
 
+// Tirar a marcação do Markdown é a parte cara da busca. O resultado fica guardado por registro e por página:
+// o objeto só muda quando o dado é regravado, então cada texto é processado uma vez, não a cada tecla.
+const camposGuardados = new WeakMap<Registro, string[]>();
+function camposDoRegistro(reg: Registro): string[] {
+  let c = camposGuardados.get(reg);
+  if (!c) {
+    c = [reg.titulo, paraTextoPlano(reg.resumoIA), paraTextoPlano(reg.anotacoes), reg.decisoes, reg.impedimentos,
+      reg.participantes.join(", "), reg.proximosPassos.map((p) => `${p.texto} ${p.responsavel}`).join("\n")];
+    camposGuardados.set(reg, c);
+  }
+  return c;
+}
+const paginasGuardadas = new WeakMap<object, string>();
+function textoDaPagina(pagina: { texto: string }): string {
+  let t = paginasGuardadas.get(pagina);
+  if (t === undefined) {
+    t = paraTextoPlano(pagina.texto);
+    paginasGuardadas.set(pagina, t);
+  }
+  return t;
+}
+
+/** Quantos resultados cada seção desenha de saída. Um termo comum pode casar com milhares de registros. */
+const LOTE = 40;
+
+function MostrarMais({ total, visiveis, aoPedir }: { total: number; visiveis: number; aoPedir: () => void }) {
+  if (total <= visiveis) return null;
+  const resto = total - visiveis;
+  return (
+    <div className="mt-2 flex items-center gap-3 px-1">
+      <Button variant="outline" size="sm" data-slot="mostrar-mais" onClick={aoPedir}>Mostrar mais {Math.min(resto, LOTE * 3)}</Button>
+      <span className="text-xs text-muted-foreground tabular-nums">mostrando {visiveis} de {total}. Mais palavras na busca reduzem a lista.</span>
+    </div>
+  );
+}
+
 function Conteudo() {
   const { dados } = useNexo();
   const router = useRouter();
@@ -122,6 +158,11 @@ function Conteudo() {
   const termo = useDeferredValue(texto.trim());
   const n = semAcento(termo);
 
+  // Cada seção começa com um lote; "Mostrar mais" aumenta. Busca nova volta ao lote inicial.
+  const [limite, setLimite] = useState(LOTE);
+  useEffect(() => setLimite(LOTE), [n]);
+  const mais = () => setLimite((x) => x + LOTE * 3);
+
   const r = useMemo(() => {
     if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[], cadastro: [] as AchadoPessoa[], times: [] as AchadoTime[], paginas: [] as AchadoPagina[] };
     const palavras = palavrasDe(n);
@@ -132,8 +173,7 @@ function Conteudo() {
       t.registros
         .map((reg) => {
           // anotações e resumo guardam Markdown: a busca e o trecho mostrado usam o texto sem a marcação
-          const campos = [reg.titulo, paraTextoPlano(reg.resumoIA), paraTextoPlano(reg.anotacoes), reg.decisoes, reg.impedimentos,
-            reg.participantes.join(", "), reg.proximosPassos.map((p) => `${p.texto} ${p.responsavel}`).join("\n")];
+          const campos = camposDoRegistro(reg);
           if (!tem(campos.join("\n"))) return null;
           // Mostra o campo que tem a busca inteira; se as palavras estão espalhadas, o que tem mais delas.
           let i = campos.findIndex((c) => c && semAcento(c).includes(n));
@@ -156,7 +196,7 @@ function Conteudo() {
     });
     // páginas de conhecimento: o texto é Markdown, então a busca e o trecho usam o texto sem a marcação
     const paginas = (dados!.paginas?.items ?? []).flatMap((pagina) => {
-      const texto = paraTextoPlano(pagina.texto);
+      const texto = textoDaPagina(pagina);
       return tem(`${pagina.titulo} ${texto}`) ? [{ pagina, texto }] : [];
     }).sort((a, b) => b.pagina.atualizadaEm.localeCompare(a.pagina.atualizadaEm));
     return { tarefas, registros, links, cadastro, times, paginas };
@@ -283,7 +323,7 @@ function Conteudo() {
           {mostra("tarefas") && r.tarefas.length > 0 && (
             <Secao titulo="Tarefas" icone={<ListTodo />} contagem={r.tarefas.length}>
               <ListaResultados>
-                {r.tarefas.map((t) => {
+                {r.tarefas.slice(0, limite).map((t) => {
                   const noTexto = [t.descricao, t.panoramaIA?.texto ?? ""].find((c) => c && palavrasDe(n).some((w) => semAcento(c).includes(w)));
                   const fonte = noTexto ?? t.descricao;
                   const doPanorama = Boolean(noTexto) && noTexto !== t.descricao;
@@ -318,14 +358,16 @@ function Conteudo() {
                   );
                 })}
               </ListaResultados>
+              <MostrarMais total={r.tarefas.length} visiveis={Math.min(limite, r.tarefas.length)} aoPedir={mais} />
             </Secao>
           )}
 
           {mostra("registros") && r.registros.length > 0 && (
             <Secao titulo="Registros na linha do tempo" icone={<MessagesSquare />} contagem={r.registros.length}>
               <ListaResultados>
-                {r.registros.map(({ t, reg, achado, campo: onde }) => {
-                  const apoio = paraTextoPlano(reg.resumoIA || reg.anotacoes);
+                {r.registros.slice(0, limite).map(({ t, reg, achado, campo: onde }) => {
+                  const campos = camposDoRegistro(reg);
+                  const apoio = campos[1] || campos[2];
                   // Nos próximos passos, mostra só o passo que bateu (o campo pesquisado junta todos).
                   const passo = onde === 6 ? reg.proximosPassos.find((p) => palavrasDe(n).some((w) => semAcento(`${p.texto} ${p.responsavel}`).includes(w))) : undefined;
                   const mostrado = passo ? `${passo.texto}${passo.responsavel ? ` (${passo.responsavel})` : ""}` : achado;
@@ -358,13 +400,14 @@ function Conteudo() {
                   );
                 })}
               </ListaResultados>
+              <MostrarMais total={r.registros.length} visiveis={Math.min(limite, r.registros.length)} aoPedir={mais} />
             </Secao>
           )}
 
           {mostra("pessoas") && r.cadastro.length > 0 && (
             <Secao titulo="Pessoas" icone={<Users />} contagem={r.cadastro.length}>
               <ListaResultados>
-                {r.cadastro.map(({ pessoa, rotulo, texto, termo: achou }) => {
+                {r.cadastro.slice(0, limite).map(({ pessoa, rotulo, texto, termo: achou }) => {
                   const funcao = [pessoa.cargo, pessoa.area].filter(Boolean).join(" · ");
                   return (
                     <Resultado key={pessoa.id} tipo="pessoa">
@@ -386,6 +429,7 @@ function Conteudo() {
                   );
                 })}
               </ListaResultados>
+              <MostrarMais total={r.cadastro.length} visiveis={Math.min(limite, r.cadastro.length)} aoPedir={mais} />
             </Secao>
           )}
 
@@ -416,7 +460,7 @@ function Conteudo() {
           {mostra("paginas") && r.paginas.length > 0 && (
             <Secao titulo="Páginas de conhecimento" icone={<BookText />} contagem={r.paginas.length}>
               <ListaResultados>
-                {r.paginas.map(({ pagina, texto }) => (
+                {r.paginas.slice(0, limite).map(({ pagina, texto }) => (
                   <Resultado key={pagina.id} tipo="pagina">
                     <Link href={`/paginas?p=${pagina.id}`} className={CLASSE_RESULTADO}>
                       <BookText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -428,13 +472,14 @@ function Conteudo() {
                   </Resultado>
                 ))}
               </ListaResultados>
+              <MostrarMais total={r.paginas.length} visiveis={Math.min(limite, r.paginas.length)} aoPedir={mais} />
             </Secao>
           )}
 
           {mostra("links") && r.links.length > 0 && (
             <Secao titulo="Links e documentos" icone={<Library />} contagem={r.links.length}>
               <ListaResultados>
-                {r.links.map((l) => (
+                {r.links.slice(0, limite).map((l) => (
                   <Resultado key={l.id} tipo="link">
                     <a href={hrefLink(l)} target="_blank" rel="noreferrer" className={CLASSE_RESULTADO}>
                       <IconeLink link={l} />
@@ -456,6 +501,7 @@ function Conteudo() {
                   </Resultado>
                 ))}
               </ListaResultados>
+              <MostrarMais total={r.links.length} visiveis={Math.min(limite, r.links.length)} aoPedir={mais} />
             </Secao>
           )}
         </div>

@@ -21,7 +21,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     ],
   },
   {
-    grupo: "Organização",
+    grupo: "Conhecimento",
     itens: [
       { href: "/paginas", nome: "Páginas", icone: BookText, tecla: "a" },
       { href: "/perguntar", nome: "Perguntar", icone: MessageCircleQuestion, tecla: "u" },
@@ -31,7 +31,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     ],
   },
   {
-    grupo: "Rotina",
+    grupo: "Acompanhar",
     itens: [
       { href: "/radar", nome: "Radar", icone: Radar, tecla: "f" },
       { href: "/diario", nome: "Diário", icone: BookOpenText, tecla: "d" },

@@ -118,7 +118,7 @@ function AbaLateral() {
       </Bloco>
 
       <Bloco titulo="Detalhes">
-        <CampoSwitch marcado={moldura.titulosDeGrupo} aoMudar={(v) => mudarMoldura({ titulosDeGrupo: v })}>Mostrar os títulos dos grupos (Dia a dia, Organização, Rotina)</CampoSwitch>
+        <CampoSwitch marcado={moldura.titulosDeGrupo} aoMudar={(v) => mudarMoldura({ titulosDeGrupo: v })}>Mostrar os títulos dos grupos (Dia a dia, Conhecimento, Acompanhar)</CampoSwitch>
         <CampoSwitch marcado={moldura.contadores} aoMudar={(v) => mudarMoldura({ contadores: v })}>Mostrar os contadores ao lado dos itens</CampoSwitch>
         <div className="mt-1 flex items-center gap-2">
           <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">

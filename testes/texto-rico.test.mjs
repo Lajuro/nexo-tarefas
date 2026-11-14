@@ -163,5 +163,21 @@ teste("espelho em Markdown: a imagem aponta para a pasta de anexos ao lado", () 
   assert.ok(MD.tarefaParaMarkdown(t).includes("![print](../arquivos/2026/a-print.png)"));
 });
 
+teste("texto plano: o atalho para texto sem marcação dá exatamente o mesmo que o leitor completo", () => {
+  const amostras = [
+    "", "uma linha só", "duas linhas\nseguidas", "parágrafo um\n\nparágrafo dois\n\n\n\nparágrafo três", "  espaços   no meio   e nas pontas  ",
+    "linha com\ttab no meio", "termina com dois espaços  \ncontinua", "Reunião às 14:30, sala 2. Custo: R$ 1.200,50 (aprovado)", "pergunta? resposta; 50% feito / 3 de 4",
+    "aspas \"duplas\" e 'simples'", "acentuação: ação, coração, à, é, ü", "\n\n  começa com linhas vazias", "1 item sem ponto\n2 outro", "a - b - c", "hífen-no-meio da palavra",
+    "falar com Marina (tech lead) e Bruno.\nPedir acesso.", "CRLF\r\nsegunda linha",
+    // com marcação: tem que cair no leitor completo
+    "**negrito** e _itálico_", "- item\n- outro", "1. um\n2. dois", "# título", "> citação", "`código`", "a | b\n--|--\n1 | 2", "[link](https://exemplo.local)", "https://exemplo.local/solto",
+    "&lt;tag&gt; e 2 \\* 3", "    quatro espaços no começo", "\tcomeça com tab", "título\n===", "linha\n---\noutra", "![img](arquivos/2026/a.png)", "fulano@exemplo.local", "a ~~riscado~~ b", "www.exemplo.local", "+ item com mais",
+    "1) um\n2) dois", "texto <b>html</b>", "linha um\n- lista logo depois", "dois  espaços\n\n   três no começo",
+  ];
+  for (const a of amostras) assert.equal(R.paraTextoPlano(a), R.paraTextoPlanoPeloLeitor(a), JSON.stringify(a));
+  assert.equal(R.paraTextoPlano(null), "");
+  assert.equal(R.paraTextoPlano(undefined), "");
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);

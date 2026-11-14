@@ -28,6 +28,7 @@ import { abrirPersonalizar, registrarRecente, useMoldura } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
+import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
 import { ModeloForm } from "./Modelos";
 import { Celebracao } from "./jogo/Celebracao";
@@ -209,6 +210,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Confete />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
+      <Novidades />
       <Paleta
         aberta={paleta}
         fechar={() => setPaleta(false)}

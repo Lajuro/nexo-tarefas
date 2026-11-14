@@ -958,8 +958,11 @@ async function main() {
     // toda frente tem um selo de saúde, e os números do topo somam as frentes com tarefa aberta
     afirmar((await pg.locator("[data-slot=frente] [data-slot=saude]").count()) === esperadas, "faltou o selo de saúde em alguma frente");
     const semAbertas = await pg.locator("[data-slot=frente][data-saude=sem_abertas]").count();
-    const numeros = await pg.locator("[data-slot=estatistica]").evaluateAll((els) => els.map((e) => Number(e.textContent.replace(/\D/g, ""))));
-    afirmar(numeros.reduce((a, b) => a + b, 0) === esperadas - semAbertas, `os contadores de saúde (${numeros}) não batem com as frentes`);
+    // os números do topo contam animados até o valor: espera a soma fechar
+    await pg.waitForFunction(
+      (alvo) => [...document.querySelectorAll("[data-slot=estatistica]")].reduce((n, e) => n + Number(e.textContent.replace(/\D/g, "")), 0) === alvo,
+      esperadas - semAbertas,
+    ).catch(() => afirmar(false, "os contadores de saúde não batem com as frentes"));
     // filtrar por uma saúde que existe
     const saude = await pg.locator("[data-slot=frente]").first().getAttribute("data-saude");
     const quantas = await pg.locator(`[data-slot=frente][data-saude=${saude}]`).count();
@@ -1021,6 +1024,52 @@ async function main() {
     await pg.locator("[data-slot=ligar-jogo]").click();
     await pg.locator("[data-slot=cartao-nivel]").waitFor();
     await pg.locator("[data-slot=lateral] [data-slot=nivel-lateral]").waitFor();
+  });
+
+  // ---------- confiança: saúde dos dados, restaurar backup e novidades ----------
+  await etapa("configurações: verificar a saúde dos dados, restaurar um backup e ver as novidades", async () => {
+    await pg.goto(`${B}/configuracoes`);
+    await pg.locator("[data-slot=verificar-dados]").click();
+    const saude = pg.locator("[data-slot=saude-dos-dados]");
+    await saude.waitFor();
+    const erros = await pg.locator("[data-slot=achado][data-gravidade=erro]").evaluateAll((els) => els.map((e) => e.textContent));
+    afirmar(erros.length === 0, `a verificação acusou erro nos dados do teste: ${erros.join(" | ")}`);
+    afirmar(/\d+ tarefas, \d+ registros/.test(await saude.innerText()), "a verificação não mostrou os números da pasta");
+
+    // backup de agora, depois uma mudança, depois volta
+    const antes = await dados();
+    await pg.getByRole("button", { name: "Fazer backup agora" }).click();
+    await pg.getByText("Backup manual criado.").waitFor();
+    const alvo = antes.tarefas[0];
+    const nova = { id: "e2erestaurar", titulo: "Criada depois do backup (e2e)" };
+    await pg.request.put(`${B}/api/tarefas/${nova.id}`, { data: { tarefa: nova, revEsperada: null } });
+    await pg.request.put(`${B}/api/tarefas/${alvo.id}`, { data: { tarefa: { ...alvo, titulo: "Mudou depois do backup (e2e)" }, revEsperada: alvo.rev } });
+    await pg.locator("[data-slot=lista-backups]").click();
+    const linha = pg.locator("[data-slot=backup]", { hasText: "manual-" }).first();
+    await linha.locator("[data-slot=restaurar-backup]").click();
+    const previa = pg.locator("[data-slot=previa-backup]");
+    await previa.waitFor();
+    const texto = await previa.innerText();
+    afirmar(texto.includes("1 tarefa criada depois vai para a lixeira") && texto.includes(nova.titulo), `a prévia não avisou da tarefa que sai:\n${texto}`);
+    afirmar(texto.includes("1 tarefa volta ao que era") && texto.includes(alvo.titulo), `a prévia não avisou da tarefa que volta:\n${texto}`);
+    await pg.locator("[data-slot=confirmar-restauracao]").click();
+    await pg.getByText(/Backup restaurado\. O estado anterior ficou guardado em _backups\/pre-restauracao-/).waitFor();
+    const depois = await dados();
+    afirmar(!depois.tarefas.some((t) => t.id === nova.id), "a tarefa criada depois do backup continuou na pasta");
+    afirmar(depois.tarefas.find((t) => t.id === alvo.id).titulo === alvo.titulo, "a tarefa não voltou ao título do backup");
+    afirmar(depois.tarefas.length === antes.tarefas.length, "a restauração mudou a quantidade de tarefas");
+    // a foto do estado anterior aparece na lista, e a tarefa que saiu está na lixeira
+    await pg.locator("[data-slot=backup]", { hasText: "pre-restauracao-" }).first().waitFor();
+    await pg.getByText(nova.titulo).first().waitFor();
+
+    await pg.locator("[data-slot=ver-novidades]").click();
+    await pg.locator("[data-slot=novidades]").waitFor();
+    afirmar((await pg.locator("[data-slot=novidades] li").count()) >= 6, "a janela de novidades veio vazia");
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=novidades]").waitFor({ state: "detached" });
+    // as etapas seguintes contam com estar fora de Configurações (lá há um segundo seletor de tema)
+    await pg.goto(`${B}/tarefas`);
+    await pg.locator("[data-slot=pagina]").first().waitFor();
   });
 
   await etapa("personalizar: cor, item da lateral e ferramenta", async () => {

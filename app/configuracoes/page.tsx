@@ -5,7 +5,7 @@ import { useNexo } from "@/components/Provider";
 import { Pagina } from "@/components/comum";
 import { PainelModelos } from "@/components/Modelos";
 import { abrirNovaTarefa } from "@/components/Shell";
-import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao } from "@/components/configuracoes/dados";
+import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao, PainelSaude } from "@/components/configuracoes/dados";
 import { PainelAparencia, PainelAtalhos, PainelJogo, PainelQuemSouEu, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
@@ -73,7 +73,8 @@ export default function Configuracoes() {
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-4">
           <PainelPasta />
-          <PainelProtecao backups={backups} aoFazerBackup={fazerBackup} fazendo={fazendoBackup} />
+          <PainelProtecao backups={backups} aoFazerBackup={fazerBackup} fazendo={fazendoBackup} aoRestaurar={carregar} />
+          <PainelSaude />
           <PainelModelos usar={(id) => abrirNovaTarefa(null, id)} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">

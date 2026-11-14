@@ -299,9 +299,21 @@ function textoDosBlocos(bs: Bloco[]): string[] {
   return out;
 }
 
+/** O caminho completo: lê o Markdown e junta o texto de cada bloco. É o que define o resultado certo. */
+export function paraTextoPlanoPeloLeitor(md: string): string {
+  return textoDosBlocos(analisarMarkdown(md)).map((l) => l.replace(/[ \t]+/g, " ").trim()).filter(Boolean).join("\n");
+}
+
+// Qualquer caractere ou começo de linha que o Markdown trate de forma especial. Texto sem nada disso
+// (a maior parte das anotações antigas, digitadas como texto puro) sai igual pelo leitor, só que bem mais devagar.
+const TEM_MARCACAO = /[*_`~[\]<>&\\#|!=]|^[ \t]*(?:[-+]|\d+[.)])(?:[ \t]|$)|^(?: {4}|\t)|^[ \t]*-{2,}[ \t]*$|:\/\/|www\.|@/m;
+
 /** O texto sem a marcação: sem asteriscos, barras de escape, "&lt;" nem endereço de imagem. Um bloco por linha. */
 export function paraTextoPlano(md: string): string {
-  return textoDosBlocos(analisarMarkdown(md)).map((l) => l.replace(/[ \t]+/g, " ").trim()).filter(Boolean).join("\n");
+  if (!md) return "";
+  // sem marcação: cada parágrafo (separado por linha em branco) vira uma linha, como no leitor
+  if (!TEM_MARCACAO.test(md)) return md.split(/\n[ \t\r]*\n/).map((b) => b.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
+  return paraTextoPlanoPeloLeitor(md);
 }
 
 /** Há alguma imagem anexada neste texto? */

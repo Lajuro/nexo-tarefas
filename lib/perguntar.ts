@@ -120,6 +120,37 @@ function corpoDoRegistro(r: Registro): string {
   return L.join("\n");
 }
 
+// Tirar a marcação de cada registro é a parte cara. O resultado fica guardado por registro (o objeto só muda
+// quando a tarefa é regravada) e a lista pronta fica guardada por conjunto de dados, para a busca não refazer
+// tudo a cada letra digitada na pergunta.
+const textosGuardados = new WeakMap<Registro, { corpo: string; busca: string }>();
+function textosDoRegistro(r: Registro) {
+  let t = textosGuardados.get(r);
+  if (!t) {
+    t = { corpo: corpoDoRegistro(r), busca: buscaDoRegistro(r) };
+    textosGuardados.set(r, t);
+  }
+  return t;
+}
+
+interface Preparadas {
+  todas: Candidata[];
+  normalizadas: { titulo: string; contexto: string; corpo: string }[];
+}
+const preparadasGuardadas = new WeakMap<Dados, Map<string, Preparadas>>();
+function preparar(dados: Dados, categoriaId: string | null): Preparadas {
+  let porCategoria = preparadasGuardadas.get(dados);
+  if (!porCategoria) preparadasGuardadas.set(dados, (porCategoria = new Map()));
+  const chave = categoriaId ?? "";
+  let p = porCategoria.get(chave);
+  if (!p) {
+    const todas = candidatas(dados, categoriaId);
+    p = { todas, normalizadas: todas.map((c) => ({ titulo: semAcento(c.titulo), contexto: semAcento(c.contexto), corpo: semAcento(c.busca ?? c.corpo) })) };
+    porCategoria.set(chave, p);
+  }
+  return p;
+}
+
 function candidatas(dados: Dados, categoriaId: string | null): Candidata[] {
   const out: Candidata[] = [];
   const nomeCat = (id?: string | null) => dados.categorias.items.find((c) => c.id === id)?.nome ?? "";
@@ -143,12 +174,12 @@ function candidatas(dados: Dados, categoriaId: string | null): Candidata[] {
       busca: [paraTextoPlano(t.descricao), paraTextoPlano(t.panoramaIA?.texto ?? ""), t.esperando?.quem ?? "", t.esperando?.oQue ?? "", t.tags.join(" ")].join("\n"),
     });
     for (const r of t.registros) {
-      const corpo = corpoDoRegistro(r);
+      const { corpo, busca } = textosDoRegistro(r);
       if (!corpo && !r.titulo) continue;
       if (r.tipo === "marco" && !corpo) continue; // "Tarefa criada", "Status alterado": não respondem nada
       out.push({
         tipo: "registro", chave: `registro:${t.id}:${r.id}`, titulo: `${tipoInfo(r.tipo).nome}${r.titulo ? `: ${r.titulo}` : ""}`, contexto: ctx, data: r.data || null,
-        rota: `/tarefas/${t.id}?r=${r.id}`, interno: hrefInterno("tarefa", t.id), corpo, busca: buscaDoRegistro(r), peso: r.referencia ? 1.25 : 1,
+        rota: `/tarefas/${t.id}?r=${r.id}`, interno: hrefInterno("tarefa", t.id), corpo, busca, peso: r.referencia ? 1.25 : 1,
         tem: { decisoes: !!r.decisoes.trim(), pendencias: r.proximosPassos.some((p) => !p.feito), impedimentos: !!r.impedimentos.trim() || r.tipo === "impedimento" },
       });
     }
@@ -243,10 +274,9 @@ export function buscarFontes(
   const limite = opcoes.limite ?? TAMANHOS.medio;
   const maxFontes = opcoes.maxFontes ?? Math.max(6, Math.round(limite / 900));
   const hoje = opcoes.hoje ?? hojeISO();
-  const todas = candidatas(dados, opcoes.categoriaId ?? null);
+  const { todas, normalizadas } = preparar(dados, opcoes.categoriaId ?? null);
 
   // Em quantas fontes cada palavra aparece: palavra rara vale mais do que palavra que está em todo lugar.
-  const normalizadas = todas.map((c) => ({ titulo: semAcento(c.titulo), contexto: semAcento(c.contexto), corpo: semAcento(c.busca ?? c.corpo) }));
   const emQuantas = termos.map((t) => normalizadas.filter((n) => contar(n.titulo, t.radical, 1) || contar(n.contexto, t.radical, 1) || contar(n.corpo, t.radical, 1)).length);
   const raridade = emQuantas.map((n) => Math.log(1 + todas.length / Math.max(1, n)));
 

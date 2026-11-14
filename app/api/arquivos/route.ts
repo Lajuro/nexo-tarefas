@@ -11,11 +11,17 @@ const TIPOS: Record<string, string> = {
   ".html": "text/plain; charset=utf-8",
 };
 
+// O arquivo inteiro passa pela memória do servidor: um teto evita travar o app com um arquivo enorme por engano.
+const TETO = 200 * 1024 * 1024;
+const grande = () => new Error("Arquivo grande demais (o limite é 200 MB). Guarde o arquivo numa pasta e salve aqui o link para ele.");
+
 export const POST = (req: Request) =>
   tratar(async () => {
+    if (Number(req.headers.get("content-length")) > TETO + 1024 * 1024) throw grande();
     const form = await req.formData();
     const f = form.get("arquivo");
     if (!(f instanceof File)) throw new Error("Nenhum arquivo enviado.");
+    if (f.size > TETO) throw grande();
     return salvarArquivo(f.name, Buffer.from(await f.arrayBuffer()));
   });
 

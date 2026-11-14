@@ -26,6 +26,18 @@ checa "recusa id com path traversal" 'inválid' "$(curl -s -X PUT $B/api/tarefas
 checa "recusa leitura fora de arquivos/" 'inválid' "$(curl -s "$B/api/arquivos?p=../nexo.json")"
 checa "CSRF: recusa Origin de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST $B/api/backup -H 'Origin: https://evil.example')"
 checa "DNS rebinding: recusa Host estranho" '403' "$(curl -s -o /dev/null -w '%{http_code}' $B/api/estado -H 'Host: evil.example')"
+checa "DNS rebinding: recusa Host estranho também nas telas" '403' "$(curl -s -o /dev/null -w '%{http_code}' $B/ -H 'Host: evil.example')"
+checa "leitura: recusa pedido vindo de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' $B/api/dados -H 'Sec-Fetch-Site: cross-site')"
+checa "leitura: recusa pedido vindo de outra porta da máquina" '403' "$(curl -s -o /dev/null -w '%{http_code}' $B/api/exportar -H 'Sec-Fetch-Site: same-site')"
+checa "leitura: o próprio app continua lendo" '200' "$(curl -s -o /dev/null -w '%{http_code}' $B/api/dados -H 'Sec-Fetch-Site: same-origin')"
+checa "CSRF: recusa escrita vinda de outra porta da máquina" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST $B/api/backup -H 'Sec-Fetch-Site: same-site')"
+CAB=$(curl -s -D - -o /dev/null $B/)
+checa "telas: política de conteúdo só deixa falar com a própria máquina" "connect-src 'self'" "$CAB"
+checa "telas: não podem ser embutidas em outra página" "frame-ancestors 'none'" "$CAB"
+checa "telas: sem referrer" 'no-referrer' "$CAB"
+checa "telas: nosniff" 'nosniff' "$CAB"
+checa "telas: não anuncia o servidor" '' "$(echo "$CAB" | grep -i 'x-powered-by' || true)"
+checa "pasta de dados fixada por variável não é trocada pela API" 'NEXO_DATA_DIR' "$(curl -s -X POST $B/api/config -H "$J" -d '{"dataDir":"/tmp/x"}')"
 checa "backup diário criado" 'tarefas' "$(ls "$TMP/dados/_backups/"*/ 2>/dev/null)"
 checa "espelho markdown" '.md' "$(ls "$TMP/dados/markdown" 2>/dev/null)"
 curl -s -X DELETE $B/api/tarefas/t1 >/dev/null
@@ -115,5 +127,61 @@ checa "pessoas corrompido volta com rev -1" '"pessoas":{"rev":-1' "$(curl -s $B/
 curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":2}' >/dev/null
 curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":-1}' >/dev/null
 checa "pessoas corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/pessoas.json")"
+
+# ---------- verificação de integridade e restauração de backup ----------
+V=$(curl -s $B/api/verificar)
+checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"
+checa "verificar: conta as tarefas" '"tarefas":' "$V"
+MANUAL=$(basename "$(ls -d "$TMP/dados/_backups/"manual-* | head -1)")
+checa "restaurar: recusa backup com arquivo ilegível dentro" 'não é um JSON válido' "$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d "{\"nome\":\"$MANUAL\"}")"
+checa "restaurar recusado não cria foto do estado" '' "$(ls "$TMP/dados/_backups" | grep pre-restauracao || true)"
+checa "restaurar: recusa nome com path traversal" 'inválido' "$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d '{"nome":"../../x"}')"
+checa "restaurar: recusa nome fora do padrão" 'inválido' "$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d '{"nome":"tarefas"}')"
+checa "restaurar: backup que não existe" 'não existe' "$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d '{"nome":"manual-2020-01-01T00-00-00"}')"
+checa "prévia: recusa nome com path traversal" 'inválido' "$(curl -s "$B/api/backup?nome=..%2F..%2Fx")"
+checa "restaurar: CSRF recusa Origin de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST $B/api/backup/restaurar -H "$J" -H 'Origin: https://evil.example' -d "{\"nome\":\"$MANUAL\"}")"
+# conserta os dois arquivos quebrados de propósito acima, para ter um backup inteiro
+echo '{"rev":7,"items":[{"id":"c1","nome":"Categoria do backup"}]}' >"$TMP/dados/categorias.json"
+echo '{"rev":7,"items":[{"id":"pe1","nome":"Ana Teste"}]}' >"$TMP/dados/pessoas.json"
+checa "verificar: sem arquivo ilegível depois do conserto" '' "$(curl -s $B/api/verificar | grep -o '"id":"ilegivel"' || true)"
+curl -s -X PUT $B/api/tarefas/tr1 -H "$J" -d '{"tarefa":{"id":"tr1","titulo":"Como era no backup","campoFuturo":"fica"},"revEsperada":null}' >/dev/null
+sleep 1.1
+BK=$(basename "$(curl -s -X POST $B/api/backup | sed 's/.*"pasta":"\([^"]*\)".*/\1/')")
+checa "backup manual para restaurar" 'manual-' "$BK"
+curl -s -X PUT $B/api/tarefas/tr1 -H "$J" -d '{"tarefa":{"id":"tr1","titulo":"Mudou depois"},"revEsperada":1}' >/dev/null
+curl -s -X PUT $B/api/tarefas/tr2 -H "$J" -d '{"tarefa":{"id":"tr2","titulo":"Criada depois do backup"},"revEsperada":null}' >/dev/null
+curl -s -X PUT $B/api/categorias -H "$J" -d '{"items":[{"id":"c1","nome":"Categoria renomeada depois"},{"id":"c2","nome":"Categoria nova"}],"revEsperada":7}' >/dev/null
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$(curl -s $B/api/dados | sed 's/.*"paginas":{"rev":\([0-9-]*\).*/\1/')}" >/dev/null
+PV=$(curl -s "$B/api/backup?nome=$BK")
+checa "prévia: tarefa que volta ao que era" '"mudam":[{"id":"tr1","titulo":"Como era no backup"}]' "$PV"
+checa "prévia: tarefa criada depois sai" '"saem":[{"id":"tr2","titulo":"Criada depois do backup"}]' "$PV"
+checa "prévia: restaurável" '"restauravel":true' "$PV"
+checa "prévia não altera nada" 'Mudou depois' "$(cat "$TMP/dados/tarefas/tr1.json")"
+R=$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d "{\"nome\":\"$BK\"}")
+checa "restaurar: responde com a foto do estado anterior" '"foto":"pre-restauracao-' "$R"
+checa "restaurar: uma tarefa foi para a lixeira" '"paraLixeira":1' "$R"
+T1=$(cat "$TMP/dados/tarefas/tr1.json")
+checa "restaurar: a tarefa voltou ao que era" '"titulo": "Como era no backup"' "$T1"
+checa "restaurar: preserva campo desconhecido" '"campoFuturo": "fica"' "$T1"
+checa "restaurar: a revisão sobe além da atual" '"rev": 3' "$T1"
+checa "restaurar: aba com dado velho recebe 409" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/tarefas/tr1 -H "$J" -d '{"tarefa":{"id":"tr1","titulo":"aba velha"},"revEsperada":2}')"
+checa "restaurar: tarefa criada depois saiu da pasta" '' "$(ls "$TMP/dados/tarefas" | grep '^tr2' || true)"
+checa "restaurar: e foi para a lixeira" 'tarefa-tr2-' "$(ls "$TMP/dados/_lixeira")"
+checa "restaurar: a foto do estado anterior tem a tarefa nova" 'tr2.json' "$(ls "$TMP/dados/_backups/"pre-restauracao-*/tarefas)"
+checa "restaurar: a foto guarda a versão que foi substituída" 'Mudou depois' "$(cat "$TMP/dados/_backups/"pre-restauracao-*/tarefas/tr1.json)"
+C=$(cat "$TMP/dados/categorias.json")
+checa "restaurar: coleção volta ao que era" 'Categoria do backup' "$C"
+checa "restaurar: revisão da coleção sobe além da atual" '"rev": 9' "$C"
+checa "restaurar: espelho em Markdown acompanha" 'Como era no backup' "$(cat "$TMP/dados/markdown/"*--tr1.md)"
+checa "restaurar: tarefa da lixeira pode voltar" 'Criada depois do backup' "$(curl -s -X POST $B/api/lixeira -H "$J" -d "{\"arquivo\":\"$(ls "$TMP/dados/_lixeira" | grep '^tarefa-tr2-')\"}")"
+checa "restaurar a foto desfaz a restauração" '"tarefas":' "$(curl -s -X POST $B/api/backup/restaurar -H "$J" -d "{\"nome\":\"$(basename "$(ls -d "$TMP/dados/_backups/"pre-restauracao-* | head -1)")\"}")"
+checa "desfazer: a tarefa volta ao estado de antes da restauração" '"titulo": "Mudou depois"' "$(cat "$TMP/dados/tarefas/tr1.json")"
+checa "desfazer: a categoria volta ao estado de antes da restauração" 'Categoria renomeada depois' "$(cat "$TMP/dados/categorias.json")"
+# anexo citado que não está na pasta
+curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lx\",\"tipo\":\"arquivo\",\"titulo\":\"Laudo\",\"arquivo\":\"2026/nao-existe.pdf\"}],\"revEsperada\":$(curl -s $B/api/dados | sed 's/.*"links":{"rev":\([0-9-]*\).*/\1/')}" >/dev/null
+V=$(curl -s $B/api/verificar)
+checa "verificar: anexo citado que não está na pasta" '"id":"anexo-faltando","gravidade":"erro"' "$V"
+checa "verificar: diz qual anexo" '2026/nao-existe.pdf' "$V"
+checa "verificar: só lê (não cria nem apaga arquivo)" 'nao-existe' "$(cat "$TMP/dados/links.json")"
 
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }

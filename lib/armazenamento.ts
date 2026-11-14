@@ -69,6 +69,11 @@ export function sugestaoDataDir() {
 
 export async function definirDataDir(dirBruto: string) {
   const dir = path.resolve(dirBruto.trim().replace(/^["']|["']$/g, ""));
+  // A pasta de dados nunca fica dentro da pasta do app: atualizar o app espelha essa pasta e apagaria os dados.
+  const app = path.resolve(/*turbopackIgnore: true*/ process.cwd());
+  if (dir === app || dir.startsWith(app + path.sep)) {
+    throw new Error("A pasta de dados não pode ficar dentro da pasta do app: uma atualização do Nexo apagaria tudo. Escolha outra, de preferência no OneDrive.");
+  }
   await fs.mkdir(dir, { recursive: true });
   // testa se dá pra escrever lá
   const teste = path.join(dir, `.teste-escrita-${process.pid}`);
@@ -493,4 +498,224 @@ async function escreverMarkdown(dir: string, t: Tarefa) {
     path.join(dir, "markdown", `${slugify(t.titulo)}--${t.id}.md`),
     tarefaParaMarkdown(t, cat?.nome),
   );
+}
+
+// ---------- restaurar um backup ----------
+
+/** Nomes de pasta que o app cria em _backups. Qualquer outra coisa não é restaurada por aqui. */
+const NOME_DE_BACKUP = /^(\d{4}-\d{2}-\d{2}|(manual|pre-migracao|pre-restauracao)-[a-zA-Z0-9-]{1,80})$/;
+
+async function pastaDoBackup(dir: string, nome: string): Promise<string> {
+  if (typeof nome !== "string" || !NOME_DE_BACKUP.test(nome)) throw new Error("Nome de backup inválido.");
+  const base = path.resolve(dir, "_backups");
+  const pasta = path.resolve(base, nome);
+  if (!pasta.startsWith(base + path.sep)) throw new Error("Nome de backup inválido.");
+  const st = await fs.stat(pasta).catch(() => null);
+  if (!st?.isDirectory()) throw new Error("Este backup não existe mais na pasta de dados.");
+  return pasta;
+}
+
+interface ConteudoDoBackup {
+  schemaVersion: number;
+  /** id -> tarefa como está no backup (objeto bruto, com os campos que este app não conhece). */
+  tarefas: Map<string, Record<string, unknown>>;
+  /** Só as coleções que existem no backup. */
+  colecoes: Map<NomeColecao, Colecao<Record<string, unknown>>>;
+}
+
+/** Lê o backup inteiro e confere tudo ANTES de qualquer escrita: se algo estiver ilegível, a restauração nem começa. */
+async function lerBackup(pasta: string): Promise<ConteudoDoBackup> {
+  const meta = await lerJson<Meta | null>(path.join(pasta, "nexo.json"), null);
+  const schemaVersion = Number(meta?.schemaVersion) || 1;
+  const tarefas = new Map<string, Record<string, unknown>>();
+  const pastaTarefas = path.join(pasta, "tarefas");
+  if (existsSync(pastaTarefas)) {
+    const nomes = (await fs.readdir(pastaTarefas)).filter((n) => n.endsWith(".json")).sort();
+    for (const nome of nomes) {
+      const bruto = await lerJson<Record<string, unknown> | null>(path.join(pastaTarefas, nome), null);
+      if (!bruto || typeof bruto !== "object" || Array.isArray(bruto)) throw new Error(`O arquivo ${nome} do backup não tem uma tarefa.`);
+      const id = bruto.id;
+      if (typeof id !== "string" || !ID_VALIDO.test(id)) throw new Error(`O arquivo ${nome} do backup tem uma tarefa com ID inválido.`);
+      // cópia de conflito do OneDrive dentro do backup: vale o arquivo com o nome certo
+      if (tarefas.has(id) && nome !== `${id}.json`) continue;
+      tarefas.set(id, bruto);
+    }
+  }
+  const colecoes = new Map<NomeColecao, Colecao<Record<string, unknown>>>();
+  for (const nome of COLECOES) {
+    const arq = path.join(pasta, `${nome}.json`);
+    if (!existsSync(arq)) continue;
+    const c = await lerJson<Colecao<Record<string, unknown>> | null>(arq, null);
+    if (!c || typeof c !== "object" || !Array.isArray(c.items)) throw new Error(`O arquivo ${nome}.json do backup não tem o formato esperado.`);
+    colecoes.set(nome, c);
+  }
+  return { schemaVersion, tarefas, colecoes };
+}
+
+export interface PreviaDoBackup {
+  nome: string;
+  schemaVersion: number;
+  /** Dá para restaurar com esta versão do app? */
+  restauravel: boolean;
+  motivo: string | null;
+  tarefasNoBackup: number;
+  /** Tarefas que existem hoje e não estão no backup: vão para a lixeira. */
+  saem: { id: string; titulo: string }[];
+  /** Tarefas que estão no backup e não existem hoje: voltam. */
+  voltam: { id: string; titulo: string }[];
+  /** Tarefas que existem nos dois e estão diferentes: voltam ao que eram. */
+  mudam: { id: string; titulo: string }[];
+  colecoes: { nome: NomeColecao; noBackup: number | null; agora: number | null }[];
+}
+
+const tituloDe = (t: Record<string, unknown> | Partial<Tarefa>) => (typeof t.titulo === "string" && t.titulo ? t.titulo : "(sem título)");
+/** O que importa numa tarefa para dizer se ela mudou: tudo menos o número da revisão e o carimbo de gravação. */
+const miolo = (t: Record<string, unknown>) => JSON.stringify({ ...t, rev: 0, atualizadaEm: "" });
+
+/** O que mudaria se este backup fosse restaurado. Só lê. */
+export async function previaDoBackup(nome: string): Promise<PreviaDoBackup> {
+  const { dir } = await pastaPronta();
+  const backup = await lerBackup(await pastaDoBackup(dir, nome));
+  const atuais = new Map<string, Record<string, unknown>>();
+  const ilegiveis: string[] = [];
+  for (const arq of (await fs.readdir(path.join(dir, "tarefas"))).filter((n) => n.endsWith(".json"))) {
+    try {
+      const t = await lerJson<Record<string, unknown> | null>(path.join(dir, "tarefas", arq), null);
+      if (t && typeof t.id === "string") atuais.set(t.id, t);
+    } catch {
+      ilegiveis.push(arq);
+    }
+  }
+  const colecoes: PreviaDoBackup["colecoes"] = [];
+  for (const c of COLECOES) {
+    let agora: number | null = null;
+    try {
+      const atual = await lerJson<Colecao<unknown> | null>(path.join(dir, `${c}.json`), null);
+      agora = atual ? (atual.items || []).length : 0;
+    } catch {
+      agora = null; // ilegível hoje
+    }
+    colecoes.push({ nome: c, noBackup: backup.colecoes.has(c) ? backup.colecoes.get(c)!.items.length : null, agora });
+  }
+  const maisNovo = backup.schemaVersion > SCHEMA_APP;
+  return {
+    nome,
+    schemaVersion: backup.schemaVersion,
+    restauravel: !maisNovo,
+    motivo: maisNovo ? "Este backup foi feito por uma versão mais nova do Nexo. Atualize o app antes de restaurá-lo." : null,
+    tarefasNoBackup: backup.tarefas.size,
+    saem: [...atuais].filter(([id]) => !backup.tarefas.has(id)).map(([id, t]) => ({ id, titulo: tituloDe(t) })),
+    voltam: [...backup.tarefas].filter(([id]) => !atuais.has(id)).map(([id, t]) => ({ id, titulo: tituloDe(t) })),
+    mudam: [...backup.tarefas].filter(([id, t]) => atuais.has(id) && miolo(atuais.get(id)!) !== miolo(t)).map(([id, t]) => ({ id, titulo: tituloDe(t) })),
+    colecoes,
+  };
+}
+
+/**
+ * Volta os dados ao que eram num backup.
+ * - Antes de tudo, tira uma foto do estado de agora em _backups/pre-restauracao-<carimbo> (nunca é podada):
+ *   restaurar também tem volta.
+ * - O backup é lido e conferido inteiro antes da primeira escrita.
+ * - Tarefa que existe hoje e não está no backup vai para a lixeira (restaurável), não é apagada.
+ * - Coleção que não existe no backup (backup de versão antiga) fica como está.
+ * - A revisão de tudo o que é regravado sobe além da atual: uma aba aberta com dados velhos recebe 409 e recarrega,
+ *   em vez de gravar por cima do que foi restaurado.
+ * - Anexos (arquivos/) não entram em backup e nunca são apagados: os links continuam valendo.
+ */
+export async function restaurarBackup(nome: string) {
+  const dir = await paraEscrita();
+  const pasta = await pastaDoBackup(dir, nome);
+  const backup = await lerBackup(pasta);
+  if (backup.schemaVersion > SCHEMA_APP) throw new Error("Este backup foi feito por uma versão mais nova do Nexo. Atualize o app antes de restaurá-lo.");
+
+  const foto = path.basename(await snapshot(dir, `pre-restauracao-${carimbo()}`));
+
+  // 1) o que está no backup volta (tarefas e coleções)
+  const pastaTarefas = path.join(dir, "tarefas");
+  const revDe = async (arq: string) => {
+    try {
+      return Number((await lerJson<{ rev?: unknown } | null>(arq, null))?.rev) || 0;
+    } catch {
+      return 0; // ilegível hoje: é justamente o caso em que restaurar mais ajuda
+    }
+  };
+  const restauradas: Tarefa[] = [];
+  for (const [id, bruta] of backup.tarefas) {
+    const arq = path.join(pastaTarefas, `${id}.json`);
+    const t = normalizarTarefa({ ...bruta, rev: Math.max(Number(bruta.rev) || 0, await revDe(arq)) + 1 } as Partial<Tarefa>);
+    await escreverAtomico(arq, json(t));
+    restauradas.push(t);
+  }
+  const colecoesRestauradas: NomeColecao[] = [];
+  for (const [nomeCol, col] of backup.colecoes) {
+    const arq = path.join(dir, `${nomeCol}.json`);
+    await escreverAtomico(arq, json({ ...col, rev: Math.max(Number(col.rev) || 0, await revDe(arq)) + 1 }));
+    colecoesRestauradas.push(nomeCol);
+  }
+
+  // 2) só depois, o que não existia no backup sai para a lixeira
+  const paraLixeira: string[] = [];
+  for (const arqNome of (await fs.readdir(pastaTarefas)).filter((n) => n.endsWith(".json"))) {
+    const arq = path.join(pastaTarefas, arqNome);
+    let id = arqNome.replace(/\.json$/, "");
+    try {
+      const t = await lerJson<{ id?: unknown } | null>(arq, null);
+      if (typeof t?.id === "string") id = t.id;
+    } catch {
+      // ilegível: sai do caminho do mesmo jeito, e continua guardado na lixeira e na foto
+    }
+    if (backup.tarefas.has(id) && arqNome === `${id}.json`) continue;
+    const destino = path.join(dir, "_lixeira", `tarefa-${ID_VALIDO.test(id) ? id : "ilegivel"}-${carimbo()}${paraLixeira.length ? `-${paraLixeira.length}` : ""}.json`);
+    await fs.mkdir(path.dirname(destino), { recursive: true });
+    await fs.copyFile(arq, destino);
+    await fs.unlink(arq);
+    if (ID_VALIDO.test(id)) await removerMarkdown(dir, id).catch(() => {});
+    paraLixeira.push(id);
+  }
+
+  // 3) se o backup é de um formato mais antigo, a versão volta junto e a migração roda na próxima leitura
+  if (backup.schemaVersion < SCHEMA_APP && existsSync(path.join(pasta, "nexo.json"))) {
+    await fs.copyFile(path.join(pasta, "nexo.json"), path.join(dir, "nexo.json"));
+  }
+  preparos.delete(dir);
+
+  // 4) espelhos em Markdown (conveniência: falha aqui não desfaz nada)
+  for (const t of restauradas) await escreverMarkdown(dir, t).catch(() => {});
+  if (backup.colecoes.has("paginas")) await espelharPaginas(backup.colecoes.get("paginas")!.items.map((p) => normalizarPagina(p as Partial<Pagina>)));
+
+  return { backup: nome, foto, tarefas: restauradas.length, paraLixeira: paraLixeira.length, colecoes: colecoesRestauradas };
+}
+
+// ---------- verificação de integridade (só leitura) ----------
+
+/** O que existe no disco e os dados não contam: usado por lib/integridade.ts. */
+export async function inventarioDaPasta() {
+  const { dir } = await pastaPronta();
+  const listar = async (pasta: string) => (existsSync(pasta) ? fs.readdir(pasta, { withFileTypes: true }) : []);
+
+  const anexos: { rel: string; tamanho: number }[] = [];
+  for (const ano of await listar(path.join(dir, "arquivos"))) {
+    if (!ano.isDirectory()) continue;
+    for (const f of await listar(path.join(dir, "arquivos", ano.name))) {
+      if (!f.isFile()) continue;
+      const st = await fs.stat(path.join(dir, "arquivos", ano.name, f.name)).catch(() => null);
+      anexos.push({ rel: `${ano.name}/${f.name}`, tamanho: st?.size ?? 0 });
+    }
+  }
+
+  const raiz = (await listar(dir)).filter((f) => f.isFile()).map((f) => f.name);
+  const tarefas = (await listar(path.join(dir, "tarefas"))).filter((f) => f.isFile()).map((f) => f.name);
+  let bytes = 0;
+  let maior = { nome: "", bytes: 0 };
+  for (const n of tarefas.filter((x) => x.endsWith(".json"))) {
+    const st = await fs.stat(path.join(dir, "tarefas", n)).catch(() => null);
+    bytes += st?.size ?? 0;
+    if ((st?.size ?? 0) > maior.bytes) maior = { nome: n, bytes: st?.size ?? 0 };
+  }
+  for (const n of raiz.filter((x) => x.endsWith(".json"))) bytes += (await fs.stat(path.join(dir, n)).catch(() => null))?.size ?? 0;
+
+  const lixeira = (await listar(path.join(dir, "_lixeira"))).map((f) => f.name);
+  const backups = (await listar(path.join(dir, "_backups"))).filter((f) => f.isDirectory()).map((f) => f.name).sort();
+  const espelhos = (await listar(path.join(dir, "markdown"))).filter((f) => f.isFile() && f.name.endsWith(".md")).map((f) => f.name);
+  return { anexos, raiz, tarefas, bytes, maior, lixeira, backups, espelhos };
 }

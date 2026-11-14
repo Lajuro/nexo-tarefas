@@ -77,6 +77,18 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Nexo 3.0
+
+A 3.0 junta cinco frentes: **modo reunião**, **páginas de conhecimento com @**, **perguntar ao Nexo**, **radar das frentes** e **confiança**. As quatro primeiras estão descritas abaixo. Da última:
+
+- **Restaurar um backup pelo app**: em Configurações, abra a lista de backups e clique em "Restaurar...". Uma prévia mostra o que muda (tarefas que voltam ao que eram, tarefas criadas depois que vão para a lixeira). Antes de mexer em qualquer coisa, o estado de agora é guardado em `_backups/pre-restauracao-*`: se não era isso que você queria, restaure essa foto.
+- **Saúde dos dados**: "Verificar agora" confere se todos os arquivos estão legíveis, se há cópia de conflito do OneDrive, anexo faltando ou vínculo que aponta para algo que não existe mais. Só lê e explica o que fazer.
+- **Mais fechado**: o app recusa qualquer pedido de dados vindo de outra página aberta no navegador e manda uma política de conteúdo que só o deixa falar com a própria máquina.
+- **Rápido com muito dado**: medido com um ano de uso simulado (300 tarefas, mais de 6 mil registros). A busca agora mostra os resultados em lotes.
+- **O que há de novo**: um aviso discreto na primeira abertura; a lista fica em Configurações.
+
+O menu lateral foi reagrupado em **Dia a dia**, **Conhecimento** e **Acompanhar**. A ordem e os itens que você escondeu continuam como estavam.
+
 ## Radar das frentes (2.14)
 
 Em **Radar** (`G F`) cada categoria vira uma frente, com a saúde calculada na hora:
