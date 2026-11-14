@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNexo } from "@/components/Provider";
 import { Pagina } from "@/components/comum";
+import { PainelModelos } from "@/components/Modelos";
+import { abrirNovaTarefa } from "@/components/Shell";
 import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao } from "@/components/configuracoes/dados";
 import { PainelAparencia, PainelAtalhos, PainelQuemSouEu, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
 
@@ -72,6 +74,7 @@ export default function Configuracoes() {
         <div className="flex min-w-0 flex-col gap-4">
           <PainelPasta />
           <PainelProtecao backups={backups} aoFazerBackup={fazerBackup} fazendo={fazendoBackup} />
+          <PainelModelos usar={(id) => abrirNovaTarefa(null, id)} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <PainelAparencia />

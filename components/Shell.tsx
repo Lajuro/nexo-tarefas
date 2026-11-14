@@ -29,12 +29,13 @@ import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
 import { Esperando } from "./Esperando";
+import { ModeloForm } from "./Modelos";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
 
 /** Abre o formulário de nova tarefa de qualquer lugar. */
-export function abrirNovaTarefa(categoriaId?: string | null) {
-  window.dispatchEvent(new CustomEvent("nexo:nova-tarefa", { detail: { categoriaId } }));
+export function abrirNovaTarefa(categoriaId?: string | null, modeloId?: string | null) {
+  window.dispatchEvent(new CustomEvent("nexo:nova-tarefa", { detail: { categoriaId, modeloId } }));
 }
 
 /** Abre o ritual "Planejar o dia" de qualquer lugar. */
@@ -53,7 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { estado, dados, erro, recarregar } = useNexo();
   const pathname = usePathname();
   const router = useRouter();
-  const [nova, setNova] = useState<{ aberto: boolean; cat?: string | null }>({ aberto: false });
+  const [nova, setNova] = useState<{ aberto: boolean; cat?: string | null; modelo?: string | null }>({ aberto: false });
   const [ritual, setRitual] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [atalhos, setAtalhos] = useState(false);
@@ -84,7 +85,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    const abrirNova = (e: Event) => setNova({ aberto: true, cat: (e as CustomEvent).detail?.categoriaId });
+    const abrirNova = (e: Event) => setNova({ aberto: true, cat: (e as CustomEvent).detail?.categoriaId, modelo: (e as CustomEvent).detail?.modeloId });
     const abrirRitual = () => setRitual(true);
     const abrirPal = () => setPaleta(true);
     const teclas = (e: KeyboardEvent) => {
@@ -196,10 +197,11 @@ export function Shell({ children }: { children: ReactNode }) {
         </AnimatePresence>
       </div>
 
-      <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} fechar={() => setNova({ aberto: false })} />
+      <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} modeloInicial={nova.modelo} fechar={() => setNova({ aberto: false })} />
       <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
       <MoverEJuntar />
       <Esperando />
+      <ModeloForm />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
       <Paleta

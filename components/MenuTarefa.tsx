@@ -6,12 +6,13 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, Merge, MessageSquareReply, Pin, PinOff, Target, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Target, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
 import { IconeStatus, copiarTexto } from "./comum";
 import { pedirEspera, useCobranca } from "@/components/Esperando";
+import { pedirModelo } from "@/components/Modelos";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
@@ -150,6 +151,9 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       <k.Separator />
       <k.Item onSelect={async () => (await copiarTexto(t.titulo)) && toast("Título copiado.", "info")}>
         <Copy /> Copiar título
+      </k.Item>
+      <k.Item onSelect={() => pedirModelo({ tarefaId: t.id })}>
+        <LayoutTemplate /> Salvar como modelo...
       </k.Item>
       <k.Item onSelect={() => pedirJuntarTarefa(t.id)}>
         <Merge /> Juntar em outra tarefa...
