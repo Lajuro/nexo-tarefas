@@ -399,12 +399,12 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="6f26965"
+MANIFEST_COMMIT="6dcea8f"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 9667c4aacac4259137668ebb0d0cb16b5001c897 AGENTS.md
+100644 15069e3cdc9bb318ecbc436b1328223fe3752a57 AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
 100644 8a07b2929259b6d72bde706055570c0b900aaf55 README.md
@@ -488,9 +488,9 @@ manifest() {
 100644 9a5b3f47d4b2b34fdaf381f488bb5c8a918f2c36 components/notas/OrganizarNota.tsx
 100644 a31296d67eb5ab1eba69860749c8dbb3261cbc87 components/paginas/Abas.tsx
 100644 55e3a24e66dc47dada1397fa186c6704cb15dfe6 components/paginas/EditorPagina.tsx
-100644 ab624d686a9027d7d745a6b4fbd4364255386c19 components/paginas/Explorador.tsx
+100644 600e1ed16a3d6432f29ab4daab0050b0ac4e8e53 components/paginas/Explorador.tsx
 100644 e1bde0493cee575e422eeda31ecbfbc86e243c3f components/paginas/ListaPaginas.tsx
-100644 384e40677ce96217005761152d26d02008130e37 components/paginas/QuadroPaginas.tsx
+100644 867e6cceab10de4334c8dad500fd8cb406fa3d8f components/paginas/QuadroPaginas.tsx
 100644 237c297353596474e578db0da169c5ea8f899247 components/paginas/pecas.tsx
 100644 d261a3a3a1a014205a9e847fb9abf36c726b9cad components/pendencias/GrupoPendencias.tsx
 100644 798c83b1a52d209d314cd7d05eeea75b57359871 components/pendencias/Lateral.tsx
@@ -538,7 +538,7 @@ manifest() {
 100644 215ffffc561a0c888368fb1aff4f965ae448a81b components/tarefa/Timeline.tsx
 100644 a2736feee9dce3e7ff528b2bcd3b874c94eeea2c components/tarefas/ComboCategoria.tsx
 100644 4c8693d152af772357b14e9b2ceff447be8c7985 components/tarefas/ListaTarefas.tsx
-100644 50b3b0fa587f44ac9a71ec464ff94323c0307c37 components/tarefas/QuadroTarefas.tsx
+100644 f1fedbba468ab5d42dade8bd9499da168acc50cb components/tarefas/QuadroTarefas.tsx
 100644 56bdfeaa5f6c8a2fbbfef3d404e7590c23bce280 components/tarefas/filtros.ts
 100644 f0de1471553d015ef78f5ed8ab6e64a4f2a129fb components/ui/button.tsx
 100644 973c46e9ab8f9e9cd5a2a8b9749ec186b65447fb components/ui/chips.tsx
