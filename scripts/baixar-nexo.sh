@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="a17e775"
+MANIFEST_COMMIT="ca56db5"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 9d408b20b50f548002d339812aa99440aedff50a AGENTS.md
+100644 cad9877c80bc51e924bd06c9a853241dbe06dbca AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 be646153fd8513c8c5986edea0be6ccdc81ee23b README.md
+100644 7fdb03bb3b01a5cca9d5d58af00723405340cd46 README.md
 100644 d8cf556828652cc2667180d0364a9deb574aef6c app/api/arquivos/route.ts
 100644 b19a971d9b52424cb50c5eccb24d40eac71d0051 app/api/backup/route.ts
 100644 c28578efe9be7694957478263f3c8a387e3a3bbb app/api/categorias/route.ts
@@ -440,6 +440,7 @@ manifest() {
 100644 5978a2c002d6a37d9987b96b201eea8dda728cad app/pendencias/page.tsx
 100644 f35e59bf8b4e7b94ca1a505c35984b5c56b9a751 app/perguntar/page.tsx
 100644 0a6f76ffa109f0bf97eeda85e55aba30f0a63d1e app/pessoas/page.tsx
+100644 6a001e4e3ea9a1648ca59b0094f75dfa223513e4 app/radar/page.tsx
 100644 33ad978221a95d76367fe1862ded93c8ef8514ac app/relatorios/page.tsx
 100644 ca5daa3a78f3349c37e13f18c88fb8c6dd79a715 app/revisao/page.tsx
 100644 381ed50e612c95bb204ca1e33c50e3439d9b56a8 app/tarefas/[id]/page.tsx
@@ -518,7 +519,7 @@ manifest() {
 100644 dd6e798924c93efcdbb25d955745040f10643752 components/shell/SessaoFoco.tsx
 100644 7b38e452da7b8e8fc3028fd71be8647be33e20a1 components/shell/Sino.tsx
 100644 26e91d62ec8976b7f09c4a69af50c71b6b6cc5ea components/shell/Telas.tsx
-100644 2ed911181b620ab9bca530667f40efb9ce45c4bd components/shell/navegacao.ts
+100644 d2a5ef1af69e8fa12be5cff88088a6752a81510f components/shell/navegacao.ts
 100644 ef82c53884453c0a48d07c61b7b92bde09cac876 components/shell/paleta/navegacao.ts
 100644 7cfa09aaec734e68f2c40341f9b7fead357c191b components/shell/paleta/pecas.tsx
 100644 35ae516a607c56448e2c22ef76bf84e4ab41f2fd components/tarefa/Copilot.tsx
@@ -564,6 +565,7 @@ manifest() {
 100644 dcd751bb9a402f99fd908b362912017426ff0b1e lib/pessoas.ts
 100644 9dfb2919c6cb1c57c97be4938cd4b4bf23064949 lib/preferencias.ts
 100644 db485223210bfa66aa2f5c7af32ac1df24f232f3 lib/prompts.ts
+100644 bac7100aae7a8a79693ca47ddbe4ca5f9758f50d lib/radar.ts
 100644 5516cd6fef89993e5d7fdec53a05d928c9a92a0f lib/rascunhos.ts
 100644 1e547873db8208dc03cb56acf363e9941c5c35fd lib/resposta.ts
 100644 12a33656d7720404ea43d3a490b8ac1077fc7293 lib/reuniao.ts
@@ -572,8 +574,8 @@ manifest() {
 100644 99d8c2b16a2ee84ca3757952d34ebae50b1c1c4a lib/tipos.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 47b9f102f4b8b34b862fa295f5108806e1198d79 next.config.ts
-100644 57b464b34894ba9733ccbda6d309080b39e50ebd package-lock.json
-100644 4496f729bd615e769a546c9b821054f80ae79335 package.json
+100644 2ae029d3a9e1e4b39a4e0b125a07544365bc25d7 package-lock.json
+100644 8e4cd63047767b9f9fd773d216fd0579d6a200f0 package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 ff217c0e0a103de9951a58cdc113c13f3dd18df8 proxy.ts
 100755 - scripts/baixar-nexo.sh
@@ -583,12 +585,13 @@ manifest() {
 100644 d0d6dc7c92904fc8aec47e39a9738ddb32d1085e testes/aparencia.test.mjs
 100644 b76da753fe4b1d4e6073562c992efc9a6b158b48 testes/api.sh
 100644 05bf34712725bf7eba2b3b3fefeecb81e0425721 testes/diario.test.mjs
-100644 dc9a66b1c4f6fcd07a968887429d8df45b722898 testes/e2e.cjs
+100644 5cd6b6d2a1aa904d1df3e8d9c3f4ab11df76b468 testes/e2e.cjs
 100644 bc54217f5fab262dd39e402574484ffc4dd27b78 testes/jogo.test.mjs
 100644 30dfa52ce4aef7fe06ff2e505fb0ebee51c39940 testes/ligacoes.test.mjs
 100644 a079f6e3c2e9210f815adc6405621809265f1f91 testes/notas.test.mjs
 100644 3b63db8ea29aa787bf687c4eb6ecb32f277a3591 testes/perguntar.test.mjs
 100644 01ad3d1d401e114e651ce756995c206a6d42233b testes/pessoas.test.mjs
+100644 1aa07fa7fb3b614cfaffed84333dd597b7cca85f testes/radar.test.mjs
 100644 6ad501b7f9ce531f3f0a0da8e711b264716b5dae testes/reuniao.test.mjs
 100644 e8229c99683381a865c81bc426f119f327ae42c3 testes/semear.mjs
 100644 1ea4978ec712d4790faadc20fde1ecd0e2c0e2a1 testes/texto-rico.test.mjs
