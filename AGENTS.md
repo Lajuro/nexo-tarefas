@@ -71,6 +71,7 @@ node testes/jogo.test.mjs     # testes da gamificação: XP, níveis, meta do di
 node testes/ligacoes.test.mjs # testes das páginas de conhecimento, dos links internos e de "quem cita quem"
 node testes/reuniao.test.mjs  # testes do modo reunião: pauta, rascunho vindo do navegador, registro e ata
 node testes/perguntar.test.mjs # testes de "Perguntar ao Nexo": achar trechos, prompt e citações da resposta
+node testes/radar.test.mjs    # testes do Radar das frentes: saúde, linha de prazos e status em texto
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -185,6 +186,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
 | `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
+| `/radar` | **Radar das frentes**: uma frente por categoria (mais "Sem categoria"), com a saúde (em risco, parada, pede atenção, em dia), os motivos, números, movimento das últimas 8 semanas e próximo prazo. Os contadores do topo filtram. Linha de prazos das próximas 6 semanas por frente (tarefas, passos e follow-ups; vencidos à parte). "Copiar status" gera o texto para o gestor, sem IA. É só leitura (`lib/radar.ts`). |
 | `/diario` | **Diário**: tudo o que aconteceu em todas as tarefas, dia a dia (registros, marcos e passos concluídos no dia em que foram feitos), com um **mapa de atividade** das últimas 36 semanas (clicar num dia mostra só ele), números dos últimos 30 dias, sequência de dias úteis e filtros por tipo, categoria e pessoa. "Copiar" gera texto simples do dia ou do que está na tela, sem IA. É só leitura (`lib/diario.ts`). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/conquistas` | **Conquistas** (gamificação): nível e XP, gráfico de XP dos últimos 14 dias, meta do dia, sequência de dias úteis, recorde, e as conquistas por grupo com o progresso de cada uma. Tudo calculado dos dados (`lib/jogo.ts`), nada gravado. Pode ser desligada. |
@@ -199,7 +201,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R/Q` para navegar (`G N` = Notas, `G D` = Diário, `G Q` = Conquistas, `G A` = Páginas, `G U` = Perguntar), `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R/Q` para navegar (`G N` = Notas, `G D` = Diário, `G Q` = Conquistas, `G A` = Páginas, `G U` = Perguntar, `G F` = Radar das frentes), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -211,6 +213,15 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
 - **"Meu" passo** (`passoEhMeu()` em `lib/lembretes.ts`): sem responsável, "Eu" ou um dos nomes da preferência `meusNomes` (Configurações). O Provider chama `definirMeusNomes()` durante o render e relê os dados quando a lista muda, para tudo se recalcular. Com o nome informado, `quemSouEu()` (em `lib/prompts.ts`) acrescenta aos prompts de registro e do bloco de notas a frase que diz ao Copilot quem é "eu".
 - **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
+
+### Radar das frentes (2.14)
+- **O que é** (`app/radar/page.tsx`, `lib/radar.ts`): visão por assunto, para responder "como estão as minhas frentes?" sem abrir tarefa por tarefa. `montarRadar(dados, hoje)` é função pura; **a saúde não é gravada**, é conta feita na hora (mesma decisão dos lembretes e da gamificação).
+- **Saúde**, nesta ordem de precedência: `risco` (tarefa aberta com prazo vencido ou bloqueada), `parada` (tem tarefa aberta e nenhum movimento há `RADAR.parada` = 14 dias), `atencao` (prazo em até `LIMITES.prazoProximo` dias, passo com prazo vencido, aguardando há `LIMITES.aguardando` dias ou mais contando da última cobrança, tarefa em andamento sem próximo passo), `em_dia`, `sem_abertas`. Os motivos vão em `frente.motivos`, do mais grave para o menos.
+- **Movimento** = registro (menos marco) ou passo concluído, até hoje. Data no futuro não conta. Sem nenhum movimento, vale a data de criação da tarefa.
+- **Frentes**: uma por categoria; categoria arquivada só aparece se ainda tiver tarefa aberta; tarefas sem categoria (ou com categoria que não existe mais) entram em "Sem categoria".
+- **Linha de prazos** (`radar.prazos`, `colunaDoPrazo()`): prazos de tarefa aberta, de passo em aberto e follow-ups das próximas `RADAR.semanasDePrazo` semanas (segunda a domingo). Vencidos vão para a coluna "Atrasado"; follow-up vencido não entra (não é atraso de entrega).
+- **Status em texto** (`textoDoRadar(radar, ids)`): texto fixo montado só com os dados, sem IA. Para o relatório redigido pelo Copilot continua existindo `/relatorios`.
+- Conta que depende do dia usa `useHoje()`; os testes passam o dia como parâmetro e montam carimbos no fuso local, para valer em qualquer fuso.
 
 ### Perguntar ao Nexo (2.13)
 - **O que é** (`app/perguntar/page.tsx`, `lib/perguntar.ts`): busca de trechos + prompt com fontes citadas, sem API e sem índice gravado. Tudo é calculado na hora, em funções puras.
@@ -336,6 +347,7 @@ app/
   diario/page.tsx         diário: o que aconteceu dia a dia, com mapa de atividade
   conquistas/page.tsx     conquistas: nível, XP, meta do dia e conquistas (gamificação)
   paginas/page.tsx        páginas de conhecimento (lista, busca e editor)
+  radar/page.tsx          radar das frentes: saúde de cada assunto, linha de prazos e status em texto
   perguntar/page.tsx      perguntar ao Nexo: trechos do histórico, prompt com fontes e resposta com citações
   pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
   links/page.tsx          banco de links e arquivos
@@ -423,6 +435,7 @@ lib/
   prompts.ts              prompts do Copilot e parser da resposta
   rascunhos.ts            rascunho automático do editor de registro, texto pendente das folhas e reunião em andamento (localStorage, só cliente)
   perguntar.ts            perguntar ao Nexo: buscarFontes, promptPergunta, ligarFontes, paginaDaResposta, normalizarConsulta (funções puras)
+  radar.ts                radar das frentes: montarRadar (saúde, números, movimento, prazos) e textoDoRadar (função pura)
   reuniao.ts              modo reunião: montarPauta, normalizarReuniao, registroDaReuniao, comReuniao, textoDaPauta, textoDaAta (funções puras)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
   texto-rico.ts           Markdown → árvore saneada (analisarMarkdown), paraTextoPlano, regras de imagem e de link
@@ -455,6 +468,7 @@ testes/jogo.test.mjs      testes da gamificação: XP, níveis, meta do dia, con
 testes/ligacoes.test.mjs  testes dos links internos e das citações (node testes/ligacoes.test.mjs)
 testes/reuniao.test.mjs   testes do modo reunião (node testes/reuniao.test.mjs)
 testes/perguntar.test.mjs testes de "Perguntar ao Nexo" (node testes/perguntar.test.mjs)
+testes/radar.test.mjs     testes do Radar das frentes (node testes/radar.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -515,6 +529,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
 - **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
+- **2.14: a saúde de uma frente é conta, não campo.** O radar usa as mesmas réguas dos lembretes (`LIMITES`) para as duas visões não se contradizerem, e uma só própria (`RADAR.parada`). Não há "status da categoria" para o usuário manter na mão: seria mais um dado para ficar desatualizado. O status para o gestor é texto fixo de propósito (previsível, sem depender do Copilot); quem quiser um texto redigido usa Relatórios.
 - **2.13: perguntar sem API é busca + prompt.** Não há como "conversar com os dados" sem um modelo, então o app faz a parte que dá para fazer localmente (achar e recortar os trechos certos, numerar as fontes) e deixa para o Copilot só a redação. A busca é por palavras, não por significado: não há embeddings nem índice, de propósito (seria mais uma coisa gravada para proteger, e dependência nova). Limite conhecido: sinônimos não casam ("bloqueio" não acha "gate"), então a tela diz quais palavras procurou. O número de fontes e o tamanho do prompt são limitados porque o Copilot do navegador corta entrada longa.
 - **2.12: modo reunião.** Primeira das frentes rumo à 3.0 (as outras: perguntar ao Nexo, radar das frentes, confiança e acabamento). A reunião em andamento fica no navegador pelo mesmo motivo do rascunho de registro (gravar em disco a cada tecla faria o OneDrive sincronizar sem parar) e só vira dado quando é encerrada. A ata é texto fixo, sem IA. Nenhum campo novo nos dados: a reunião vira um registro `reuniao` comum, que qualquer versão anterior abre.
 - **2.10: gamificação calculada, não gravada.** O dono pediu para gamificar o uso. A decisão foi derivar tudo dos dados que já existem, em vez de guardar pontos: assim a regra de nunca perder dados não ganha mais um arquivo para proteger, e o placar não mente (não dá para ganhar XP sem ter feito a coisa). A pontuação favorece registrar o que aconteceu, que é o hábito que o app mais precisa. Só o que é gosto (ligar, meta do dia, comemorar) e o que já foi comemorado ficam no navegador.

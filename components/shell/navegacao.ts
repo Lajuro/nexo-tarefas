@@ -1,5 +1,5 @@
 import {
-  BookOpenText, BookText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, MessageCircleQuestion, NotebookPen, Settings, Shapes, Sun, Users,
+  BookOpenText, BookText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, MessageCircleQuestion, NotebookPen, Radar, Settings, Shapes, Sun, Users,
 } from "lucide-react";
 
 export interface ItemNav {
@@ -33,6 +33,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
   {
     grupo: "Rotina",
     itens: [
+      { href: "/radar", nome: "Radar", icone: Radar, tecla: "f" },
       { href: "/diario", nome: "Diário", icone: BookOpenText, tecla: "d" },
       { href: "/revisao", nome: "Revisão semanal", icone: CalendarCheck, tecla: "s" },
       { href: "/relatorios", nome: "Relatórios", icone: FileText, tecla: "r" },
@@ -66,6 +67,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "C"], descricao: "Ir para Categorias" },
   { teclas: ["G", "E"], descricao: "Ir para Pessoas" },
   { teclas: ["G", "L"], descricao: "Ir para Links e docs" },
+  { teclas: ["G", "F"], descricao: "Ir para o Radar das frentes (saúde de cada assunto e prazos)" },
   { teclas: ["G", "D"], descricao: "Ir para o Diário (o que aconteceu, dia a dia)" },
   { teclas: ["G", "S"], descricao: "Ir para a Revisão semanal" },
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },

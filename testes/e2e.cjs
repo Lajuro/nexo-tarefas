@@ -943,6 +943,45 @@ async function main() {
     afirmar(!guardado.resposta && !guardado.pergunta, "a consulta não foi limpa depois de guardar");
   });
 
+  // ---------- radar das frentes ----------
+  await etapa("radar: saúde das frentes, filtro e status em texto", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("f");
+    await pg.waitForURL(/\/radar$/);
+    await pg.locator("[data-slot=frente]").first().waitFor();
+    const d = await dados();
+    const abertos = ["a_fazer", "em_andamento", "aguardando", "bloqueada"];
+    const comAberta = new Set(d.tarefas.filter((t) => abertos.includes(t.status)).map((t) => (d.categorias.some((c) => c.id === t.categoriaId) ? t.categoriaId : "sem")));
+    const esperadas = d.categorias.filter((c) => !c.arquivada || comAberta.has(c.id)).length + (comAberta.has("sem") ? 1 : 0);
+    afirmar((await pg.locator("[data-slot=frente]").count()) === esperadas, "o radar não mostrou uma frente por categoria (mais a de tarefas sem categoria)");
+    // toda frente tem um selo de saúde, e os números do topo somam as frentes com tarefa aberta
+    afirmar((await pg.locator("[data-slot=frente] [data-slot=saude]").count()) === esperadas, "faltou o selo de saúde em alguma frente");
+    const semAbertas = await pg.locator("[data-slot=frente][data-saude=sem_abertas]").count();
+    const numeros = await pg.locator("[data-slot=estatistica]").evaluateAll((els) => els.map((e) => Number(e.textContent.replace(/\D/g, ""))));
+    afirmar(numeros.reduce((a, b) => a + b, 0) === esperadas - semAbertas, `os contadores de saúde (${numeros}) não batem com as frentes`);
+    // filtrar por uma saúde que existe
+    const saude = await pg.locator("[data-slot=frente]").first().getAttribute("data-saude");
+    const quantas = await pg.locator(`[data-slot=frente][data-saude=${saude}]`).count();
+    const nomes = { risco: "Em risco", atencao: "Pede atenção", parada: "Parada", em_dia: "Em dia" };
+    if (nomes[saude]) {
+      await pg.locator("[data-slot=estatistica]", { hasText: nomes[saude] }).click();
+      await pg.waitForFunction((n) => document.querySelectorAll("[data-slot=frente]").length === n, quantas);
+      await pg.getByRole("button", { name: "Mostrar todas" }).click();
+      await pg.waitForFunction((n) => document.querySelectorAll("[data-slot=frente]").length === n, esperadas);
+    }
+    await pg.locator("[data-slot=copiar-status]").click();
+    const texto = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(/^Status das frentes em \d\d\/\d\d\/\d\d\n/.test(texto), "o status copiado não começa pelo título com a data");
+    const comTarefa = d.categorias.find((c) => comAberta.has(c.id));
+    afirmar(!comTarefa || texto.includes(`\n${comTarefa.nome}: `), "o status copiado não traz a frente que tem tarefa aberta");
+    // o cartão leva para a categoria
+    if (comTarefa) {
+      await pg.locator("[data-slot=frente]", { hasText: comTarefa.nome }).first().getByRole("link", { name: comTarefa.nome }).click();
+      await pg.waitForURL(new RegExp(`/categorias/${comTarefa.id}$`));
+    }
+  });
+
   // ---------- conquistas (gamificação) ----------
   await etapa("conquistas: nível, meta do dia, conquistas e desligar", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();

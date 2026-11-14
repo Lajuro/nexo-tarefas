@@ -77,6 +77,17 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Radar das frentes (2.14)
+
+Em **Radar** (`G F`) cada categoria vira uma frente, com a saúde calculada na hora:
+
+- **Em risco**: tem tarefa com prazo vencido ou bloqueada.
+- **Parada**: tem tarefa aberta e nenhum movimento há 14 dias ou mais.
+- **Pede atenção**: prazo chegando, passo vencido, retorno demorando ou tarefa em andamento sem próximo passo.
+- **Em dia**: nada disso.
+
+Cada cartão diz o porquê, mostra o movimento das últimas 8 semanas e o próximo prazo. Embaixo, a linha de **prazos das próximas semanas** (tarefas, passos e follow-ups, por frente). **Copiar status** gera um texto simples para mandar ao gestor, só com o que está registrado, sem IA.
+
 ## Perguntar ao Nexo (2.13)
 
 Tem uma dúvida cuja resposta está em algum lugar do seu histórico? Em **Perguntar** (`G U`):
