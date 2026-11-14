@@ -161,7 +161,8 @@ export function QuadroTarefas({
   const fimDoArrasto = useRef(0);
   useEffect(() => {
     const guarda = (e: MouseEvent) => {
-      if (Date.now() - fimDoArrasto.current < 350) e.preventDefault();
+      // só dentro do quadro: um clique em outro lugar da tela nunca é cancelado
+      if (Date.now() - fimDoArrasto.current < 350 && (e.target as Element | null)?.closest?.("[data-slot=quadro-tarefas]")) e.preventDefault();
     };
     window.addEventListener("click", guarda, true);
     return () => window.removeEventListener("click", guarda, true);

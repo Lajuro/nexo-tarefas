@@ -156,8 +156,9 @@ export function Explorador({
   // soltar em cima do próprio lugar dispararia o clique que abre a página: cancela logo depois de um arrasto
   const fimDoArrasto = useRef(0);
   useEffect(() => {
+    // só dentro do explorador: um clique em outro lugar da tela nunca é engolido
     const guarda = (e: MouseEvent) => {
-      if (Date.now() - fimDoArrasto.current < 80) { e.preventDefault(); e.stopPropagation(); }
+      if (Date.now() - fimDoArrasto.current < 120 && (e.target as Element | null)?.closest?.("[data-slot=explorador]")) { e.preventDefault(); e.stopPropagation(); }
     };
     window.addEventListener("click", guarda, true);
     return () => window.removeEventListener("click", guarda, true);

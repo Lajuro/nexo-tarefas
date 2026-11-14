@@ -74,7 +74,10 @@ export function QuadroPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const fimDoArrasto = useRef(0);
   useEffect(() => {
-    const guarda = (e: MouseEvent) => { if (Date.now() - fimDoArrasto.current < 80) { e.preventDefault(); e.stopPropagation(); } };
+    // só dentro do quadro: um clique em outro lugar da tela (trocar de visão, por exemplo) nunca é engolido
+    const guarda = (e: MouseEvent) => {
+      if (Date.now() - fimDoArrasto.current < 120 && (e.target as Element | null)?.closest?.("[data-slot=quadro-de-paginas]")) { e.preventDefault(); e.stopPropagation(); }
+    };
     window.addEventListener("click", guarda, true);
     return () => window.removeEventListener("click", guarda, true);
   }, []);
