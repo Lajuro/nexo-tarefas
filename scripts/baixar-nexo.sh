@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="fd5f92e"
+MANIFEST_COMMIT="d19dae8"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 11e711dbc1692bb4a51ff10a78c5008121f680fe AGENTS.md
+100644 f2fb7ea9e2c8eb8fd1985b8e63b7bb1f9222c2d8 AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 e1f1e7186a39a071406a48c71b273fbb308c533a README.md
+100644 0424e686b74b9f6871ce72bbf0c8e5280ad4b91f README.md
 100644 d0be4fccca3425f6416821aaf169f200cb20a6b4 app/api/arquivos/route.ts
 100644 83dd22f13bd37936d542901525e190cd4bec8323 app/api/backup/restaurar/route.ts
 100644 7072e6be9423a1196f20e069dd1c98814d981ce3 app/api/backup/route.ts
@@ -421,7 +421,8 @@ manifest() {
 100644 6e2c54a943ebceacdde3eecb6a88a11ebbc50fc5 app/api/midia/route.ts
 100644 34766422d7652d6f3d1a09a4440e581982743ef6 app/api/modelos/route.ts
 100644 3cf931a5679ceeea68cda8cb444f022fcb99714b app/api/notas/route.ts
-100644 76280e41f1f9ef78a91d3bbfcdf051bede644ffa app/api/paginas/route.ts
+100644 cece95c1906b1c0f386e3399f4ea29ce2eadd84c app/api/paginas/historico/route.ts
+100644 9faff9d0ee86dd21bc3dab5235247a13f3541dd8 app/api/paginas/route.ts
 100644 e17331e21f1b39f6e9e7cd35711eddc5fa87d036 app/api/pessoas/route.ts
 100644 636c77351b2310321b6a1158098fd204686d933a app/api/tarefas/[id]/route.ts
 100644 598b5c2091632d1bd12a4be1e754a3679a247c67 app/api/times/route.ts
@@ -439,7 +440,7 @@ manifest() {
 100644 0d402fdde973d79361413b1b7e7ac454b0f305d1 app/manifest.ts
 100644 c36d78c99cc5fba2dcdaef0fc9f4d4bef91040c0 app/notas/page.tsx
 100644 fa54adc1b49e8f9e99701bd9891d7f991c177b97 app/page.tsx
-100644 bbef14f78de33187b3f58c5aead9cdae1b57e96b app/paginas/page.tsx
+100644 12ed30d6409c4a0d30370e8f7098dc509e6166c9 app/paginas/page.tsx
 100644 5978a2c002d6a37d9987b96b201eea8dda728cad app/pendencias/page.tsx
 100644 f35e59bf8b4e7b94ca1a505c35984b5c56b9a751 app/perguntar/page.tsx
 100644 0a6f76ffa109f0bf97eeda85e55aba30f0a63d1e app/pessoas/page.tsx
@@ -488,9 +489,11 @@ manifest() {
 100644 feadbe5869e6af57f08e055f78f829ca0fbc4dbf components/notas/EditorNota.tsx
 100644 9a5b3f47d4b2b34fdaf381f488bb5c8a918f2c36 components/notas/OrganizarNota.tsx
 100644 a31296d67eb5ab1eba69860749c8dbb3261cbc87 components/paginas/Abas.tsx
-100644 0622f8de78e249647cb81c3e40d5db11b5f9c80e components/paginas/EditorPagina.tsx
+100644 eab38e4fe936183edd2c66ec8b34e6c361772cbe components/paginas/EditorPagina.tsx
 100644 600e1ed16a3d6432f29ab4daab0050b0ac4e8e53 components/paginas/Explorador.tsx
+100644 cade1d74ee8961acfcc33bc211027578fe029b4e components/paginas/Historico.tsx
 100644 e1bde0493cee575e422eeda31ecbfbc86e243c3f components/paginas/ListaPaginas.tsx
+100644 3db9c78472019f9ec0fb0cd1547c0b9a18db21ea components/paginas/MapaDePaginas.tsx
 100644 867e6cceab10de4334c8dad500fd8cb406fa3d8f components/paginas/QuadroPaginas.tsx
 100644 b6c3af8a5a2869a9162dc1617fa65c7833f313e4 components/paginas/pecas.tsx
 100644 10df3cae6a8786ce57991b393ff4ec3e7d539884 components/paginas/video/GaleriaDeVideos.tsx
@@ -526,7 +529,7 @@ manifest() {
 100644 03be4f620af429ca28a6d846f726f852fc0d5c11 components/shell/Ferramentas.tsx
 100644 00ea5ae33d0a66bfe3e68e09aa3f300be1c111e8 components/shell/Lateral.tsx
 100644 7326a3992d41da49bb4cc174b173eed1c876307f components/shell/Logo.tsx
-100644 914ad38827aa38aac268b4eb6af21daa4e32cc4a components/shell/Novidades.tsx
+100644 fa11473107521d4baedd666dbb941839e0dc1233 components/shell/Novidades.tsx
 100644 0f8b067c36d3a8ce77e021bc08239b450004e0f6 components/shell/Paleta.tsx
 100644 d91d77cb4bdc80670152dfc98971501cb1b772bb components/shell/Personalizar.tsx
 100644 dd6e798924c93efcdbb25d955745040f10643752 components/shell/SessaoFoco.tsx
@@ -562,9 +565,10 @@ manifest() {
 100644 f81ee09708c3ed0240b10ab2879315ea6cdafdee lib/acoes.ts
 100644 3198e421c5ca7157371f58d197959a2d2849ce76 lib/animacoes.ts
 100644 354f6f3a5bb45d10cd9b0d01b349831eef7e0ab8 lib/aparencia.ts
-100644 cbff4814448e28c94c1d3d807e65ae17f2ae796c lib/armazenamento.ts
+100644 fe5c506f0ca27952a3dc1fc003465908521fe9ab lib/armazenamento.ts
 100644 1db3dbeed0f90f7275a6b4fa037e8ecf72b16431 lib/diario.ts
 100644 6b412141314e6c1223cc37b74d5561ec3c39c111 lib/espera.ts
+100644 98b502a721913fd5ea15bbff440303b46ffd147d lib/grafo.ts
 100644 55a06342e9e7d3114c28c6d867021ce961b243ba lib/importar-pessoas.ts
 100644 9a4217b12be348f4fb179136ab34febff7b35da6 lib/integridade.ts
 100644 4d39f1780cd62e38fbdbf4bc6748666d656ab1d8 lib/jogo.ts
@@ -591,8 +595,8 @@ manifest() {
 100644 a47702cb16f36e82bf8189e0f03a1f8e4f9480e4 lib/transcricao.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 feef254d16d9b68ee24ec1424a95db12f840e5f4 next.config.ts
-100644 81135ae7646013d73382c43e00e501446d6e8354 package-lock.json
-100644 7cd4654588b88e7863768820fd1f7eee021f2057 package.json
+100644 f4027c9a3273a8e9e7aec493473cd9d08f57a2ea package-lock.json
+100644 07dda813d95e4f1c646d03597abddd25cd164eac package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 9f1d221053f6ddb6f82346cf95faf1701cf787c0 proxy.ts
 100755 - scripts/baixar-nexo.sh
@@ -600,10 +604,11 @@ manifest() {
 100644 68a98f7f69c9e9628299ea390a20f053130edc45 scripts/instalar-nexo.ps1
 100755 - scripts/nexo-offline.sh
 100644 d0d6dc7c92904fc8aec47e39a9738ddb32d1085e testes/aparencia.test.mjs
-100644 30593e219c50f8c808ae249a65c35a86bea28d3b testes/api.sh
-100644 0906b956dc4188292ea7c6ae8437bd127fd1672c testes/carga.mjs
+100644 3ed43465326f2b6c2bd4a2b7ffe368ec42dc11ad testes/api.sh
+100644 834ed7048a0b52cc514c6dd86b4cdaaeff0ca636 testes/carga.mjs
 100644 05bf34712725bf7eba2b3b3fefeecb81e0425721 testes/diario.test.mjs
-100644 dbd8f5fa16568b16cf1fd5935ca2a2aad7ca2588 testes/e2e.cjs
+100644 7e07f195b453774180f3041cdf7dd05aeb67d325 testes/e2e.cjs
+100644 6f70d7bf03caec88f4f6dda9e2d9dcfa76da08bf testes/grafo.test.mjs
 100644 70b2fbfa8e3239ded8cc7f9891202b12c6ca0ba1 testes/integridade.test.mjs
 100644 bc54217f5fab262dd39e402574484ffc4dd27b78 testes/jogo.test.mjs
 100644 30dfa52ce4aef7fe06ff2e505fb0ebee51c39940 testes/ligacoes.test.mjs
