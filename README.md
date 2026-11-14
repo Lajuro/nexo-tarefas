@@ -77,6 +77,18 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Editor de texto (2.9)
+
+As folhas do bloco de notas e as anotações de cada registro agora têm um editor completo, no estilo de blocos:
+
+- **Digite `/`** para escolher o bloco: título, lista, lista numerada, lista de tarefas, citação, bloco de código, tabela, imagem ou divisor.
+- **Atalhos de quem já usa Markdown**: `# ` vira título, `- ` vira lista, `[] ` vira tarefa, `> ` vira citação, três crases abrem um bloco de código. `Ctrl B` e `Ctrl I` para negrito e itálico.
+- **Imagens**: cole um print com `Ctrl V`, arraste um arquivo ou use o botão da barra. A imagem é copiada para a pasta de dados (em `arquivos/`), junto com o resto.
+- **Colar do Copilot**: a resposta colada entra já formatada (títulos, listas, negrito).
+- O que você escreve é guardado como **Markdown**, que é texto simples: continua legível em qualquer lugar, inclusive no espelho da pasta `markdown/`.
+
+Por segurança, o editor nunca carrega imagem de fora nem executa nada do que foi colado: imagem de página da internet e links estranhos viram só texto.
+
 ## Novidades da 2.8
 
 - **Diário** (`G` depois `D`): tudo o que aconteceu em todas as tarefas, dia a dia, com um mapa de atividade. Clique num dia do mapa para ver só ele. "Copiar o que está na tela" gera um texto simples, bom para colar num e-mail de acompanhamento.

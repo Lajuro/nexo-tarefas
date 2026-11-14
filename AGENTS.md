@@ -41,7 +41,7 @@ Estas restrições definem várias decisões de arquitetura. Não as viole.
 - **Não existe API de IA** liberada. Só o **Copilot no navegador**. Toda IA do app é "copiar prompt / colar resposta". Nunca adicione dependência de API de LLM.
 - **Nada sensível vai para o repositório.** Dados do trabalho ficam só na pasta local do usuário. O repo é público.
 - Ele usa **Windows**, Edge/Chrome, PowerShell e Git Bash.
-- **Dependências com parcimônia.** Cada pacote precisa passar pelo npm do proxy (funciona, mas é mais um ponto de falha). A v2 adotou, a pedido do dono, a pilha de interface que ele usa nos outros projetos: `tailwindcss` + `@tailwindcss/postcss`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`, `motion`, `lucide-react`, `cmdk`, `sonner`, `@dnd-kit/core` e `geist` (fonte empacotada, sem buscar nada na internet). Versões **fixadas** no `package.json`. Antes de somar outra, veja se o kit em `components/ui` já resolve. Continua sem banco e sem API de IA.
+- **Dependências com parcimônia.** Cada pacote precisa passar pelo npm do proxy (funciona, mas é mais um ponto de falha). A v2 adotou, a pedido do dono, a pilha de interface que ele usa nos outros projetos: `tailwindcss` + `@tailwindcss/postcss`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`, `motion`, `lucide-react`, `cmdk`, `sonner`, `@dnd-kit/core` e `geist` (fonte empacotada, sem buscar nada na internet). A 2.9 somou o editor de texto rico, também a pedido do dono: **Tiptap** (`@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`, `@tiptap/markdown`, `@tiptap/suggestion`, `@tiptap/extensions`, `@tiptap/extension-image`, `-link`, `-list`, `-paragraph`, `-table`, todos na mesma versão) e `marked` (o leitor de Markdown que o Tiptap já usa). Versões **fixadas** no `package.json`; ao atualizar o Tiptap, suba todos os pacotes juntos e prefira uma versão com pelo menos duas semanas de publicada. Antes de somar outra, veja se o kit em `components/ui` já resolve. Continua sem banco e sem API de IA.
 - **Fontes e ícones são locais.** Nunca use `next/font/google` nem CDN: o build roda na máquina corporativa e o app não faz chamadas externas.
 - O servidor sobe **só em `127.0.0.1:3210`** (nunca `0.0.0.0`), porque está numa rede corporativa.
 
@@ -66,6 +66,7 @@ node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do
 node testes/notas.test.mjs    # testes do bloco de notas: prompt e leitor do JSON que a IA devolve
 node testes/aparencia.test.mjs # testes da personalização: aparência, moldura e o script que roda antes da primeira pintura
 node testes/diario.test.mjs   # testes do Diário, de "esperando quem", dos modelos de tarefa e da sessão de foco
+node testes/texto-rico.test.mjs # testes do texto rico: leitor de Markdown saneado (HTML, imagens de fora, links)
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -149,6 +150,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
 - **Nota** (folha do bloco de notas): `id ("n..."), titulo, texto, arquivadaEm? (carimbo|null), gerou?: FrutoDaNota[], sobras? (o que a IA não encaixou e o usuário não guardou), criadaEm, atualizadaEm`. `FrutoDaNota` = `{ tipo ("registro"|"tarefa"|"passo"), tarefaId, registroId?, rotulo }`: o que nasceu da folha quando ela foi organizada. Coleção nova e opcional, sem migração.
 - **Modelo** (modelo de tarefa): `id ("mo..."), nome, quando (quando usar), titulo (sugerido), descricao, categoriaId|null, prioridade, tags[], passos[] (textos), prazoEmDias? (a partir da criação), usos?, criadoEm, atualizadoEm`. Coleção nova e opcional, sem migração.
+- **Texto rico = Markdown no mesmo campo de texto** (2.9, sem migração): `nota.texto` e `registro.anotacoes` são editados no editor rico e guardam **Markdown**. Continua sendo uma string no JSON: versões antigas do app abrem e mostram o texto com a marcação à vista, sem perder nada. O texto antigo (puro) é Markdown válido; uma quebra de linha simples conta como quebra (`breaks: true`). O editor escreve `<` como `&lt;` e põe `\` antes de `* _ [ ] ~` soltos: por isso, **para mostrar um trecho como texto use `paraTextoPlano()`** (`lib/texto-rico.ts`), nunca o campo cru. Imagem colada vira arquivo em `arquivos/AAAA/` e no texto fica `![nome](arquivos/AAAA/arquivo.png)` (caminho relativo à pasta de dados; no espelho `.md` vira `../arquivos/...`). Os demais campos (`resumoIA`, `decisoes`, `impedimentos`, `descricao`) continuam sendo digitados como texto puro, mas são mostrados pelo mesmo leitor de Markdown.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
@@ -165,7 +167,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
 | `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), **faixa "Esperando"** no cabeçalho quando a tarefa aguarda terceiros (de quem, o quê, há quantos dias, copiar cobrança, cobrei hoje), lateral com Pendências, tempo em sessões de foco, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
-| `/notas` | **Bloco de notas**: folhas de texto livre, escritas sem escolher tarefa nem campo (abas Abertas e Arquivadas). "Organizar com o Copilot" copia um prompt com a folha e as tarefas abertas, recebe um **JSON** de volta e mostra uma **prévia** (registro em tarefa existente ou numa tarefa nova da própria folha, tarefa nova, passo antigo concluído, e as sobras como nota para guardar onde o usuário quiser). Na prévia dá para trocar a tarefa de destino, criar uma tarefa nova digitando o nome e ajustar a data do que aconteceu. Só grava o que o usuário confirmar, e a folha é arquivada com a lista do que criou. `/notas?n=<id>` abre uma folha específica. |
+| `/notas` | **Bloco de notas**: folhas de texto livre, escritas sem escolher tarefa nem campo (abas Abertas e Arquivadas), no **editor de texto rico** (blocos pelo menu `/`, listas de tarefas, tabelas, imagens coladas). "Organizar com o Copilot" copia um prompt com a folha e as tarefas abertas, recebe um **JSON** de volta e mostra uma **prévia** (registro em tarefa existente ou numa tarefa nova da própria folha, tarefa nova, passo antigo concluído, e as sobras como nota para guardar onde o usuário quiser). Na prévia dá para trocar a tarefa de destino, criar uma tarefa nova digitando o nome e ajustar a data do que aconteceu. Só grava o que o usuário confirmar, e a folha é arquivada com a lista do que criou. `/notas?n=<id>` abre uma folha específica. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra a **referência do assunto** (registros marcados como referência em qualquer tarefa dela), tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
@@ -195,6 +197,14 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
 - **"Meu" passo** (`passoEhMeu()` em `lib/lembretes.ts`): sem responsável, "Eu" ou um dos nomes da preferência `meusNomes` (Configurações). O Provider chama `definirMeusNomes()` durante o render e relê os dados quando a lista muda, para tudo se recalcular. Com o nome informado, `quemSouEu()` (em `lib/prompts.ts`) acrescenta aos prompts de registro e do bloco de notas a frase que diz ao Copilot quem é "eu".
 - **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
+
+### Editor de texto rico (2.9)
+- **Onde**: folha do bloco de notas (`components/notas/EditorNota.tsx`) e "Anotações brutas" do registro (`components/RegistroEditor.tsx`). Componente `EditorRico` (`components/editor/EditorRico.tsx`, extensões em `components/editor/extensoes.ts`), sobre o Tiptap. O valor é sempre uma string em Markdown: os mecanismos de rascunho e de gravação automática não mudaram.
+- **O que faz**: barra de formatação, menu de blocos ao digitar `/` (texto, títulos, lista, numerada, tarefas, citação, código, tabela, imagem, divisor), atalhos de Markdown (`# `, `- `, `[] `, `> `, três crases), link, tabela com linhas e colunas, e **imagens**: colar (`Ctrl V`), arrastar ou escolher. Texto puro colado com cara de Markdown (resposta do Copilot) entra formatado.
+- **Ler**: `TextoRico` (`components/tarefa/Texto.tsx`) desenha a árvore que `analisarMarkdown()` devolve (`lib/texto-rico.ts`). A classe CSS `prosa` (`app/globals.css`) dá a mesma cara para ler e editar.
+- **Atalhos que mudam dentro do editor**: `Ctrl B` é negrito (fora dele, recolhe a barra lateral); `Ctrl Enter` continua salvando o formulário em volta (o editor não insere quebra); `Esc` com o menu de blocos aberto fecha só o menu, não a janela.
+- **Prompts**: imagem anexada vai para o Copilot como `[imagem anexada: nome]` (`semImagens()` em `lib/prompts.ts`), porque ele não vê o arquivo.
+- **Limite conhecido**: quando o bloco de notas organiza uma folha em vários registros, cada registro leva o trecho que a IA copiou, então as imagens ficam só na folha arquivada (o link "abrir a folha original" leva até elas). Quando a folha rende um registro só, ele leva o texto inteiro, com as imagens.
 
 ### Esperando quem, modelos de tarefa e sessão de foco (2.8)
 - **Esperando quem** (`components/Esperando.tsx`, `lib/espera.ts`): quando a tarefa vai para "Aguardando terceiros" por `useAcoesTarefa().mudarStatus` (ou pela revisão) e ainda não diz de quem, abre a janela "Esperando quem?" (quem, o quê, lembrar de cobrar em). É opcional ("Agora não"). Com isso preenchido: a faixa `FaixaEspera` aparece no cabeçalho da tarefa e no detalhe da pessoa; "Aguardando retorno" em Hoje mostra de quem e conta os dias **desde a última cobrança**; o lembrete vira "Sem retorno de Fulano há N dias"; **Copiar cobrança** gera uma mensagem pronta (`mensagemCobranca()`, que só usa o que o usuário escreveu) e **Cobrei hoje** (`comCobranca()`) grava uma atividade "Cobrei Fulano" e recomeça a contagem. Também no menu da tarefa.
@@ -306,6 +316,7 @@ components/
   MoverEJuntar.tsx        janelas de mover registro para outra tarefa e de juntar duas tarefas
   Esperando.tsx           "Esperando quem?": janela, faixa de cobrança (FaixaEspera) e useCobranca()
   Modelos.tsx             modelos de tarefa: janela (ModeloForm), painel de Configurações e pedirModelo()
+  editor/                 editor de texto rico: EditorRico (barra, menu "/", imagens) e extensoes (Tiptap, regras de segurança)
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
   useLembretes.ts         lembretes ativos e adiar()
   useHoje.ts              dia de hoje que se atualiza sozinho na virada do dia
@@ -322,7 +333,7 @@ components/
   hoje/                   tela Hoje: captura rápida, foco de hoje, precisa de você, semana
   rotina/                 ritual "Planejar o dia" em 3 etapas
   tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
-  tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral
+  tarefa/                 página da tarefa: propriedades, timeline, passos, Copilot, lateral; Texto.tsx (TextoRico) desenha Markdown
   pendencias/             tela de pendências: agrupamento e linhas
   notas/                  bloco de notas: EditorNota (grava sozinho) e OrganizarNota (prompt, JSON, prévia, aplicar)
   categorias/             cartões de categoria, emblema e ações
@@ -356,6 +367,7 @@ lib/
   prompts.ts              prompts do Copilot e parser da resposta
   rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
+  texto-rico.ts           Markdown → árvore saneada (analisarMarkdown), paraTextoPlano, regras de imagem e de link
   diario.ts               diário: eventos por dia, mapa de atividade, sequência e texto para copiar (função pura)
   espera.ts               esperando quem: dias esperando, resumo e mensagem de cobrança
   modelos.ts              modelos de tarefa: passosDoTexto, modeloDaTarefa, registroDosPassos
@@ -378,6 +390,7 @@ testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador 
 testes/notas.test.mjs     testes do prompt e do leitor de JSON do bloco de notas (node testes/notas.test.mjs)
 testes/aparencia.test.mjs testes da personalização e do script do <head> com valores hostis (node testes/aparencia.test.mjs)
 testes/diario.test.mjs    testes do Diário, de "esperando quem", dos modelos e da sessão de foco (node testes/diario.test.mjs)
+testes/texto-rico.test.mjs testes do leitor de Markdown: formatação, HTML, imagens de fora, links (node testes/texto-rico.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -417,6 +430,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Anexos são servidos com `X-Content-Type-Options: nosniff` e `Content-Security-Policy: sandbox`; HTML e SVG de terceiros não executam no origin do app (HTML é servido como texto).
 - Upload grava com flag `wx` (nunca sobrescreve) e nome saneado.
 - **A resposta da IA é entrada não confiável.** O JSON colado no bloco de notas (`lib/notas.ts`) é validado campo a campo: tipos em lista fechada, datas reais no formato `AAAA-MM-DD`, tamanhos limitados (texto, itens, passos, pessoas), tarefa precisa existir e estar aberta. Ids são sempre gerados pelo app, nunca aceitos da resposta. Nada do que vem dela vira caminho, id ou código, e nada é gravado sem a prévia e a confirmação do usuário.
+- **Texto colado é entrada não confiável** (2.9). O editor rico e o leitor de Markdown seguem as mesmas três regras, cobertas por `testes/texto-rico.test.mjs` e pelo e2e: (1) **HTML nunca é interpretado** na leitura (`lib/texto-rico.ts` devolve uma árvore própria e a tela desenha com React, sem `innerHTML`); no editor, HTML colado passa pelo esquema do ProseMirror, que só conhece os blocos do app; (2) **imagem só carrega se for anexo da pasta de dados** (`arquivos/AAAA/nome`, validado por `anexoDoSrc()`): `<img>` de página colada e `![](http...)` não viram imagem, então colar conteúdo de fora não dispara chamada externa nem pixel de rastreio; (3) **link só com `http`, `https` ou `mailto`** (`linkPermitido()`), aberto em nova aba com `rel="noopener noreferrer nofollow"`. Upload de imagem pelo editor aceita só PNG, JPG, GIF e WebP até 15 MB (SVG não).
 - **O localStorage também é entrada não confiável.** O script que aplica a aparência antes da primeira pintura (`SCRIPT_APARENCIA` em `lib/aparencia.ts`) é texto fixo, gerado só de constantes, e aplica apenas valores das listas fechadas do app (consulta com `hasOwnProperty`, para `constructor` e afins não escaparem pela cadeia de protótipos). Nada lido do localStorage vira CSS, HTML ou código. `testes/aparencia.test.mjs` cobre isso.
 - Nada de telemetria, analytics ou chamadas externas em tempo de execução.
 
@@ -436,6 +450,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
 - **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
+- **2.9: texto rico é Markdown, não um formato próprio.** O editor (Tiptap) poderia gravar JSON de blocos, mas isso prenderia os dados ao editor e quebraria a regra de abrir em qualquer versão. Markdown mantém o campo como texto: o espelho `.md` fica nativo, o Copilot recebe o texto como ele é e uma versão antiga do app continua lendo. Custo aceito: o editor escapa alguns caracteres (`&lt;`, `\*`), e quem mostra um trecho precisa passar por `paraTextoPlano()`. Sublinhado ficou de fora porque não existe em Markdown. A descrição da tarefa e os campos preenchidos pela IA continuam em texto puro.
 - **2.8: quatro novidades escolhidas pelo agente a pedido do dono ("me surpreenda")**: Diário, esperando quem, modelos de tarefa e sessão de foco. Todas com campo opcional ou coleção nova, sem migração. "De quem se espera" é dado da tarefa (não preferência) porque é informação de trabalho. A sessão em andamento fica no navegador; só o resultado (a atividade com a duração) vai para a pasta de dados. A mensagem de cobrança é um texto fixo montado com o que o usuário escreveu: sem IA e sem inventar nada.
 - **O espelho em Markdown é gravado mesmo com `categorias.json` ilegível** (sem o nome da categoria). Antes, uma coleção corrompida impedia o espelho de se atualizar.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
@@ -473,6 +488,8 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 | `lib/aparencia.ts` | Aparência do usuário: `ACENTOS`, `CANTOS`, `normalizarAparencia`, `aplicarAparencia`, `SCRIPT_APARENCIA`. Use `useAparencia()` (de `components/Raiz.tsx`) para ler ou mudar. |
 | `lib/moldura.ts` | Moldura do usuário: `useMoldura()`, `useRecentes()`, `registrarRecente()`, `abrirPersonalizar(aba)`, `naOrdem`, `alternarNa`. |
 | `components/shell/Aparencia.tsx` | Controles prontos: `SeletorTema`, `SeletorAcento`, `SeletorCantos`, `OpcoesAparencia`. |
+| `components/editor/EditorRico.tsx` | Editor de texto rico. Use para campo de texto longo em que formatação ajuda: `<EditorRico valor={md} aoMudar={setMd} />` (`variante="pagina"` ocupa a altura disponível). O valor é Markdown. |
+| `components/tarefa/Texto.tsx` | `TextoRico`: mostra Markdown (títulos, listas, tarefas, tabela, código, imagens anexadas) com a classe `prosa`. |
 | `components/ui/*` | Kit genérico (padrão Shadcn, sem regra de negócio). `button`, `input` (Input, Textarea), `dialog` (Dialog e AlertDialog), `select` (Select e o atalho `Seletor`), `popover` (Popover, `Dica`), `menu` (DropdownMenu e ContextMenu), `controles` (Label, Checkbox, Switch, `CampoSwitch`, Slider, `Segmentado`), `data` (`Calendario`, `SeletorData`, `SeletorHora`, `somarDias`, `dataPorExtenso`), `command` (Command e `Combobox`), `chips` (`CampoChips`, `CampoSugestoes`, `AreaArquivo`), `diversos` (Badge, Card, Separator, Skeleton, Kbd, Collapsible, ScrollArea, Tabs, Progress, Table/THead/TBody/Tr/Th/Td, Toaster). |
 | `components/comum.tsx` | Peças de domínio: `Pagina`, `Secao`, `Painel`, `Estatistica`, `Vazio`, `Contador`, `StatusBadge`, `SeletorStatus`, `IconeStatus`, `opcoesStatus`, `PrioBadge`, `SeletorPrioridade`, `CatTag`, `PontoCor`, `PrazoTag`, `IconeTipo`, `TipoBadge`, `AvatarPessoa`, `ChipPessoa`, `Etiqueta`, `ItemPasso`, `Campo`, `LinhaCampos`, `ChipsInput`, `Modal`, `Destaque`, `copiarTexto`, `formatarTamanho`. |
 | `components/Raiz.tsx` | Provedores de interface: tema (`useTema`), confirmação (`useConfirmar`), dicas, toasts, `MotionConfig`. |
@@ -496,6 +513,8 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 | atributo `title` | `<Dica texto="...">` |
 | `<details>` | `Collapsible` |
 | `<table>` crua | `Table`, `THead`, `TBody`, `Tr`, `Th`, `Td` |
+| `<textarea>` para texto longo com formatação | `EditorRico` (texto curto e simples continua em `Textarea`) |
+| mostrar texto do usuário com `innerHTML` | `TextoRico` (nunca `dangerouslySetInnerHTML`) |
 | emoji como ícone | ícone do `lucide-react` (tipos de registro: `IconeTipo`; status: `IconeStatus`) |
 | menu de contexto do navegador em itens | `ContextMenu` (`MenuContextoTarefa` para tarefas) |
 

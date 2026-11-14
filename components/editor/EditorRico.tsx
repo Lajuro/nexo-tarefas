@@ -233,7 +233,8 @@ export function EditorRico({
       },
     },
     onUpdate: ({ editor: ed }) => {
-      const md = ed.isEmpty ? "" : ed.getMarkdown().replace(/\n+$/, "");
+      // parágrafos vazios no fim (o editor os grava como "&nbsp;") não precisam ir para o texto guardado
+      const md = ed.isEmpty ? "" : ed.getMarkdown().replace(/(?:\s|&nbsp;)+$/, "");
       emitido.current = md;
       acoes.current.aoMudar(md);
     },
@@ -375,9 +376,11 @@ export function EditorRico({
         ) : (
           <BotaoBarra dica="Tabela" aoClicar={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></BotaoBarra>
         )}
-        <span className="ml-auto hidden pr-1.5 text-[11px] text-muted-foreground/80 sm:inline">
-          digite <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">/</kbd> para blocos
-        </span>
+        {pagina && (
+          <span className="ml-auto hidden pr-1.5 text-[11px] text-muted-foreground/80 lg:inline">
+            digite <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">/</kbd> para blocos
+          </span>
+        )}
       </div>
 
       <div className={cn("min-h-0", pagina ? "flex-1 overflow-y-auto" : "max-h-[55vh] overflow-y-auto")}
