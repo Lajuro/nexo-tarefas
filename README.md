@@ -77,6 +77,17 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Conquistas (2.10)
+
+O Nexo agora reconhece o que você faz nele:
+
+- **Nível e XP**: concluir um passo, registrar o que aconteceu, fechar uma tarefa e fazer uma sessão de foco rendem XP. Registrar vale mais que marcar um passo, porque é o hábito mais difícil de manter.
+- **Meta do dia**: um número de avanços por dia (3, para começar). O anel no pé da barra lateral e na tela Hoje mostra quanto falta.
+- **Conquistas**: 25 marcos, do primeiro passo concluído a um mês de dias úteis seguidos. Em `G` depois `Q`, ou clicando no placar da barra lateral.
+- **Comemoração**: ao bater a meta, subir de nível ou ganhar uma conquista, aparece um aviso e cai confete.
+
+Nada disso é guardado à parte: o placar é calculado dos seus registros, então já começa contando tudo o que você fez antes. Em Configurações dá para mudar a meta, desligar o confete ou desligar tudo.
+
 ## Editor de texto (2.9)
 
 As folhas do bloco de notas e as anotações de cada registro agora têm um editor completo, no estilo de blocos:

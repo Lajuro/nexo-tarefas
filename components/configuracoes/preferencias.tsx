@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import {
-  ArrowRight, BellRing, CalendarCheck2, Keyboard, Palette, Repeat2, RotateCcw, ShieldCheck, SlidersHorizontal, Sunrise,
+  ArrowRight, BellRing, CalendarCheck2, Keyboard, Palette, Repeat2, RotateCcw, ShieldCheck, SlidersHorizontal, Sunrise, Trophy,
   UserRound,
 } from "lucide-react";
 import pacote from "@/package.json";
@@ -16,7 +16,9 @@ import { OpcoesAparencia } from "@/components/shell/Aparencia";
 import { ATALHOS } from "@/components/shell/navegacao";
 import { useLembretes } from "@/components/useLembretes";
 import { Button } from "@/components/ui/button";
-import { CampoSwitch } from "@/components/ui/controles";
+import { useJogo } from "@/components/jogo/useJogo";
+import { CampoSwitch, Slider } from "@/components/ui/controles";
+import { META_MAXIMA } from "@/lib/jogo";
 import { Badge, Kbd } from "@/components/ui/diversos";
 import { LIMITES, dataRelativa } from "@/lib/lembretes";
 import { abrirPersonalizar } from "@/lib/moldura";
@@ -43,6 +45,31 @@ export function PainelAparencia() {
       <p className="mt-4 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
         Para aumentar ou diminuir tudo de uma vez, use <Kbd>Ctrl</Kbd> <Kbd>+</Kbd> e <Kbd>Ctrl</Kbd> <Kbd>-</Kbd>. O Edge lembra do tamanho escolhido.
       </p>
+    </Painel>
+  );
+}
+
+// ---------- Conquistas e meta do dia ----------
+
+export function PainelJogo() {
+  const { pref, mudar, estado } = useJogo();
+  return (
+    <Painel titulo="Conquistas e meta do dia" icone={<Trophy />}
+      acoes={estado && <Button variant="ghost" size="sm" asChild><Link href="/conquistas">Nível {estado.nivel.n} <ArrowRight /></Link></Button>}>
+      <div data-slot="painel-jogo" className="flex flex-col gap-3.5">
+        <CampoSwitch marcado={pref.ligado} aoMudar={(v) => mudar({ ligado: v })}>Mostrar nível, meta do dia e conquistas</CampoSwitch>
+        <div className={cn("flex flex-col gap-3.5 transition-opacity", !pref.ligado && "pointer-events-none opacity-50")}>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium sem-selecao">Meta do dia: <span className="font-semibold text-foreground tabular-nums">{pref.meta}</span> {pref.meta === 1 ? "avanço" : "avanços"}</span>
+            <Slider aria-label="Meta do dia" min={1} max={META_MAXIMA} step={1} value={[pref.meta]} onValueChange={([v]) => mudar({ meta: v })} className="max-w-64" />
+            <p className="text-[11px] leading-snug text-muted-foreground">Conta como avanço: concluir um passo, registrar algo na linha do tempo ou concluir uma tarefa.</p>
+          </div>
+          <CampoSwitch marcado={pref.celebrar} aoMudar={(v) => mudar({ celebrar: v })}>Comemorar com aviso e confete quando eu alcançar algo</CampoSwitch>
+        </div>
+        <p className="border-t pt-3 text-[11px] leading-snug text-muted-foreground">
+          O placar é calculado dos seus registros, na hora. Desligar só esconde: nada é apagado e nada extra é gravado.
+        </p>
+      </div>
     </Painel>
   );
 }

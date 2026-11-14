@@ -67,6 +67,7 @@ node testes/notas.test.mjs    # testes do bloco de notas: prompt e leitor do JSO
 node testes/aparencia.test.mjs # testes da personalização: aparência, moldura e o script que roda antes da primeira pintura
 node testes/diario.test.mjs   # testes do Diário, de "esperando quem", dos modelos de tarefa e da sessão de foco
 node testes/texto-rico.test.mjs # testes do texto rico: leitor de Markdown saneado (HTML, imagens de fora, links)
+node testes/jogo.test.mjs     # testes da gamificação: XP, níveis, meta do dia e conquistas
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -155,7 +156,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
 ### Preferências de interface (localStorage, não são dados)
-Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo), `aparencia` (`{ acento, cantos, fonte, movimento, lateral, fundo }`, ver `lib/aparencia.ts`), `moldura` (largura da barra lateral, ordem e itens escondidos, seções, ferramentas da barra superior, barra de status, ver `lib/moldura.ts`) e `recentes` (ids das últimas tarefas abertas) e `sessao` (a sessão de foco em andamento: `{ tarefaId, inicio, alvoMin, fim?, nota? }`). Tudo o que é lido do localStorage passa por uma função `normalizar*()` com listas fechadas: valor desconhecido vira o padrão. O `usePref` já nasce com o valor lido (não monta no padrão para depois "pular"), o que é seguro porque nada que depende de preferência é desenhado no servidor. Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`), o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`), o **texto ainda não guardado do "Anotar rápido"** (`nexo:anotarPendente`) e **o que foi escrito sobre uma sessão de foco ainda não registrada** (dentro de `nexo:sessao`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo), `aparencia` (`{ acento, cantos, fonte, movimento, lateral, fundo }`, ver `lib/aparencia.ts`), `moldura` (largura da barra lateral, ordem e itens escondidos, seções, ferramentas da barra superior, barra de status, ver `lib/moldura.ts`) e `recentes` (ids das últimas tarefas abertas) e `sessao` (a sessão de foco em andamento: `{ tarefaId, inicio, alvoMin, fim?, nota? }`), `jogo` (`{ ligado, meta, celebrar }`) e `jogoVisto` (o que já foi comemorado: `{ conquistas[], nivel, meta, concluidas }`). Tudo o que é lido do localStorage passa por uma função `normalizar*()` com listas fechadas: valor desconhecido vira o padrão. O `usePref` já nasce com o valor lido (não monta no padrão para depois "pular"), o que é seguro porque nada que depende de preferência é desenhado no servidor. Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`), o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`), o **texto ainda não guardado do "Anotar rápido"** (`nexo:anotarPendente`) e **o que foi escrito sobre uma sessão de foco ainda não registrada** (dentro de `nexo:sessao`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
 
 ---
 
@@ -174,8 +175,9 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
 | `/diario` | **Diário**: tudo o que aconteceu em todas as tarefas, dia a dia (registros, marcos e passos concluídos no dia em que foram feitos), com um **mapa de atividade** das últimas 36 semanas (clicar num dia mostra só ele), números dos últimos 30 dias, sequência de dias úteis e filtros por tipo, categoria e pessoa. "Copiar" gera texto simples do dia ou do que está na tela, sem IA. É só leitura (`lib/diario.ts`). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
+| `/conquistas` | **Conquistas** (gamificação): nível e XP, gráfico de XP dos últimos 14 dias, meta do dia, sequência de dias úteis, recorde, e as conquistas por grupo com o progresso de cada uma. Tudo calculado dos dados (`lib/jogo.ts`), nada gravado. Pode ser desligada. |
 | `/busca?q=` | Busca sem acento/maiúscula em tarefas, registros (todos os campos), links, pessoas e times. Com várias palavras, o resultado precisa ter **todas**, em qualquer ordem e em qualquer campo do mesmo item; o trecho mostra e destaca cada uma. O resultado de um registro abre a tarefa já rolada até ele (`/tarefas/<id>?r=<registroId>`). |
-| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, **modelos de tarefa** (usar, editar, excluir), lixeira com restaurar, aparência (tema), rotina e lembretes, "como você aparece nos passos" (seus nomes), atalhos. |
+| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, **modelos de tarefa** (usar, editar, excluir), lixeira com restaurar, aparência (tema), rotina e lembretes, conquistas e meta do dia (ligar/desligar, meta, comemorar), "como você aparece nos passos" (seus nomes), atalhos. |
 
 ### Moldura (components/Shell.tsx)
 - **Barra lateral** (`components/shell/Lateral.tsx`), recolhível (`Ctrl B`): navegação com contadores, e as seções **Foco de hoje** (tarefas em foco com o próximo passo e um anel de progresso), **Fixadas** (`tarefa.fixada`, pelo menu da tarefa), **Recentes** (últimas tarefas abertas, no localStorage) e **Assuntos**. Cada seção recolhe com um clique no título. A largura se ajusta arrastando a borda direita (setas com a borda em foco, dois cliques voltam ao padrão, arrastar bem para dentro recolhe).
@@ -185,7 +187,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R` para navegar (`G N` = Notas, `G D` = Diário), `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R/Q` para navegar (`G N` = Notas, `G D` = Diário, `G Q` = Conquistas), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -197,6 +199,15 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
 - **"Meu" passo** (`passoEhMeu()` em `lib/lembretes.ts`): sem responsável, "Eu" ou um dos nomes da preferência `meusNomes` (Configurações). O Provider chama `definirMeusNomes()` durante o render e relê os dados quando a lista muda, para tudo se recalcular. Com o nome informado, `quemSouEu()` (em `lib/prompts.ts`) acrescenta aos prompts de registro e do bloco de notas a frase que diz ao Copilot quem é "eu".
 - **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
+
+### Conquistas: nível, meta do dia e comemorações (2.10)
+- **O placar não é dado, é conta.** `calcularJogo(dados, hoje, meta)` em `lib/jogo.ts` percorre registros, passos concluídos e marcos de conclusão e devolve XP, nível, meta do dia, sequência, recorde e as conquistas. Nada é gravado: vale retroativamente, é igual em qualquer PC e não tem como dessincronizar. **Não crie campo de "pontos" nos dados.**
+- **XP** (constante `XP`): 10 por passo concluído, 15 por registro (20 se for reunião), 50 por tarefa concluída, 1 por minuto de sessão de foco (até 60 por sessão). O que tem data no futuro não conta. Nível n exige `60·n·(n−1)` XP.
+- **Meta do dia**: N "avanços" (passo concluído, registro ou tarefa concluída) no dia; N é preferência (padrão 3, até 12).
+- **Conquistas** (lista `MOLDES`): por contador acumulado (guardam o dia em que foram alcançadas) ou por valor atual (melhor sequência, recorde do dia, modelos, pessoas, folhas organizadas). Para criar uma, acrescente um molde e um ícone em `ICONE_CONQUISTA` (`components/jogo/pecas.tsx`).
+- **Onde aparece**: pé da barra lateral (`NivelLateral`: anel da meta, nível, barra de XP), painel "Progresso de hoje" da tela Hoje, tela `/conquistas` e painel em Configurações.
+- **Comemoração** (`components/jogo/Celebracao.tsx`, montada no Shell): compara o placar com `nexo:jogoVisto` e, se há conquista nova, nível novo, meta batida ou tarefa concluída, avisa e solta confete (`Confete`, só com movimento "completo"). Na primeira vez registra o estado atual em silêncio, para não comemorar de uma vez tudo o que já tinha sido feito. O que já foi comemorado não é comemorado de novo.
+- **Desligável** (`jogo.ligado`): esconde tudo. Como nada é gravado, ligar de novo traz o mesmo placar.
 
 ### Editor de texto rico (2.9)
 - **Onde**: folha do bloco de notas (`components/notas/EditorNota.tsx`) e "Anotações brutas" do registro (`components/RegistroEditor.tsx`). Componente `EditorRico` (`components/editor/EditorRico.tsx`, extensões em `components/editor/extensoes.ts`), sobre o Tiptap. O valor é sempre uma string em Markdown: os mecanismos de rascunho e de gravação automática não mudaram.
@@ -286,6 +297,7 @@ app/
   pendencias/page.tsx     passos em aberto
   notas/page.tsx          bloco de notas (folhas abertas e arquivadas)
   diario/page.tsx         diário: o que aconteceu dia a dia, com mapa de atividade
+  conquistas/page.tsx     conquistas: nível, XP, meta do dia e conquistas (gamificação)
   pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
   links/page.tsx          banco de links e arquivos
   revisao/page.tsx        revisão semanal guiada
@@ -316,6 +328,7 @@ components/
   MoverEJuntar.tsx        janelas de mover registro para outra tarefa e de juntar duas tarefas
   Esperando.tsx           "Esperando quem?": janela, faixa de cobrança (FaixaEspera) e useCobranca()
   Modelos.tsx             modelos de tarefa: janela (ModeloForm), painel de Configurações e pedirModelo()
+  jogo/                   gamificação: useJogo (placar e preferências), Celebracao, NivelLateral e pecas (Anel, CartaoConquista, Confete)
   editor/                 editor de texto rico: EditorRico (barra, menu "/", imagens) e extensoes (Tiptap, regras de segurança)
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
   useLembretes.ts         lembretes ativos e adiar()
@@ -368,6 +381,7 @@ lib/
   rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
   texto-rico.ts           Markdown → árvore saneada (analisarMarkdown), paraTextoPlano, regras de imagem e de link
+  jogo.ts                 gamificação: calcularJogo (XP, nível, meta do dia, conquistas), função pura sobre os dados
   diario.ts               diário: eventos por dia, mapa de atividade, sequência e texto para copiar (função pura)
   espera.ts               esperando quem: dias esperando, resumo e mensagem de cobrança
   modelos.ts              modelos de tarefa: passosDoTexto, modeloDaTarefa, registroDosPassos
@@ -391,6 +405,7 @@ testes/notas.test.mjs     testes do prompt e do leitor de JSON do bloco de notas
 testes/aparencia.test.mjs testes da personalização e do script do <head> com valores hostis (node testes/aparencia.test.mjs)
 testes/diario.test.mjs    testes do Diário, de "esperando quem", dos modelos e da sessão de foco (node testes/diario.test.mjs)
 testes/texto-rico.test.mjs testes do leitor de Markdown: formatação, HTML, imagens de fora, links (node testes/texto-rico.test.mjs)
+testes/jogo.test.mjs      testes da gamificação: XP, níveis, meta do dia, conquistas (node testes/jogo.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -450,6 +465,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
 - **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
+- **2.10: gamificação calculada, não gravada.** O dono pediu para gamificar o uso. A decisão foi derivar tudo dos dados que já existem, em vez de guardar pontos: assim a regra de nunca perder dados não ganha mais um arquivo para proteger, e o placar não mente (não dá para ganhar XP sem ter feito a coisa). A pontuação favorece registrar o que aconteceu, que é o hábito que o app mais precisa. Só o que é gosto (ligar, meta do dia, comemorar) e o que já foi comemorado ficam no navegador.
 - **2.9: texto rico é Markdown, não um formato próprio.** O editor (Tiptap) poderia gravar JSON de blocos, mas isso prenderia os dados ao editor e quebraria a regra de abrir em qualquer versão. Markdown mantém o campo como texto: o espelho `.md` fica nativo, o Copilot recebe o texto como ele é e uma versão antiga do app continua lendo. Custo aceito: o editor escapa alguns caracteres (`&lt;`, `\*`), e quem mostra um trecho precisa passar por `paraTextoPlano()`. Sublinhado ficou de fora porque não existe em Markdown. A descrição da tarefa e os campos preenchidos pela IA continuam em texto puro.
 - **2.8: quatro novidades escolhidas pelo agente a pedido do dono ("me surpreenda")**: Diário, esperando quem, modelos de tarefa e sessão de foco. Todas com campo opcional ou coleção nova, sem migração. "De quem se espera" é dado da tarefa (não preferência) porque é informação de trabalho. A sessão em andamento fica no navegador; só o resultado (a atividade com a duração) vai para a pasta de dados. A mensagem de cobrança é um texto fixo montado com o que o usuário escreveu: sem IA e sem inventar nada.
 - **O espelho em Markdown é gravado mesmo com `categorias.json` ilegível** (sem o nome da categoria). Antes, uma coleção corrompida impedia o espelho de se atualizar.

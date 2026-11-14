@@ -23,7 +23,7 @@
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
 // painel Personalizar: cor de destaque, esconder item e ferramenta), esperando quem (cobrança),
 // modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
-// perigoso barrado) e tema escuro.
+// perigoso barrado), conquistas (nível, meta do dia, desligar) e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -798,6 +798,47 @@ async function main() {
     await pg.locator(`[data-slot=dia-mapa][data-data="${hojeIso}"]`).click();
     await pg.locator("[data-slot=dia-escolhido]").waitFor();
     afirmar((await pg.locator("[data-slot=dia-diario]").count()) === 1, "escolher um dia no mapa não filtrou o diário");
+  });
+
+  // ---------- conquistas (gamificação) ----------
+  await etapa("conquistas: nível, meta do dia, conquistas e desligar", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("q");
+    await pg.waitForURL("**/conquistas");
+    await pg.locator("[data-slot=cartao-nivel]").waitFor();
+    // o placar bate com os dados: o XP mostrado é o mesmo que sai da conta feita aqui, direto da API
+    const d = await dados();
+    let xp = 0;
+    for (const t of d.tarefas)
+      for (const r of t.registros) {
+        if (r.tipo === "marco") { if (r.alteracoes?.status?.para === "concluida") xp += 50; }
+        else xp += (r.tipo === "reuniao" ? 20 : 15) + Math.min(60, r.duracaoMin || 0);
+        xp += 10 * r.proximosPassos.filter((p) => p.feito && p.feitoEm).length;
+      }
+    afirmar(xp > 0, "o cenário do teste devia ter rendido algum XP");
+    await pg.waitForFunction((esperado) => document.querySelector("[data-slot=xp]")?.textContent.trim() === String(esperado), xp);
+    afirmar(Number(await pg.locator("[data-slot=nivel]").innerText()) >= 2, "com tudo o que o teste fez, o nível devia ter passado de 1");
+    await pg.locator("[data-slot=conquista][data-id=passo-1][data-feita]").waitFor();
+    await pg.locator("[data-slot=conquista][data-id=tarefa-1][data-feita]").waitFor();
+    await pg.locator("[data-slot=conquista][data-id=foco-1][data-feita]").waitFor();
+    afirmar((await pg.locator("[data-slot=conquista][data-id=passo-500][data-feita]").count()) === 0, "conquista distante apareceu como feita");
+    await pg.locator("[data-slot=meta-do-dia]").getByText("Meta de hoje").waitFor();
+    // o que já foi comemorado fica anotado no navegador (para não comemorar de novo)
+    const visto = JSON.parse(await pg.evaluate(() => localStorage.getItem("nexo:jogoVisto")));
+    afirmar(visto.conquistas.includes("passo-1") && visto.nivel >= 2, "as comemorações não foram anotadas: " + JSON.stringify(visto));
+    // o placar fica à vista na barra lateral e na tela Hoje
+    await pg.locator("[data-slot=lateral] [data-slot=nivel-lateral]").waitFor();
+    await pg.goto(B + "/");
+    await pg.locator("[data-slot=meta-hoje]").waitFor();
+    // desligar esconde tudo, sem tocar nos dados
+    await pg.goto(B + "/configuracoes");
+    await pg.locator("[data-slot=painel-jogo]").getByRole("switch").first().click();
+    await pg.locator("[data-slot=nivel-lateral]").waitFor({ state: "detached" });
+    await pg.goto(B + "/conquistas");
+    await pg.locator("[data-slot=ligar-jogo]").click();
+    await pg.locator("[data-slot=cartao-nivel]").waitFor();
+    await pg.locator("[data-slot=lateral] [data-slot=nivel-lateral]").waitFor();
   });
 
   await etapa("personalizar: cor, item da lateral e ferramenta", async () => {

@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ChevronRight, PinOff, Plus, Search, SlidersHorizontal, Target } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
+import { NivelLateral } from "@/components/jogo/NivelLateral";
 import { useHoje } from "@/components/useHoje";
 import { useLembretes } from "@/components/useLembretes";
 import { IconeStatus, PontoCor } from "@/components/comum";
@@ -381,7 +382,10 @@ export function Lateral({
             })}
       </nav>
 
-      <div className={cn("flex shrink-0 items-center gap-1 border-t border-sidebar-border p-2.5", recolhida && "flex-col px-2")}>
+      <div className="shrink-0 border-t border-sidebar-border pt-2">
+        <NivelLateral recolhida={recolhida} />
+      </div>
+      <div className={cn("flex shrink-0 items-center gap-1 px-2.5 pb-2.5", recolhida && "flex-col px-2")}>
         <div className="min-w-0 flex-1 self-stretch">
           <Linha item={NAV_CONFIG} ativo={rotaAtiva(pathname, NAV_CONFIG.href)} recolhida={recolhida} />
         </div>

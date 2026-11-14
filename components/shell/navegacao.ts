@@ -1,5 +1,5 @@
 import {
-  BookOpenText, CalendarCheck, CircleCheckBig, FileText, Link2, ListTodo, type LucideIcon, NotebookPen, Settings, Shapes, Sun, Users,
+  BookOpenText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, NotebookPen, Settings, Shapes, Sun, Users,
 } from "lucide-react";
 
 export interface ItemNav {
@@ -34,6 +34,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
       { href: "/diario", nome: "Diário", icone: BookOpenText, tecla: "d" },
       { href: "/revisao", nome: "Revisão semanal", icone: CalendarCheck, tecla: "s" },
       { href: "/relatorios", nome: "Relatórios", icone: FileText, tecla: "r" },
+      { href: "/conquistas", nome: "Conquistas", icone: Trophy, tecla: "q" },
     ],
   },
 ];
@@ -64,6 +65,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "D"], descricao: "Ir para o Diário (o que aconteceu, dia a dia)" },
   { teclas: ["G", "S"], descricao: "Ir para a Revisão semanal" },
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },
+  { teclas: ["G", "Q"], descricao: "Ir para Conquistas (nível, meta do dia)" },
   { teclas: ["D"], descricao: "Planejar o dia" },
   { teclas: ["A"], descricao: "Anotar rápido: tarefa ou nota, de qualquer tela" },
   { teclas: ["Ctrl", "B"], descricao: "Recolher ou abrir a barra lateral" },

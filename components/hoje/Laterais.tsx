@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
-import { CircleCheck, Copy, ListChecks, MessageSquareReply, NotebookPen, TrendingUp } from "lucide-react";
+import { Check, CircleCheck, Copy, ListChecks, MessageSquareReply, NotebookPen, TrendingUp } from "lucide-react";
+import { Anel } from "@/components/jogo/pecas";
+import { useJogo } from "@/components/jogo/useJogo";
 import { useCobranca } from "@/components/Esperando";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { IconeStatus, NumeroAnimado, Painel } from "@/components/comum";
@@ -34,11 +36,33 @@ export function ProgressoDoDia({ resumo }: { resumo: ResumoDia }) {
   for (const t of resumo.focos)
     for (const r of t.registros) for (const p of r.proximosPassos) if (p.feito && dataLocal(p.feitoEm) === hoje) feitosNosFocos++;
   const totalNosFocos = feitosNosFocos + resumo.passosDosFocos.length;
+  const { estado: jogo } = useJogo();
 
   return (
-    <Painel titulo="Progresso de hoje" icone={<TrendingUp />} className="[&_h3]:truncate">
+    <Painel titulo="Progresso de hoje" icone={<TrendingUp />} className="[&_h3]:truncate"
+      acoes={jogo && (
+        <Link href="/conquistas" data-slot="nivel-hoje"
+          className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35">
+          Nível {jogo.nivel.n} · {jogo.xp} XP
+        </Link>
+      )}>
       <div data-slot="progresso-do-dia">
-        <p className="text-[13px] leading-snug text-muted-foreground">{frase(total)}</p>
+        {jogo ? (
+          <div data-slot="meta-hoje" className="flex items-center gap-3">
+            <Anel parte={jogo.hoje.avancos / jogo.hoje.meta} tamanho={46} espessura={5}>
+              {jogo.hoje.bateu ? <Check className="size-4 text-sucesso" strokeWidth={3} /> : <span className="text-xs font-semibold tabular-nums">{jogo.hoje.avancos}/{jogo.hoje.meta}</span>}
+            </Anel>
+            <p className="min-w-0 flex-1 text-[13px] leading-snug text-muted-foreground">
+              {jogo.hoje.bateu
+                ? <><span className="font-medium text-foreground">Meta do dia batida.</span> O que vier agora é bônus.</>
+                : jogo.hoje.avancos === 0
+                  ? frase(total)
+                  : <><span className="font-medium text-foreground">{jogo.hoje.meta - jogo.hoje.avancos === 1 ? "Falta 1 avanço" : `Faltam ${jogo.hoje.meta - jogo.hoje.avancos} avanços`}</span> para a meta do dia.</>}
+            </p>
+          </div>
+        ) : (
+          <p className="text-[13px] leading-snug text-muted-foreground">{frase(total)}</p>
+        )}
         <div className="mt-3 grid grid-cols-3 gap-2">
           <Marcador icone={<ListChecks />} valor={passos} rotulo={passos === 1 ? "passo feito" : "passos feitos"} />
           <Marcador icone={<NotebookPen />} valor={registros} rotulo={registros === 1 ? "registro" : "registros"} />

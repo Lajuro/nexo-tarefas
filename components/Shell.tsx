@@ -30,6 +30,8 @@ import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
 import { Esperando } from "./Esperando";
 import { ModeloForm } from "./Modelos";
+import { Celebracao } from "./jogo/Celebracao";
+import { Confete } from "./jogo/pecas";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
 
@@ -203,6 +205,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <MoverEJuntar />
       <Esperando />
       <ModeloForm />
+      <Celebracao />
+      <Confete />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
       <Paleta
