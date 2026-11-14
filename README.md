@@ -89,6 +89,19 @@ As **Páginas** viraram um lugar para documentar de verdade:
 - **Busca na documentação** (`Ctrl P`): mostra em que seção de cada página o trecho está e abre direto nela.
 - **Quadro e Lista**: veja as páginas por estado (rascunho, em revisão, pronta), arrastando entre as colunas, ou numa tabela com filtro.
 
+## Componentes nas páginas (3.2)
+
+No editor, digite `/` e escolha:
+
+- **Destaque** (nota, dica, importante, atenção, perigo, deu certo): uma caixa colorida para o que não pode passar batido.
+- **Bloco que abre e fecha** e **Pergunta e resposta**: o título aparece, o resto abre ao clicar.
+- **Bloco de código**: escolha a linguagem na barra; na leitura ele ganha cores e o botão de copiar.
+- **Índice**: a lista dos títulos da página, montada sozinha.
+- **Arquivo**: anexa um PDF, planilha ou outro arquivo, que fica na pasta de dados.
+- **Subpágina**: cria uma página dentro da atual e já deixa o link.
+
+Um link para uma tarefa, página ou pessoa **sozinho numa linha** vira um cartão que mostra o estado de agora (status, prazo, passos em aberto). Tudo isso continua sendo Markdown simples por baixo: um destaque é `> [!NOTA] Título`.
+
 ## Nexo 3.0
 
 A 3.0 junta cinco frentes: **modo reunião**, **páginas de conhecimento com @**, **perguntar ao Nexo**, **radar das frentes** e **confiança**. As quatro primeiras estão descritas abaixo. Da última:

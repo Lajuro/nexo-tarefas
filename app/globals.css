@@ -384,6 +384,201 @@ html[data-lateral="colorida"] [data-slot="lateral"] {
   padding: 0;
   font-size: inherit;
 }
+/* ---------- componentes do documento (3.2) ---------- */
+/* destaque (callout): na leitura é um <aside>; no editor é a própria citação, marcada por uma decoração */
+/* a cor padrão entra com peso zero (:where), para o tipo do destaque poder trocá-la */
+:where(.prosa [data-slot="destaque"], .prosa blockquote[data-destaque]) {
+  --tom: var(--info);
+}
+.prosa [data-slot="destaque"],
+.prosa blockquote[data-destaque] {
+  border: 1px solid color-mix(in oklch, var(--tom) 28%, transparent);
+  border-left: 3px solid var(--tom);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--tom) 7%, transparent);
+  padding: 0.6em 0.95em;
+  color: inherit;
+}
+.prosa [data-tipo="dica"], .prosa [data-destaque="dica"], .prosa [data-tipo="sucesso"], .prosa [data-destaque="sucesso"] { --tom: var(--sucesso); }
+.prosa [data-tipo="importante"], .prosa [data-destaque="importante"], .prosa [data-tipo="exemplo"], .prosa [data-destaque="exemplo"] { --tom: var(--primary); }
+.prosa [data-tipo="atencao"], .prosa [data-destaque="atencao"], .prosa [data-tipo="pergunta"], .prosa [data-destaque="pergunta"] { --tom: var(--alerta); }
+.prosa [data-tipo="perigo"], .prosa [data-destaque="perigo"] { --tom: var(--destructive); }
+.prosa [data-tipo="detalhes"], .prosa [data-destaque="detalhes"] { --tom: var(--muted-foreground); }
+.prosa [data-slot="destaque-titulo"] {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 600;
+  color: var(--tom);
+  text-align: left;
+  border-radius: 0.3em;
+  outline: none;
+}
+.prosa button[data-slot="destaque-titulo"] { cursor: pointer; }
+.prosa button[data-slot="destaque-titulo"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
+.prosa [data-slot="destaque-titulo"] > span { color: var(--foreground); min-width: 0; }
+.prosa [data-slot="destaque-titulo"] svg { width: 1.05em; height: 1.05em; flex: none; }
+.prosa [data-slot="destaque-corpo"] { margin-top: 0.4em; }
+.prosa [data-slot="destaque-corpo"] > :first-child { margin-top: 0; }
+.prosa [data-slot="destaque-corpo"] > :last-child { margin-bottom: 0; }
+/* no editor: a marca "[!NOTA]" vira uma etiqueta e a primeira linha é o título */
+.prosa .marca-de-destaque {
+  display: inline-block;
+  margin-right: 0.45em;
+  border-radius: 0.3em;
+  padding: 0.05em 0.4em;
+  background: color-mix(in oklch, var(--tom) 16%, transparent);
+  color: var(--tom);
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  vertical-align: 0.1em;
+}
+/* "[TOC]" no editor: mostra que ali entra o índice */
+.prosa p.marca-de-indice {
+  display: inline-block;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.15em 0.6em;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+.prosa p.marca-de-indice::after { content: "  o índice da página aparece aqui na leitura"; font-family: var(--font-sans); }
+/* índice no lugar de "[TOC]" */
+.prosa [data-slot="indice"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--muted) 45%, transparent);
+  padding: 0.7em 0.95em;
+}
+.prosa [data-slot="indice-titulo"] {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-bottom: 0.3em;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.prosa [data-slot="indice-titulo"] svg { width: 1.05em; height: 1.05em; }
+.prosa [data-slot="indice"] ul { list-style: none; margin: 0; padding: 0; }
+.prosa [data-slot="indice"] li { margin: 0; }
+.prosa [data-slot="indice"] button {
+  padding: 0.12em 0;
+  color: var(--primary);
+  text-align: left;
+  border-radius: 0.25em;
+  outline: none;
+}
+.prosa [data-slot="indice"] button:hover { text-decoration: underline; text-underline-offset: 2px; }
+.prosa [data-slot="indice"] button:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
+/* bloco de código com barra (linguagem e copiar) e cores */
+.prosa [data-slot="bloco-de-codigo"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  overflow: hidden;
+}
+.prosa [data-slot="codigo-barra"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75em;
+  border-bottom: 1px solid var(--border);
+  padding: 0.25em 0.5em 0.25em 0.9em;
+  font-size: 0.72em;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+.prosa [data-slot="copiar-codigo"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  border-radius: 0.4em;
+  padding: 0.2em 0.5em;
+  outline: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+.prosa [data-slot="copiar-codigo"]:hover { background: color-mix(in oklch, var(--foreground) 8%, transparent); color: var(--foreground); }
+.prosa [data-slot="copiar-codigo"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
+.prosa [data-slot="copiar-codigo"] svg { width: 1.1em; height: 1.1em; }
+.prosa [data-slot="bloco-de-codigo"] pre { border-radius: 0; background: none; margin: 0; }
+.prosa [data-rc="comentario"] { color: var(--muted-foreground); font-style: italic; }
+.prosa [data-rc="texto"] { color: var(--sucesso); }
+.prosa [data-rc="numero"] { color: var(--alerta); }
+.prosa [data-rc="palavra"] { color: var(--primary); font-weight: 500; }
+.prosa [data-rc="chave"] { color: var(--info); }
+.prosa [data-rc="sinal"] { color: var(--destructive); }
+/* anexo e instante de vídeo: pílulas com ícone */
+.prosa a[data-slot="anexo"],
+.prosa [data-slot="tempo"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  border: 1px solid var(--border);
+  border-radius: 0.4em;
+  padding: 0 0.4em;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.92em;
+  font-weight: 500;
+  vertical-align: baseline;
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.prosa [data-slot="tempo"] { font-variant-numeric: tabular-nums; color: var(--primary); }
+.prosa a[data-slot="anexo"]:hover,
+.prosa button[data-slot="tempo"]:hover { border-color: color-mix(in oklch, var(--ring) 45%, transparent); background: var(--accent); }
+.prosa button[data-slot="tempo"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
+.prosa a[data-slot="anexo"] svg,
+.prosa [data-slot="tempo"] svg { width: 0.95em; height: 0.95em; flex: none; color: var(--muted-foreground); }
+/* cartão vivo: link interno sozinho numa linha */
+.prosa a[data-slot="cartao-interno"] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.7em;
+  row-gap: 0.1em;
+  align-items: baseline;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  padding: 0.6em 0.9em;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 4%, transparent);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.prosa a[data-slot="cartao-interno"]:hover { border-color: color-mix(in oklch, var(--ring) 45%, transparent); }
+.prosa a[data-slot="cartao-interno"]:not([data-existe]) { opacity: 0.6; }
+.prosa [data-slot="cartao-tipo"] {
+  grid-row: span 2;
+  align-self: center;
+  border-radius: 0.4em;
+  padding: 0.15em 0.5em;
+  background: color-mix(in oklch, var(--primary) 11%, transparent);
+  color: var(--primary);
+  font-size: 0.72em;
+  font-weight: 600;
+}
+.prosa [data-slot="cartao-titulo"] { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prosa [data-slot="cartao-linha"] { grid-column: 2; font-size: 0.85em; color: var(--muted-foreground); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* no editor, link para anexo e para instante de vídeo têm a mesma cara de pílula */
+.prosa a[href^="arquivos/"],
+.prosa a[href^="nexo:tempo/"] {
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 0.4em;
+  padding: 0 0.4em;
+  background: var(--card);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.prosa a[href^="arquivos/"] { color: var(--foreground); }
 .prosa hr {
   border: 0;
   border-top: 1px solid var(--border);

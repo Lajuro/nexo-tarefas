@@ -16,8 +16,9 @@ import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
 import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
-import { PluginKey } from "@tiptap/pm/state";
-import { anexoDoSrc, linkInterno, linkPermitido, srcDoAnexo, urlDaImagem } from "@/lib/texto-rico";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
+import { anexoDoSrc, ehMarcaDeIndice, linkInterno, linkPermitido, marcaDeDestaque, srcDoAnexo, tamanhoDaMarca, tempoDoLink, urlDaImagem } from "@/lib/texto-rico";
 
 /** Imagem anexada: no documento o endereço é "arquivos/AAAA/nome"; na tela, o <img> aponta para a API local. */
 export const ImagemAnexada = Image.extend({
@@ -60,13 +61,60 @@ export const Paragrafo = Paragraph.extend({
   },
 });
 
+/**
+ * Endereços que um link pode ter dentro do app: http, https e mailto; os internos ("nexo:tarefa/...",
+ * "nexo:tempo/754"); e um arquivo anexado da pasta de dados ("arquivos/AAAA/nome").
+ */
+export function linkDoEditor(bruto: string): string | null {
+  const h = (bruto || "").trim();
+  if (linkInterno(h) || tempoDoLink(h) !== null) return h;
+  const anexo = anexoDoSrc(h);
+  return anexo ? srcDoAnexo(anexo) : linkPermitido(h);
+}
+
 /** Link que, ao ler Markdown, já descarta endereço proibido (javascript:, arquivo local...): fica só o texto. */
 export const LinkSeguro = Link.extend({
   parseMarkdown: (token, helpers) => {
     const filhos = helpers.parseInline(token.tokens || []);
-    const bruto = String(token.href ?? "");
-    const href = linkInterno(bruto) ? bruto.trim() : linkPermitido(bruto);
+    const href = linkDoEditor(String(token.href ?? ""));
     return href ? helpers.applyMark("link", filhos, { href, title: null }) : filhos;
+  },
+});
+
+/**
+ * Componentes que são Markdown comum com uma marca: a citação que começa com "[!NOTA]" é um destaque e o
+ * parágrafo "[TOC]" é o índice. O documento não muda (continua citação e parágrafo): aqui só se põe uma
+ * decoração para o editor mostrá-los com a cara que terão na leitura.
+ */
+const MarcasDeComponente = Extension.create({
+  name: "marcasDeComponente",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey("marcasDeComponente"),
+        props: {
+          decorations(state) {
+            const decos: Decoration[] = [];
+            state.doc.descendants((no, pos, mae) => {
+              if (no.type.name === "blockquote") {
+                const primeiro = no.firstChild;
+                const linha = primeiro?.type.name === "paragraph" ? primeiro.textContent.split("\n")[0] : "";
+                const marca = marcaDeDestaque(linha);
+                if (marca) {
+                  decos.push(Decoration.node(pos, pos + no.nodeSize, { "data-destaque": marca.tipo }));
+                  // pos + 1 entra na citação, + 1 entra no parágrafo
+                  decos.push(Decoration.inline(pos + 2, pos + 2 + tamanhoDaMarca(linha), { class: "marca-de-destaque" }));
+                }
+              } else if (no.type.name === "paragraph" && mae === state.doc && ehMarcaDeIndice(no.textContent)) {
+                decos.push(Decoration.node(pos, pos + no.nodeSize, { class: "marca-de-indice" }));
+              }
+              return no.type.name !== "paragraph" && no.type.name !== "codeBlock";
+            });
+            return DecorationSet.create(state.doc, decos);
+          },
+        },
+      }),
+    ];
   },
 });
 
@@ -163,7 +211,7 @@ export function extensoesDoEditor(opcoes: {
       autolink: true,
       defaultProtocol: "https",
       protocols: ["http", "https", "mailto"],
-      isAllowedUri: (url) => !!linkPermitido(url) || !!linkInterno(url),
+      isAllowedUri: (url) => !!linkDoEditor(url),
       HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" },
     }),
     Paragrafo,
@@ -183,6 +231,7 @@ export function extensoesDoEditor(opcoes: {
     MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 8 }),
     // "[[" liga a outra página (e cria a página se ela ainda não existe), como numa wiki
     MenuBarra.extend({ name: "menuLigar" }).configure({ char: "[[", chave: "menuLigar", itens: opcoes.paginas, ponte: opcoes.ponte, limite: 8, extra: opcoes.criarPagina }),
+    MarcasDeComponente,
     SemQuebraNoCtrlEnter,
   ];
 }

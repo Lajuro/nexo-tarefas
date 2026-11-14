@@ -13,8 +13,8 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AtSign, Bold, Code, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Italic, Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, Minus, Pilcrow,
-  Quote, SquareCode, Strikethrough, Table2, Trash2, UserRound, type LucideIcon,
+  AtSign, Bold, ChevronsUpDown, CircleAlert, CircleCheckBig, CircleHelp, Code, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Info, Italic, Lightbulb, Link2, Link2Off, List,
+  ListChecks, ListOrdered, ListTodo, ListTree, Minus, OctagonAlert, Paperclip, Pilcrow, Quote, SquareCode, Strikethrough, Table2, Trash2, TriangleAlert, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/p
 import { aberta } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { paginaNova } from "@/lib/paginas";
+import { LINGUAGENS, NOMES_DE_LINGUAGEM } from "@/lib/realce";
 import { hrefInterno, linkPermitido, srcDoAnexo } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
 import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, pareceMarkdown } from "./extensoes";
@@ -35,7 +36,10 @@ const EXTENSAO: Record<string, string> = { "image/png": "png", "image/jpeg": "jp
 const ICONE: Record<string, LucideIcon> = {
   texto: Pilcrow, h1: Heading1, h2: Heading2, h3: Heading3, lista: List, numerada: ListOrdered, tarefas: ListChecks, citacao: Quote,
   codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText, nova: FilePlus2, subpagina: FilePlus2,
+  nota: Info, dica: Lightbulb, importante: CircleAlert, atencao: TriangleAlert, perigo: OctagonAlert, sucesso: CircleCheckBig, pergunta: CircleHelp, detalhes: ChevronsUpDown,
+  indice: ListTree, arquivo: Paperclip,
 };
+const MAX_ANEXO = 200 * 1024 * 1024;
 
 const p2 = (n: number) => String(n).padStart(2, "0");
 /** Print colado chega como "image.png": ganha um nome que dá para reconhecer na pasta de anexos. */
@@ -194,6 +198,20 @@ export function EditorRico({
   const anexarRef = useRef(anexar);
   anexarRef.current = anexar;
 
+  /** Arquivo qualquer (PDF, planilha...): vai para a pasta de dados e entra no texto como um link para ele. */
+  async function anexarArquivos(arquivos: File[]) {
+    const ed = editorRef.current;
+    if (!ed) return;
+    for (const f of arquivos) {
+      if (TIPOS_DE_IMAGEM.includes(f.type)) { await anexar([f]); continue; }
+      if (f.size > MAX_ANEXO) { acoes.current.toast("Esse arquivo passa de 200 MB. Guarde numa pasta e ponha aqui o link para ele.", "erro"); continue; }
+      const r = await acoes.current.enviarArquivo(f);
+      if (!r) continue;
+      ed.chain().focus().insertContent([{ type: "text", text: r.nomeArquivo, marks: [{ type: "link", attrs: { href: srcDoAnexo(r.arquivo) } }] }, { type: "text", text: " " }]).run();
+    }
+  }
+  const qualquerArquivo = useRef<HTMLInputElement>(null);
+
   const itens = useMemo<ItemDoMenu[]>(() => {
     const bloco = (fn: (ed: Editor, r: Range) => void) => fn;
     const limpo = (ed: Editor, r: Range) => ed.chain().focus().deleteRange(r);
@@ -210,6 +228,22 @@ export function EditorRico({
       { id: "tabela", nome: "Tabela", dica: "3 colunas por 3 linhas, para começar", palavras: "tabela grade planilha colunas", fazer: bloco((ed, r) => limpo(ed, r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()) },
       { id: "imagem", nome: "Imagem", dica: "Escolher um arquivo (ou cole com Ctrl V)", palavras: "imagem foto print captura anexo", fazer: bloco((ed, r) => { limpo(ed, r).run(); arquivo.current?.click(); }) },
       { id: "divisor", nome: "Divisor", dica: "Linha separando dois assuntos", palavras: "divisor linha separador ---", fazer: bloco((ed, r) => limpo(ed, r).setHorizontalRule().run()) },
+      // destaques: uma citação que começa com a marca. A marca fica no texto (Markdown comum) e vira etiqueta na tela
+      ...([
+        ["nota", "Nota", "Informação que vale destacar", "info aviso callout destaque"],
+        ["dica", "Dica", "Um jeito mais fácil ou um atalho", "tip sugestao callout destaque"],
+        ["importante", "Importante", "O que não pode passar batido", "callout destaque"],
+        ["atencao", "Atenção", "Cuidado com isto", "aviso warning cuidado callout destaque"],
+        ["perigo", "Perigo", "Risco de perder algo ou de quebrar", "danger erro risco callout destaque"],
+        ["sucesso", "Deu certo", "Como é o resultado esperado", "success ok resultado callout destaque"],
+      ] as const).map(([id, nome, dica, palavras]): ItemDoMenu => ({
+        id, nome: `Destaque: ${nome}`, dica, palavras,
+        fazer: bloco((ed, r) => limpo(ed, r).insertContent(`[!${id.toUpperCase()}] `).setBlockquote().run()),
+      })),
+      { id: "detalhes", nome: "Bloco que abre e fecha", dica: "Um título que esconde o resto até clicar", palavras: "toggle recolher expandir detalhes sanfona", fazer: bloco((ed, r) => limpo(ed, r).insertContent("[!DETALHES]- ").setBlockquote().run()) },
+      { id: "pergunta", nome: "Pergunta e resposta", dica: "A pergunta aparece; a resposta abre ao clicar", palavras: "faq duvida pergunta resposta", fazer: bloco((ed, r) => limpo(ed, r).insertContent("[!PERGUNTA]- ").setBlockquote().run()) },
+      { id: "indice", nome: "Índice", dica: "Lista dos títulos da página, montada sozinha", palavras: "indice sumario toc titulos", fazer: bloco((ed, r) => limpo(ed, r).insertContent({ type: "paragraph", content: [{ type: "text", text: "[TOC]" }] }).run()) },
+      { id: "arquivo", nome: "Arquivo", dica: "Anexa um PDF, planilha ou outro arquivo", palavras: "arquivo anexo pdf planilha documento upload", fazer: bloco((ed, r) => { limpo(ed, r).run(); qualquerArquivo.current?.click(); }) },
       // só dentro de uma página: cria uma página filha e já deixa o link para ela
       ...(paginaAtualId
         ? [{
@@ -309,10 +343,13 @@ export function EditorRico({
       },
     },
     onCreate: ({ editor: ed }) => {
-      base.current.doEditor = paraGuardar(ed);
+      if (!ed.isFocused || base.current.doEditor === null) base.current.doEditor = paraGuardar(ed);
     },
     onUpdate: ({ editor: ed }) => {
       let md = paraGuardar(ed);
+      // Tabela e lista de tarefas "arrumam" o documento assim que ele é montado, antes do aviso de "criado":
+      // essa primeira mexida, sem o cursor no texto, ainda é o documento como foi aberto.
+      if (base.current.doEditor === null && !ed.isFocused) base.current.doEditor = md;
       // voltou a ser exatamente o que foi aberto: vale o texto original, sem a reescrita do editor
       if (md === base.current.doEditor) md = base.current.original;
       if (md === emitido.current) return;
@@ -356,6 +393,7 @@ export function EditorRico({
             lista: ed.isActive("bulletList"), numerada: ed.isActive("orderedList"), tarefas: ed.isActive("taskList"),
             citacao: ed.isActive("blockquote"), bloco: ed.isActive("codeBlock"), link: ed.isActive("link"), tabela: ed.isActive("table"),
             href: (ed.getAttributes("link").href as string | undefined) ?? "",
+            linguagem: (ed.getAttributes("codeBlock").language as string | undefined) ?? "",
           }
         : null,
   });
@@ -436,6 +474,25 @@ export function EditorRico({
         <BotaoBarra dica="Lista de tarefas" ativo={estado?.tarefas} aoClicar={() => c().toggleTaskList().run()}><ListChecks /></BotaoBarra>
         <BotaoBarra dica="Citação" ativo={estado?.citacao} aoClicar={() => c().toggleBlockquote().run()}><Quote /></BotaoBarra>
         <BotaoBarra dica="Bloco de código" ativo={estado?.bloco} aoClicar={() => c().toggleCodeBlock().run()}><SquareCode /></BotaoBarra>
+        {estado?.bloco && (
+          <DropdownMenu>
+            <Dica texto="Linguagem do bloco de código (dá as cores na leitura)">
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="Linguagem do bloco de código" data-slot="linguagem-do-codigo" onMouseDown={(e) => e.preventDefault()}
+                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-accent px-2 text-[11px] font-medium text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                  {estado.linguagem ? NOMES_DE_LINGUAGEM[estado.linguagem.toLowerCase()] ?? estado.linguagem : "sem linguagem"}
+                </button>
+              </DropdownMenuTrigger>
+            </Dica>
+            <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+              {LINGUAGENS.map((l) => (
+                <DropdownMenuItem key={l} data-linguagem={l} onSelect={() => c().updateAttributes("codeBlock", { language: l }).run()}>{NOMES_DE_LINGUAGEM[l] ?? l}</DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => c().updateAttributes("codeBlock", { language: null }).run()}>Sem linguagem</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <span aria-hidden className="mx-1 h-4 w-px bg-border" />
         <BotaoBarra dica="Imagem (ou cole com Ctrl V)" aoClicar={() => arquivo.current?.click()}><ImagePlus /></BotaoBarra>
         <BotaoBarra dica="Citar uma pessoa, tarefa ou página (ou digite @)" aoClicar={() => c().insertContent("@").run()}><AtSign /></BotaoBarra>
@@ -482,6 +539,14 @@ export function EditorRico({
           const lista = Array.from(e.target.files ?? []);
           e.target.value = "";
           if (lista.length) anexar(lista);
+        }} />
+
+      {/* arquivo qualquer (bloco "Arquivo"): vai para a pasta de dados e entra no texto como link */}
+      <input ref={qualquerArquivo} type="file" multiple hidden tabIndex={-1} aria-hidden data-slot="anexar-arquivo"
+        onChange={(e) => {
+          const lista = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (lista.length) anexarArquivos(lista);
         }} />
 
       <AnimatePresence>

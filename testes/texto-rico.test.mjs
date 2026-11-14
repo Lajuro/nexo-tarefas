@@ -25,6 +25,7 @@ register(
 );
 
 const R = await import("../lib/texto-rico.ts");
+const RL = await import("../lib/realce.ts");
 const P = await import("../lib/prompts.ts");
 const MD = await import("../lib/markdown.ts");
 const T = await import("../lib/tipos.ts");
@@ -177,6 +178,64 @@ teste("texto plano: o atalho para texto sem marcação dá exatamente o mesmo qu
   for (const a of amostras) assert.equal(R.paraTextoPlano(a), R.paraTextoPlanoPeloLeitor(a), JSON.stringify(a));
   assert.equal(R.paraTextoPlano(null), "");
   assert.equal(R.paraTextoPlano(undefined), "");
+});
+
+teste("destaque: citação que começa com [!TIPO] vira destaque, com título, corpo e abre-e-fecha", () => {
+  const [a] = R.analisarMarkdown("> [!NOTA] Para que serve\n> Em uma frase.\n>\n> - item");
+  assert.deepEqual([a.t, a.tipo, a.recolhivel, a.aberto], ["destaque", "nota", false, true]);
+  assert.equal(R.textoDosInlines(a.titulo), "Para que serve");
+  assert.deepEqual(a.f.map((b) => b.t), ["paragrafo", "lista"]);
+  // como o editor grava (colchetes escapados) e com apelidos em inglês
+  const [b] = R.analisarMarkdown("> \\[!warning\\]- **Cuidado** com isto\n>\n> corpo");
+  assert.deepEqual([b.t, b.tipo, b.recolhivel, b.aberto], ["destaque", "atencao", true, false]);
+  assert.equal(R.textoDosInlines(b.titulo), "Cuidado com isto");
+  assert.equal(b.titulo.some((i) => i.t === "negrito"), true);
+  const [c] = R.analisarMarkdown("> [!PERGUNTA]+ Aberta?\n> sim");
+  assert.deepEqual([c.recolhivel, c.aberto], [true, true]);
+  // só a marca: o título é o nome do tipo e não há corpo
+  const [d] = R.analisarMarkdown("> [!ATENÇÃO]");
+  assert.deepEqual([d.t, d.tipo, d.titulo.length, d.f.length], ["destaque", "atencao", 0, 0]);
+  // tipo que o app não conhece e citação comum continuam citação
+  assert.equal(R.analisarMarkdown("> [!INVENTADO] x")[0].t, "citacao");
+  assert.equal(R.analisarMarkdown("> só uma citação")[0].t, "citacao");
+  assert.equal(R.analisarMarkdown("> texto antes [!NOTA] no meio")[0].t, "citacao");
+  // o texto plano tem o título e o corpo (busca, trechos, prompts)
+  assert.equal(R.paraTextoPlano("> [!DICA] Atalho\n> use Ctrl K"), "Atalho\nuse Ctrl K");
+  assert.equal(R.paraTextoPlano("> [!PERIGO]\n> cuidado"), "Perigo\ncuidado");
+  assert.deepEqual([R.tamanhoDaMarca("[!NOTA]- x"), R.tamanhoDaMarca("  [!dica] y"), R.tamanhoDaMarca("[!XYZ] z"), R.tamanhoDaMarca("texto")], [8, 9, 0, 0]);
+});
+
+teste("índice, anexo e instante de vídeo", () => {
+  assert.deepEqual(R.analisarMarkdown("[TOC]\n\n# A\n\n[ÍNDICE]\n\n\\[sumário\\]").map((b) => b.t), ["indice", "titulo", "indice", "indice"]);
+  assert.equal(R.analisarMarkdown("veja [TOC] aqui")[0].t, "paragrafo");
+  assert.equal(R.analisarMarkdown("- [TOC]")[0].t, "lista"); // só no primeiro nível do documento
+  const [p] = R.analisarMarkdown("o [laudo](arquivos/2026/abc12-Laudo%20final.pdf) e [12:34](nexo:tempo/754) e [fora](arquivos/../../nexo.json) e [mau](nexo:tempo/abc)");
+  const anexo = p.f.find((i) => i.t === "anexo");
+  assert.deepEqual([anexo.url, anexo.nome], ["/api/arquivos?p=2026%2Fabc12-Laudo%20final.pdf", "Laudo final.pdf"]);
+  assert.deepEqual(p.f.filter((i) => i.t === "tempo").map((i) => i.segundos), [754]);
+  // endereço que tenta sair da pasta e tempo inválido não viram nada clicável: fica só o texto
+  assert.equal(p.f.filter((i) => i.t === "link" || i.t === "anexo" || i.t === "tempo").length, 2);
+  assert.deepEqual([R.tempoDoLink("nexo:tempo/0"), R.tempoDoLink("nexo:tempo/1234567"), R.tempoDoLink("nexo:tempo/-3"), R.hrefDoTempo(75.6)], [0, null, null, "nexo:tempo/76"]);
+  assert.equal(R.urlDoAnexo("https://exemplo.local/a.pdf"), null);
+});
+
+teste("cores no código: comentário, texto, número e palavra, sem nunca tropeçar", () => {
+  const RC = RL.realcar;
+  const tipos = (codigo, lang) => RC(codigo, lang).map((l) => l.filter((p) => p.t).map((p) => `${p.t}:${p.v}`));
+  assert.deepEqual(tipos('if [ "$x" = 1 ]; then # fim\necho ok', "bash"), [["palavra:if", 'texto:"$x"', "numero:1", "palavra:then", "comentario:# fim"], ["palavra:echo"]]);
+  assert.deepEqual(tipos('{ "nome": "x", "n": 12.5, "ok": true }', "json"), [['texto:"nome"', 'texto:"x"', 'texto:"n"', "numero:12.5", 'texto:"ok"', "palavra:true"]]);
+  assert.deepEqual(tipos("  porta: 8080 # padrão\nativo: yes", "yaml"), [["chave:porta", "sinal::", "numero:8080", "comentario:# padrão"], ["chave:ativo", "sinal::", "palavra:yes"]]);
+  assert.deepEqual(tipos("SELECT nome FROM t WHERE id = 3 -- só um", "sql"), [["palavra:SELECT", "palavra:FROM", "palavra:WHERE", "numero:3", "comentario:-- só um"]]);
+  assert.deepEqual(tipos("/* a\nb */ const x = `oi\nfim`;", "ts"), [["comentario:/* a"], ["comentario:b */", "palavra:const", "texto:`oi"], ["texto:fim`"]]);
+  assert.deepEqual(tipos("+ novo\n- velho\n@@ -1 +1 @@\n igual", "diff"), [["texto:+ novo"], ["sinal:- velho"], ["palavra:@@ -1 +1 @@"], []]);
+  // o texto que entra é o que sai, em qualquer linguagem (nada some nem é reescrito)
+  for (const lang of ["bash", "json", "yaml", "python", "sql", "xml", "powershell", "inexistente", "", "text"]) {
+    const codigo = 'a = "x\\"y" # c\n\t<!-- z -->\n\'\'\'tres\n"""\n0x1F 3.14 nome_2 --flag $var';
+    assert.equal(RC(codigo, lang).map((l) => l.map((p) => p.v).join("")).join("\n"), codigo, lang);
+  }
+  assert.equal(RC("x".repeat(50_000), "js")[0].length, 1); // grande demais: sem cores, mas inteiro
+  assert.deepEqual(RC("", "js"), [[]]);
+  assert.doesNotThrow(() => RC(null, null));
 });
 
 console.log(`\n${total - falhas} de ${total} testes passaram.`);

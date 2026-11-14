@@ -1044,6 +1044,95 @@ async function main() {
     afirmar(d.paginas.items.every((p) => !p.arquivadaEm) && d.paginas.items.find((p) => p.titulo === "Instalar o agente").paiId === guia.id, "desarquivar perdeu a árvore");
   });
 
+  // ---------- componentes do documento ----------
+  await etapa("componentes: destaque, índice, código com linguagem, anexo e cartão vivo", async () => {
+    await pg.goto(B + "/paginas");
+    await pg.locator("[data-slot=nova-pagina]").click();
+    const titulo = pg.getByLabel("Título da página");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=titulo-da-pagina]")?.value === "");
+    await titulo.fill("Componentes do documento");
+    const ed = pg.locator("[data-slot=texto-da-pagina] [data-slot=editor-rico-conteudo]");
+    const menu = pg.locator("[data-slot=menu-editor]");
+    // o menu "/" filtra por uma palavra só (espaço fecha o menu) e Enter escolhe o primeiro
+    const bloco = async (busca, id) => {
+      await pg.keyboard.type("/" + busca);
+      await menu.locator(`[role=option][aria-selected=true][data-item=${id}]`).waitFor();
+      await pg.keyboard.press("Enter");
+      await menu.waitFor({ state: "detached" });
+    };
+    await ed.click();
+    await bloco("indice", "indice");
+    await ed.locator("p.marca-de-indice").waitFor();
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("## Primeira parte");
+    await pg.keyboard.press("Enter");
+    // destaque: a citação ganha a cara do tipo, e a marca continua sendo texto comum
+    await bloco("dica", "dica");
+    await pg.keyboard.type("Use o atalho");
+    await ed.locator("blockquote[data-destaque=dica] .marca-de-destaque").waitFor();
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.press("Enter");
+    // bloco que abre e fecha
+    await bloco("recolher", "detalhes");
+    await pg.keyboard.type("Ver os detalhes");
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.type("Texto escondido");
+    await pg.keyboard.press("Enter");
+    await pg.keyboard.press("Enter");
+    // código com linguagem
+    await bloco("codigo", "codigo");
+    await pg.keyboard.type("# comentario");
+    await pg.locator("[data-slot=linguagem-do-codigo]").click();
+    await pg.locator("[data-linguagem=bash]").click();
+    await pg.keyboard.press("Control+End");
+    await pg.keyboard.press("ArrowDown");
+    await pg.keyboard.press("Control+Enter");
+    // anexo: um arquivo qualquer vai para a pasta de dados e vira link
+    await ed.click();
+    await pg.keyboard.press("Control+End");
+    await pg.locator("[data-slot=anexar-arquivo]").setInputFiles({ name: "Laudo final.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 teste") });
+    await ed.locator('a[href^="arquivos/"]').waitFor();
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+    let p = (await dados()).paginas.items.find((x) => x.titulo === "Componentes do documento");
+    for (const trecho of ["[TOC", "## Primeira parte", "!DICA", "Use o atalho", "!DETALHES", "```bash", "# comentario", "](arquivos/"])
+      afirmar(p.texto.includes(trecho), `o Markdown gravado não tem "${trecho}":\n${p.texto}`);
+    // acrescenta, pelos dados, um link interno sozinho numa linha e um HTML colado dentro de um destaque
+    const d = await (await pg.request.get(B + "/api/dados")).json();
+    const textoFinal = p.texto + `\n\n[Tarefa citada](nexo:tarefa/${idTarefa})\n\n> [!PERIGO] Cuidado <img src=x onerror="window.__xss=2">\n> corpo\n`;
+    await pg.request.put(`${B}/api/paginas`, { data: { items: d.paginas.items.map((x) => (x.id === p.id ? { ...x, texto: textoFinal } : x)), revEsperada: d.paginas.rev } });
+    await pg.goto(B + "/paginas?p=" + p.id);
+    await pg.getByRole("radio", { name: "Ler" }).click();
+    const visao = pg.locator(`[data-slot=editor-pagina][data-id="${p.id}"][data-modo=ler]`);
+    await visao.waitFor();
+    await visao.locator("[data-slot=indice] button", { hasText: "Primeira parte" }).waitFor();
+    await visao.locator("[data-slot=destaque][data-tipo=dica]", { hasText: "Use o atalho" }).waitFor();
+    // abre e fecha: começa fechado
+    const detalhes = visao.locator("[data-slot=destaque][data-tipo=detalhes]");
+    afirmar((await detalhes.locator("[data-slot=destaque-corpo]").count()) === 0, "o bloco que abre e fecha deveria começar fechado");
+    await detalhes.locator("[data-slot=destaque-titulo]").click();
+    await detalhes.locator("[data-slot=destaque-corpo]", { hasText: "Texto escondido" }).waitFor();
+    // código: linguagem no canto, cores e copiar
+    const codigo = visao.locator("[data-slot=bloco-de-codigo][data-linguagem=bash]");
+    await codigo.locator("[data-rc=comentario]", { hasText: "# comentario" }).waitFor();
+    await codigo.locator("[data-slot=copiar-codigo]").click();
+    afirmar((await pg.evaluate(() => navigator.clipboard.readText())) === "# comentario", "copiar o código não levou o texto do bloco");
+    // anexo abre pela API local; cartão mostra o estado de agora da tarefa
+    const anexo = visao.locator("a[data-slot=anexo]");
+    afirmar((await anexo.getAttribute("href")).startsWith("/api/arquivos?p="), "o anexo não aponta para a pasta de dados");
+    afirmar((await pg.request.get(B + (await anexo.getAttribute("href")))).ok(), "o arquivo anexado não foi servido");
+    const cartao = visao.locator(`[data-slot=cartao-interno][data-tipo=tarefa]`);
+    await cartao.waitFor();
+    afirmar((await cartao.innerText()).includes("Onboarding do squad Pagamentos"), "o cartão não mostra o título de agora da tarefa");
+    // HTML dentro de um destaque continua sendo texto
+    await visao.locator("[data-slot=destaque][data-tipo=perigo]", { hasText: "<img src=x" }).waitFor();
+    afirmar((await visao.locator("[data-slot=texto] img").count()) === 0 && !(await pg.evaluate(() => window.__xss)), "HTML dentro de um destaque foi interpretado");
+    await pg.getByRole("radio", { name: "Editar" }).click();
+    await pg.locator("[data-slot=texto-da-pagina]").waitFor();
+    await pg.waitForTimeout(1800);
+    p = (await dados()).paginas.items.find((x) => x.id === p.id);
+    afirmar(p.texto === textoFinal, "abrir a página com componentes no editor mudou o texto guardado");
+  });
+
   // ---------- perguntar ao Nexo ----------
   await etapa("perguntar: achar os trechos, copiar o prompt, colar a resposta e guardar como página", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();

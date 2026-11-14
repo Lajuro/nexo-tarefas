@@ -216,7 +216,7 @@ export function EditorPagina({
             {/* o texto */}
             <div className="mt-4">
               {lendo ? (
-                <TextoRico texto={valor.texto} ancoras className="text-[15px] leading-relaxed [&_h1]:scroll-mt-4 [&_h2]:scroll-mt-4 [&_h3]:scroll-mt-4" />
+                <TextoRico texto={valor.texto} ancoras cartoes className="text-[15px] leading-relaxed [&_h1]:scroll-mt-4 [&_h2]:scroll-mt-4 [&_h3]:scroll-mt-4" />
               ) : (
                 <EditorRico
                   data-slot="texto-da-pagina"

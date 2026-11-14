@@ -20,13 +20,25 @@ export type Inline =
   | { t: "quebra" }
   | { t: "link"; href: string; f: Inline[] }
   | { t: "interno"; tipo: TipoDeAlvo; alvo: string; rota: string; f: Inline[] }
+  /** Link para um arquivo anexado na pasta de dados (PDF, planilha...). */
+  | { t: "anexo"; url: string; nome: string; f: Inline[] }
+  /** Instante de um vídeo ("[12:34](nexo:tempo/754)"): na página de vídeo, leva o player até lá. */
+  | { t: "tempo"; segundos: number; f: Inline[] }
   | { t: "imagem"; url: string; alt: string };
+
+/** Os destaques (callouts) que o app desenha. O Markdown é uma citação que começa com "[!TIPO]". */
+export const TIPOS_DE_DESTAQUE = ["nota", "dica", "importante", "atencao", "perigo", "sucesso", "pergunta", "exemplo", "detalhes"] as const;
+export type TipoDeDestaque = (typeof TIPOS_DE_DESTAQUE)[number];
 
 export type Bloco =
   | { t: "paragrafo"; f: Inline[] }
   | { t: "titulo"; nivel: 1 | 2 | 3; f: Inline[] }
   | { t: "lista"; ordenada: boolean; inicio: number; itens: { tarefa: boolean; feito: boolean; f: Bloco[] }[] }
   | { t: "citacao"; f: Bloco[] }
+  /** Citação que começa com "[!NOTA] Título": vira um destaque. Com "-" ou "+" depois do colchete, abre e fecha. */
+  | { t: "destaque"; tipo: TipoDeDestaque; titulo: Inline[]; recolhivel: boolean; aberto: boolean; f: Bloco[] }
+  /** Parágrafo que é só "[TOC]": o índice da página entra ali. */
+  | { t: "indice" }
   | { t: "codigo"; v: string; lang: string }
   | { t: "divisor" }
   | { t: "tabela"; cabecalho: { f: Inline[]; alinhar: "left" | "center" | "right" | null }[]; linhas: Inline[][][] };
@@ -63,6 +75,20 @@ export function urlDaImagem(src: string): string | null {
 }
 
 // ---------- links ----------
+
+/** De onde o navegador abre um arquivo anexado (link "arquivos/AAAA/nome.pdf"). null = não é anexo nosso. */
+export function urlDoAnexo(href: string): string | null {
+  const rel = anexoDoSrc(href);
+  return rel ? `/api/arquivos?p=${encodeURIComponent(rel)}` : null;
+}
+
+const TEMPO = /^nexo:tempo\/(\d{1,6})$/;
+/** Link para um instante de vídeo: devolve os segundos, ou null. */
+export function tempoDoLink(href: string): number | null {
+  const m = TEMPO.exec((href || "").trim());
+  return m ? Number(m[1]) : null;
+}
+export const hrefDoTempo = (segundos: number) => `nexo:tempo/${Math.max(0, Math.round(segundos))}`;
 
 /** Só http, https e mailto. Devolve o endereço limpo ou null. */
 export function linkPermitido(href: string): string | null {
@@ -152,7 +178,11 @@ function inlines(tokens: Token[] | undefined, nivel: number): Inline[] {
         const href = linkPermitido(l.href);
         const filhos = inlines(l.tokens, nivel + 1);
         const interno = linkInterno(l.href);
+        const anexo = urlDoAnexo(l.href);
+        const tempo = tempoDoLink(l.href);
         if (interno) out.push({ t: "interno", ...interno, f: filhos });
+        else if (tempo !== null) out.push({ t: "tempo", segundos: tempo, f: filhos });
+        else if (anexo) out.push({ t: "anexo", url: anexo, nome: decodeURIComponent((anexoDoSrc(l.href) ?? "").split("/").pop() ?? "").replace(/^[a-z0-9]+-/, ""), f: filhos });
         else if (href) out.push({ t: "link", href, f: filhos });
         else out.push(...filhos); // endereço proibido (javascript:, arquivo local...): fica só o texto
         break;
@@ -183,9 +213,13 @@ function blocos(tokens: Token[] | undefined, nivel: number): Bloco[] {
     switch (tk.type) {
       case "space":
         break;
-      case "paragraph":
-        out.push({ t: "paragrafo", f: inlines((tk as Tokens.Paragraph).tokens, nivel + 1) });
+      case "paragraph": {
+        const f = inlines((tk as Tokens.Paragraph).tokens, nivel + 1);
+        // um parágrafo que é só "[TOC]" (ou "[ÍNDICE]") marca onde entra o índice da página
+        if (nivel === 0 && INDICE.test(textoDosInlines(f).trim())) out.push({ t: "indice" });
+        else out.push({ t: "paragrafo", f });
         break;
+      }
       case "text": {
         // texto solto dentro de item de lista
         const x = tk as Tokens.Text;
@@ -211,9 +245,11 @@ function blocos(tokens: Token[] | undefined, nivel: number): Bloco[] {
         });
         break;
       }
-      case "blockquote":
-        out.push({ t: "citacao", f: blocos((tk as Tokens.Blockquote).tokens, nivel + 1) });
+      case "blockquote": {
+        const f = blocos((tk as Tokens.Blockquote).tokens, nivel + 1);
+        out.push(destaqueDe(f) ?? { t: "citacao", f });
         break;
+      }
       case "code": {
         const c = tk as Tokens.Code;
         out.push({ t: "codigo", v: c.text, lang: (c.lang || "").replace(/[^a-zA-Z0-9+#_-]/g, "").slice(0, 20) });
@@ -239,6 +275,57 @@ function blocos(tokens: Token[] | undefined, nivel: number): Bloco[] {
     }
   }
   return out;
+}
+
+// ---------- destaques ("> [!NOTA] Título") e índice ("[TOC]") ----------
+
+const INDICE = /^\[(toc|[ií]ndice|sum[aá]rio)\]$/i;
+/** O texto do parágrafo é a marca de índice ("[TOC]", "[ÍNDICE]", "[SUMÁRIO]")? */
+export const ehMarcaDeIndice = (t: string) => INDICE.test(t.trim());
+/** Tamanho da marca de destaque no começo de uma linha ("[!NOTA]-" = 8), ou 0. */
+export function tamanhoDaMarca(linha: string): number {
+  if (!marcaDeDestaque(linha)) return 0;
+  const m = SO_A_MARCA.exec(linha);
+  return m ? m[0].length : 0;
+}
+const SO_A_MARCA = /^\s*\[![^\]]+\][+-]?/;
+const MARCA = /^\s*\[!([a-zA-ZÀ-ÿ]{2,14})\]([+-]?)[ \t]*/;
+const APELIDOS: Record<string, TipoDeDestaque> = {
+  nota: "nota", note: "nota", info: "nota", dica: "dica", tip: "dica", hint: "dica", importante: "importante", important: "importante",
+  atencao: "atencao", aviso: "atencao", warning: "atencao", cuidado: "atencao", perigo: "perigo", danger: "perigo", caution: "perigo", erro: "perigo", error: "perigo",
+  sucesso: "sucesso", success: "sucesso", feito: "sucesso", pergunta: "pergunta", question: "pergunta", faq: "pergunta", duvida: "pergunta",
+  exemplo: "exemplo", example: "exemplo", detalhes: "detalhes", details: "detalhes", resumo: "detalhes",
+};
+export const NOME_DO_DESTAQUE: Record<TipoDeDestaque, string> = {
+  nota: "Nota", dica: "Dica", importante: "Importante", atencao: "Atenção", perigo: "Perigo", sucesso: "Deu certo", pergunta: "Pergunta", exemplo: "Exemplo", detalhes: "Detalhes",
+};
+const semAcentos = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Lê o começo de uma citação: "[!NOTA]", "[!dica]-"... Devolve o tipo e se abre e fecha, ou null. */
+export function marcaDeDestaque(primeiraLinha: string): { tipo: TipoDeDestaque; recolhivel: boolean; aberto: boolean; resto: string } | null {
+  const m = MARCA.exec(primeiraLinha);
+  const tipo = m ? APELIDOS[semAcentos(m[1])] : undefined;
+  if (!m || !tipo) return null;
+  return { tipo, recolhivel: m[2] !== "", aberto: m[2] !== "-", resto: primeiraLinha.slice(m[0].length) };
+}
+
+/** Se a citação começa com a marca de destaque, devolve o destaque: título (o resto da primeira linha) e corpo. */
+function destaqueDe(f: Bloco[]): Bloco | null {
+  const primeiro = f[0];
+  if (!primeiro || primeiro.t !== "paragrafo") return null;
+  // a marca tem que estar no texto que abre o parágrafo
+  const corte = primeiro.f.findIndex((i) => i.t === "quebra");
+  const linha = corte < 0 ? primeiro.f : primeiro.f.slice(0, corte);
+  const resto = corte < 0 ? [] : primeiro.f.slice(corte + 1);
+  // junta os pedaços de texto do começo (o editor grava "\[!NOTA\]", que chega em vários pedaços)
+  let n = 0;
+  let inicio = "";
+  while (n < linha.length && linha[n].t === "texto") inicio += (linha[n++] as { v: string }).v;
+  const marca = marcaDeDestaque(inicio);
+  if (!marca) return null;
+  const titulo: Inline[] = [...(marca.resto ? [texto(marca.resto)] : []), ...linha.slice(n)];
+  const corpo: Bloco[] = [...(resto.length ? [{ t: "paragrafo", f: resto } as Bloco] : []), ...f.slice(1)];
+  return { t: "destaque", tipo: marca.tipo, titulo, recolhivel: marca.recolhivel, aberto: marca.aberto, f: corpo };
 }
 
 /** Markdown → blocos prontos para desenhar. Uma quebra de linha simples conta como quebra (o texto antigo era texto puro). */
@@ -287,6 +374,11 @@ function textoDosBlocos(bs: Bloco[]): string[] {
         break;
       case "citacao":
         out.push(...textoDosBlocos(b.f));
+        break;
+      case "destaque":
+        out.push(textoDosInlines(b.titulo) || NOME_DO_DESTAQUE[b.tipo], ...textoDosBlocos(b.f));
+        break;
+      case "indice":
         break;
       case "codigo":
         out.push(b.v);
