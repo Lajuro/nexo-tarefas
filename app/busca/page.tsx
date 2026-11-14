@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { BookText, ChevronRight, ExternalLink, Library, ListTodo, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
+import { BookText, ChevronRight, ExternalLink, Library, ListTodo, MessageCircleQuestion, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { hrefLink } from "@/components/LinkForm";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
@@ -15,6 +15,7 @@ import {
   AvatarPessoa, CatTag, ChipPessoa, Destaque, Etiqueta, IconeStatus, IconeTipo, Pagina, PontoCor, PrazoTag, PrioBadge, Secao, StatusBadge, TipoBadge, Vazio,
 } from "@/components/comum";
 import { Button } from "@/components/ui/button";
+import { Dica } from "@/components/ui/popover";
 import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
@@ -234,6 +235,11 @@ function Conteudo() {
               <span data-slot="contagem" className="ml-auto text-xs text-muted-foreground tabular-nums sem-selecao">
                 {total} {total === 1 ? "resultado" : "resultados"} para “{termo}”
               </span>
+              <Dica texto="Monta um prompt com os trechos que têm a ver, para o Copilot responder citando as fontes">
+                <Button asChild variant="ghost" size="sm" data-slot="perguntar-isso">
+                  <Link href={`/perguntar?q=${encodeURIComponent(termo)}`}><MessageCircleQuestion /> Perguntar ao Copilot</Link>
+                </Button>
+              </Dica>
             </>
           )}
         </>

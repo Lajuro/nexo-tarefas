@@ -59,10 +59,11 @@ teste("leitor: link interno vira navegação dentro do app, com a rota calculada
   assert.equal(R.paraTextoPlano("veja [Onboarding](nexo:tarefa/t1)"), "veja Onboarding");
 });
 
+// Datas fixas em tudo: sem elas a tarefa nasce com a hora de agora e a ordem das citações muda conforme o relógio.
 const dados = {
   categorias: { rev: 0, items: [] }, links: { rev: 0, items: [] }, pessoas: { rev: 0, items: [] }, times: { rev: 0, items: [] }, modelos: { rev: 0, items: [] }, avisos: [],
   tarefas: [
-    T.normalizarTarefa({ id: "t1", titulo: "Onboarding", descricao: "depende de [Hardening](nexo:tarefa/t2) e cita a si mesma [x](nexo:tarefa/t1)", registros: [
+    T.normalizarTarefa({ id: "t1", titulo: "Onboarding", criadaEm: "2026-11-01T10:00:00Z", atualizadaEm: "2026-11-12T10:00:00Z", descricao: "depende de [Hardening](nexo:tarefa/t2) e cita a si mesma [x](nexo:tarefa/t1)", registros: [
       { id: "r1", tipo: "reuniao", data: "2026-11-10", titulo: "Kickoff", anotacoes: "falei com [@Marina Souza](nexo:pessoa/Marina%20Souza), ver [Processo](nexo:pagina/pg1)" },
       { id: "r2", tipo: "nota", data: "2026-11-12", titulo: "", resumoIA: "de novo [Processo](nexo:pagina/pg1) e [Processo](nexo:pagina/pg1)" },
     ] }),

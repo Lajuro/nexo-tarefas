@@ -77,6 +77,16 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Perguntar ao Nexo (2.13)
+
+Tem uma dúvida cuja resposta está em algum lugar do seu histórico? Em **Perguntar** (`G U`):
+
+1. Escreva a pergunta, do jeito que falaria ("O que ficou decidido sobre o gate de bloqueio?").
+2. O Nexo procura em tudo (registros, tarefas, páginas, folhas, links e pessoas) e mostra os trechos que têm a ver, numerados como F1, F2... Dá para tirar algum e para limitar a uma categoria.
+3. **Copiar prompt**, colar no Copilot e trazer a resposta de volta. As citações `[F1]` viram links para as fontes, e a resposta pode ser guardada como página de conhecimento.
+
+O prompt manda o Copilot responder só com esses trechos e dizer quando eles não bastam. Nada sai do seu computador a não ser o que você mesmo colar no Copilot. Na tela de busca, "Perguntar ao Copilot" leva o termo pesquisado para lá.
+
 ## Modo reunião (2.12)
 
 Na página da tarefa, **Modo reunião** abre uma tela só para a conversa:

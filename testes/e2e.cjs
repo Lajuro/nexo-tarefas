@@ -898,6 +898,51 @@ async function main() {
     await pg.locator("[data-slot=resultado][data-tipo=pagina]", { hasText: "Como pedir exceção" }).waitFor();
   });
 
+  // ---------- perguntar ao Nexo ----------
+  await etapa("perguntar: achar os trechos, copiar o prompt, colar a resposta e guardar como página", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("u");
+    await pg.waitForURL(/\/perguntar$/);
+    const pergunta = "O que ficou decidido no alinhamento do onboarding?";
+    await pg.locator("[data-slot=pergunta]").fill(pergunta);
+    const fonte = pg.locator(`[data-slot=fonte][data-chave^="registro:${idDoModelo}:"]`).first();
+    await fonte.waitFor();
+    const rotulo = await fonte.getAttribute("data-rotulo");
+    const total = await pg.locator("[data-slot=fonte]").count();
+    // tirar uma fonte do prompt e pôr de volta
+    if (total > 1) {
+      const outra = pg.locator(`[data-slot=fonte]:not([data-rotulo=${rotulo}])`).first();
+      await outra.getByRole("checkbox").click();
+      await pg.locator("[data-slot=fonte][data-fora]").waitFor();
+      afirmar((await pg.locator("[data-slot=resumo-fontes]").innerText()).startsWith(`${total - 1} de ${total}`), "a fonte desmarcada continuou contando no prompt");
+      await outra.getByRole("checkbox").click();
+    }
+    await pg.locator("[data-slot=copiar-prompt-pergunta]").click();
+    const prompt = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(prompt.includes(`Pergunta: ${pergunta}`) && prompt.includes("SOMENTE as fontes") && prompt.includes(`[${rotulo}] Reunião: Alinhamento do onboarding`), "o prompt não tem a pergunta, as regras e a fonte");
+    afirmar(prompt.includes("Começar pelo squad de Pagamentos"), "o trecho da decisão não foi para o prompt");
+    // a resposta colada: citação vira link interno; HTML não é interpretado
+    const colada = pg.locator("[data-slot=resposta-colada]");
+    await colada.fill(`Ficou decidido começar pelo squad de Pagamentos [${rotulo}]. <img src=x onerror="window.__xss=1">`);
+    const resposta = pg.locator("[data-slot=resposta]");
+    await resposta.locator("[data-slot=link-interno]").first().waitFor();
+    afirmar((await resposta.locator("img").count()) === 0 && !(await pg.evaluate(() => window.__xss)), "HTML da resposta colada foi interpretado");
+    afirmar((await pg.locator("[data-slot=citada]").count()) === 1, "a fonte citada não apareceu na lista");
+    // F5 não perde a pergunta nem a resposta
+    await pg.reload();
+    await resposta.waitFor();
+    afirmar((await pg.locator("[data-slot=pergunta]").inputValue()) === pergunta, "a pergunta se perdeu no F5");
+    await pg.locator("[data-slot=guardar-resposta]").click();
+    await pg.locator("[data-slot=editor-pagina]").waitFor();
+    const d = await dados();
+    const pagina = d.paginas.items.find((x) => x.titulo === pergunta);
+    afirmar(pagina && pagina.texto.includes(`[${rotulo}](nexo:tarefa/${idDoModelo})`) && pagina.texto.includes("**Fontes**"), "a resposta não virou página com as fontes ligadas");
+    afirmar(!pagina.texto.includes("<img"), "o HTML colado foi gravado sem escapar na página");
+    const guardado = await pg.evaluate(() => JSON.parse(localStorage.getItem("nexo:pergunta") || "{}"));
+    afirmar(!guardado.resposta && !guardado.pergunta, "a consulta não foi limpa depois de guardar");
+  });
+
   // ---------- conquistas (gamificação) ----------
   await etapa("conquistas: nível, meta do dia, conquistas e desligar", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();
