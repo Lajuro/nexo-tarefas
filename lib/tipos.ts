@@ -255,10 +255,27 @@ export interface Pagina {
   tags: string[];
   /** Arquivada sai da lista, mas continua existindo (e os links para ela continuam funcionando). */
   arquivadaEm?: string | null;
+  /** Página mãe (3.1): as páginas formam uma árvore. null = raiz. Mãe que não existe mais = raiz. */
+  paiId?: string | null;
+  /** Posição entre as irmãs (menor primeiro). Empate: ordem alfabética. */
+  ordem?: number;
+  /** Ícone escolhido, uma das chaves de ICONES_DE_PAGINA (lib/paginas.ts). "" = o padrão do tipo. */
+  icone?: string;
+  /** Em que pé está o documento (colunas do quadro de páginas). */
+  estado?: EstadoPagina;
+  /** Presa em "Favoritas" no explorador. É dado, para valer em qualquer PC. */
+  fixada?: boolean;
   criadaEm: string;
   atualizadaEm: string;
   [extra: string]: unknown;
 }
+
+export type EstadoPagina = "rascunho" | "revisao" | "publicada";
+export const ESTADOS_PAGINA: { id: EstadoPagina; nome: string }[] = [
+  { id: "rascunho", nome: "Rascunho" },
+  { id: "revisao", nome: "Em revisão" },
+  { id: "publicada", nome: "Pronta" },
+];
 
 export interface Dados {
   tarefas: Tarefa[];
@@ -400,6 +417,11 @@ export function normalizarPagina(p: Partial<Pagina>): Pagina {
     categoriaId: typeof p.categoriaId === "string" && p.categoriaId ? p.categoriaId : null,
     tags: arrStr(p.tags),
     arquivadaEm: typeof p.arquivadaEm === "string" && p.arquivadaEm ? p.arquivadaEm : null,
+    paiId: typeof p.paiId === "string" && ID_VALIDO.test(p.paiId) && p.paiId !== p.id ? p.paiId : null,
+    ordem: Number.isFinite(Number(p.ordem)) ? Number(p.ordem) : 0,
+    icone: typeof p.icone === "string" && /^[a-z0-9-]{1,30}$/.test(p.icone) ? p.icone : "",
+    estado: ESTADOS_PAGINA.some((e) => e.id === p.estado) ? (p.estado as EstadoPagina) : "rascunho",
+    fixada: p.fixada === true,
     criadaEm: str(p.criadaEm) || agoraISO(),
     atualizadaEm: str(p.atualizadaEm) || agoraISO(),
   };

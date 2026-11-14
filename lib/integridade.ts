@@ -135,6 +135,7 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   }
   for (const p of dados.pessoas?.items ?? []) if (p.categoriaIds.some((id) => !cats.has(id))) orfaos.push(`pessoa "${p.nome}": categoria que não existe`);
   for (const p of dados.paginas?.items ?? []) if (p.categoriaId && !cats.has(p.categoriaId)) orfaos.push(`página "${p.titulo || "sem título"}": a categoria não existe`);
+  for (const p of dados.paginas?.items ?? []) if (p.paiId && !paginas.has(p.paiId)) orfaos.push(`página "${p.titulo || "sem título"}": a página em que ela estava não existe mais (aparece na raiz)`);
   for (const m of dados.modelos?.items ?? []) if (m.categoriaId && !cats.has(m.categoriaId)) orfaos.push(`modelo "${m.nome}": a categoria não existe`);
   for (const n of dados.notas?.items ?? [])
     for (const g of n.gerou ?? []) if (!tarefas.has(g.tarefaId)) orfaos.push(`folha "${n.titulo || "sem título"}": gerou algo numa tarefa que ${naLixeira(g.tarefaId) ? "está na lixeira" : "não existe"}`);

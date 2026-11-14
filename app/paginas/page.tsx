@@ -1,26 +1,57 @@
 "use client";
 
-// Páginas de conhecimento: o que não é tarefa nem reunião, mas vale guardar (processos, passo a passo, contatos).
-// Escritas no editor rico, podem citar tarefas, pessoas e outras páginas com "@", e mostram quem aponta para elas.
+// Páginas de conhecimento como documentação: explorador em árvore à esquerda, páginas abertas em abas,
+// sumário à direita, e as visões Quadro (por estado) e Lista. O que é organização (árvore, ícone, estado,
+// favorita) é dado da página; o que é jeito de trabalhar (abas abertas, o que está recolhido) fica no navegador.
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { BookText, Plus, Search } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { BookText, Columns3, FileText, PanelLeft, Plus, Rows3 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { useConfirmar } from "@/components/Raiz";
-import { Pagina, PontoCor, Vazio } from "@/components/comum";
-import { EditorPagina } from "@/components/paginas/EditorPagina";
+import { Pagina, Vazio } from "@/components/comum";
+import { Abas } from "@/components/paginas/Abas";
+import { EditorPagina, type ModoDaPagina } from "@/components/paginas/EditorPagina";
+import { Explorador } from "@/components/paginas/Explorador";
+import { ListaPaginas } from "@/components/paginas/ListaPaginas";
+import { QuadroPaginas } from "@/components/paginas/QuadroPaginas";
+import { IconePagina, useAcoesDePagina } from "@/components/paginas/pecas";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
-import { Input } from "@/components/ui/input";
-import { dataRelativa } from "@/lib/lembretes";
-import { apagarNotaPendente } from "@/lib/rascunhos";
-import { paraTextoPlano } from "@/lib/texto-rico";
-import { type Pagina as TipoPagina, agoraISO, novoId, semAcento } from "@/lib/tipos";
-import { cn } from "@/lib/utils";
+import { Dica } from "@/components/ui/popover";
+import { MODELOS_DE_PAGINA, caminhoDaPagina } from "@/lib/paginas";
+import { usePref } from "@/lib/preferencias";
 
-type Aba = "ativas" | "arquivadas";
-const nome = (p: TipoPagina) => p.titulo.trim() || paraTextoPlano(p.texto).split("\n")[0].slice(0, 80) || "Página sem título";
+type Visao = "docs" | "quadro" | "lista";
+const VISOES: Visao[] = ["docs", "quadro", "lista"];
+const MAX_ABAS = 12;
+
+/** Jeito de trabalhar nesta tela. Fica no navegador; tudo é conferido ao ler. */
+interface AreaDePaginas {
+  visao: Visao;
+  abas: string[];
+  ativa: string | null;
+  recolhidas: string[];
+  painel: boolean;
+  explorador: boolean;
+  modo: ModoDaPagina;
+}
+const AREA_PADRAO: AreaDePaginas = { visao: "docs", abas: [], ativa: null, recolhidas: [], painel: true, explorador: true, modo: "editar" };
+const ID = /^[a-zA-Z0-9_-]{1,80}$/;
+function normalizarArea(x: unknown): AreaDePaginas {
+  if (!x || typeof x !== "object" || Array.isArray(x)) return AREA_PADRAO;
+  const a = x as Partial<Record<keyof AreaDePaginas, unknown>>;
+  const ids = (v: unknown, max: number) => (Array.isArray(v) ? [...new Set(v.filter((i): i is string => typeof i === "string" && ID.test(i)))].slice(0, max) : []);
+  const abas = ids(a.abas, MAX_ABAS);
+  return {
+    visao: VISOES.includes(a.visao as Visao) ? (a.visao as Visao) : "docs",
+    abas,
+    ativa: typeof a.ativa === "string" && abas.includes(a.ativa) ? a.ativa : abas[0] ?? null,
+    recolhidas: ids(a.recolhidas, 500),
+    painel: a.painel !== false,
+    explorador: a.explorador !== false,
+    modo: a.modo === "ler" ? "ler" : "editar",
+  };
+}
 
 export default function Paginas() {
   // useSearchParams exige Suspense no Next 16.
@@ -28,149 +59,173 @@ export default function Paginas() {
 }
 
 function Conteudo() {
-  const { dados, salvarPaginas, toast } = useNexo();
+  const { dados } = useNexo();
   const router = useRouter();
   const params = useSearchParams();
   const pedida = params.get("p");
   const catPedida = params.get("cat");
-  // categoria com que a próxima página nova nasce (vem de "Nova página deste assunto", na tela da categoria)
-  const [catNova, setCatNova] = useState<string | null>(null);
-  const confirmar = useConfirmar();
-  const [aba, setAba] = useState<Aba>("ativas");
-  const [busca, setBusca] = useState("");
-  const [sel, setSel] = useState<string | null>(null);
-  // Id reservado para a próxima página em branco: ela só passa a existir na pasta quando ganha texto.
-  const [nova, setNova] = useState(() => ({ id: novoId("pg"), aberta: false }));
+  const acoes = useAcoesDePagina();
+  const [bruta, setBruta] = usePref<unknown>("paginasArea", AREA_PADRAO);
+  const area = useMemo(() => normalizarArea(bruta), [bruta]);
+  const mudarArea = useCallback((fn: (a: AreaDePaginas) => Partial<AreaDePaginas>) => setBruta((atual: unknown) => { const a = normalizarArea(atual); return { ...a, ...fn(a) }; }), [setBruta]);
+  const [irPara, setIrPara] = useState<{ id: string; titulo: number; vez: number } | null>(null);
 
   const paginas = useMemo(() => dados?.paginas?.items ?? [], [dados?.paginas]);
-  const cats = useMemo(() => new Map((dados?.categorias.items ?? []).map((c) => [c.id, c])), [dados?.categorias.items]);
-  const lista = useMemo(() => {
-    const q = semAcento(busca.trim());
-    return paginas
-      .filter((p) => (aba === "arquivadas" ? !!p.arquivadaEm : !p.arquivadaEm))
-      .filter((p) => !q || semAcento(`${p.titulo} ${paraTextoPlano(p.texto)} ${cats.get(p.categoriaId ?? "")?.nome ?? ""}`).includes(q))
-      .sort((a, b) => b.atualizadaEm.localeCompare(a.atualizadaEm));
-  }, [paginas, aba, busca, cats]);
+  const porId = useMemo(() => new Map(paginas.map((p) => [p.id, p])), [paginas]);
+  // abas de páginas que não existem mais somem sozinhas
+  const abertas = useMemo(() => area.abas.map((id) => porId.get(id)).filter((p): p is NonNullable<typeof p> => !!p), [area.abas, porId]);
+  const ativa = (area.ativa && porId.get(area.ativa)) || abertas[0] || null;
 
-  // /paginas?p=<id> (link interno ou citação): abre a página na aba certa. ?cat=<id> começa uma página nova naquele assunto.
+  const abrir = useCallback((id: string, titulo?: number) => {
+    mudarArea((a) => {
+      const abas = a.abas.includes(id) ? a.abas : [...a.abas, id];
+      // passou do limite: sai a aba mais antiga que não é a que está sendo aberta
+      while (abas.length > MAX_ABAS) abas.splice(abas.findIndex((x) => x !== id), 1);
+      return { visao: "docs", abas, ativa: id };
+    });
+    if (titulo !== undefined) setIrPara((v) => ({ id, titulo, vez: (v?.vez ?? 0) + 1 }));
+  }, [mudarArea]);
+
+  const fechar = useCallback((id: string) => mudarArea((a) => {
+    const i = a.abas.indexOf(id);
+    if (i < 0) return {};
+    const abas = a.abas.filter((x) => x !== id);
+    return { abas, ativa: a.ativa === id ? abas[Math.min(i, abas.length - 1)] ?? null : a.ativa };
+  }), [mudarArea]);
+
+  const nova = useCallback(async (modeloId = "branco", parte: { paiId?: string | null; categoriaId?: string | null } = {}) => {
+    const id = await acoes.criar(parte, modeloId);
+    if (id) abrir(id);
+  }, [acoes, abrir]);
+
+  // abrir uma página mostra o caminho até ela na árvore
+  useEffect(() => {
+    if (!ativa) return;
+    const acima = caminhoDaPagina(paginas.filter((p) => !p.arquivadaEm), ativa.id).map((p) => p.id);
+    if (acima.some((id) => area.recolhidas.includes(id))) mudarArea((a) => ({ recolhidas: a.recolhidas.filter((id) => !acima.includes(id)) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ativa?.id]);
+
+  // /paginas?p=<id> (link interno, busca, paleta): abre a página. ?cat=<id> começa uma página nova naquele assunto.
   useEffect(() => {
     if (!dados) return;
     if (pedida) {
-      const p = paginas.find((x) => x.id === pedida);
-      if (p) {
-        setAba(p.arquivadaEm ? "arquivadas" : "ativas");
-        setSel(p.id);
-        setNova((n) => ({ ...n, aberta: false }));
-      }
+      if (porId.has(pedida)) abrir(pedida);
       router.replace("/paginas");
     } else if (catPedida) {
-      setCatNova(catPedida);
-      setAba("ativas");
-      setNova({ id: novoId("pg"), aberta: true });
       router.replace("/paginas");
+      void nova("branco", { categoriaId: catPedida });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedida, catPedida, dados]);
+  }, [pedida, catPedida, !!dados]);
 
-  const idAtual = nova.aberta ? nova.id : lista.some((p) => p.id === sel) ? sel : lista[0]?.id ?? null;
-  const atual = paginas.find((p) => p.id === idAtual) ?? null;
-  // a página em branco acabou de ser gravada: passa a ser uma página como as outras
+  // Alt+seta: página anterior ou próxima entre as abas, como num editor de código
   useEffect(() => {
-    if (nova.aberta && paginas.some((p) => p.id === nova.id)) {
-      setSel(nova.id);
-      setNova({ id: novoId("pg"), aberta: false });
-    }
-  }, [nova, paginas]);
+    const tecla = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight") || area.visao !== "docs" || abertas.length < 2 || !ativa) return;
+      const alvo = e.target as HTMLElement | null;
+      if (alvo?.closest("input, textarea, [contenteditable=true]")) return;
+      e.preventDefault();
+      const i = abertas.findIndex((p) => p.id === ativa.id);
+      abrir(abertas[(i + (e.key === "ArrowRight" ? 1 : -1) + abertas.length) % abertas.length].id);
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [abertas, ativa, area.visao, abrir]);
 
-  const novaPagina = () => {
-    setAba("ativas");
-    setBusca("");
-    setCatNova(null);
-    setNova({ id: novoId("pg"), aberta: true });
-  };
-  const arquivar = async (p: TipoPagina, sim: boolean) => {
-    const agora = agoraISO();
-    if (await salvarPaginas((items) => items.map((x) => (x.id === p.id ? { ...x, arquivadaEm: sim ? agora : null, atualizadaEm: agora } : x)))) {
-      toast(sim ? "Página arquivada. Os links para ela continuam funcionando." : "Página de volta às ativas.", "info");
-      if (!sim) {
-        setAba("ativas");
-        setSel(p.id);
-      }
-    }
-  };
-  const excluir = async (p: TipoPagina) => {
-    const ok = await confirmar({
-      titulo: "Excluir esta página?",
-      descricao: `“${nome(p)}” vai para a lixeira da pasta de dados. Quem cita esta página fica com um link que não abre mais nada.`,
-      confirmar: "Excluir",
-      perigo: true,
-    });
-    if (ok && (await salvarPaginas((items) => items.filter((x) => x.id !== p.id)))) {
-      apagarNotaPendente(p.id);
-      toast("Página excluída (foi para a lixeira da pasta de dados).", "info");
-    }
-  };
+  if (!dados) return <Pagina titulo="Páginas"><span /></Pagina>;
 
   return (
     <Pagina
       semRolagem
       titulo="Páginas"
-      descricao="O que vale guardar além das tarefas: processos, passo a passo, quem procurar. Cite tarefas e pessoas com @."
-      acoes={<Button data-slot="nova-pagina" onClick={novaPagina}><Plus /> Nova página</Button>}
+      descricao="A documentação do seu trabalho: processos, guias e o que vale não esquecer."
+      acoes={
+        <>
+          <Segmentado aria-label="Como ver as páginas" valor={area.visao} aoMudar={(visao) => mudarArea(() => ({ visao }))}
+            opcoes={[
+              { valor: "docs", rotulo: "Documentos", icone: <FileText /> },
+              { valor: "quadro", rotulo: "Quadro", icone: <Columns3 /> },
+              { valor: "lista", rotulo: "Lista", icone: <Rows3 /> },
+            ]} />
+          <Button data-slot="nova-pagina-topo" onClick={() => nova()}><Plus /> Nova página</Button>
+        </>
+      }
     >
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[1480px]">
-        <aside data-slot="lista-paginas" className="flex w-[280px] shrink-0 flex-col border-r">
-          <div className="flex flex-col gap-2 px-3 pt-4 pb-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nas páginas" aria-label="Buscar nas páginas" className="pl-8" />
-            </div>
-            <Segmentado aria-label="Quais páginas mostrar" tamanho="sm" valor={aba} aoMudar={(a) => { setAba(a); setNova((n) => ({ ...n, aberta: false })); }} className="flex w-full [&>button]:flex-1"
-              opcoes={[{ valor: "ativas", rotulo: "Ativas" }, { valor: "arquivadas", rotulo: "Arquivadas" }]} />
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-            {nova.aberta && <div className="mb-1 rounded-lg bg-accent px-2.5 py-2 text-[13px] font-medium">Página nova</div>}
-            {lista.map((p) => {
-              const c = cats.get(p.categoriaId ?? "");
-              return (
-                <button key={p.id} type="button" data-slot="item-pagina" data-ativa={p.id === idAtual || undefined}
-                  onClick={() => { setSel(p.id); setNova((n) => ({ ...n, aberta: false })); }}
-                  className={cn(
-                    "mb-1 block w-full rounded-lg px-2.5 py-2 text-left transition-colors outline-none hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/35",
-                    p.id === idAtual && "bg-accent",
-                  )}>
-                  <span className="block truncate text-[13px] font-medium">{nome(p)}</span>
-                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-                    {c && <span className="inline-flex min-w-0 items-center gap-1"><PontoCor cor={c.cor} /><span className="truncate">{c.nome}</span></span>}
-                    <span className="shrink-0">editada {dataRelativa(p.atualizadaEm)}</span>
-                  </span>
-                </button>
-              );
-            })}
-            {lista.length === 0 && !nova.aberta && (
-              <p className="px-2.5 py-3 text-xs leading-snug text-muted-foreground">
-                {busca ? "Nenhuma página com esse texto." : aba === "arquivadas" ? "Nenhuma página arquivada." : "Nenhuma página ainda."}
-              </p>
-            )}
-          </div>
-        </aside>
-
-        <section className="min-w-0 flex-1">
-          {idAtual ? (
-            <EditorPagina key={idAtual} id={idAtual} pagina={atual} categoriaInicial={nova.aberta ? catNova : null} aoArquivar={arquivar} aoExcluir={excluir} />
-          ) : (
-            <div className="p-6">
-              <Vazio titulo="Seu conhecimento, num lugar só" icone={<BookText />}>
-                <p className="max-w-[52ch]">
-                  Uma página é para o que você explicaria de novo daqui a três meses: como funciona um processo, o passo a passo de um pedido, quem resolve o quê.
-                  Dentro dela, digite @ para citar uma tarefa, uma pessoa ou outra página.
-                </p>
-                <Button className="mt-2" onClick={novaPagina}><Plus /> Criar a primeira página</Button>
-              </Vazio>
-            </div>
+      {area.visao === "quadro" ? (
+        <QuadroPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
+      ) : area.visao === "lista" ? (
+        <ListaPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
+      ) : (
+        <div data-slot="area-de-paginas" className="flex h-full min-h-0">
+          {area.explorador && (
+            <Explorador
+              paginas={paginas}
+              ativaId={ativa?.id ?? null}
+              recolhidas={area.recolhidas}
+              acoes={acoes}
+              aoAbrir={abrir}
+              aoAlternar={(id) => mudarArea((a) => ({ recolhidas: a.recolhidas.includes(id) ? a.recolhidas.filter((x) => x !== id) : [...a.recolhidas, id] }))}
+              aoRecolherTudo={(ids) => mudarArea(() => ({ recolhidas: ids }))}
+              aoFechar={fechar}
+              aoNova={(modeloId) => nova(modeloId)}
+            />
           )}
-        </section>
-      </div>
+          <section className="flex min-w-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-end border-b bg-muted/40">
+              <Dica texto={area.explorador ? "Esconder a árvore de páginas" : "Mostrar a árvore de páginas"}>
+                <Button variant="ghost" size="icon-sm" className="mx-1 mb-1 shrink-0" aria-label="Árvore de páginas" aria-pressed={area.explorador} data-slot="alternar-explorador"
+                  onClick={() => mudarArea((a) => ({ explorador: !a.explorador }))}>
+                  <PanelLeft className={area.explorador ? "text-primary" : undefined} />
+                </Button>
+              </Dica>
+              <div className="min-w-0 flex-1 [&>[data-slot=abas-de-paginas]]:border-b-0 [&>[data-slot=abas-de-paginas]]:bg-transparent">
+                <Abas abertas={abertas} ativaId={ativa?.id ?? null} aoAtivar={(id) => abrir(id)} aoFechar={fechar}
+                  aoFecharOutras={(id) => mudarArea(() => ({ abas: [id], ativa: id }))} aoNova={() => nova()} />
+                {abertas.length === 0 && <div className="h-9" />}
+              </div>
+            </div>
+            <div className="min-h-0 flex-1">
+              {ativa ? (
+                <EditorPagina
+                  key={ativa.id}
+                  pagina={ativa}
+                  paginas={paginas}
+                  modo={area.modo}
+                  aoMudarModo={(modo) => mudarArea(() => ({ modo }))}
+                  painel={area.painel}
+                  aoAlternarPainel={() => mudarArea((a) => ({ painel: !a.painel }))}
+                  acoes={acoes}
+                  aoAbrir={abrir}
+                  aoFechar={() => fechar(ativa.id)}
+                  irPara={irPara && irPara.id === ativa.id ? irPara : null}
+                />
+              ) : (
+                <div className="h-full overflow-y-auto p-6">
+                  <Vazio titulo={paginas.length ? "Escolha uma página na árvore" : "Sua documentação começa aqui"} icone={<BookText />}>
+                    <p className="max-w-[56ch]">
+                      Uma página é para o que você explicaria de novo daqui a três meses: como funciona um processo, o passo a passo de um pedido, quem resolve o quê.
+                      Páginas ficam dentro de páginas, e em qualquer texto <strong>[[</strong> liga a outra página e <strong>@</strong> cita uma tarefa ou pessoa.
+                    </p>
+                    <div className="mt-3 grid w-full max-w-[560px] gap-2 sm:grid-cols-2">
+                      {MODELOS_DE_PAGINA.slice(0, 6).map((m) => (
+                        <button key={m.id} type="button" data-slot="modelo-de-pagina" data-modelo={m.id} onClick={() => nova(m.id)}
+                          className="flex items-start gap-2.5 rounded-xl border bg-card px-3 py-2.5 text-left shadow-xs transition-[border-color,box-shadow] outline-none hover:border-ring/40 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                          <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><IconePagina pagina={{ icone: m.icone }} /></span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-medium text-foreground">{m.nome}</span>
+                            <span className="block text-[11px] leading-snug text-muted-foreground">{m.descricao}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </Vazio>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </Pagina>
   );
 }

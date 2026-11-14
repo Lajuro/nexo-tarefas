@@ -13,7 +13,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AtSign, Bold, Code, FileText, Heading1, Heading2, Heading3, ImagePlus, Italic, Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, Minus, Pilcrow,
+  AtSign, Bold, Code, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Italic, Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, Minus, Pilcrow,
   Quote, SquareCode, Strikethrough, Table2, Trash2, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
@@ -23,6 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aberta } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
+import { paginaNova } from "@/lib/paginas";
 import { hrefInterno, linkPermitido, srcDoAnexo } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
 import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, pareceMarkdown } from "./extensoes";
@@ -33,7 +34,7 @@ const EXTENSAO: Record<string, string> = { "image/png": "png", "image/jpeg": "jp
 
 const ICONE: Record<string, LucideIcon> = {
   texto: Pilcrow, h1: Heading1, h2: Heading2, h3: Heading3, lista: List, numerada: ListOrdered, tarefas: ListChecks, citacao: Quote,
-  codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText,
+  codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText, nova: FilePlus2, subpagina: FilePlus2,
 };
 
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -42,6 +43,9 @@ function nomeDoPrint(tipo: string) {
   const d = new Date();
   return `print-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}.${EXTENSAO[tipo] ?? "png"}`;
 }
+
+/** O Markdown do editor como vai para o campo: sem os parágrafos vazios do fim (que ele grava como "&nbsp;"). */
+const paraGuardar = (ed: Editor) => (ed.isEmpty ? "" : ed.getMarkdown().replace(/(?:\s|&nbsp;)+$/, ""));
 
 interface EstadoMenu {
   itens: ItemDoMenu[];
@@ -74,7 +78,7 @@ function BotaoBarra({
 }
 
 export function EditorRico({
-  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado,
+  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId,
   "aria-label": rotulo, "data-slot": slot = "editor-rico",
 }: {
   /** Markdown. */
@@ -84,14 +88,19 @@ export function EditorRico({
   className?: string;
   /** Classes da área de escrita (altura mínima e máxima, tamanho da letra). */
   classeConteudo?: string;
-  /** "campo": caixa com borda, para formulários. "pagina": sem moldura, ocupa o espaço que tiver. */
-  variante?: "campo" | "pagina";
+  /**
+   * "campo": caixa com borda, para formulários. "pagina": sem moldura, ocupa o espaço que tiver e rola por dentro.
+   * "documento": sem moldura e sem rolagem própria (cresce com o texto); a barra gruda no topo de quem rola em volta.
+   */
+  variante?: "campo" | "pagina" | "documento";
+  /** Página em que o editor está: página criada por "[[" ou pelo bloco "Subpágina" nasce dentro dela. */
+  paginaAtualId?: string;
   focoInicial?: boolean;
   desabilitado?: boolean;
   "aria-label"?: string;
   "data-slot"?: string;
 }) {
-  const { enviarArquivo, toast, dados } = useNexo();
+  const { enviarArquivo, toast, dados, salvarPaginas } = useNexo();
   // O que dá para citar com "@": pessoas, tarefas (as abertas primeiro) e páginas. Lido na hora em que o menu abre.
   const dadosRef = useRef(dados);
   dadosRef.current = dados;
@@ -118,12 +127,40 @@ export function EditorRico({
     }
     return out;
   });
+  // "[[" liga a uma página; se o que foi digitado não existe, oferece criar (nasce dentro da página atual).
+  const paginaAtual = useRef(paginaAtualId);
+  paginaAtual.current = paginaAtualId;
+  const criarPaginaRef = useRef((titulo: string): string => {
+    const mae = dadosRef.current?.paginas?.items.find((p) => p.id === paginaAtual.current);
+    const nova = paginaNova({ titulo, paiId: mae?.id ?? null, categoriaId: mae?.categoriaId ?? null, ordem: Date.now() / 1e9 });
+    void salvarPaginas((items) => [...items, nova]);
+    return nova.id;
+  });
+  const ligar = (alvo: string, rotulo: string) => (ed: Editor, r: Range) =>
+    ed.chain().focus().deleteRange(r)
+      .insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href: hrefInterno("pagina", alvo) } }] }, { type: "text", text: " " }])
+      .run();
+  const paginasParaLigar = useRef((): ItemDoMenu[] =>
+    (dadosRef.current?.paginas?.items ?? [])
+      .filter((p) => !p.arquivadaEm && p.id !== paginaAtual.current)
+      .sort((a, b) => b.atualizadaEm.localeCompare(a.atualizadaEm))
+      .map((p): ItemDoMenu => ({ id: `pagina:${p.id}`, nome: p.titulo || "Página sem título", dica: "Página", palavras: "pagina", icone: "pagina", fazer: ligar(p.id, p.titulo || "Página sem título") })));
+  const criarAoLigar = useRef((digitado: string): ItemDoMenu[] => {
+    const titulo = digitado.replace(/\]+$/, "").trim().slice(0, 200);
+    const existe = (dadosRef.current?.paginas?.items ?? []).some((p) => !p.arquivadaEm && p.titulo.trim().toLowerCase() === titulo.toLowerCase());
+    if (!titulo || existe) return [];
+    return [{ id: "nova", nome: `Criar página “${titulo}”`, dica: "Ainda não existe: cria e liga", palavras: "", icone: "nova", fazer: (ed, r) => ligar(criarPaginaRef.current(titulo), titulo)(ed, r) }];
+  });
   const caixa = useRef<HTMLDivElement>(null);
   const arquivo = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState<EstadoMenu | null>(null);
   const menuRef = useRef<EstadoMenu | null>(null);
   menuRef.current = menu;
   const emitido = useRef(valor);
+  // O editor regrava o Markdown do jeito dele (escapa "[", alinha tabela). Só de abrir um texto isso já daria
+  // uma "mudança". `base` guarda o texto como veio e como o editor o escreve: enquanto o conteúdo for esse,
+  // o que vale é o texto original, e nada é avisado para fora.
+  const base = useRef<{ original: string; doEditor: string | null }>({ original: valor, doEditor: null });
   const editorRef = useRef<Editor | null>(null);
   // callbacks sempre atuais para o que é registrado uma vez só no editor
   const acoes = useRef({ aoMudar, enviarArquivo, toast });
@@ -173,8 +210,16 @@ export function EditorRico({
       { id: "tabela", nome: "Tabela", dica: "3 colunas por 3 linhas, para começar", palavras: "tabela grade planilha colunas", fazer: bloco((ed, r) => limpo(ed, r).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()) },
       { id: "imagem", nome: "Imagem", dica: "Escolher um arquivo (ou cole com Ctrl V)", palavras: "imagem foto print captura anexo", fazer: bloco((ed, r) => { limpo(ed, r).run(); arquivo.current?.click(); }) },
       { id: "divisor", nome: "Divisor", dica: "Linha separando dois assuntos", palavras: "divisor linha separador ---", fazer: bloco((ed, r) => limpo(ed, r).setHorizontalRule().run()) },
+      // só dentro de uma página: cria uma página filha e já deixa o link para ela
+      ...(paginaAtualId
+        ? [{
+            id: "subpagina", nome: "Subpágina", dica: "Cria uma página dentro desta e põe o link aqui", palavras: "pagina subpagina filha nova documento",
+            fazer: bloco((ed, r) => ligar(criarPaginaRef.current("Nova página"), "Nova página")(ed, r)),
+          }]
+        : []),
     ];
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!paginaAtualId]);
 
   // A "ponte" liga o plugin do menu "/" (que vive dentro do editor) ao estado do React que desenha a lista.
   const ponte = useRef<PonteDoMenu | null>(null);
@@ -217,7 +262,10 @@ export function EditorRico({
   };
 
   const editor = useEditor({
-    extensions: extensoesDoEditor({ placeholder, itens, ponte: () => ponte.current, citaveis: () => citaveis.current() }),
+    extensions: extensoesDoEditor({
+      placeholder, itens, ponte: () => ponte.current, citaveis: () => citaveis.current(),
+      paginas: () => paginasParaLigar.current(), criarPagina: (q) => criarAoLigar.current(q),
+    }),
     content: valor,
     contentType: "markdown",
     editable: !desabilitado,
@@ -260,9 +308,14 @@ export function EditorRico({
         return true;
       },
     },
+    onCreate: ({ editor: ed }) => {
+      base.current.doEditor = paraGuardar(ed);
+    },
     onUpdate: ({ editor: ed }) => {
-      // parágrafos vazios no fim (o editor os grava como "&nbsp;") não precisam ir para o texto guardado
-      const md = ed.isEmpty ? "" : ed.getMarkdown().replace(/(?:\s|&nbsp;)+$/, "");
+      let md = paraGuardar(ed);
+      // voltou a ser exatamente o que foi aberto: vale o texto original, sem a reescrita do editor
+      if (md === base.current.doEditor) md = base.current.original;
+      if (md === emitido.current) return;
       emitido.current = md;
       acoes.current.aoMudar(md);
     },
@@ -274,6 +327,7 @@ export function EditorRico({
     if (!editor || valor === emitido.current) return;
     emitido.current = valor;
     editor.commands.setContent(valor, { contentType: "markdown", emitUpdate: false });
+    base.current = { original: valor, doEditor: paraGuardar(editor) };
   }, [editor, valor]);
 
   useEffect(() => {
@@ -325,18 +379,22 @@ export function EditorRico({
   };
 
   const c = () => editor!.chain().focus();
-  const pagina = variante === "pagina";
+  const documento = variante === "documento";
+  const pagina = variante === "pagina" || documento;
 
   return (
     <div ref={caixa} data-slot={slot} data-variante={variante}
       className={cn(
         "editor-rico relative flex min-w-0 flex-col",
-        pagina ? "h-full min-h-0" : "rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/25 hover:border-ring/40 focus-within:hover:border-ring dark:bg-input/20",
+        documento ? "" : pagina ? "h-full min-h-0" : "rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/25 hover:border-ring/40 focus-within:hover:border-ring dark:bg-input/20",
         desabilitado && "pointer-events-none opacity-60",
         className,
       )}>
       <div data-slot="editor-barra" role="toolbar" aria-label="Formatação"
-        className={cn("flex shrink-0 flex-wrap items-center gap-0.5 border-b px-1.5 py-1 sem-selecao", pagina && "px-4")}>
+        className={cn(
+          "flex shrink-0 flex-wrap items-center gap-0.5 border-b px-1.5 py-1 sem-selecao", pagina && "px-4",
+          documento && "sticky top-0 z-20 -mx-2 rounded-lg border bg-background/95 px-1.5 shadow-xs backdrop-blur-sm",
+        )}>
         <BotaoBarra dica="Título 1" ativo={estado?.h1} aoClicar={() => c().toggleHeading({ level: 1 }).run()}><Heading1 /></BotaoBarra>
         <BotaoBarra dica="Título 2" ativo={estado?.h2} aoClicar={() => c().toggleHeading({ level: 2 }).run()}><Heading2 /></BotaoBarra>
         <BotaoBarra dica="Título 3" ativo={estado?.h3} aoClicar={() => c().toggleHeading({ level: 3 }).run()}><Heading3 /></BotaoBarra>
@@ -412,7 +470,7 @@ export function EditorRico({
         )}
       </div>
 
-      <div className={cn("min-h-0", pagina ? "flex-1 overflow-y-auto" : "max-h-[55vh] overflow-y-auto")}
+      <div className={cn("min-h-0", documento ? "" : pagina ? "flex-1 overflow-y-auto" : "max-h-[55vh] overflow-y-auto")}
         // clicar no espaço vazio abaixo do texto põe o cursor no fim
         onMouseDown={(e) => { if (e.target === e.currentTarget) { e.preventDefault(); editor?.chain().focus("end").run(); } }}>
         {editor ? <EditorContent editor={editor} /> : <div className={cn("min-h-24 px-3 py-2.5", classeConteudo)} />}

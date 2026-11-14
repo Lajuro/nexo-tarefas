@@ -128,6 +128,15 @@ curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":2}' >/dev/nu
 curl -s -X PUT $B/api/pessoas -H "$J" -d '{"items":[],"revEsperada":-1}' >/dev/null
 checa "pessoas corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/pessoas.json")"
 
+# ---------- documentação: árvore, ícone, estado e favorita das páginas ----------
+RP=$(curl -s $B/api/dados | sed 's/.*"paginas":{"rev":\([0-9-]*\).*/\1/')
+R=$(curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgarv1\",\"titulo\":\"Mae\",\"icone\":\"livro\",\"estado\":\"publicada\",\"fixada\":true,\"ordem\":2},{\"id\":\"pgarv2\",\"titulo\":\"Filha\",\"paiId\":\"pgarv1\",\"campoFuturo\":\"fica\"},{\"id\":\"pgarv3\",\"titulo\":\"Torta\",\"paiId\":\"../../x\",\"icone\":\"<b>\",\"estado\":\"qualquer\",\"fixada\":\"sim\",\"ordem\":\"abc\"}],\"revEsperada\":$RP}")
+checa "página: guarda ícone, estado, favorita e ordem" '"id":"pgarv1","titulo":"Mae","icone":"livro","estado":"publicada","fixada":true,"ordem":2' "$R"
+checa "página: filha aponta para a mãe e preserva campo desconhecido" '"campoFuturo":"fica"' "$R"
+checa "página: filha com a mãe gravada" '"paiId":"pgarv1"' "$R"
+checa "página: mãe inválida, ícone, estado e favorita estranhos viram padrão" '"id":"pgarv3","titulo":"Torta","paiId":null,"icone":"","estado":"rascunho","fixada":false,"ordem":0' "$R"
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+1))}" >/dev/null
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

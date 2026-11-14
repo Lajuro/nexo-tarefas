@@ -77,6 +77,18 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Documentação (3.1)
+
+As **Páginas** viraram um lugar para documentar de verdade:
+
+- **Páginas dentro de páginas**: a árvore à esquerda mostra tudo. Arraste para mudar a ordem ou pôr uma página dentro de outra. Botão direito (ou "...") cria subpágina, duplica, favorita, arquiva.
+- **Abas**: cada página aberta fica numa aba, como num editor de código. `Alt ←` e `Alt →` trocam de aba.
+- **Ler ou editar**: no modo leitura a página aparece limpa, com o **sumário** ao lado acompanhando a rolagem, as páginas de dentro e "anterior / próxima".
+- **Modelos**: processo, guia passo a passo, runbook, registro de decisão, perguntas frequentes e glossário.
+- **Ligar páginas**: digite `[[` e o nome. Se a página não existe, o Nexo cria e liga. `@` continua citando tarefas e pessoas.
+- **Busca na documentação** (`Ctrl P`): mostra em que seção de cada página o trecho está e abre direto nela.
+- **Quadro e Lista**: veja as páginas por estado (rascunho, em revisão, pronta), arrastando entre as colunas, ou numa tabela com filtro.
+
 ## Nexo 3.0
 
 A 3.0 junta cinco frentes: **modo reunião**, **páginas de conhecimento com @**, **perguntar ao Nexo**, **radar das frentes** e **confiança**. As quatro primeiras estão descritas abaixo. Da última:

@@ -97,23 +97,28 @@ const limpar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLower
  * páginas). A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
  * citações acompanhar os dados sem recriar o editor.
  */
-interface OpcoesDoMenu { char: string; chave: string; itens: () => ItemDoMenu[]; ponte: () => PonteDoMenu | null; limite: number }
+interface OpcoesDoMenu {
+  char: string; chave: string; itens: () => ItemDoMenu[]; ponte: () => PonteDoMenu | null; limite: number;
+  /** Itens que dependem do que foi digitado ("Criar página «texto»"), postos no fim da lista. */
+  extra?: (digitado: string) => ItemDoMenu[];
+}
 export const MenuBarra = Extension.create<OpcoesDoMenu>({
   name: "menuBarra",
   addOptions() {
     return { char: "/", chave: "menuBarra", itens: () => [], ponte: () => null, limite: 50 };
   },
   addProseMirrorPlugins() {
-    const { char, chave, itens, ponte, limite } = this.options;
+    const { char, chave, itens, ponte, limite, extra } = this.options;
     return [
       Suggestion<ItemDoMenu, ItemDoMenu>({
         editor: this.editor,
         pluginKey: new PluginKey(chave),
         char,
-        allowSpaces: char === "@",
+        // nome de pessoa e título de página têm espaço
+        allowSpaces: char !== "/",
         items: ({ query }) => {
           const q = limpar(query);
-          return itens().filter((i) => !q || limpar(`${i.nome} ${i.palavras}`).includes(q)).slice(0, limite);
+          return [...itens().filter((i) => !q || limpar(`${i.nome} ${i.palavras}`).includes(q)).slice(0, limite), ...(extra?.(query.trim()) ?? [])];
         },
         command: ({ editor, range, props }) => props.fazer(editor, range),
         // dentro de bloco de código, "/" é só uma barra
@@ -142,6 +147,9 @@ export function extensoesDoEditor(opcoes: {
   placeholder: string; itens: ItemDoMenu[]; ponte: () => PonteDoMenu | null;
   /** O que dá para citar com "@" (pessoas, tarefas, páginas). */
   citaveis: () => ItemDoMenu[];
+  /** As páginas que "[[" lista, e o item "criar página" para o que foi digitado. */
+  paginas: () => ItemDoMenu[];
+  criarPagina: (digitado: string) => ItemDoMenu[];
 }) {
   return [
     StarterKit.configure({
@@ -173,6 +181,8 @@ export function extensoesDoEditor(opcoes: {
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
     MenuBarra.configure({ itens: () => opcoes.itens, ponte: opcoes.ponte }),
     MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 8 }),
+    // "[[" liga a outra página (e cria a página se ela ainda não existe), como numa wiki
+    MenuBarra.extend({ name: "menuLigar" }).configure({ char: "[[", chave: "menuLigar", itens: opcoes.paginas, ponte: opcoes.ponte, limite: 8, extra: opcoes.criarPagina }),
     SemQuebraNoCtrlEnter,
   ];
 }

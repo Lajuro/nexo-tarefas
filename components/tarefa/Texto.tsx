@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { Fragment, ReactNode, useMemo } from "react";
+import { type ItemDoSumario, sumarioDosBlocos } from "@/lib/paginas";
 import { Bloco, Inline, analisarMarkdown } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +43,17 @@ function desenharInlines(f: Inline[]): ReactNode {
   });
 }
 
-function desenharBlocos(bs: Bloco[]): ReactNode {
+/** `ancoras`: o sumário do documento. Com ele, cada título de primeiro nível ganha a âncora e a posição. */
+function desenharBlocos(bs: Bloco[], ancoras?: ItemDoSumario[]): ReactNode {
+  let titulo = 0;
   return bs.map((b, k) => {
     switch (b.t) {
       case "paragrafo":
         return <p key={k}>{desenharInlines(b.f)}</p>;
       case "titulo": {
         const T = (["h1", "h2", "h3"] as const)[b.nivel - 1];
-        return <T key={k}>{desenharInlines(b.f)}</T>;
+        const a = ancoras?.[titulo++];
+        return a ? <T key={k} id={a.id} data-titulo={a.indice}>{desenharInlines(b.f)}</T> : <T key={k}>{desenharInlines(b.f)}</T>;
       }
       case "lista": {
         const tarefas = b.itens.length > 0 && b.itens.every((i) => i.tarefa);
@@ -91,11 +95,16 @@ function desenharBlocos(bs: Bloco[]): ReactNode {
   });
 }
 
-export function TextoRico({ texto, className }: { texto: string; className?: string }) {
+export function TextoRico({ texto, className, ancoras }: {
+  texto: string; className?: string;
+  /** Documento com sumário: os títulos ganham âncora (`id`) e `data-titulo` com a posição. */
+  ancoras?: boolean;
+}) {
   const blocos = useMemo(() => analisarMarkdown(texto), [texto]);
+  const sumario = useMemo(() => (ancoras ? sumarioDosBlocos(blocos) : undefined), [ancoras, blocos]);
   return (
     <div data-slot="texto" className={cn("prosa", className)}>
-      {desenharBlocos(blocos)}
+      {desenharBlocos(blocos, sumario)}
     </div>
   );
 }

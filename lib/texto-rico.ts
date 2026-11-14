@@ -255,7 +255,8 @@ export function analisarMarkdown(md: string): Bloco[] {
 
 // ---------- Markdown → texto simples (trechos de busca, resumos de uma linha) ----------
 
-function textoDosInlines(f: Inline[]): string {
+/** O texto de um trecho já lido (título, célula), sem a marcação. */
+export function textoDosInlines(f: Inline[]): string {
   return f
     .map((i) => {
       switch (i.t) {

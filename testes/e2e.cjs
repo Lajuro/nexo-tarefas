@@ -898,6 +898,152 @@ async function main() {
     await pg.locator("[data-slot=resultado][data-tipo=pagina]", { hasText: "Como pedir exceção" }).waitFor();
   });
 
+  // ---------- documentação: árvore, abas, modelos, [[, leitura, quadro e lista ----------
+  await etapa("documentação: modelo, subpágina, [[ que liga e cria, árvore, abas e busca por seção", async () => {
+    await pg.goto(B + "/paginas");
+    await pg.locator("[data-slot=explorador]").waitFor();
+    const idDe = async (titulo) => (await dados()).paginas.items.find((p) => p.titulo === titulo)?.id;
+    const idExcecao = await idDe("Como pedir exceção de vulnerabilidade");
+
+    // página nova a partir de um modelo
+    await pg.locator("[data-slot=nova-de-modelo]").click();
+    await pg.locator("[data-modelo=guia]").click();
+    const titulo = pg.getByLabel("Título da página");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=titulo-da-pagina]")?.value === "Como fazer ...");
+    await titulo.fill("Guia do scan");
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+    const idGuia = await idDe("Guia do scan");
+    afirmar(idGuia, "a página do modelo não foi gravada com o título novo");
+    const guia = (await dados()).paginas.items.find((p) => p.id === idGuia);
+    afirmar(guia.icone === "lista" && guia.texto.includes("## Antes de começar") && guia.estado === "rascunho", "o modelo não trouxe ícone, texto e estado");
+
+    // página dentro da página, e nela "[[" liga a uma que existe e cria uma que não existe
+    await pg.locator("[data-slot=nova-subpagina]").click();
+    await pg.waitForFunction(() => document.querySelector("[data-slot=titulo-da-pagina]")?.value === "");
+    await titulo.fill("Instalar o agente");
+    afirmar((await pg.locator("[data-slot=caminho-da-pagina]").innerText()).includes("Guia do scan"), "o caminho da página não mostra a página mãe");
+    const ed = pg.locator("[data-slot=texto-da-pagina] [data-slot=editor-rico-conteudo]");
+    await ed.click();
+    await pg.keyboard.type("Antes, veja [[Como pedir exce");
+    const menu = pg.locator("[data-slot=menu-editor]");
+    await menu.locator("[role=option]", { hasText: "Como pedir exceção de vulnerabilidade" }).first().waitFor();
+    await pg.keyboard.press("Enter");
+    await ed.locator(`a[href="nexo:pagina/${idExcecao}"]`).waitFor();
+    await pg.keyboard.type("e depois [[Lista de agentes homologados");
+    await menu.locator("[data-item=nova]").waitFor();
+    afirmar((await menu.locator("[role=option]").count()) === 1, "o menu de [[ ofereceu página errada para um título que não existe");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+    await pg.waitForFunction(async () => (await (await fetch("/api/dados")).json()).paginas.items.some((p) => p.titulo === "Lista de agentes homologados"));
+    let d = await dados();
+    const instalar = d.paginas.items.find((p) => p.titulo === "Instalar o agente");
+    const criada = d.paginas.items.find((p) => p.titulo === "Lista de agentes homologados");
+    afirmar(instalar.paiId === idGuia, "a subpágina não ficou dentro da página mãe");
+    afirmar(criada && criada.paiId === instalar.id, "a página criada por [[ não nasceu dentro da página em que foi citada");
+    afirmar(instalar.texto.includes(`](nexo:pagina/${idExcecao})`) && instalar.texto.includes(`](nexo:pagina/${criada.id})`), "os links de [[ não foram gravados: " + instalar.texto);
+
+    // árvore: níveis, recolher e abrir
+    const item = (id) => pg.locator(`[data-slot=item-pagina][data-id="${id}"]`);
+    afirmar((await item(instalar.id).getAttribute("data-nivel")) === "1" && (await item(criada.id).getAttribute("data-nivel")) === "2", "a árvore não mostra os níveis certos");
+    await item(idGuia).getByRole("button", { name: "Recolher" }).click();
+    await item(instalar.id).waitFor({ state: "detached" });
+    await item(idGuia).getByRole("button", { name: "Abrir" }).click();
+    await item(instalar.id).waitFor();
+
+    // abas: cada página aberta ganha uma, e fechar tira
+    await item(criada.id).click();
+    await pg.locator(`[data-slot=aba-de-pagina][data-id="${criada.id}"][data-ativa]`).waitFor();
+    const antes = await pg.locator("[data-slot=aba-de-pagina]").count();
+    afirmar(antes >= 3, `esperava pelo menos 3 abas abertas, achei ${antes}`);
+    await pg.locator(`[data-slot=aba-de-pagina][data-id="${criada.id}"] [data-slot=fechar-aba]`).click();
+    await pg.waitForFunction((n) => document.querySelectorAll("[data-slot=aba-de-pagina]").length === n - 1, antes);
+    // as abas voltam depois de recarregar
+    await pg.reload();
+    await pg.locator(`[data-slot=aba-de-pagina][data-id="${instalar.id}"]`).waitFor();
+
+    // busca dentro da documentação: acha pela seção e abre nela
+    await pg.locator("[data-slot=busca-paginas]").fill("resultado esperado");
+    const achada = pg.locator("[data-slot=pagina-achada]", { hasText: "Guia do scan" });
+    await achada.locator("[data-slot=trecho-achado]", { hasText: "Como saber se deu certo" }).click();
+    await pg.locator(`[data-slot=editor-pagina][data-id="${idGuia}"]`).waitFor();
+    await pg.locator("[data-slot=busca-paginas]").fill("");
+
+    // arrastar na árvore: "Como pedir exceção" vai para dentro de "Guia do scan"
+    const origem = await item(idExcecao).boundingBox();
+    const destino = await item(idGuia).boundingBox();
+    await pg.mouse.move(origem.x + 60, origem.y + origem.height / 2);
+    await pg.mouse.down();
+    await pg.mouse.move(origem.x + 70, origem.y + origem.height / 2 + 8, { steps: 4 });
+    await pg.mouse.move(destino.x + 90, destino.y + destino.height / 2 + 4, { steps: 12 });
+    await pg.mouse.up();
+    await pg.waitForFunction(async (ids) => (await (await fetch("/api/dados")).json()).paginas.items.find((p) => p.id === ids[0])?.paiId === ids[1], [idExcecao, idGuia]);
+    afirmar((await item(idExcecao).getAttribute("data-nivel")) === "1", "a página arrastada não entrou na página de destino");
+    d = await dados();
+    afirmar(d.paginas.items.length === 4, "arrastar mudou a quantidade de páginas");
+  });
+
+  await etapa("documentação: ler com sumário, favoritar, quadro por estado, lista e arquivar", async () => {
+    const d0 = await dados();
+    const guia = d0.paginas.items.find((p) => p.titulo === "Guia do scan");
+    await pg.locator(`[data-slot=item-pagina][data-id="${guia.id}"]`).click();
+    const visao = pg.locator(`[data-slot=editor-pagina][data-id="${guia.id}"]`);
+    await visao.waitFor();
+    // modo leitura: títulos com âncora, sumário ao lado, anterior e próxima
+    await pg.getByRole("radio", { name: "Ler" }).click();
+    await pg.locator(`[data-slot=editor-pagina][data-id="${guia.id}"][data-modo=ler]`).waitFor();
+    afirmar((await visao.locator("[data-slot=corpo-da-pagina] h2[id=antes-de-comecar]").count()) === 1, "o título não ganhou âncora no modo leitura");
+    afirmar((await visao.locator("[data-slot=texto-da-pagina]").count()) === 0, "o editor continuou na tela no modo leitura");
+    const itens = await visao.locator("[data-slot=item-do-sumario]").allInnerTexts();
+    afirmar(itens.includes("Antes de começar") && itens.includes("Se der errado") && itens.length >= 6, "o sumário não lista os títulos da página: " + itens.join(" | "));
+    afirmar((await visao.locator("[data-slot=paginas-de-dentro] button").count()) === 2, "a página não lista as páginas de dentro dela");
+    await visao.locator("[data-slot=vizinhas]").waitFor();
+    await pg.getByRole("radio", { name: "Editar" }).click();
+    await visao.locator("[data-slot=texto-da-pagina]").waitFor();
+    // só de abrir e trocar de modo, o texto não muda (o editor não regrava o Markdown do jeito dele)
+    await pg.waitForTimeout(1800);
+    afirmar((await dados()).paginas.items.find((p) => p.id === guia.id).texto === guia.texto, "abrir a página no editor mudou o texto guardado");
+
+    // favorita aparece no topo do explorador
+    await pg.locator("[data-slot=favoritar-pagina]").click();
+    await pg.locator(`[data-slot=item-favorita][data-id="${guia.id}"]`).waitFor();
+
+    // quadro: arrastar o cartão para "Pronta" muda o estado
+    await pg.getByRole("radio", { name: "Quadro" }).click();
+    await pg.locator("[data-slot=quadro-de-paginas]").waitFor();
+    afirmar((await pg.locator("[data-slot=cartao-de-pagina]").count()) === 4, "o quadro não mostra um cartão por página");
+    const cartao = await pg.locator(`[data-slot=cartao-de-pagina][data-id="${guia.id}"]`).boundingBox();
+    const coluna = await pg.locator("[data-slot=coluna-de-paginas][data-estado=publicada]").boundingBox();
+    await pg.mouse.move(cartao.x + 40, cartao.y + 20);
+    await pg.mouse.down();
+    await pg.mouse.move(cartao.x + 60, cartao.y + 30, { steps: 4 });
+    await pg.mouse.move(coluna.x + coluna.width / 2, coluna.y + 120, { steps: 14 });
+    await pg.mouse.up();
+    await pg.waitForFunction(async (id) => (await (await fetch("/api/dados")).json()).paginas.items.find((p) => p.id === id)?.estado === "publicada", guia.id);
+    await pg.locator(`[data-slot=coluna-de-paginas][data-estado=publicada] [data-slot=cartao-de-pagina][data-id="${guia.id}"]`).waitFor();
+
+    // lista: filtra, ordena e abre
+    await pg.getByRole("radio", { name: "Lista" }).click();
+    await pg.locator("[data-slot=lista-de-paginas]").waitFor();
+    afirmar((await pg.locator("[data-slot=linha-de-pagina]").count()) === 4, "a lista não mostra todas as páginas");
+    await pg.getByLabel("Filtrar a lista de páginas").fill("pronta");
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=linha-de-pagina]").length === 1);
+    await pg.locator("[data-slot=linha-de-pagina]").first().click();
+    await pg.locator(`[data-slot=editor-pagina][data-id="${guia.id}"]`).waitFor();
+
+    // arquivar leva junto o que está dentro; desarquivar traz a página de volta
+    await pg.locator("[data-slot=editor-pagina]").getByRole("button", { name: "Mais ações da página" }).click();
+    await pg.getByRole("menuitem", { name: "Arquivar" }).click();
+    await pg.locator("[data-slot=ver-arquivadas]").waitFor();
+    let d = await dados();
+    afirmar(d.paginas.items.filter((p) => p.arquivadaEm).length === 4, "arquivar a página mãe não levou as páginas de dentro");
+    afirmar((await pg.locator("[data-slot=arvore-de-paginas] [data-slot=item-pagina]").count()) === 0, "páginas arquivadas continuaram na árvore");
+    for (const p of d.paginas.items) await pg.request.put(`${B}/api/paginas`, { data: { items: (await dados()).paginas.items.map((x) => ({ ...x, arquivadaEm: null })), revEsperada: (await (await pg.request.get(B + "/api/dados")).json()).paginas.rev } }).then(() => p);
+    await pg.reload();
+    await pg.locator("[data-slot=arvore-de-paginas] [data-slot=item-pagina]").first().waitFor();
+    d = await dados();
+    afirmar(d.paginas.items.every((p) => !p.arquivadaEm) && d.paginas.items.find((p) => p.titulo === "Instalar o agente").paiId === guia.id, "desarquivar perdeu a árvore");
+  });
+
   // ---------- perguntar ao Nexo ----------
   await etapa("perguntar: achar os trechos, copiar o prompt, colar a resposta e guardar como página", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();
