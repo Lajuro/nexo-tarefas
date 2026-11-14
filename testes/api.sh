@@ -57,6 +57,20 @@ checa "modelos: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/modelos
 curl -s -X PUT $B/api/modelos -H "$J" -d '{"items":[{"id":"mo1","nome":"Levar a ferramenta a um squad"}],"revEsperada":1}' >/dev/null
 checa "modelo removido vai para a lixeira" 'Outro' "$(cat "$TMP/dados/_lixeira/"modelos-removidos-*.json 2>/dev/null)"
 checa "exportar inclui modelos" '"modelos": {' "$(curl -s $B/api/exportar)"
+# ---------- páginas de conhecimento ----------
+checa "dados trazem páginas vazias" '"paginas":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/paginas -H "$J" -d '{"items":[{"id":"pg1","titulo":"Processo de exceção","texto":"# Passo a passo\n\nver ![print](arquivos/2026/a-print.png) e [Tarefa](nexo:tarefa/t9)","campoFuturo":"x"},{"id":"pg2","titulo":"Outra","texto":"apagar"}],"revEsperada":0}')
+checa "cria páginas" '"rev":1' "$R"
+checa "página preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "página: espelho em markdown" '# Processo de exceção' "$(cat "$TMP/dados/markdown/paginas/"*--pg1.md 2>/dev/null)"
+checa "página: imagem do espelho aponta para a pasta de anexos" '](../../arquivos/2026/a-print.png)' "$(cat "$TMP/dados/markdown/paginas/"*--pg1.md 2>/dev/null)"
+checa "páginas: recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/paginas -H "$J" -d '{"items":[],"revEsperada":0}')"
+checa "páginas: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/paginas -H "$J" -d '{"items":[{"id":"../x"}],"revEsperada":1}')"
+curl -s -X PUT $B/api/paginas -H "$J" -d '{"items":[{"id":"pg1","titulo":"Processo de exceção"}],"revEsperada":1}' >/dev/null
+checa "página removida vai para a lixeira" 'apagar' "$(cat "$TMP/dados/_lixeira/"paginas-removidos-*.json 2>/dev/null)"
+checa "página removida perde o espelho" '1' "$(ls "$TMP/dados/markdown/paginas/" | wc -l | tr -d ' ')"
+checa "página: gravar só o título não apaga o texto (mescla com o disco)" 'Passo a passo' "$(cat "$TMP/dados/paginas.json")"
+checa "exportar inclui páginas" '"paginas": {' "$(curl -s $B/api/exportar)"
 
 # ---------- pessoas e times ----------
 checa "dados trazem pessoas e times vazios" '"pessoas":{"rev":0,"items":[]},"times":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"

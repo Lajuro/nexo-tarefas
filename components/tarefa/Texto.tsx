@@ -5,6 +5,7 @@
 // Quem interpreta e saneia é lib/texto-rico.ts: aqui só se desenha a árvore pronta. Nada de innerHTML.
 // A aparência vem da classe "prosa" (app/globals.css), a mesma do editor, para ler e editar terem a mesma cara.
 
+import Link from "next/link";
 import { Fragment, ReactNode, useMemo } from "react";
 import { Bloco, Inline, analisarMarkdown } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,9 @@ function desenharInlines(f: Inline[]): ReactNode {
         return <br key={k} />;
       case "link":
         return <a key={k} href={i.href} target="_blank" rel="noopener noreferrer nofollow">{desenharInlines(i.f)}</a>;
+      case "interno":
+        // citação de tarefa, página, pessoa ou categoria: navega dentro do app
+        return <Link key={k} href={i.rota} data-slot="link-interno" data-tipo={i.tipo}>{desenharInlines(i.f)}</Link>;
       case "imagem":
         // só chega aqui imagem que é anexo da pasta de dados (lib/texto-rico.ts barra as de fora)
         return (

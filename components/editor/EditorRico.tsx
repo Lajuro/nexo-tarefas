@@ -13,15 +13,17 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Bold, Code, Heading1, Heading2, Heading3, ImagePlus, Italic, Link2, Link2Off, List, ListChecks, ListOrdered, Minus, Pilcrow, Quote,
-  SquareCode, Strikethrough, Table2, Trash2, type LucideIcon,
+  AtSign, Bold, Code, FileText, Heading1, Heading2, Heading3, ImagePlus, Italic, Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, Minus, Pilcrow,
+  Quote, SquareCode, Strikethrough, Table2, Trash2, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { linkPermitido, srcDoAnexo } from "@/lib/texto-rico";
+import { aberta } from "@/lib/lembretes";
+import { nomesConhecidos } from "@/lib/pessoas";
+import { hrefInterno, linkPermitido, srcDoAnexo } from "@/lib/texto-rico";
 import { cn } from "@/lib/utils";
 import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, pareceMarkdown } from "./extensoes";
 
@@ -31,7 +33,7 @@ const EXTENSAO: Record<string, string> = { "image/png": "png", "image/jpeg": "jp
 
 const ICONE: Record<string, LucideIcon> = {
   texto: Pilcrow, h1: Heading1, h2: Heading2, h3: Heading3, lista: List, numerada: ListOrdered, tarefas: ListChecks, citacao: Quote,
-  codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus,
+  codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText,
 };
 
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -89,7 +91,33 @@ export function EditorRico({
   "aria-label"?: string;
   "data-slot"?: string;
 }) {
-  const { enviarArquivo, toast } = useNexo();
+  const { enviarArquivo, toast, dados } = useNexo();
+  // O que dá para citar com "@": pessoas, tarefas (as abertas primeiro) e páginas. Lido na hora em que o menu abre.
+  const dadosRef = useRef(dados);
+  dadosRef.current = dados;
+  const citaveis = useRef((): ItemDoMenu[] => {
+    const d = dadosRef.current;
+    if (!d) return [];
+    const citar = (tipo: "pessoa" | "tarefa" | "pagina", alvo: string, rotulo: string) => (ed: Editor, r: Range) =>
+      ed.chain().focus().deleteRange(r)
+        .insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href: hrefInterno(tipo, alvo) } }] }, { type: "text", text: " " }])
+        .run();
+    const pessoas = nomesConhecidos(d).map((n): ItemDoMenu => ({ id: `pessoa:${n}`, nome: n, dica: "Pessoa", palavras: "pessoa", icone: "pessoa", fazer: citar("pessoa", n, `@${n}`) }));
+    const tarefas = [...d.tarefas]
+      .sort((a, b) => Number(aberta(b)) - Number(aberta(a)) || b.atualizadaEm.localeCompare(a.atualizadaEm))
+      .map((t): ItemDoMenu => ({ id: `tarefa:${t.id}`, nome: t.titulo, dica: aberta(t) ? "Tarefa" : "Tarefa fechada", palavras: `tarefa ${t.tags.join(" ")}`, icone: "tarefa", fazer: citar("tarefa", t.id, t.titulo) }));
+    const paginas = (d.paginas?.items ?? [])
+      .filter((p) => !p.arquivadaEm)
+      .map((p): ItemDoMenu => ({ id: `pagina:${p.id}`, nome: p.titulo || "Página sem título", dica: "Página", palavras: "pagina", icone: "pagina", fazer: citar("pagina", p.id, p.titulo || "Página sem título") }));
+    // intercala para os três tipos aparecerem mesmo com a lista curta
+    const out: ItemDoMenu[] = [];
+    for (let i = 0; i < Math.max(pessoas.length, tarefas.length, paginas.length); i++) {
+      if (paginas[i]) out.push(paginas[i]);
+      if (tarefas[i]) out.push(tarefas[i]);
+      if (pessoas[i]) out.push(pessoas[i]);
+    }
+    return out;
+  });
   const caixa = useRef<HTMLDivElement>(null);
   const arquivo = useRef<HTMLInputElement>(null);
   const [menu, setMenu] = useState<EstadoMenu | null>(null);
@@ -189,7 +217,7 @@ export function EditorRico({
   };
 
   const editor = useEditor({
-    extensions: extensoesDoEditor({ placeholder, itens, ponte: () => ponte.current }),
+    extensions: extensoesDoEditor({ placeholder, itens, ponte: () => ponte.current, citaveis: () => citaveis.current() }),
     content: valor,
     contentType: "markdown",
     editable: !desabilitado,
@@ -352,6 +380,7 @@ export function EditorRico({
         <BotaoBarra dica="Bloco de código" ativo={estado?.bloco} aoClicar={() => c().toggleCodeBlock().run()}><SquareCode /></BotaoBarra>
         <span aria-hidden className="mx-1 h-4 w-px bg-border" />
         <BotaoBarra dica="Imagem (ou cole com Ctrl V)" aoClicar={() => arquivo.current?.click()}><ImagePlus /></BotaoBarra>
+        <BotaoBarra dica="Citar uma pessoa, tarefa ou página (ou digite @)" aoClicar={() => c().insertContent("@").run()}><AtSign /></BotaoBarra>
         {estado?.tabela ? (
           <DropdownMenu>
             <Dica texto="Mexer na tabela">
@@ -404,7 +433,7 @@ export function EditorRico({
             style={{ left: menu.esquerda, ...(menu.paraCima ? { bottom: `calc(100% - ${menu.topo - 6}px)` } : { top: menu.topo + 6 }) }}
             className="absolute z-30 max-h-80 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg">
             {menu.itens.map((i, k) => {
-              const Icone = ICONE[i.id] ?? Pilcrow;
+              const Icone = ICONE[i.icone ?? i.id] ?? Pilcrow;
               return (
                 <button key={i.id} type="button" role="option" aria-selected={k === menu.indice} data-item={i.id}
                   onMouseDown={(e) => e.preventDefault()}

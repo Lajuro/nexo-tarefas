@@ -1,5 +1,5 @@
 import {
-  BookOpenText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, NotebookPen, Settings, Shapes, Sun, Users,
+  BookOpenText, BookText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, NotebookPen, Settings, Shapes, Sun, Users,
 } from "lucide-react";
 
 export interface ItemNav {
@@ -23,6 +23,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
   {
     grupo: "Organização",
     itens: [
+      { href: "/paginas", nome: "Páginas", icone: BookText, tecla: "a" },
       { href: "/categorias", nome: "Categorias", icone: Shapes, tecla: "c" },
       { href: "/pessoas", nome: "Pessoas", icone: Users, tecla: "e" },
       { href: "/links", nome: "Links e docs", icone: Link2, tecla: "l" },
@@ -59,6 +60,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "T"], descricao: "Ir para Tarefas" },
   { teclas: ["G", "P"], descricao: "Ir para Pendências" },
   { teclas: ["G", "N"], descricao: "Ir para Notas (bloco de notas)" },
+  { teclas: ["G", "A"], descricao: "Ir para Páginas (conhecimento)" },
   { teclas: ["G", "C"], descricao: "Ir para Categorias" },
   { teclas: ["G", "E"], descricao: "Ir para Pessoas" },
   { teclas: ["G", "L"], descricao: "Ir para Links e docs" },

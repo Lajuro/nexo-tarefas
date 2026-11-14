@@ -77,6 +77,13 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Páginas de conhecimento (2.11)
+
+- **Páginas** (`G` depois `A`): para o que não é tarefa nem reunião, mas vale guardar. Um processo, um passo a passo, quem resolve o quê. Usam o mesmo editor das notas e gravam sozinhas.
+- **Citar com `@`**: em qualquer texto do editor, digite `@` e escolha uma tarefa, uma pessoa ou outra página. Vira um link que leva direto para lá.
+- **Quem aponta para cá**: a tarefa, a página e a pessoa mostram onde foram citadas. É assim que as coisas se conectam sem você precisar organizar.
+- A tela de cada categoria lista as páginas daquele assunto, e a busca também procura nelas.
+
 ## Conquistas (2.10)
 
 O Nexo agora reconhece o que você faz nele:

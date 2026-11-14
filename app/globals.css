@@ -398,6 +398,20 @@ html[data-lateral="colorida"] [data-slot="lateral"] {
 .prosa a:hover {
   text-decoration-color: var(--primary);
 }
+/* citação interna (tarefa, página, pessoa): uma pílula discreta, igual ao ler e ao editar */
+.prosa a[data-slot="link-interno"],
+.prosa a[href^="nexo:"] {
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 0.35em;
+  padding: 0.05em 0.35em;
+  background: color-mix(in oklch, var(--primary) 11%, transparent);
+  transition: background-color 0.15s;
+}
+.prosa a[data-slot="link-interno"]:hover,
+.prosa a[href^="nexo:"]:hover {
+  background: color-mix(in oklch, var(--primary) 20%, transparent);
+}
 .prosa img {
   display: block;
   max-width: 100%;

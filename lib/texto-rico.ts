@@ -19,6 +19,7 @@ export type Inline =
   | { t: "codigo"; v: string }
   | { t: "quebra" }
   | { t: "link"; href: string; f: Inline[] }
+  | { t: "interno"; tipo: TipoDeAlvo; alvo: string; rota: string; f: Inline[] }
   | { t: "imagem"; url: string; alt: string };
 
 export type Bloco =
@@ -68,6 +69,36 @@ export function linkPermitido(href: string): string | null {
   const h = (href || "").trim();
   if (!/^(https?:\/\/|mailto:)/i.test(h) || /[\u0000-\u001f\s]/.test(h)) return null;
   return h;
+}
+
+// ---------- links internos (citar uma tarefa, uma página, uma pessoa ou uma categoria) ----------
+
+export type TipoDeAlvo = "tarefa" | "pagina" | "pessoa" | "categoria";
+const INTERNO = /^nexo:(tarefa|pagina|categoria)\/([a-zA-Z0-9_-]{1,80})$/;
+const INTERNO_PESSOA = /^nexo:pessoa\/([^/?#\s]{1,300})$/;
+
+/** Endereço que vai para o Markdown quando algo é citado: "nexo:tarefa/<id>", "nexo:pessoa/<nome codificado>". */
+export function hrefInterno(tipo: TipoDeAlvo, alvo: string): string {
+  return `nexo:${tipo}/${tipo === "pessoa" ? encodeURIComponent(alvo.trim()) : alvo}`;
+}
+
+/** Lê um link interno. Devolve para onde ele leva dentro do app, ou null se não for um link interno válido. */
+export function linkInterno(href: string): { tipo: TipoDeAlvo; alvo: string; rota: string } | null {
+  const h = (href || "").trim();
+  const m = INTERNO.exec(h);
+  if (m) {
+    const tipo = m[1] as TipoDeAlvo;
+    const rota = tipo === "tarefa" ? `/tarefas/${m[2]}` : tipo === "pagina" ? `/paginas?p=${m[2]}` : `/categorias/${m[2]}`;
+    return { tipo, alvo: m[2], rota };
+  }
+  const p = INTERNO_PESSOA.exec(h);
+  if (!p) return null;
+  try {
+    const nome = decodeURIComponent(p[1]).trim();
+    return nome ? { tipo: "pessoa", alvo: nome, rota: `/pessoas?p=${encodeURIComponent(nome)}` } : null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------- entidades ----------
@@ -120,7 +151,9 @@ function inlines(tokens: Token[] | undefined, nivel: number): Inline[] {
         const l = tk as Tokens.Link;
         const href = linkPermitido(l.href);
         const filhos = inlines(l.tokens, nivel + 1);
-        if (href) out.push({ t: "link", href, f: filhos });
+        const interno = linkInterno(l.href);
+        if (interno) out.push({ t: "interno", ...interno, f: filhos });
+        else if (href) out.push({ t: "link", href, f: filhos });
         else out.push(...filhos); // endereço proibido (javascript:, arquivo local...): fica só o texto
         break;
       }

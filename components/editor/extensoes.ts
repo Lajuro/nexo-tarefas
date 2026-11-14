@@ -16,7 +16,8 @@ import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
 import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
-import { anexoDoSrc, linkPermitido, srcDoAnexo, urlDaImagem } from "@/lib/texto-rico";
+import { PluginKey } from "@tiptap/pm/state";
+import { anexoDoSrc, linkInterno, linkPermitido, srcDoAnexo, urlDaImagem } from "@/lib/texto-rico";
 
 /** Imagem anexada: no documento o endereço é "arquivos/AAAA/nome"; na tela, o <img> aponta para a API local. */
 export const ImagemAnexada = Image.extend({
@@ -63,7 +64,8 @@ export const Paragrafo = Paragraph.extend({
 export const LinkSeguro = Link.extend({
   parseMarkdown: (token, helpers) => {
     const filhos = helpers.parseInline(token.tokens || []);
-    const href = linkPermitido(String(token.href ?? ""));
+    const bruto = String(token.href ?? "");
+    const href = linkInterno(bruto) ? bruto.trim() : linkPermitido(bruto);
     return href ? helpers.applyMark("link", filhos, { href, title: null }) : filhos;
   },
 });
@@ -76,6 +78,8 @@ export interface ItemDoMenu {
   dica: string;
   /** Palavras extras para a busca (sem acento). */
   palavras: string;
+  /** Ícone a mostrar (chave do mapa do EditorRico). Sem isso, usa o id. */
+  icone?: string;
   fazer: (editor: Editor, range: Range) => void;
 }
 
@@ -88,22 +92,28 @@ export interface PonteDoMenu {
 
 const limpar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-/** Digitar "/" abre a lista de blocos. A tela é desenhada pelo EditorRico, que entrega a "ponte". */
-export const MenuBarra = Extension.create<{ itens: ItemDoMenu[]; ponte: () => PonteDoMenu | null }>({
+/**
+ * Menu que abre ao digitar um caractere: "/" lista os blocos, "@" lista o que dá para citar (pessoas, tarefas,
+ * páginas). A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
+ * citações acompanhar os dados sem recriar o editor.
+ */
+interface OpcoesDoMenu { char: string; chave: string; itens: () => ItemDoMenu[]; ponte: () => PonteDoMenu | null; limite: number }
+export const MenuBarra = Extension.create<OpcoesDoMenu>({
   name: "menuBarra",
   addOptions() {
-    return { itens: [], ponte: () => null };
+    return { char: "/", chave: "menuBarra", itens: () => [], ponte: () => null, limite: 50 };
   },
   addProseMirrorPlugins() {
-    const { itens, ponte } = this.options;
+    const { char, chave, itens, ponte, limite } = this.options;
     return [
       Suggestion<ItemDoMenu, ItemDoMenu>({
         editor: this.editor,
-        char: "/",
-        allowSpaces: false,
+        pluginKey: new PluginKey(chave),
+        char,
+        allowSpaces: char === "@",
         items: ({ query }) => {
           const q = limpar(query);
-          return itens.filter((i) => !q || limpar(`${i.nome} ${i.palavras}`).includes(q));
+          return itens().filter((i) => !q || limpar(`${i.nome} ${i.palavras}`).includes(q)).slice(0, limite);
         },
         command: ({ editor, range, props }) => props.fazer(editor, range),
         // dentro de bloco de código, "/" é só uma barra
@@ -128,7 +138,11 @@ const SemQuebraNoCtrlEnter = Extension.create({
   },
 });
 
-export function extensoesDoEditor(opcoes: { placeholder: string; itens: ItemDoMenu[]; ponte: () => PonteDoMenu | null }) {
+export function extensoesDoEditor(opcoes: {
+  placeholder: string; itens: ItemDoMenu[]; ponte: () => PonteDoMenu | null;
+  /** O que dá para citar com "@" (pessoas, tarefas, páginas). */
+  citaveis: () => ItemDoMenu[];
+}) {
   return [
     StarterKit.configure({
       heading: { levels: [1, 2, 3] },
@@ -141,7 +155,7 @@ export function extensoesDoEditor(opcoes: { placeholder: string; itens: ItemDoMe
       autolink: true,
       defaultProtocol: "https",
       protocols: ["http", "https", "mailto"],
-      isAllowedUri: (url) => !!linkPermitido(url),
+      isAllowedUri: (url) => !!linkPermitido(url) || !!linkInterno(url),
       HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" },
     }),
     Paragrafo,
@@ -157,7 +171,8 @@ export function extensoesDoEditor(opcoes: { placeholder: string; itens: ItemDoMe
     Placeholder.configure({ placeholder: opcoes.placeholder }),
     // uma quebra de linha simples conta como quebra: o texto antigo do app era texto puro
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
-    MenuBarra.configure({ itens: opcoes.itens, ponte: opcoes.ponte }),
+    MenuBarra.configure({ itens: () => opcoes.itens, ponte: opcoes.ponte }),
+    MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 8 }),
     SemQuebraNoCtrlEnter,
   ];
 }

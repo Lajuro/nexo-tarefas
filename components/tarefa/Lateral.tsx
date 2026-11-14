@@ -21,6 +21,7 @@ import { LinkDoc, Tarefa, diasAte, formatarData, passosAbertos } from "@/lib/tip
 import { cn } from "@/lib/utils";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
+import { PainelCitacoes } from "@/components/Citacoes";
 import { TextoRico } from "./Texto";
 
 function Bloco({ slot, children }: { slot: string; children: ReactNode }) {
@@ -297,6 +298,7 @@ export function Lateral({
       <Pessoas tarefa={tarefa} />
       <QuemAjuda tarefa={tarefa} />
       <Panorama tarefa={tarefa} aoGerar={aoGerarPanorama} />
+      <Bloco slot="citacoes"><PainelCitacoes tipo="tarefa" alvo={tarefa.id} /></Bloco>
       <Bloco slot="resumo"><Resumo tarefa={tarefa} /></Bloco>
     </motion.div>
   );

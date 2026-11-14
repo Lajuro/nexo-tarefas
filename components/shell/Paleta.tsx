@@ -110,6 +110,7 @@ export function Paleta({
   const temasVis = buscando ? TEMAS.filter((t) => casa(t.palavras)) : TEMAS;
   const telasVis = buscando ? telas.filter((t) => casa(`ir para ${t.nav.nome}`)) : telas;
   const catsVis = buscando ? cats.filter((c) => casa(`categoria ${c.nome}`)) : [];
+  const paginasVis = buscando ? (dados?.paginas?.items ?? []).filter((p) => !p.arquivadaEm && casa(`pagina ${p.titulo}`)).slice(0, 8) : [];
   const pessoasVis = buscando
     ? diretorio
         .filter((e) => !e.pessoa?.arquivada)
@@ -162,6 +163,7 @@ export function Paleta({
     regTemas();
     regTelas();
     catsVis.forEach((c) => pos(`cat:${c.id}`, () => ir(`/categorias/${c.id}`)));
+    paginasVis.forEach((p) => pos(`pagina:${p.id}`, () => ir(`/paginas?p=${p.id}`)));
     timesVis.forEach((t) => pos(`time:${t.id}`, () => ir(`/pessoas?time=${encodeURIComponent(t.id)}`)));
     pessoasVis.forEach((p, i) => pos(`pessoa:${i}`, () => ir(`/pessoas?p=${encodeURIComponent(p.nome)}`)));
     pos("busca", () => ir(`/busca?q=${encodeURIComponent(termo)}`));
@@ -353,6 +355,18 @@ export function Paleta({
                       <AzulejoTela key={t.tema} nome={`Tema ${t.nome.toLowerCase()}`} icone={t.icone} ativo={tema === t.tema} {...props(`tema:${t.tema}`)} />
                     ))}
                     {telasVis.map((t) => <AzulejoTela key={t.id} nome={t.nav.nome} icone={t.nav.icone} tecla={t.nav.tecla} {...props(t.id)} />)}
+                  </div>
+                </Bloco>
+              )}
+
+              {paginasVis.length > 0 && (
+                <Bloco titulo="Páginas">
+                  <div className="flex flex-wrap gap-1.5">
+                    {paginasVis.map((p) => (
+                      <Opcao key={p.id} {...props(`pagina:${p.id}`)} className="h-8 rounded-full border bg-card px-3 text-[13px] transition-colors aria-selected:border-primary/40">
+                        <span className="max-w-64 truncate">{p.titulo || "Página sem título"}</span>
+                      </Opcao>
+                    ))}
                   </div>
                 </Bloco>
               )}

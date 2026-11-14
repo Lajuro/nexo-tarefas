@@ -23,7 +23,8 @@
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
 // painel Personalizar: cor de destaque, esconder item e ferramenta), esperando quem (cobrança),
 // modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
-// perigoso barrado), conquistas (nível, meta do dia, desligar) e tema escuro.
+// perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), conquistas (nível,
+// meta do dia, desligar) e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -798,6 +799,43 @@ async function main() {
     await pg.locator(`[data-slot=dia-mapa][data-data="${hojeIso}"]`).click();
     await pg.locator("[data-slot=dia-escolhido]").waitFor();
     afirmar((await pg.locator("[data-slot=dia-diario]").count()) === 1, "escolher um dia no mapa não filtrou o diário");
+  });
+
+  // ---------- páginas de conhecimento e links internos ----------
+  await etapa("páginas: escrever, citar uma tarefa com @ e ver quem aponta para ela", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("a");
+    await pg.waitForURL("**/paginas");
+    await pg.locator("[data-slot=nova-pagina]").click();
+    await pg.getByLabel("Título da página").fill("Como pedir exceção de vulnerabilidade");
+    const ed = pg.locator("[data-slot=texto-da-pagina] [data-slot=editor-rico-conteudo]");
+    await ed.click();
+    await pg.keyboard.type("O passo a passo nasceu no ");
+    await pg.keyboard.type("@Onboarding do squad Pag");
+    const menu = pg.locator("[data-slot=menu-editor]");
+    await menu.locator("[role=option]", { hasText: "Onboarding do squad Pagamentos" }).first().waitFor();
+    await pg.keyboard.press("Enter");
+    await ed.locator('a[href="nexo:tarefa/' + idTarefa + '"]').waitFor();
+    await pg.keyboard.type("e quem aprova é a ");
+    await pg.keyboard.type("@Marina");
+    await menu.locator("[role=option]", { hasText: "Marina" }).first().waitFor();
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+    const d = await dados();
+    afirmar(d.paginas.items.length === 1, "a página não foi gravada sozinha");
+    const p = d.paginas.items[0];
+    afirmar(p.texto.includes("](nexo:tarefa/" + idTarefa + ")") && /\]\(nexo:pessoa\/Marina/.test(p.texto), "as citações não foram gravadas como links internos: " + p.texto);
+    // a tarefa citada mostra quem aponta para ela, e o link leva de volta à página
+    await pg.goto(B + "/tarefas/" + idTarefa);
+    const citacao = pg.locator("[data-slot=citacoes] [data-slot=citacao]", { hasText: "Como pedir exceção" });
+    await citacao.waitFor();
+    await citacao.click();
+    await pg.waitForURL("**/paginas");
+    await pg.locator("[data-slot=item-pagina][data-ativa]", { hasText: "Como pedir exceção" }).waitFor();
+    // a busca acha a página pelo texto
+    await pg.goto(B + "/busca?q=" + encodeURIComponent("passo a passo nasceu"));
+    await pg.locator("[data-slot=resultado][data-tipo=pagina]", { hasText: "Como pedir exceção" }).waitFor();
   });
 
   // ---------- conquistas (gamificação) ----------

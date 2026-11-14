@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, ExternalLink, Library, ListTodo, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
+import { BookText, ChevronRight, ExternalLink, Library, ListTodo, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { hrefLink } from "@/components/LinkForm";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
@@ -19,7 +19,7 @@ import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, formatarData, semAcento } from "@/lib/tipos";
+import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, formatarData, semAcento, type Pagina as PaginaDeConhecimento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export default function Busca() {
@@ -44,10 +44,11 @@ function trecho(texto: string, termo: string) {
   return (ini > 0 ? "…" : "") + texto.slice(ini, i + alvo.length + 120) + (i + alvo.length + 120 < texto.length ? "…" : "");
 }
 
-type Aba = "tudo" | "tarefas" | "registros" | "links" | "pessoas";
+type Aba = "tudo" | "tarefas" | "registros" | "paginas" | "links" | "pessoas";
 // Mesma ordem dos campos pesquisados em cada registro.
 const CAMPOS_REGISTRO = ["Título", "Resumo", "Anotações", "Decisões", "Impedimentos", "Participantes", "Próximos passos"];
 
+interface AchadoPagina { pagina: PaginaDeConhecimento; texto: string }
 interface AchadoRegistro { t: Tarefa; reg: Registro; achado: string; campo: number }
 interface AchadoPessoa { pessoa: Pessoa; rotulo: string; texto: string; termo: string }
 interface AchadoTime { time: Time; rotulo: string; texto: string; termo: string }
@@ -121,7 +122,7 @@ function Conteudo() {
   const n = semAcento(termo);
 
   const r = useMemo(() => {
-    if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[], cadastro: [] as AchadoPessoa[], times: [] as AchadoTime[] };
+    if (!n) return { tarefas: [] as Tarefa[], registros: [] as AchadoRegistro[], links: [] as LinkDoc[], cadastro: [] as AchadoPessoa[], times: [] as AchadoTime[], paginas: [] as AchadoPagina[] };
     const palavras = palavrasDe(n);
     const tem = (s: string) => { const x = semAcento(s); return palavras.every((w) => x.includes(w)); };
     const quantas = (s: string) => { const x = semAcento(s); return palavras.filter((w) => x.includes(w)).length; };
@@ -152,7 +153,12 @@ function Conteudo() {
       const a = acharCampo([["Nome", time.nome], ["Descrição", time.descricao]], termo);
       return a ? [{ time, ...a }] : [];
     });
-    return { tarefas, registros, links, cadastro, times };
+    // páginas de conhecimento: o texto é Markdown, então a busca e o trecho usam o texto sem a marcação
+    const paginas = (dados!.paginas?.items ?? []).flatMap((pagina) => {
+      const texto = paraTextoPlano(pagina.texto);
+      return tem(`${pagina.titulo} ${texto}`) ? [{ pagina, texto }] : [];
+    }).sort((a, b) => b.pagina.atualizadaEm.localeCompare(a.pagina.atualizadaEm));
+    return { tarefas, registros, links, cadastro, times, paginas };
   }, [dados, n, termo]);
 
   const pessoas = useMemo(() => (n ? montarPessoas(dados!.tarefas).filter((p) => p.chave.includes(n)).slice(0, 6) : []), [dados, n]);
@@ -166,7 +172,7 @@ function Conteudo() {
   }, [dados, n]);
 
   const qtdPessoas = r.cadastro.length + r.times.length;
-  const total = r.tarefas.length + r.registros.length + r.links.length + qtdPessoas;
+  const total = r.tarefas.length + r.registros.length + r.links.length + qtdPessoas + r.paginas.length;
   const cat = (id: string | null) => dados!.categorias.items.find((c) => c.id === id);
   const mostra = (a: Exclude<Aba, "tudo">) => aba === "tudo" || aba === a;
   const nesta = aba === "tudo" ? total : aba === "pessoas" ? qtdPessoas : r[aba].length;
@@ -220,6 +226,7 @@ function Conteudo() {
                   { valor: "tudo", rotulo: rotuloAba("Tudo", total) },
                   { valor: "tarefas", rotulo: rotuloAba("Tarefas", r.tarefas.length) },
                   { valor: "registros", rotulo: rotuloAba("Registros", r.registros.length) },
+                  { valor: "paginas", rotulo: rotuloAba("Páginas", r.paginas.length) },
                   { valor: "links", rotulo: rotuloAba("Links", r.links.length) },
                   { valor: "pessoas", rotulo: rotuloAba("Pessoas", qtdPessoas) },
                 ]}
@@ -400,6 +407,24 @@ function Conteudo() {
             </Secao>
           )}
 
+          {mostra("paginas") && r.paginas.length > 0 && (
+            <Secao titulo="Páginas de conhecimento" icone={<BookText />} contagem={r.paginas.length}>
+              <ListaResultados>
+                {r.paginas.map(({ pagina, texto }) => (
+                  <Resultado key={pagina.id} tipo="pagina">
+                    <Link href={`/paginas?p=${pagina.id}`} className={CLASSE_RESULTADO}>
+                      <BookText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm leading-snug font-medium"><Destaque texto={pagina.titulo || "Página sem título"} termo={termo} /></h3>
+                        <p className="mt-0.5 line-clamp-2 text-[13px] text-muted-foreground [&_mark]:text-foreground"><Destaque texto={trecho(texto, termo)} termo={termo} /></p>
+                      </div>
+                    </Link>
+                  </Resultado>
+                ))}
+              </ListaResultados>
+            </Secao>
+          )}
+
           {mostra("links") && r.links.length > 0 && (
             <Secao titulo="Links e documentos" icone={<Library />} contagem={r.links.length}>
               <ListaResultados>
@@ -444,7 +469,7 @@ function ListaResultados({ children }: { children: ReactNode }) {
   );
 }
 
-function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | "pessoa" | "time"; children: ReactNode }) {
+function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | "pessoa" | "time" | "pagina"; children: ReactNode }) {
   return (
     <motion.div data-slot="resultado" data-tipo={tipo} variants={itemLista} className="border-b last:border-0">
       {children}

@@ -12,6 +12,7 @@ import {
   UserRoundMinus, UserRoundPlus, UserRoundX, UsersRound, X,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { PainelCitacoes } from "@/components/Citacoes";
 import { FaixaEspera } from "@/components/Esperando";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import {
@@ -207,6 +208,8 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
               ))}
             </Painel>
           )}
+
+          <PainelCitacoes tipo="pessoa" alvo={nome} outrosNomes={p ? [p.nome, ...p.apelidos] : undefined} titulo={`Onde ${nome.split(" ")[0]} foi citada com @`} />
 
           {tarefas.length > 0 && (
             <Painel titulo="Tarefas em comum" icone={<ListTodo />} contagem={tarefas.length} corpoClassName="p-1.5">

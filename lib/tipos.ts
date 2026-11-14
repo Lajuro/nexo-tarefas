@@ -243,6 +243,23 @@ export interface Modelo {
   [extra: string]: unknown;
 }
 
+/**
+ * Página de conhecimento: um documento em Markdown que não é tarefa nem reunião (um processo, um "como fazer",
+ * os contatos de um assunto). Pode citar tarefas, pessoas e outras páginas com links internos ("nexo:...").
+ */
+export interface Pagina {
+  id: string; // novoId("pg")
+  titulo: string;
+  texto: string; // Markdown
+  categoriaId: string | null;
+  tags: string[];
+  /** Arquivada sai da lista, mas continua existindo (e os links para ela continuam funcionando). */
+  arquivadaEm?: string | null;
+  criadaEm: string;
+  atualizadaEm: string;
+  [extra: string]: unknown;
+}
+
 export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
@@ -252,6 +269,8 @@ export interface Dados {
   notas: Colecao<Nota>;
   /** Ausente em dados lidos por código antigo: trate como vazio. */
   modelos: Colecao<Modelo>;
+  /** Páginas de conhecimento. Ausente em dados lidos por código antigo: trate como vazio. */
+  paginas: Colecao<Pagina>;
   avisos: string[];
 }
 
@@ -369,6 +388,20 @@ export function normalizarEspera(e: unknown): Espera | null {
     oQue,
     desde: DATA_ISO.test(str(x.desde)) ? str(x.desde) : hojeISO(),
     cobradoEm: DATA_ISO.test(str(x.cobradoEm)) ? str(x.cobradoEm) : null,
+  };
+}
+
+export function normalizarPagina(p: Partial<Pagina>): Pagina {
+  return {
+    ...p,
+    id: str(p.id) || novoId("pg"),
+    titulo: str(p.titulo),
+    texto: str(p.texto),
+    categoriaId: typeof p.categoriaId === "string" && p.categoriaId ? p.categoriaId : null,
+    tags: arrStr(p.tags),
+    arquivadaEm: typeof p.arquivadaEm === "string" && p.arquivadaEm ? p.arquivadaEm : null,
+    criadaEm: str(p.criadaEm) || agoraISO(),
+    atualizadaEm: str(p.atualizadaEm) || agoraISO(),
   };
 }
 

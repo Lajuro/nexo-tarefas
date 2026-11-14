@@ -3,8 +3,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import {
-  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Modelo, Nota, Pessoa, Tarefa, Time, ID_VALIDO,
-  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarModelo, normalizarNota, normalizarPessoa, normalizarTarefa,
+  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, ID_VALIDO,
+  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarModelo, normalizarNota, normalizarPagina, normalizarPessoa, normalizarTarefa,
   normalizarTime,
 } from "./tipos";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
@@ -20,6 +20,7 @@ import { tarefaParaMarkdown } from "./markdown";
   times.json             -> times, com responsáveis e membros (ausente = nenhum)
   notas.json             -> folhas do bloco de notas (ausente = nenhuma)
   modelos.json           -> modelos de tarefa (ausente = nenhum)
+  paginas.json           -> páginas de conhecimento (ausente = nenhuma)
   tarefas/<id>.json      -> uma tarefa por arquivo, com toda a timeline dentro
   arquivos/AAAA/...      -> documentos anexados (nunca são sobrescritos)
   markdown/*.md          -> espelho legível das tarefas (gerado, pode apagar)
@@ -32,10 +33,10 @@ import { tarefaParaMarkdown } from "./markdown";
 */
 
 /** Coleções gravadas como arquivo único { rev, items } na raiz da pasta de dados. */
-export const COLECOES = ["categorias", "links", "pessoas", "times", "notas", "modelos"] as const;
+export const COLECOES = ["categorias", "links", "pessoas", "times", "notas", "modelos", "paginas"] as const;
 export type NomeColecao = (typeof COLECOES)[number];
 /** Coleções novas: cada item precisa ter id válido (ID_VALIDO) e único para ser gravado. */
-const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times", "notas", "modelos"];
+const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times", "notas", "modelos", "paginas"];
 
 const CONFIG_DIR = path.join(os.homedir(), ".nexo");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -289,7 +290,8 @@ export async function lerTudo(): Promise<Dados> {
   const times = await lerColecao<Time>(dir, "times", normalizarTime, avisos);
   const notas = await lerColecao<Nota>(dir, "notas", normalizarNota, avisos);
   const modelos = await lerColecao<Modelo>(dir, "modelos", normalizarModelo, avisos);
-  return { tarefas, categorias, links, pessoas, times, notas, modelos, avisos };
+  const paginas = await lerColecao<Pagina>(dir, "paginas", normalizarPagina, avisos);
+  return { tarefas, categorias, links, pessoas, times, notas, modelos, paginas, avisos };
 }
 
 async function lerColecao<T>(
@@ -418,6 +420,32 @@ export async function salvarColecao<T extends { id: string }>(
   const col: Colecao<T> = { ...atual, rev: revAtual + 1, items: novos };
   await escreverAtomico(arq, json(col));
   return col;
+}
+
+/**
+ * Espelho das páginas de conhecimento em markdown/paginas/<slug>--<id>.md: se o app morrer, os documentos
+ * continuam legíveis no Windows. Só regrava o arquivo cujo conteúdo mudou e apaga o espelho de página removida.
+ * Falha aqui nunca derruba a gravação (o dado de verdade já está em paginas.json).
+ */
+export async function espelharPaginas(paginas: Pagina[]) {
+  try {
+    const { dir } = await pastaPronta();
+    const pasta = path.join(dir, "markdown", "paginas");
+    await fs.mkdir(pasta, { recursive: true });
+    const esperados = new Map<string, string>();
+    for (const p of paginas) {
+      const corpo = `# ${p.titulo || "Página sem título"}\n\n${p.texto.replace(/(!\[[^\]]*\]\()(arquivos\/)/g, "$1../../$2")}\n`;
+      esperados.set(`${slugify(p.titulo || "pagina")}--${p.id}.md`, corpo);
+    }
+    for (const nome of await fs.readdir(pasta)) if (nome.endsWith(".md") && !esperados.has(nome)) await fs.unlink(path.join(pasta, nome));
+    for (const [nome, corpo] of esperados) {
+      const arq = path.join(pasta, nome);
+      const atual = existsSync(arq) ? await fs.readFile(arq, "utf8") : null;
+      if (atual !== corpo) await escreverAtomico(arq, corpo);
+    }
+  } catch {
+    // o espelho é conveniência: não vale interromper quem está escrevendo
+  }
 }
 
 // ---------- arquivos anexados ----------

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Archive, ArchiveRestore, BookMarked, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users,
+  Archive, ArchiveRestore, BookMarked, BookText, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { CardTarefa } from "@/components/CardTarefa";
@@ -71,6 +71,10 @@ export default function PaginaCategoria() {
   const fechadas = ts.filter((t) => !STATUS_ABERTOS.includes(t.status));
   const reunioes = ts.reduce((n, t) => n + t.registros.filter((r) => r.tipo === "reuniao").length, 0);
   // Registros marcados como referência: o que se aprendeu sobre o assunto e vale para qualquer tarefa dele.
+  const paginasDoAssunto = useMemo(
+    () => (dados?.paginas?.items ?? []).filter((p) => p.categoriaId === id && !p.arquivadaEm).sort((a, b) => a.titulo.localeCompare(b.titulo)),
+    [dados?.paginas, id],
+  );
   const referencias = useMemo(
     () => ts.flatMap((t) => t.registros.filter((r) => r.referencia).map((r) => ({ t, r }))).sort((a, b) => b.r.data.localeCompare(a.r.data)),
     [ts],
@@ -165,6 +169,23 @@ export default function PaginaCategoria() {
 
         <div className="mt-8 grid items-start gap-x-6 gap-y-8 @4xl:grid-cols-[minmax(0,1fr)_352px]">
           <div className="min-w-0">
+            <Secao titulo="Páginas do assunto" contagem={paginasDoAssunto.length || undefined} icone={<BookText />}
+              acoes={<Button variant="ghost" size="sm" asChild><Link href={`/paginas?cat=${cat.id}`}><Plus /> Nova página</Link></Button>}>
+              {paginasDoAssunto.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground">Nenhuma página ainda. Guarde aqui o que vale para o assunto todo: o processo, o passo a passo, quem procurar.</p>
+              ) : (
+                <div data-slot="paginas-do-assunto" className="flex flex-wrap gap-2">
+                  {paginasDoAssunto.map((p) => (
+                    <Link key={p.id} href={`/paginas?p=${p.id}`}
+                      className="inline-flex h-8 max-w-full items-center gap-2 rounded-lg border bg-card px-3 text-[13px] font-medium shadow-xs transition-[border-color,transform] outline-none hover:-translate-y-0.5 hover:border-ring/45 focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                      <BookText className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{p.titulo || "Página sem título"}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Secao>
+
             {referencias.length > 0 && (
               <Secao titulo="Referência do assunto" contagem={referencias.length} icone={<BookMarked />}>
                 <div data-slot="referencias" className="flex flex-col gap-3">

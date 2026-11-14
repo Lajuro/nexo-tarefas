@@ -68,6 +68,7 @@ node testes/aparencia.test.mjs # testes da personalização: aparência, moldura
 node testes/diario.test.mjs   # testes do Diário, de "esperando quem", dos modelos de tarefa e da sessão de foco
 node testes/texto-rico.test.mjs # testes do texto rico: leitor de Markdown saneado (HTML, imagens de fora, links)
 node testes/jogo.test.mjs     # testes da gamificação: XP, níveis, meta do dia e conquistas
+node testes/ligacoes.test.mjs # testes das páginas de conhecimento, dos links internos e de "quem cita quem"
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -130,6 +131,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   times.json                     { rev, items: Time[] }     (ausente = vazio, rev 0)
   notas.json                     { rev, items: Nota[] }     (ausente = vazio, rev 0) folhas do bloco de notas
   modelos.json                   { rev, items: Modelo[] }   (ausente = vazio, rev 0) modelos de tarefa
+  paginas.json                   { rev, items: Pagina[] }   (ausente = vazio, rev 0) páginas de conhecimento
+  markdown/paginas/<slug>--<id>.md  espelho legível de cada página, gerado (pode apagar)
   tarefas/<id>.json              uma Tarefa por arquivo, com a timeline inteira dentro
   arquivos/AAAA/<base36>-<nome>  documentos anexados (gravação com flag "wx": nunca sobrescreve)
   markdown/<slug>--<id>.md       espelho legível, gerado (pode apagar)
@@ -151,6 +154,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
 - **Nota** (folha do bloco de notas): `id ("n..."), titulo, texto, arquivadaEm? (carimbo|null), gerou?: FrutoDaNota[], sobras? (o que a IA não encaixou e o usuário não guardou), criadaEm, atualizadaEm`. `FrutoDaNota` = `{ tipo ("registro"|"tarefa"|"passo"), tarefaId, registroId?, rotulo }`: o que nasceu da folha quando ela foi organizada. Coleção nova e opcional, sem migração.
 - **Modelo** (modelo de tarefa): `id ("mo..."), nome, quando (quando usar), titulo (sugerido), descricao, categoriaId|null, prioridade, tags[], passos[] (textos), prazoEmDias? (a partir da criação), usos?, criadoEm, atualizadoEm`. Coleção nova e opcional, sem migração.
+- **Pagina** (página de conhecimento, 2.11): `id ("pg..."), titulo, texto (Markdown), categoriaId|null, tags[], arquivadaEm?, criadaEm, atualizadaEm`. Coleção nova e opcional, sem migração.
+- **Link interno** (2.11): dentro de qualquer texto em Markdown, `[rótulo](nexo:tarefa/<id>)`, `nexo:pagina/<id>`, `nexo:categoria/<id>` ou `nexo:pessoa/<nome codificado>`. É só texto no campo: versão antiga do app mostra o link cru. A rota de destino é calculada por `linkInterno()` (`lib/texto-rico.ts`), nunca lida do texto.
 - **Texto rico = Markdown no mesmo campo de texto** (2.9, sem migração): `nota.texto` e `registro.anotacoes` são editados no editor rico e guardam **Markdown**. Continua sendo uma string no JSON: versões antigas do app abrem e mostram o texto com a marcação à vista, sem perder nada. O texto antigo (puro) é Markdown válido; uma quebra de linha simples conta como quebra (`breaks: true`). O editor escreve `<` como `&lt;` e põe `\` antes de `* _ [ ] ~` soltos: por isso, **para mostrar um trecho como texto use `paraTextoPlano()`** (`lib/texto-rico.ts`), nunca o campo cru. Imagem colada vira arquivo em `arquivos/AAAA/` e no texto fica `![nome](arquivos/AAAA/arquivo.png)` (caminho relativo à pasta de dados; no espelho `.md` vira `../arquivos/...`). Os demais campos (`resumoIA`, `decisoes`, `impedimentos`, `descricao`) continuam sendo digitados como texto puro, mas são mostrados pelo mesmo leitor de Markdown.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
@@ -169,6 +174,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), **faixa "Esperando"** no cabeçalho quando a tarefa aguarda terceiros (de quem, o quê, há quantos dias, copiar cobrança, cobrei hoje), lateral com Pendências, tempo em sessões de foco, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
 | `/notas` | **Bloco de notas**: folhas de texto livre, escritas sem escolher tarefa nem campo (abas Abertas e Arquivadas), no **editor de texto rico** (blocos pelo menu `/`, listas de tarefas, tabelas, imagens coladas). "Organizar com o Copilot" copia um prompt com a folha e as tarefas abertas, recebe um **JSON** de volta e mostra uma **prévia** (registro em tarefa existente ou numa tarefa nova da própria folha, tarefa nova, passo antigo concluído, e as sobras como nota para guardar onde o usuário quiser). Na prévia dá para trocar a tarefa de destino, criar uma tarefa nova digitando o nome e ajustar a data do que aconteceu. Só grava o que o usuário confirmar, e a folha é arquivada com a lista do que criou. `/notas?n=<id>` abre uma folha específica. |
+| `/paginas` | **Páginas de conhecimento**: documentos em Markdown no editor rico (processos, passo a passo, quem procurar), com categoria, busca, arquivar e gravação automática. Dentro do texto, `@` cita uma tarefa, pessoa ou outra página (link interno). Cada página mostra "quem aponta para cá". `/paginas?p=<id>` abre uma página; `?cat=<id>` começa uma página nova naquele assunto. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra a **referência do assunto** (registros marcados como referência em qualquer tarefa dela), tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
@@ -187,7 +193,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R/Q` para navegar (`G N` = Notas, `G D` = Diário, `G Q` = Conquistas), `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R/Q` para navegar (`G N` = Notas, `G D` = Diário, `G Q` = Conquistas, `G A` = Páginas), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -199,6 +205,12 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
 - **"Meu" passo** (`passoEhMeu()` em `lib/lembretes.ts`): sem responsável, "Eu" ou um dos nomes da preferência `meusNomes` (Configurações). O Provider chama `definirMeusNomes()` durante o render e relê os dados quando a lista muda, para tudo se recalcular. Com o nome informado, `quemSouEu()` (em `lib/prompts.ts`) acrescenta aos prompts de registro e do bloco de notas a frase que diz ao Copilot quem é "eu".
 - **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
+
+### Páginas de conhecimento e links internos (2.11)
+- **Páginas** (`app/paginas/page.tsx`, `components/paginas/EditorPagina.tsx`, `paginas.json`): gravam sozinhas pelo hook `useGravacao` (`components/useGravacao.ts`, mesma lógica do bloco de notas: 1,5 s depois de parar de digitar, texto pendente no navegador até chegar ao disco). Excluir manda para a lixeira; arquivar mantém os links funcionando. O servidor espelha cada página em `markdown/paginas/`.
+- **Citar com `@`** (no editor rico, em qualquer lugar em que ele aparece): abre a lista de páginas, tarefas e pessoas e insere um link interno. O botão `@` da barra faz o mesmo. Na leitura, o link interno vira navegação dentro do app (`data-slot="link-interno"`).
+- **Quem aponta para cá** (`lib/ligacoes.ts`, `components/Citacoes.tsx`): `indiceDeCitacoes(dados)` lê os links internos de registros, descrições, páginas e folhas e monta o índice na hora (nada é gravado). `PainelCitacoes` aparece na lateral da tarefa, na página e no detalhe da pessoa, só quando há citação.
+- A página da categoria lista as "Páginas do assunto"; a busca e a paleta acham páginas.
 
 ### Conquistas: nível, meta do dia e comemorações (2.10)
 - **O placar não é dado, é conta.** `calcularJogo(dados, hoje, meta)` em `lib/jogo.ts` percorre registros, passos concluídos e marcos de conclusão e devolve XP, nível, meta do dia, sequência, recorde e as conquistas. Nada é gravado: vale retroativamente, é igual em qualquer PC e não tem como dessincronizar. **Não crie campo de "pontos" nos dados.**
@@ -298,6 +310,7 @@ app/
   notas/page.tsx          bloco de notas (folhas abertas e arquivadas)
   diario/page.tsx         diário: o que aconteceu dia a dia, com mapa de atividade
   conquistas/page.tsx     conquistas: nível, XP, meta do dia e conquistas (gamificação)
+  paginas/page.tsx        páginas de conhecimento (lista, busca e editor)
   pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
   links/page.tsx          banco de links e arquivos
   revisao/page.tsx        revisão semanal guiada
@@ -315,6 +328,7 @@ app/
     times/       PUT   { items, revEsperada }
     notas/       PUT   { items, revEsperada }   (folhas do bloco de notas)
     modelos/     PUT   { items, revEsperada }   (modelos de tarefa)
+    paginas/     PUT   { items, revEsperada }   (páginas de conhecimento; atualiza o espelho em markdown/paginas/)
     arquivos/    POST  multipart "arquivo" → { arquivo, nomeArquivo, tamanho }
                  GET   ?p=<caminho relativo>[&baixar=1]  (inline com CSP sandbox)
     backup/      GET lista, POST backup manual
@@ -328,6 +342,9 @@ components/
   MoverEJuntar.tsx        janelas de mover registro para outra tarefa e de juntar duas tarefas
   Esperando.tsx           "Esperando quem?": janela, faixa de cobrança (FaixaEspera) e useCobranca()
   Modelos.tsx             modelos de tarefa: janela (ModeloForm), painel de Configurações e pedirModelo()
+  Citacoes.tsx            "quem aponta para cá": useCitacoes() e PainelCitacoes
+  useGravacao.ts          gravação automática de título + texto (usada pelas páginas)
+  paginas/                EditorPagina: uma página de conhecimento aberta
   jogo/                   gamificação: useJogo (placar e preferências), Celebracao, NivelLateral e pecas (Anel, CartaoConquista, Confete)
   editor/                 editor de texto rico: EditorRico (barra, menu "/", imagens) e extensoes (Tiptap, regras de segurança)
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
@@ -381,6 +398,7 @@ lib/
   rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
   texto-rico.ts           Markdown → árvore saneada (analisarMarkdown), paraTextoPlano, regras de imagem e de link
+  ligacoes.ts             quem cita quem: índice de citações a partir dos links internos (função pura)
   jogo.ts                 gamificação: calcularJogo (XP, nível, meta do dia, conquistas), função pura sobre os dados
   diario.ts               diário: eventos por dia, mapa de atividade, sequência e texto para copiar (função pura)
   espera.ts               esperando quem: dias esperando, resumo e mensagem de cobrança
@@ -406,6 +424,7 @@ testes/aparencia.test.mjs testes da personalização e do script do <head> com v
 testes/diario.test.mjs    testes do Diário, de "esperando quem", dos modelos e da sessão de foco (node testes/diario.test.mjs)
 testes/texto-rico.test.mjs testes do leitor de Markdown: formatação, HTML, imagens de fora, links (node testes/texto-rico.test.mjs)
 testes/jogo.test.mjs      testes da gamificação: XP, níveis, meta do dia, conquistas (node testes/jogo.test.mjs)
+testes/ligacoes.test.mjs  testes dos links internos e das citações (node testes/ligacoes.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
