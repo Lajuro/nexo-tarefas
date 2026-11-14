@@ -2,7 +2,7 @@
 //   atualizarTarefa(t.id, (x) => comFoco(x, true))
 // Assim toda tela muda a tarefa do mesmo jeito (e os marcos da timeline nunca são esquecidos).
 
-import { Registro, Status, Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
+import { type Registro, type Status, type Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
 
 /** Muda o status e registra um marco na timeline (o marco de "concluida" é o card verde do fim). */
 export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa = t, obs = ""): Tarefa {

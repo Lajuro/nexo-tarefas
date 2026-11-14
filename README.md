@@ -77,6 +77,13 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Novidades da 2.8
+
+- **Diário** (`G` depois `D`): tudo o que aconteceu em todas as tarefas, dia a dia, com um mapa de atividade. Clique num dia do mapa para ver só ele. "Copiar o que está na tela" gera um texto simples, bom para colar num e-mail de acompanhamento.
+- **Esperando quem?**: quando uma tarefa vai para "Aguardando terceiros", o Nexo pergunta de quem você espera retorno e o quê. A partir daí ele conta os dias, mostra isso na tela Hoje e na página da pessoa, e ajuda a cobrar: **Copiar cobrança** deixa uma mensagem pronta para colar e **Cobrei hoje** anota a cobrança na linha do tempo.
+- **Modelos de tarefa**: para demandas que se repetem. No menu de uma tarefa, "Salvar como modelo...". Em "Nova tarefa", escolha o modelo e ela já nasce com título, categoria, prazo e os passos de sempre (dá para desmarcar os que não valem). Os modelos ficam em Configurações.
+- **Sessão de foco**: no menu da tarefa ou no balão "Foco" da barra superior, comece um cronômetro de 15, 25 ou 50 minutos. Quando terminar, escreva uma frase sobre o que saiu e ela vira uma atividade na linha do tempo, com a duração.
+
 ## Deixe do seu jeito
 
 O botão de ajustes no rodapé da barra lateral (ou "Personalizar" na paleta, `Ctrl K`) abre um painel ao lado do app. Tudo muda na hora, enquanto você olha.

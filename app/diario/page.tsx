@@ -37,7 +37,7 @@ const TIPOS: { valor: TipoNoDiario; rotulo: string }[] = [
   { valor: "passos", rotulo: "Passos feitos" },
 ];
 
-const SEMANAS = 30;
+const SEMANAS = 36;
 const DIAS_POR_VEZ = 10;
 const COR_NIVEL = ["bg-muted", "bg-primary/25", "bg-primary/45", "bg-primary/70", "bg-primary"];
 const MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -57,18 +57,18 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
           {semanas.map((s, i) => {
             const primeiro = s[0] ?? "";
             const mudou = i === 0 || (semanas[i - 1][0] ?? "").slice(5, 7) !== primeiro.slice(5, 7);
-            return <span key={i} className="w-3 overflow-visible whitespace-nowrap">{mudou && primeiro ? MES[Number(primeiro.slice(5, 7)) - 1] : ""}</span>;
+            return <span key={i} className="w-3.5 overflow-visible whitespace-nowrap">{mudou && primeiro ? MES[Number(primeiro.slice(5, 7)) - 1] : ""}</span>;
           })}
         </div>
         <div className="flex gap-1">
-          <div className="grid w-6 grid-rows-7 gap-[3px] text-[9px] leading-3 text-muted-foreground sem-selecao" aria-hidden>
+          <div className="grid w-6 grid-rows-7 gap-[3px] text-[9px] leading-[14px] text-muted-foreground sem-selecao" aria-hidden>
             {["seg", "", "qua", "", "sex", "", ""].map((d, i) => <span key={i}>{d}</span>)}
           </div>
           <div role="group" aria-label="Atividade por dia. Clique num dia para ver só ele." className="flex gap-[3px]">
             {semanas.map((s, i) => (
               <div key={i} className="grid grid-rows-7 gap-[3px]">
                 {s.map((d, j) => {
-                  if (!d) return <span key={j} className="size-3" />;
+                  if (!d) return <span key={j} className="size-3.5" />;
                   const n = atividade.get(d) ?? 0;
                   const sel = dia === d;
                   return (
@@ -77,7 +77,7 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
                         aria-label={`${tituloDoDia(d)}, ${plural(n, "item", "itens")}`}
                         onClick={() => escolher(sel ? null : d)}
                         className={cn(
-                          "size-3 rounded-[3px] transition-[transform,box-shadow] duration-150 outline-none hover:scale-125 focus-visible:ring-2 focus-visible:ring-ring",
+                          "size-3.5 rounded-[3px] transition-[transform,box-shadow] duration-150 outline-none hover:scale-125 focus-visible:ring-2 focus-visible:ring-ring",
                           COR_NIVEL[nivelDeAtividade(n)],
                           d === hoje && "ring-1 ring-foreground/40",
                           sel && "scale-125 ring-2 ring-foreground",
@@ -91,7 +91,7 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
         </div>
         <div className="mt-1 ml-7 flex items-center gap-1.5 text-[10px] text-muted-foreground sem-selecao">
           menos
-          {COR_NIVEL.map((c) => <span key={c} className={cn("size-3 rounded-[3px]", c)} />)}
+          {COR_NIVEL.map((c) => <span key={c} className={cn("size-3.5 rounded-[3px]", c)} />)}
           mais
         </div>
       </div>
@@ -249,8 +249,8 @@ export default function Diario() {
             <Mapa atividade={atividade} hoje={hoje} dia={dia} escolher={(d) => { setDia(d); setMostrar(DIAS_POR_VEZ); }} />
           </Painel>
           <div className="grid min-w-[280px] flex-1 basis-[280px] grid-cols-2 content-start gap-3 lg:max-w-[360px]">
-            <Estatistica rotulo="Dias com registro (30 dias)" valor={numeros.comAtividade} icone={<CalendarDays />} tom="primario" />
-            <Estatistica rotulo="Coisas que andaram (30 dias)" valor={numeros.total} icone={<ListChecks />} tom="sucesso" />
+            <Estatistica rotulo="Dias ativos em 30" valor={numeros.comAtividade} icone={<CalendarDays />} tom="primario" />
+            <Estatistica rotulo="Avanços em 30 dias" valor={numeros.total} icone={<ListChecks />} tom="sucesso" />
             <Estatistica rotulo="Dias úteis seguidos" valor={numeros.atual} icone={<Flame />} tom="alerta" />
             <Estatistica rotulo="Melhor sequência" valor={numeros.melhor} icone={<Flame />} />
           </div>

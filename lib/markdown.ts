@@ -10,6 +10,8 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
   L.push(`- **Prioridade:** ${t.prioridade}`);
   if (t.prazo) L.push(`- **Prazo:** ${formatarData(t.prazo)}`);
   if (t.lembrarEm) L.push(`- **Lembrar em:** ${formatarData(t.lembrarEm)}`);
+  if (t.esperando)
+    L.push(`- **Esperando:** ${[t.esperando.quem, t.esperando.oQue].filter(Boolean).join(": ")} (desde ${formatarData(t.esperando.desde)}${t.esperando.cobradoEm ? `, cobrado em ${formatarData(t.esperando.cobradoEm)}` : ""})`);
   if (t.tags.length) L.push(`- **Tags:** ${t.tags.join(", ")}`);
   L.push(`- **Criada em:** ${formatarData(t.criadaEm)}`);
   if (t.descricao) L.push("", t.descricao);
@@ -18,6 +20,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
   for (const r of ordenarRegistros(t.registros)) {
     const tipo = tipoInfo(r.tipo);
     L.push("", `### ${formatarData(r.data)}${r.hora ? " " + r.hora : ""} · ${tipo.nome}${r.titulo ? ": " + r.titulo : ""}`);
+    if (r.duracaoMin) L.push(`**Duração:** ${r.duracaoMin} min`);
     if (r.participantes.length) L.push(`**Participantes:** ${r.participantes.join(", ")}`);
     if (r.resumoIA) L.push("", "**Resumo:**", r.resumoIA);
     if (r.anotacoes) L.push("", "**Anotações:**", r.anotacoes);

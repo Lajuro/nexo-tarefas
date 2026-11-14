@@ -1,6 +1,6 @@
 // Modelos de tarefa: o esqueleto de uma demanda que se repete. Funções puras (a tela está em components/Modelos.tsx).
 
-import { Modelo, Registro, Tarefa, agoraISO, hojeISO, normalizarModelo, normalizarRegistro, novoId } from "./tipos";
+import { type Modelo, type Registro, type Tarefa, agoraISO, hojeISO, normalizarModelo, normalizarRegistro, novoId } from "./tipos";
 
 const MAX_PASSOS = 40;
 

@@ -187,7 +187,13 @@ function Conteudo() {
             <BotaoMenuTarefa tarefa={tarefa} semAbrir aoExcluir={() => router.push("/tarefas")} />
           </>
         }
-        barra={<Propriedades tarefa={tarefa} cat={cat} />}
+        barra={
+          <>
+            <Propriedades tarefa={tarefa} cat={cat} />
+            {/* fica no cabeçalho fixo: enquanto a tarefa espera alguém, isso é o que mais importa nela */}
+            <FaixaEspera tarefa={tarefa} className="w-full" />
+          </>
+        }
       >
         <div className="mx-auto h-full w-full max-w-[1360px] overflow-y-auto @5xl:flex @5xl:overflow-hidden">
           {/* Coluna principal: descrição, Copilot e a linha do tempo */}
@@ -197,8 +203,6 @@ function Conteudo() {
             {tarefa.descricao && (
               <p data-slot="tarefa-descricao" className="mb-4 max-w-[78ch] text-sm leading-relaxed text-muted-foreground texto-pre">{tarefa.descricao}</p>
             )}
-
-            <FaixaEspera tarefa={tarefa} className="mb-4" />
 
             <section data-slot="copilot" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-primary/20 bg-primary/[0.035] px-3.5 py-2.5 dark:bg-primary/[0.07]">
               <SeloCopilot />

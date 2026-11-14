@@ -1,7 +1,7 @@
 // "Esperando quem?": quando a tarefa está aguardando terceiros, o app guarda de quem e o quê
 // (tarefa.esperando), conta os dias e ajuda a cobrar. Funções puras, usadas na tela e nos lembretes.
 
-import { Tarefa, diasAte, formatarData } from "./tipos";
+import { type Tarefa, diasAte, formatarData } from "./tipos";
 
 /** Dias desde a última cobrança (ou desde que a espera começou). null se a tarefa não está esperando ninguém. */
 export function diasEsperando(t: Tarefa): number | null {

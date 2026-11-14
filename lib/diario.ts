@@ -2,7 +2,7 @@
 // (nada é gravado: é só outro jeito de olhar os registros e os passos concluídos).
 
 import { dataLocal } from "./lembretes";
-import { Passo, Registro, Tarefa, TipoRegistro, formatarData, semAcento, tipoInfo } from "./tipos";
+import { type Passo, type Registro, type Tarefa, type TipoRegistro, formatarData, semAcento, tipoInfo } from "./tipos";
 
 export type EventoDiario =
   | { tipo: "registro"; chave: string; data: string; ordem: string; tarefa: Tarefa; registro: Registro }

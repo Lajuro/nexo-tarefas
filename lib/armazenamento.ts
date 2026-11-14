@@ -451,8 +451,15 @@ async function removerMarkdown(dir: string, id: string) {
 }
 
 async function escreverMarkdown(dir: string, t: Tarefa) {
-  const cats = await lerJson<Colecao<Categoria>>(path.join(dir, "categorias.json"), { rev: 0, items: [] });
-  const cat = cats.items?.find((c) => c.id === t.categoriaId);
+  // O espelho é só leitura para humanos: se categorias.json estiver ilegível, a tarefa é espelhada assim mesmo,
+  // sem o nome da categoria. (Isso não toca no arquivo de categorias, que continua protegido contra sobrescrita.)
+  let cat: Categoria | undefined;
+  try {
+    const cats = await lerJson<Colecao<Categoria>>(path.join(dir, "categorias.json"), { rev: 0, items: [] });
+    cat = cats.items?.find((c) => c.id === t.categoriaId);
+  } catch {
+    cat = undefined;
+  }
   await removerMarkdown(dir, t.id);
   await escreverAtomico(
     path.join(dir, "markdown", `${slugify(t.titulo)}--${t.id}.md`),

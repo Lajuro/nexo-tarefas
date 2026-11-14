@@ -50,6 +50,7 @@ export function TarefaForm({
   const [salvando, setSalvando] = useState(false);
   // Trava síncrona: Enter no título e Ctrl+Enter podem chegar juntos antes de o estado "salvando" virar.
   const gravando = useRef(false);
+  const campoTitulo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!aberto) return;
@@ -99,6 +100,14 @@ export function TarefaForm({
     setPrioridade(m.prioridade);
     setPrazo(m.prazoEmDias ? somarDias(hojeISO(), m.prazoEmDias) : "");
     setTags(m.tags);
+    // O título do modelo costuma ter um "..." onde entra o que muda: deixa esse trecho já selecionado para digitar por cima.
+    setTimeout(() => {
+      const campo = campoTitulo.current;
+      if (!campo) return;
+      campo.focus();
+      const i = m.titulo.indexOf("...");
+      if (i >= 0) campo.setSelectionRange(i, i + 3);
+    }, 40);
   }
 
   // Texto digitado e ainda não salvo: Esc, clique fora e Cancelar perguntam antes de jogar fora.
@@ -246,6 +255,7 @@ export function TarefaForm({
 
         <Campo rotulo="Título" dica={tarefa ? undefined : "A tarefa é a demanda inteira. Reuniões e atividades entram depois, como registros na linha do tempo dela."}>
           <Input
+            ref={campoTitulo}
             autoFocus
             data-foco-inicial
             value={titulo}

@@ -164,6 +164,7 @@ const tarefas = [
   {
     id: "tdemo3", titulo: "Correção da vulnerabilidade crítica na API de cadastro", categoriaId: "cdemovuln", status: "aguardando",
     prioridade: 10, prazo: dia(-2), tags: ["crítico"], lembrarEm: dia(0),
+    esperando: { quem: "Bruno Lima", oQue: "subir a correção para homologação", desde: dia(-8), cobradoEm: dia(-4) },
     descricao: "Injeção encontrada no teste de intrusão. Squad de Cadastro precisa corrigir e eu valido.",
     registros: [
       criada(-14, "a_fazer"),
@@ -246,6 +247,19 @@ const atual = await api("/api/dados");
 await api("/api/links", { method: "PUT", headers: J, body: JSON.stringify({ items: links, revEsperada: atual.links.rev }) });
 
 await semearPessoas();
+
+// um modelo de tarefa, para a demanda que se repete (levar a ferramenta a mais um squad)
+const modelos = [
+  {
+    id: "modemo1", nome: "Levar a Ferramenta X para um squad", quando: "sempre que um squad novo entrar",
+    titulo: "Onboarding do squad ... na Ferramenta X", descricao: "Colocar o scan da Ferramenta X na pipeline do squad e treinar o time.",
+    categoriaId: "cdemoferr", prioridade: 7, tags: ["pipeline", "onboarding"], prazoEmDias: 30, usos: 1,
+    passos: ["Agendar a conversa de abertura com o squad", "Pedir acesso aos repositórios", "Ligar o scan na pipeline", "Fazer a triagem dos primeiros achados", "Treinar o time"],
+    criadoEm: carimbo(-20), atualizadoEm: carimbo(-20),
+  },
+];
+const comModelos = await api("/api/dados");
+await api("/api/modelos", { method: "PUT", headers: J, body: JSON.stringify({ items: modelos, revEsperada: comModelos.modelos?.rev ?? 0 }) });
 
 console.log(
   `Cenário de demonstração criado em ${B}: ${tarefas.length} tarefas, ${cats.length} categorias, ${links.length} links, ` +

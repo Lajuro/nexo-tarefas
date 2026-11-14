@@ -35,6 +35,28 @@ checa "JSON corrompido gera aviso" 'não é um JSON válido' "$(curl -s $B/api/d
 curl -s -X PUT $B/api/categorias -H "$J" -d '{"items":[],"revEsperada":0}' >/dev/null
 checa "JSON corrompido não é sobrescrito" '{ quebrado' "$(cat "$TMP/dados/categorias.json")"
 
+# ---------- esperando quem, sessão de foco e modelos de tarefa ----------
+R=$(curl -s -X PUT $B/api/tarefas/t9 -H "$J" -d '{"tarefa":{"id":"t9","titulo":"Espera","status":"aguardando","esperando":{"quem":"  Ana Teste ","oQue":"o acesso","desde":"ontem","campoFuturo":"x"},"registros":[{"id":"r9","tipo":"atividade","titulo":"Sessão","duracaoMin":"25.4"},{"id":"r10","tipo":"nota","duracaoMin":-3}]},"revEsperada":null}')
+checa "esperando: nome aparado e campo desconhecido preservado" '"quem":"Ana Teste","oQue":"o acesso"' "$R"
+checa "esperando: preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "esperando: data inválida não passa" '"cobradoEm":null' "$R"
+checa "sessão de foco: duração vira número inteiro" '"duracaoMin":25' "$R"
+checa "sessão de foco: duração negativa vira 0" '"duracaoMin":0' "$R"
+checa "espelho markdown mostra de quem se espera" 'Esperando:** Ana Teste: o acesso' "$(cat "$TMP/dados/markdown/"*--t9.md)"
+R=$(curl -s -X PUT $B/api/tarefas/t9 -H "$J" -d '{"tarefa":{"id":"t9","titulo":"Espera","esperando":{"quem":"","oQue":""}},"revEsperada":1}')
+checa "esperando vazio vira null" '"esperando":null' "$R"
+checa "dados trazem modelos vazios" '"modelos":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/modelos -H "$J" -d '{"items":[{"id":"mo1","nome":"Levar a ferramenta a um squad","passos":["Agendar a abertura","  ",7,"Pedir os acessos"],"prioridade":99,"prazoEmDias":"30","campoFuturo":"x"},{"id":"mo2","nome":"Outro"}],"revEsperada":0}')
+checa "cria modelos" '"rev":1' "$R"
+checa "modelo: passos só de texto, sem vazios" '"passos":["Agendar a abertura","Pedir os acessos"]' "$R"
+checa "modelo: prioridade dentro de 1 a 10" '"prioridade":10' "$R"
+checa "modelo: prazo em dias vira número" '"prazoEmDias":30' "$R"
+checa "modelo preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "modelos: recusa rev velha (409)" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/modelos -H "$J" -d '{"items":[],"revEsperada":0}')"
+checa "modelos: recusa id inválido" 'inválid' "$(curl -s -X PUT $B/api/modelos -H "$J" -d '{"items":[{"id":"../x"}],"revEsperada":1}')"
+curl -s -X PUT $B/api/modelos -H "$J" -d '{"items":[{"id":"mo1","nome":"Levar a ferramenta a um squad"}],"revEsperada":1}' >/dev/null
+checa "modelo removido vai para a lixeira" 'Outro' "$(cat "$TMP/dados/_lixeira/"modelos-removidos-*.json 2>/dev/null)"
+checa "exportar inclui modelos" '"modelos": {' "$(curl -s $B/api/exportar)"
 
 # ---------- pessoas e times ----------
 checa "dados trazem pessoas e times vazios" '"pessoas":{"rev":0,"items":[]},"times":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"

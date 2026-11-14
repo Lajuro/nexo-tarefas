@@ -21,7 +21,8 @@
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
 // ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K,
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
-// painel Personalizar: cor de destaque, esconder item e ferramenta) e tema escuro.
+// painel Personalizar: cor de destaque, esconder item e ferramenta), esperando quem (cobrança),
+// modelos de tarefa, sessão de foco, diário e tema escuro.
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -292,11 +293,43 @@ async function main() {
     const t = (await dados()).tarefas.find((x) => x.id === idTarefa);
     afirmar(t.status === "aguardando", "status não gravou: " + t.status);
   });
+  await etapa("esperando quem: anotar, copiar a cobrança e cobrar", async () => {
+    // ir para "aguardando" abre sozinho a pergunta "esperando quem?"
+    const form = pg.locator("[data-slot=form-espera]");
+    await form.waitFor();
+    await pg.getByLabel("Quem ficou de responder").fill("Marina");
+    await pg.getByLabel("O que você está esperando").fill("liberar o acesso ao repositório");
+    await pg.getByRole("button", { name: "em 5 dias" }).click();
+    await pg.locator("[data-slot=salvar-espera]").click();
+    await form.waitFor({ state: "detached" });
+    const faixa = pg.locator("[data-slot=faixa-espera]");
+    await faixa.getByText("Marina").first().waitFor();
+    let t = (await dados()).tarefas.find((x) => x.id === idTarefa);
+    afirmar(t.esperando && t.esperando.quem === "Marina" && t.esperando.oQue === "liberar o acesso ao repositório", "a espera não foi gravada");
+    afirmar(!!t.lembrarEm, "o lembrete de cobrar não foi gravado");
+    await pg.locator("[data-slot=copiar-cobranca]").click();
+    const msg = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(msg.startsWith("Oi, Marina!") && msg.includes("liberar o acesso ao repositório"), "mensagem de cobrança errada: " + msg);
+    await pg.locator("[data-slot=cobrei]").click();
+    await pg.locator("[data-slot=registro]", { hasText: "Cobrei Marina" }).first().waitFor();
+    t = (await dados()).tarefas.find((x) => x.id === idTarefa);
+    afirmar(!!t.esperando.cobradoEm, "a cobrança não ficou marcada");
+    // na tela Hoje a linha mostra de quem se espera
+    await pg.goto(B + "/");
+    await pg.locator("[data-slot=linha-espera]", { hasText: "Marina" }).first().waitFor();
+    await pg.goto(B + "/tarefas/" + idTarefa);
+    await faixa.waitFor();
+  });
   await etapa("concluir tarefa mostra card Concluída", async () => {
     await pg.locator("[data-slot=seletor-status]").first().click();
     await pg.getByRole("menuitemradio", { name: "Concluída" }).click();
     await pg.locator("[role=menu]").waitFor({ state: "detached" });
     await pg.locator("[data-slot=registro]", { hasText: "Concluída" }).first().waitFor();
+    // saiu de "aguardando": a faixa some, mas de quem se esperava fica escrito no marco
+    await pg.locator("[data-slot=faixa-espera]").waitFor({ state: "detached" });
+    const fechada = (await dados()).tarefas.find((x) => x.id === idTarefa);
+    afirmar(fechada.esperando === null, "a espera devia ter sido limpa ao concluir");
+    afirmar(fechada.registros.at(-1).anotacoes.includes("Estava esperando Marina"), "o marco não guardou de quem se esperava");
     const t = (await dados()).tarefas.find((x) => x.id === idTarefa);
     afirmar(t.status === "concluida" && t.concluidaEm, "conclusão não gravou");
   });
@@ -577,6 +610,103 @@ async function main() {
     await pg.locator("[data-slot=ferramenta-agenda]").click();
     await pg.getByRole("group", { name: "Escolher um dia" }).waitFor();
     await pg.keyboard.press("Escape");
+  });
+
+  // ---------- modelos de tarefa, sessão de foco e diário ----------
+  let idDoModelo = "";
+  await etapa("modelo de tarefa: salvar de uma tarefa e criar outra por ele", async () => {
+    await pg.goto(B + "/tarefas/" + idTarefa);
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    await pg.getByRole("button", { name: "Mais ações" }).first().click();
+    await pg.getByRole("menuitem", { name: "Salvar como modelo..." }).click();
+    const form = pg.locator("[data-slot=form-modelo]");
+    await form.waitFor();
+    // os passos da tarefa de origem já vêm listados
+    const passos = (await pg.getByLabel("Passos de sempre").inputValue()).split("\n").filter(Boolean);
+    afirmar(passos.length >= 3 && passos.some((p) => p.startsWith("Enviar documentação")), "o modelo não trouxe os passos da tarefa: " + passos.join(" | "));
+    await pg.getByLabel("Nome do modelo").fill("Levar a Ferramenta X para um squad");
+    await pg.getByLabel("Título sugerido").fill("Onboarding do squad ... na Ferramenta X");
+    await pg.getByLabel("Prazo sugerido em dias").fill("30");
+    await pg.locator("[data-slot=salvar-modelo]").click();
+    await form.waitFor({ state: "detached" });
+    afirmar((await dados()).modelos.items.length === 1, "o modelo não foi gravado");
+
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("n");
+    await pg.locator("[data-slot=form-tarefa]").waitFor();
+    await pg.locator("[data-slot=escolher-modelo]", { hasText: "Levar a Ferramenta X" }).click();
+    const titulo = pg.getByLabel("Título da tarefa");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=form-tarefa] input")?.value.includes("..."));
+    await titulo.fill("Onboarding do squad de Crédito na Ferramenta X");
+    const caixas = pg.locator("[data-slot=passos-do-modelo] [data-slot=checkbox]");
+    afirmar((await caixas.count()) === passos.length, "os passos do modelo não apareceram no formulário");
+    await caixas.last().click(); // este não vale para a tarefa nova
+    await pg.getByRole("button", { name: "Salvar", exact: true }).click();
+    await pg.waitForURL((u) => /\/tarefas\/t/.test(u.pathname) && !u.pathname.endsWith(idTarefa));
+    idDoModelo = new URL(pg.url()).pathname.split("/").pop();
+    await pg.locator("[data-slot=registro]", { hasText: "Passos do modelo" }).first().waitFor();
+    const d = await dados();
+    const nova = d.tarefas.find((t) => t.id === idDoModelo);
+    afirmar(nova.titulo === "Onboarding do squad de Crédito na Ferramenta X" && !!nova.prazo, "a tarefa do modelo não veio com título e prazo");
+    const abertos = nova.registros.flatMap((r) => r.proximosPassos);
+    afirmar(abertos.length === passos.length - 1 && abertos.every((p) => !p.feito), "os passos do modelo não entraram em aberto: " + abertos.length);
+    afirmar(d.modelos.items[0].usos === 1, "o uso do modelo não foi contado");
+  });
+
+  await etapa("sessão de foco: começar, encerrar e registrar", async () => {
+    await pg.getByRole("button", { name: "Mais ações" }).first().click();
+    await pg.getByRole("menuitem", { name: "Sessão de foco" }).hover();
+    await pg.getByRole("menuitem", { name: "15 minutos" }).click();
+    const ficha = pg.locator("[data-slot=sessao-foco]");
+    await ficha.waitFor();
+    await pg.waitForFunction(() => /foco · Nexo$/.test(document.title));
+    // sobrevive a recarregar a página
+    await pg.reload();
+    await ficha.waitFor();
+    await ficha.click();
+    await pg.locator("[data-slot=encerrar-sessao]").click();
+    const nota = pg.locator("[data-slot=nota-sessao]");
+    await nota.fill("Montei o cronograma e pedi os acessos.");
+    // fechar a janela não joga fora o que foi escrito
+    await pg.keyboard.press("Escape");
+    await nota.waitFor({ state: "detached" });
+    await ficha.click();
+    await pg.locator("[data-slot=encerrar-sessao]").click();
+    afirmar((await nota.inputValue()) === "Montei o cronograma e pedi os acessos.", "o texto da sessão se perdeu ao fechar a janela");
+    await pg.locator("[data-slot=registrar-sessao]").click();
+    await ficha.waitFor({ state: "detached" });
+    await pg.locator("[data-slot=registro]", { hasText: "Sessão de foco" }).first().waitFor();
+    const r = (await dados()).tarefas.find((t) => t.id === idDoModelo).registros.at(-1);
+    afirmar(r.tipo === "atividade" && r.duracaoMin >= 1 && r.anotacoes === "Montei o cronograma e pedi os acessos.", "a sessão não virou atividade com duração");
+    await pg.locator("[data-slot=tempo-em-foco]").waitFor();
+  });
+
+  await etapa("diário mostra o que aconteceu hoje", async () => {
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("d");
+    await pg.waitForURL("**/diario");
+    const hojeIso = await pg.evaluate(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    });
+    const dia = pg.locator(`[data-slot=dia-diario][data-data="${hojeIso}"]`);
+    await dia.locator("[data-slot=evento-diario]", { hasText: "Sessão de foco" }).waitFor();
+    await dia.locator("[data-slot=evento-diario]", { hasText: "Cobrei Marina" }).waitFor();
+    afirmar((await pg.locator(`[data-slot=dia-mapa][data-data="${hojeIso}"]`).getAttribute("data-nivel")) !== "0", "o mapa de atividade não marcou o dia de hoje");
+    // só os passos concluídos
+    await pg.getByRole("radio", { name: "Passos feitos" }).click();
+    await dia.locator("[data-slot=evento-diario][data-tipo=passo]").first().waitFor();
+    afirmar((await dia.locator("[data-slot=evento-diario]:not([data-tipo=passo])").count()) === 0, "o filtro de passos deixou passar outro tipo de evento");
+    // copiar o que está na tela
+    await pg.getByRole("radio", { name: "Tudo" }).click();
+    await pg.locator("[data-slot=copiar-diario]").click();
+    const texto = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(texto.includes("Sessão de foco") && texto.includes("Cobrei Marina"), "o texto copiado do diário veio incompleto");
+    // clicar num dia do mapa mostra só ele
+    await pg.locator(`[data-slot=dia-mapa][data-data="${hojeIso}"]`).click();
+    await pg.locator("[data-slot=dia-escolhido]").waitFor();
+    afirmar((await pg.locator("[data-slot=dia-diario]").count()) === 1, "escolher um dia no mapa não filtrou o diário");
   });
 
   await etapa("personalizar: cor, item da lateral e ferramenta", async () => {

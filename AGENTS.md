@@ -65,6 +65,7 @@ node testes/semear.mjs # cenário de demonstração numa pasta de dados VAZIA e 
 node testes/pessoas.test.mjs  # testes do cadastro de pessoas e do importador do Outlook
 node testes/notas.test.mjs    # testes do bloco de notas: prompt e leitor do JSON que a IA devolve
 node testes/aparencia.test.mjs # testes da personalização: aparência, moldura e o script que roda antes da primeira pintura
+node testes/diario.test.mjs   # testes do Diário, de "esperando quem", dos modelos de tarefa e da sessão de foco
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -109,7 +110,8 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   - se o navegador não deixar gravar o rascunho, o editor avisa no rodapé e pergunta antes de fechar;
   - a folha do bloco de notas grava sozinha na pasta de dados 1,5 s depois de o usuário parar de digitar (e ao trocar de folha ou a janela ir para o fundo). Nesse intervalo, ou se a gravação falhar, o texto fica em `nexo:nota-pendente:<id>` no `localStorage` e é regravado na próxima abertura;
   - o "Anotar rápido" da barra superior guarda o que foi digitado em `nexo:anotarPendente` a cada tecla: fechar o balão, apertar F5 ou trocar de tela não perde o texto, e um ponto no botão avisa que há texto esperando;
-  - os formulários de tarefa, link e resposta colada do Copilot não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`useFecharComCuidado()` em `components/Raiz.tsx`). **Formulário novo com texto longo tem que usar um dos dois mecanismos.**
+  - a sessão de foco guarda o cronômetro e o texto de "o que saiu?" em `nexo:sessao`: F5, fechar a janela do registro ou o app não perdem nem o tempo nem o que foi escrito;
+  - os formulários de tarefa, link, modelo e resposta colada do Copilot não têm rascunho, mas perguntam antes de fechar se algo foi digitado (`useFecharComCuidado()` em `components/Raiz.tsx`). **Formulário novo com texto longo tem que usar um dos dois mecanismos.**
 - **Conflitos do OneDrive** (dois arquivos com a mesma tarefa, ex.: `t1-NOMEDOPC.json`) são detectados e viram **avisos** na interface; nada é descartado em silêncio.
 - A **pasta de dados nunca fica dentro da pasta do app**. A configuração fica em `~/.nexo/config.json` (ou na variável `NEXO_DATA_DIR`). Atualizar o app não toca nos dados.
 
@@ -125,6 +127,7 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
   pessoas.json                   { rev, items: Pessoa[] }   (ausente = vazio, rev 0)
   times.json                     { rev, items: Time[] }     (ausente = vazio, rev 0)
   notas.json                     { rev, items: Nota[] }     (ausente = vazio, rev 0) folhas do bloco de notas
+  modelos.json                   { rev, items: Modelo[] }   (ausente = vazio, rev 0) modelos de tarefa
   tarefas/<id>.json              uma Tarefa por arquivo, com a timeline inteira dentro
   arquivos/AAAA/<base36>-<nome>  documentos anexados (gravação com flag "wx": nunca sobrescreve)
   markdown/<slug>--<id>.md       espelho legível, gerado (pode apagar)
@@ -135,9 +138,9 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 ```
 
 ### Modelo (fonte da verdade: `lib/tipos.ts`)
-- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje). Desde a 2.7: `fixada?` (boolean: presa na barra lateral; é dado, para valer em qualquer PC).
+- **Tarefa**: `id, rev, titulo, descricao, categoriaId|null, status, prioridade (1..10, maior = mais urgente), prazo (AAAA-MM-DD|null), tags[], registros[], panoramaIA?{texto, geradoEm}, criadaEm, atualizadaEm, concluidaEm?`, e opcionalmente `registrosRemovidos[]`. Desde a v2 (campos opcionais, sem migração): `lembrarEm?` (AAAA-MM-DD|null: follow-up, "me lembre de voltar nisso") e `focoEm?` (AAAA-MM-DD|null: dia em que foi escolhida como foco; só vale como foco se for hoje). Desde a 2.7: `fixada?` (boolean: presa na barra lateral; é dado, para valer em qualquer PC). Desde a 2.8: `esperando?` (`{ quem, oQue, desde (AAAA-MM-DD), cobradoEm? } | null`: de quem a tarefa espera retorno; só faz sentido em `aguardando` e é limpo por `aplicarStatus()` quando a tarefa sai desse status, virando observação do marco).
 - **Status**: `a_fazer | em_andamento | aguardando | bloqueada | concluida | cancelada`. "Abertos" = os quatro primeiros (`STATUS_ABERTOS`).
-- **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, notaId? (folha do bloco de notas de onde nasceu), referencia? (conhecimento que vale para o assunto todo), alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
+- **Registro** (cada card da timeline): `id, tipo, data, hora?, titulo, participantes[], anotacoes (brutas), resumoIA, decisoes, proximosPassos: Passo[], impedimentos, respostaIABruta?, notaId? (folha do bloco de notas de onde nasceu), referencia? (conhecimento que vale para o assunto todo), duracaoMin? (minutos de uma sessão de foco; 0 = não veio de uma sessão), alteracoes?{status?, prioridade?, prazo?: {de, para}}, criadoEm, atualizadoEm`.
 - **TipoRegistro**: `reuniao | atividade | impedimento | decisao | nota | marco`. `marco` é gerado pelo sistema (tarefa criada, mudança de status; o marco de status `concluida` é o card verde "Concluída" do esboço).
 - **Passo**: `id, texto, feito, feitoEm?, responsavel?, prazo?`. As "pendências" do app são todos os passos com `feito=false` de tarefas abertas.
 - **Categoria**: `id, nome, descricao, cor, arquivada?, criadaEm, atualizadaEm`.
@@ -145,11 +148,12 @@ O usuário vai usar o app todo dia e pedir mudanças. **Qualquer versão nova te
 - **Pessoa**: `id ("pe..."), nome, apelidos[], email, cargo, area, ajudaCom, anotacoes, categoriaIds[], tags[], arquivada?, origem? ("manual"|"registros"|"outlook"), criadaEm, atualizadaEm`. Registros e passos continuam guardando nomes como texto; a ligação com o cadastro é feita na leitura (`lib/pessoas.ts`, `chaveNome` contra `nome` e `apelidos`). Nada é reescrito nas tarefas.
 - **Time**: `id ("ti..."), nome, descricao, cor, responsavelIds[], membroIds[] (inclui os responsáveis), categoriaIds[], arquivado?, criadoEm, atualizadoEm`. Os vínculos com pessoas ficam no Time.
 - **Nota** (folha do bloco de notas): `id ("n..."), titulo, texto, arquivadaEm? (carimbo|null), gerou?: FrutoDaNota[], sobras? (o que a IA não encaixou e o usuário não guardou), criadaEm, atualizadaEm`. `FrutoDaNota` = `{ tipo ("registro"|"tarefa"|"passo"), tarefaId, registroId?, rotulo }`: o que nasceu da folha quando ela foi organizada. Coleção nova e opcional, sem migração.
+- **Modelo** (modelo de tarefa): `id ("mo..."), nome, quando (quando usar), titulo (sugerido), descricao, categoriaId|null, prioridade, tags[], passos[] (textos), prazoEmDias? (a partir da criação), usos?, criadoEm, atualizadoEm`. Coleção nova e opcional, sem migração.
 - IDs: `novoId(prefixo)` = prefixo + base36(timestamp) + aleatório. Validados no servidor por `ID_VALIDO` (`/^[a-zA-Z0-9_-]{1,80}$/`).
 - Datas de calendário são strings `AAAA-MM-DD` no fuso local (`hojeISO()`); carimbos são ISO UTC (`agoraISO()`).
 
 ### Preferências de interface (localStorage, não são dados)
-Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo), `aparencia` (`{ acento, cantos, fonte, movimento, lateral, fundo }`, ver `lib/aparencia.ts`), `moldura` (largura da barra lateral, ordem e itens escondidos, seções, ferramentas da barra superior, barra de status, ver `lib/moldura.ts`) e `recentes` (ids das últimas tarefas abertas). Tudo o que é lido do localStorage passa por uma função `normalizar*()` com listas fechadas: valor desconhecido vira o padrão. O `usePref` já nasce com o valor lido (não monta no padrão para depois "pular"), o que é seguro porque nada que depende de preferência é desenhado no servidor. Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`), o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`) e o **texto ainda não guardado do "Anotar rápido"** (`nexo:anotarPendente`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
+Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`) e podem ser perdidas sem prejuízo: `tema`, `lateralRecolhida`, `ordem`, `filtroStatus`, `visaoTarefas`, `recentesPrimeiro`, `agrupamentoPendencias`, `soMeus`, `rotina` (`{ ultimoPlanejamento, ultimaRevisao, abrirSozinho }`) e `lembretesAdiados` (`{ idDoLembrete: dataAtéQuando }`) e `meusNomes` (lista de nomes pelos quais o usuário aparece como responsável de um passo), `aparencia` (`{ acento, cantos, fonte, movimento, lateral, fundo }`, ver `lib/aparencia.ts`), `moldura` (largura da barra lateral, ordem e itens escondidos, seções, ferramentas da barra superior, barra de status, ver `lib/moldura.ts`) e `recentes` (ids das últimas tarefas abertas) e `sessao` (a sessão de foco em andamento: `{ tarefaId, inicio, alvoMin, fim?, nota? }`). Tudo o que é lido do localStorage passa por uma função `normalizar*()` com listas fechadas: valor desconhecido vira o padrão. O `usePref` já nasce com o valor lido (não monta no padrão para depois "pular"), o que é seguro porque nada que depende de preferência é desenhado no servidor. Nada que o usuário não possa perder vai para o localStorage. As únicas coisas além de preferência que moram lá são os **rascunhos do editor de registro** (`nexo:rascunho:...`), o **texto pendente de uma folha do bloco de notas** (`nexo:nota-pendente:...`), o **texto ainda não guardado do "Anotar rápido"** (`nexo:anotarPendente`) e **o que foi escrito sobre uma sessão de foco ainda não registrada** (dentro de `nexo:sessao`), ver seção 4: são cópia de segurança do que ainda não foi salvo, não dado. O registro só existe de verdade quando é gravado na pasta de dados.
 
 ---
 
@@ -159,16 +163,17 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 |---|---|
 | `/` Hoje | Página inicial. Saudação, captura rápida de tarefa, **foco de hoje** (tarefas escolhidas, com os passos marcáveis ali), **precisa de você** (lembretes ativos, com adiar), faixa da semana (prazos dos próximos 7 dias), aguardando retorno, bloqueadas e paradas, progresso do dia. |
 | `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
-| `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), lateral com Pendências, Links e docs, Pessoas envolvidas e último Panorama IA. |
+| `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), **faixa "Esperando"** no cabeçalho quando a tarefa aguarda terceiros (de quem, o quê, há quantos dias, copiar cobrança, cobrei hoje), lateral com Pendências, tempo em sessões de foco, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/pendencias` | Todos os próximos passos em aberto, agrupados por tarefa, por prazo ou por pessoa, com "só os meus", prazo próprio de cada passo e desfazer ao concluir. |
 | `/notas` | **Bloco de notas**: folhas de texto livre, escritas sem escolher tarefa nem campo (abas Abertas e Arquivadas). "Organizar com o Copilot" copia um prompt com a folha e as tarefas abertas, recebe um **JSON** de volta e mostra uma **prévia** (registro em tarefa existente ou numa tarefa nova da própria folha, tarefa nova, passo antigo concluído, e as sobras como nota para guardar onde o usuário quiser). Na prévia dá para trocar a tarefa de destino, criar uma tarefa nova digitando o nome e ajustar a data do que aconteceu. Só grava o que o usuário confirmar, e a folha é arquivada com a lista do que criou. `/notas?n=<id>` abre uma folha específica. |
 | `/categorias` e `/categorias/[id]` | Cards de categoria com contagens e progresso; a página da categoria mostra a **referência do assunto** (registros marcados como referência em qualquer tarefa dela), tarefas abertas, histórico (concluídas/canceladas), links, pessoas do assunto e o prompt de panorama. Arquivar/desarquivar. |
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
 | `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
+| `/diario` | **Diário**: tudo o que aconteceu em todas as tarefas, dia a dia (registros, marcos e passos concluídos no dia em que foram feitos), com um **mapa de atividade** das últimas 36 semanas (clicar num dia mostra só ele), números dos últimos 30 dias, sequência de dias úteis e filtros por tipo, categoria e pessoa. "Copiar" gera texto simples do dia ou do que está na tela, sem IA. É só leitura (`lib/diario.ts`). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/busca?q=` | Busca sem acento/maiúscula em tarefas, registros (todos os campos), links, pessoas e times. Com várias palavras, o resultado precisa ter **todas**, em qualquer ordem e em qualquer campo do mesmo item; o trecho mostra e destaca cada uma. O resultado de um registro abre a tarefa já rolada até ele (`/tarefas/<id>?r=<registroId>`). |
-| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, lixeira com restaurar, aparência (tema), rotina e lembretes, "como você aparece nos passos" (seus nomes), atalhos. |
+| `/configuracoes` | Pasta de dados (trocar/copiar caminho), estatísticas, versão do formato, backup manual, exportar tudo em JSON, **modelos de tarefa** (usar, editar, excluir), lixeira com restaurar, aparência (tema), rotina e lembretes, "como você aparece nos passos" (seus nomes), atalhos. |
 
 ### Moldura (components/Shell.tsx)
 - **Barra lateral** (`components/shell/Lateral.tsx`), recolhível (`Ctrl B`): navegação com contadores, e as seções **Foco de hoje** (tarefas em foco com o próximo passo e um anel de progresso), **Fixadas** (`tarefa.fixada`, pelo menu da tarefa), **Recentes** (últimas tarefas abertas, no localStorage) e **Assuntos**. Cada seção recolhe com um clique no título. A largura se ajusta arrastando a borda direita (setas com a borda em foco, dois cliques voltam ao padrão, arrastar bem para dentro recolhe).
@@ -178,7 +183,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Paleta de comandos** (`Ctrl K` ou `/`): vai para qualquer tela, tarefa, categoria ou pessoa e dispara ações.
 - **Sino**: lembretes ativos a um clique, com adiar.
 - **Onboarding**: na primeira vez pede o caminho da pasta de dados (sugere `%OneDriveCommercial%\Nexo` ou `%OneDrive%\Nexo`).
-- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/S/R` para navegar (`G N` = Notas), `Ctrl Enter` salva formulários, `Esc` fecha.
+- **Atalhos** (lista oficial em `components/shell/navegacao.ts`, mostrada com `?`): `N` nova tarefa, `D` planejar o dia, `A` anotar rápido, `G` depois `H/T/P/N/C/E/L/D/S/R` para navegar (`G N` = Notas, `G D` = Diário), `Ctrl Enter` salva formulários, `Esc` fecha.
 - Abre como aplicativo: `Iniciar Nexo.cmd` usa o modo `--app` do Edge (janela própria) e há `app/manifest.ts` para instalar pelo navegador.
 
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
@@ -190,6 +195,11 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 - **Revisão semanal**: a barra lateral sinaliza quando faz 7 dias ou mais desde a última.
 - **"Meu" passo** (`passoEhMeu()` em `lib/lembretes.ts`): sem responsável, "Eu" ou um dos nomes da preferência `meusNomes` (Configurações). O Provider chama `definirMeusNomes()` durante o render e relê os dados quando a lista muda, para tudo se recalcular. Com o nome informado, `quemSouEu()` (em `lib/prompts.ts`) acrescenta aos prompts de registro e do bloco de notas a frase que diz ao Copilot quem é "eu".
 - **Virada do dia com o app aberto** (`components/useHoje.ts`): o Nexo fica aberto como janela por dias. `useHoje()` devolve o dia atual e muda sozinho quando o dia vira (confere a cada 30 s e quando a janela volta a ter foco). Na virada, o Provider relê os dados do disco, os lembretes são recalculados e o ritual do dia é oferecido de novo. Conta que depende da data deve usar `useHoje()` nas dependências, não `hojeISO()` solto dentro de um `useMemo`.
+
+### Esperando quem, modelos de tarefa e sessão de foco (2.8)
+- **Esperando quem** (`components/Esperando.tsx`, `lib/espera.ts`): quando a tarefa vai para "Aguardando terceiros" por `useAcoesTarefa().mudarStatus` (ou pela revisão) e ainda não diz de quem, abre a janela "Esperando quem?" (quem, o quê, lembrar de cobrar em). É opcional ("Agora não"). Com isso preenchido: a faixa `FaixaEspera` aparece no cabeçalho da tarefa e no detalhe da pessoa; "Aguardando retorno" em Hoje mostra de quem e conta os dias **desde a última cobrança**; o lembrete vira "Sem retorno de Fulano há N dias"; **Copiar cobrança** gera uma mensagem pronta (`mensagemCobranca()`, que só usa o que o usuário escreveu) e **Cobrei hoje** (`comCobranca()`) grava uma atividade "Cobrei Fulano" e recomeça a contagem. Também no menu da tarefa.
+- **Modelos de tarefa** (`components/Modelos.tsx`, `lib/modelos.ts`, `modelos.json`): para demandas que se repetem. "Salvar como modelo..." no menu da tarefa já traz campos e passos dela (`modeloDaTarefa()`); em "Nova tarefa" aparece "Começar de um modelo", que preenche o formulário (o `...` do título sugerido fica selecionado para digitar por cima) e lista os passos, que dá para desmarcar. Os passos marcados entram num registro `nota` "Passos do modelo «nome»" (`registroDosPassos()`), é isso que os leva para Pendências. Gerenciar em Configurações. `abrirNovaTarefa(categoriaId, modeloId)` abre o formulário já com o modelo.
+- **Sessão de foco** (`components/shell/SessaoFoco.tsx`): cronômetro de 15, 25 ou 50 minutos numa tarefa, começado pelo menu da tarefa ou pelo balão "Foco" da barra superior. Uma de cada vez. A ficha com o tempo fica na barra superior e no título da janela. Ao encerrar (ou quando o tempo acaba), pergunta "o que saiu?" e `comSessaoDeFoco()` grava uma atividade com `duracaoMin`. A tarefa mostra o total em "sessões de foco" (`minutosEmFoco()`). O tempo é sempre calculado da hora de início, então aba em segundo plano não atrasa.
 
 ### Pessoas e times
 - **Dois arquivos novos** na pasta de dados: `pessoas.json` (`{ rev, items: Pessoa[] }`) e `times.json` (`{ rev, items: Time[] }`). Se faltarem, valem como vazios (rev 0). Não houve migração: `SCHEMA_APP` continua 1, e uma versão antiga do app simplesmente ignora os dois arquivos.
@@ -265,6 +275,7 @@ app/
   categorias/             lista e página de cada categoria ([id])
   pendencias/page.tsx     passos em aberto
   notas/page.tsx          bloco de notas (folhas abertas e arquivadas)
+  diario/page.tsx         diário: o que aconteceu dia a dia, com mapa de atividade
   pessoas/page.tsx        pessoas envolvidas e detalhe (?p=Nome)
   links/page.tsx          banco de links e arquivos
   revisao/page.tsx        revisão semanal guiada
@@ -281,6 +292,7 @@ app/
     pessoas/     PUT   { items, revEsperada }   (ids validados por ID_VALIDO, sem repetição)
     times/       PUT   { items, revEsperada }
     notas/       PUT   { items, revEsperada }   (folhas do bloco de notas)
+    modelos/     PUT   { items, revEsperada }   (modelos de tarefa)
     arquivos/    POST  multipart "arquivo" → { arquivo, nomeArquivo, tamanho }
                  GET   ?p=<caminho relativo>[&baixar=1]  (inline com CSP sandbox)
     backup/      GET lista, POST backup manual
@@ -292,6 +304,8 @@ components/
   Shell.tsx               moldura: barra lateral, barra superior, barra de status, atalhos
   MenuTarefa.tsx          menu de ações da tarefa (botão direito e "...") e useAcoesTarefa()
   MoverEJuntar.tsx        janelas de mover registro para outra tarefa e de juntar duas tarefas
+  Esperando.tsx           "Esperando quem?": janela, faixa de cobrança (FaixaEspera) e useCobranca()
+  Modelos.tsx             modelos de tarefa: janela (ModeloForm), painel de Configurações e pedirModelo()
   comum.tsx               peças de domínio: Pagina, Secao, StatusBadge, PrioBadge, Modal etc.
   useLembretes.ts         lembretes ativos e adiar()
   useHoje.ts              dia de hoje que se atualiza sozinho na virada do dia
@@ -303,7 +317,8 @@ components/
   CardTarefa.tsx          cartão de tarefa (grade, quadro e categorias)
   ui/                     kit genérico no padrão Shadcn sobre Radix (seção 13)
   shell/                  moldura: Lateral (navegação e seções), BarraSuperior, Ferramentas (agenda, foco, anotar rápido, aparência),
-                          Personalizar (painel), Aparencia (controles de tema, cor, cantos...), Paleta, Sino, Logo, Telas, navegacao
+                          SessaoFoco (cronômetro e registro), Personalizar (painel), Aparencia (controles de tema, cor, cantos...),
+                          Paleta, Sino, Logo, Telas, navegacao
   hoje/                   tela Hoje: captura rápida, foco de hoje, precisa de você, semana
   rotina/                 ritual "Planejar o dia" em 3 etapas
   tarefas/                lista de tarefas: filtros, grade, lista, quadro (Kanban), seletor de categoria
@@ -341,6 +356,9 @@ lib/
   prompts.ts              prompts do Copilot e parser da resposta
   rascunhos.ts            rascunho automático do editor de registro e texto pendente das folhas (localStorage, só cliente)
   notas.ts                bloco de notas: promptNotas, interpretarNotas (leitor do JSON da IA) e aplicação das propostas
+  diario.ts               diário: eventos por dia, mapa de atividade, sequência e texto para copiar (função pura)
+  espera.ts               esperando quem: dias esperando, resumo e mensagem de cobrança
+  modelos.ts              modelos de tarefa: passosDoTexto, modeloDaTarefa, registroDosPassos
   pessoas.ts              diretório unificado (cadastradas + nomes soltos), pessoasDaCategoria, nomesConhecidos
   importar-pessoas.ts     importador do Outlook sem API (colagem, CSV, vCard, ANSI) e compararComCadastro
   markdown.ts             espelho .md de cada tarefa
@@ -359,6 +377,7 @@ testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e
 testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
 testes/notas.test.mjs     testes do prompt e do leitor de JSON do bloco de notas (node testes/notas.test.mjs)
 testes/aparencia.test.mjs testes da personalização e do script do <head> com valores hostis (node testes/aparencia.test.mjs)
+testes/diario.test.mjs    testes do Diário, de "esperando quem", dos modelos e da sessão de foco (node testes/diario.test.mjs)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
 ```
 
@@ -417,6 +436,8 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
 - **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
+- **2.8: quatro novidades escolhidas pelo agente a pedido do dono ("me surpreenda")**: Diário, esperando quem, modelos de tarefa e sessão de foco. Todas com campo opcional ou coleção nova, sem migração. "De quem se espera" é dado da tarefa (não preferência) porque é informação de trabalho. A sessão em andamento fica no navegador; só o resultado (a atividade com a duração) vai para a pasta de dados. A mensagem de cobrança é um texto fixo montado com o que o usuário escreveu: sem IA e sem inventar nada.
+- **O espelho em Markdown é gravado mesmo com `categorias.json` ilegível** (sem o nome da categoria). Antes, uma coleção corrompida impedia o espelho de se atualizar.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
@@ -424,7 +445,6 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Notificação do sistema (Windows) para lembretes críticos, se o dono quiser ser avisado com o app fechado.
 - Subtarefas/checklist próprio da tarefa (além dos passos dos registros).
 - Vincular tarefas entre si (dependências) e "tarefas relacionadas" na mesma categoria.
-- Templates por tipo de demanda (ex.: onboarding Security Champion) com passos padrão.
 - Exportar uma tarefa ou categoria como relatório em Markdown/HTML para mandar ao gestor.
 - Importar de volta um `nexo-export-*.json` (restauração completa).
 - Histórico de prompts gerados e respostas coladas por tarefa.
@@ -458,7 +478,7 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 | `components/Raiz.tsx` | Provedores de interface: tema (`useTema`), confirmação (`useConfirmar`), dicas, toasts, `MotionConfig`. |
 | `components/MenuTarefa.tsx` | `MenuContextoTarefa` (botão direito), `BotaoMenuTarefa` ("...") e `useAcoesTarefa()`. Toda tarefa que aparece na tela deve ter esse menu. |
 | `components/useLembretes.ts` | Lembretes ativos e `adiar()`. |
-| `lib/acoes.ts` | Transformações puras de tarefa: `aplicarStatus`, `comFoco`, `comLembrete`, `comPassoAlternado`, `comPrazoDoPasso`, `semRegistro`, `comRegistroRecebido`, `semRegistroMovido`, `comTarefaJuntada`, `comReferencia`. Use sempre dentro de `atualizarTarefa(id, fn)`. |
+| `lib/acoes.ts` | Transformações puras de tarefa: `aplicarStatus`, `comFoco`, `comLembrete`, `comPassoAlternado`, `comPrazoDoPasso`, `semRegistro`, `comRegistroRecebido`, `semRegistroMovido`, `comTarefaJuntada`, `comReferencia`, `comFixada`, `comEspera`, `comCobranca`, `comSessaoDeFoco`, `tarefaRapida`. Use sempre dentro de `atualizarTarefa(id, fn)`. |
 | `lib/lembretes.ts` | Motor de lembretes (`gerarLembretes`, `resumoDoDia`, `sugestoesDeFoco`, `dataRelativa`, `saudacao`, `LIMITES`). Função pura. |
 | `lib/preferencias.ts` | `usePref(chave, padrao)` (localStorage com prefixo `nexo:`) e `useRotina()`. |
 | `lib/animacoes.ts` | Presets do motion: `suave`, `mola`, `lista`/`itemLista`, `subir`, `brotar`, `itemRemovivel`. |
