@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlarmClock, ArrowRight, CalendarDays, CircleCheckBig, Flag, ListTodo, Moon, NotebookPen, Palette, PenLine, SlidersHorizontal, Sun, Sunrise,
-  Target,
+  Target, Timer,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useTema } from "@/components/Raiz";
@@ -32,6 +32,7 @@ import { usePref } from "@/lib/preferencias";
 import { agoraISO, normalizarNota, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { SeletorAcento, SeletorCantos, SeletorTema } from "./Aparencia";
+import { iniciarSessao } from "./SessaoFoco";
 
 const ficha =
   "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:border-ring/40 hover:bg-muted/70 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:border-ring/50 data-[state=open]:text-foreground";
@@ -273,11 +274,24 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
                 {focos.map(({ t, passos }) => (
                   <motion.li key={t.id} layout="position" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={suave}
                     className="rounded-lg border bg-card px-2.5 py-2">
-                    <Link href={`/tarefas/${t.id}`} onClick={() => setAberto(false)}
-                      className="group/f flex items-center gap-1.5 rounded-sm text-[13px] font-medium outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
-                      <span className="min-w-0 flex-1 truncate">{t.titulo}</span>
-                      <ArrowRight className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover/f:translate-x-0 group-hover/f:opacity-100" />
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link href={`/tarefas/${t.id}`} onClick={() => setAberto(false)}
+                        className="group/f flex min-w-0 flex-1 items-center gap-1.5 rounded-sm text-[13px] font-medium outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
+                        <span className="min-w-0 truncate">{t.titulo}</span>
+                        <ArrowRight className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover/f:translate-x-0 group-hover/f:opacity-100" />
+                      </Link>
+                      <Dica texto="Começar uma sessão de foco de 25 minutos nesta tarefa">
+                        <Button variant="ghost" size="icon-sm" data-slot="comecar-sessao" aria-label={`Começar sessão de foco em “${t.titulo}”`}
+                          onClick={() => {
+                            if (iniciarSessao(t.id, 25)) {
+                              setAberto(false);
+                              toast("Sessão de foco de 25 min começou. Bom trabalho!", "info");
+                            } else toast("Já existe uma sessão de foco em andamento. Encerre ou registre a atual primeiro.", "erro");
+                          }}>
+                          <Timer />
+                        </Button>
+                      </Dica>
+                    </div>
                     {passos.length === 0 ? (
                       <p className="mt-1 text-[11px] text-muted-foreground">Sem próximo passo seu. Abra a tarefa e registre o que falta.</p>
                     ) : (

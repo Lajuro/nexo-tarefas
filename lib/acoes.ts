@@ -69,6 +69,36 @@ export function comCobranca(t: Tarefa): Tarefa {
   };
 }
 
+/** Registra uma sessão de foco na timeline: uma atividade com a duração e o que o usuário escreveu que saiu dela. */
+export function comSessaoDeFoco(t: Tarefa, minutos: number, nota: string): Tarefa {
+  const min = Math.max(1, Math.round(minutos));
+  return {
+    ...t,
+    registros: [
+      ...t.registros,
+      normalizarRegistro({
+        tipo: "atividade",
+        data: hojeISO(),
+        hora: new Date().toTimeString().slice(0, 5),
+        titulo: `Sessão de foco (${min} min)`,
+        anotacoes: nota.trim(),
+        duracaoMin: min,
+      }),
+    ],
+  };
+}
+
+/** Minutos somados de todas as sessões de foco registradas na tarefa. */
+export const minutosEmFoco = (t: Tarefa) => t.registros.reduce((n, r) => n + (r.duracaoMin || 0), 0);
+
+/** "45 min", "1h", "2h 15min". */
+export function formatarMinutos(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h}h ${m}min` : `${h}h`;
+}
+
 /** Tarefa "A fazer" só com o título e o marco de criação: a captura rápida (tela Hoje e barra superior). */
 export function tarefaRapida(titulo: string): Tarefa {
   const base = normalizarTarefa({ id: novoId("t"), titulo, status: "a_fazer" });

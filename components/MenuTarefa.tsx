@@ -6,13 +6,14 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Target, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Target, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
 import { IconeStatus, copiarTexto } from "./comum";
 import { pedirEspera, useCobranca } from "@/components/Esperando";
 import { pedirModelo } from "@/components/Modelos";
+import { DURACOES, iniciarSessao } from "@/components/shell/SessaoFoco";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
@@ -37,6 +38,10 @@ export function useAcoesTarefa() {
     alternarFoco: async (t: Tarefa) => {
       const ligar = !ehFocoHoje(t);
       if (await atualizarTarefa(t.id, (x) => comFoco(x, ligar))) toast(ligar ? "Entrou no foco de hoje." : "Saiu do foco de hoje.", "info");
+    },
+    comecarSessao: (t: Tarefa, minutos: number) => {
+      if (iniciarSessao(t.id, minutos)) toast(`Sessão de foco de ${minutos} min começou. O cronômetro fica na barra superior.`, "info");
+      else toast("Já existe uma sessão de foco em andamento. Encerre ou registre a atual primeiro.", "erro");
     },
     alternarFixada: async (t: Tarefa) => {
       const ligar = !t.fixada;
@@ -94,6 +99,16 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
         <k.Item onSelect={() => a.alternarFoco(t)}>
           <Target className={foco ? "!text-primary" : undefined} /> {foco ? "Tirar do foco de hoje" : "Focar hoje"}
         </k.Item>
+      )}
+      {aberta(t) && (
+        <k.Sub>
+          <k.SubTrigger><Timer /> Sessão de foco</k.SubTrigger>
+          <k.SubContent>
+            {DURACOES.map((min) => (
+              <k.Item key={min} onSelect={() => a.comecarSessao(t, min)}>{min} minutos</k.Item>
+            ))}
+          </k.SubContent>
+        </k.Sub>
       )}
       <k.Item onSelect={() => a.alternarFixada(t)}>
         {t.fixada ? <PinOff /> : <Pin />} {t.fixada ? "Tirar das fixadas" : "Fixar na barra lateral"}

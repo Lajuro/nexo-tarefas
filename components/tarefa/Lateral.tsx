@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { itemLista, itemRemovivel, lista } from "@/lib/animacoes";
+import { formatarMinutos, minutosEmFoco } from "@/lib/acoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
@@ -248,6 +249,7 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
   const dias = Math.max(0, (fim ? diasAte(fim) ?? 0 : 0) - (diasAte(criada) ?? 0));
   const reunioes = tarefa.registros.filter((r) => r.tipo === "reuniao").length;
   const ultima = ultimaAtividade(tarefa);
+  const emFoco = minutosEmFoco(tarefa);
   const celula = "flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 first:pl-3.5 last:pr-3.5";
   const valor = "truncate text-base leading-tight font-semibold tracking-tight tabular-nums";
   const rotulo = "text-[11px] leading-snug text-muted-foreground";
@@ -267,6 +269,12 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
         </Dica>
         <span className={rotulo}>última atividade</span>
       </div>
+      {emFoco > 0 && (
+        <div className={celula} data-slot="tempo-em-foco">
+          <span className={valor}>{formatarMinutos(emFoco)}</span>
+          <span className={rotulo}>em sessões de foco</span>
+        </div>
+      )}
     </section>
   );
 }
