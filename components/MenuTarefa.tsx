@@ -6,7 +6,7 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Target, Timer, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
@@ -28,6 +28,7 @@ export function useAcoesTarefa() {
   const router = useRouter();
   return {
     abrir: (t: Tarefa) => router.push(`/tarefas/${t.id}`),
+    abrirReuniao: (t: Tarefa) => router.push(`/tarefas/${t.id}/reuniao`),
     mudarStatus: async (t: Tarefa, s: Status) => {
       const ok = await atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x));
       // Foi para "aguardando" sem dizer de quem: é a hora em que isso está fresco na cabeça.
@@ -109,6 +110,11 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
             ))}
           </k.SubContent>
         </k.Sub>
+      )}
+      {aberta(t) && (
+        <k.Item onSelect={() => a.abrirReuniao(t)}>
+          <Presentation /> Modo reunião
+        </k.Item>
       )}
       <k.Item onSelect={() => a.alternarFixada(t)}>
         {t.fixada ? <PinOff /> : <Pin />} {t.fixada ? "Tirar das fixadas" : "Fixar na barra lateral"}

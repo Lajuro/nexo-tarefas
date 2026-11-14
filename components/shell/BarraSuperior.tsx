@@ -25,14 +25,18 @@ function Migalhas() {
   const pathname = usePathname();
   const { dados } = useNexo();
   const partes: { nome: ReactNode; href?: string }[] = [];
-  const [, raiz, id] = pathname.split("/");
+  const [, raiz, id, sub] = pathname.split("/");
 
   if (raiz === "tarefas" && id) {
     const t = dados?.tarefas.find((x) => x.id === id);
     const cat = dados?.categorias.items.find((c) => c.id === t?.categoriaId);
     partes.push({ nome: "Tarefas", href: "/tarefas" });
-    if (cat) partes.push({ nome: <span className="flex min-w-0 items-center gap-1.5"><PontoCor cor={cat.cor} /><span className="truncate">{cat.nome}</span></span>, href: `/categorias/${cat.id}` });
-    partes.push({ nome: t?.titulo ?? "Tarefa" });
+    // no modo reunião a categoria sai, para sobrar espaço para a tarefa
+    if (cat && sub !== "reuniao") partes.push({ nome: <span className="flex min-w-0 items-center gap-1.5"><PontoCor cor={cat.cor} /><span className="truncate">{cat.nome}</span></span>, href: `/categorias/${cat.id}` });
+    if (sub === "reuniao") {
+      partes.push({ nome: t?.titulo ?? "Tarefa", href: `/tarefas/${id}` });
+      partes.push({ nome: "Reunião" });
+    } else partes.push({ nome: t?.titulo ?? "Tarefa" });
   } else if (raiz === "categorias" && id) {
     const cat = dados?.categorias.items.find((c) => c.id === id);
     partes.push({ nome: "Categorias", href: "/categorias" });
@@ -48,13 +52,13 @@ function Migalhas() {
             {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />}
             {p.href && !ultima ? (
               // A primeira migalha (a tela) nunca encolhe; as do meio cedem espaço antes de invadir as ferramentas.
-              <Link href={p.href} className={cn("rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40", i === 0 ? "shrink-0" : "min-w-0 shrink-[2]")}>
+              <Link href={p.href} className={cn("rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40", i === 0 ? "shrink-0" : "min-w-0 shrink-[2] truncate")}>
                 {p.nome}
               </Link>
             ) : (
               // A última migalha troca com um leve deslize quando a tela muda.
               <motion.span key={pathname} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={suave}
-                className={cn("min-w-8 truncate px-1 py-0.5", ultima ? "font-medium text-foreground" : "text-muted-foreground")}>
+                className={cn("min-w-8 truncate px-1 py-0.5", ultima && sub === "reuniao" && "shrink-0", ultima ? "font-medium text-foreground" : "text-muted-foreground")}>
                 {p.nome}
               </motion.span>
             )}

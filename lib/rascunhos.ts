@@ -1,3 +1,4 @@
+import { type Reuniao, normalizarReuniao } from "./reuniao";
 import { Registro, STATUS, Status, agoraISO, normalizarRegistro } from "./tipos";
 
 // Rascunhos do editor de registro (só no cliente).
@@ -123,4 +124,33 @@ export function listarRascunhos(tarefaId: string): Rascunho[] {
     }
   } catch {}
   return out.sort((a, b) => b.salvoEm.localeCompare(a.salvoEm));
+}
+
+// ---------- modo reunião ----------
+// O que está sendo capturado numa reunião (anotações, decisões, passos) fica aqui a cada mudança,
+// até virar registro na pasta de dados. Uma reunião por tarefa.
+
+const PREFIXO_REUNIAO = "nexo:reuniao:";
+
+export function lerReuniao(tarefaId: string): Reuniao | null {
+  try {
+    return normalizarReuniao(JSON.parse(localStorage.getItem(PREFIXO_REUNIAO + tarefaId) || "null"));
+  } catch {
+    return null;
+  }
+}
+
+export function gravarReuniao(tarefaId: string, r: Reuniao): boolean {
+  try {
+    localStorage.setItem(PREFIXO_REUNIAO + tarefaId, JSON.stringify(r));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function apagarReuniao(tarefaId: string) {
+  try {
+    localStorage.removeItem(PREFIXO_REUNIAO + tarefaId);
+  } catch {}
 }

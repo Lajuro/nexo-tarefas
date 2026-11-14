@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, History, Pencil, Plus, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
+import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, History, Pencil, Plus, Presentation, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { BotaoMenuTarefa, useAcoesTarefa } from "@/components/MenuTarefa";
@@ -25,7 +25,8 @@ import { ehFocoHoje, semRegistro } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
-import { Rascunho, apagarRascunho, listarRascunhos } from "@/lib/rascunhos";
+import { Rascunho, apagarRascunho, apagarReuniao, lerReuniao, listarRascunhos } from "@/lib/rascunhos";
+import { type Reuniao, reuniaoTemConteudo } from "@/lib/reuniao";
 import { Registro, TipoRegistro, agoraISO, formatarData, formatarDataHora, ordenarRegistros, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,13 @@ function Conteudo() {
   useEffect(() => {
     if (!editor.aberto) setRascunhos(listarRascunhos(id));
   }, [editor.aberto, id]);
+
+  // Reunião começada no modo reunião e ainda não salva (fica no navegador até virar registro).
+  const [reuniao, setReuniao] = useState<Reuniao | null>(null);
+  useEffect(() => {
+    const x = lerReuniao(id);
+    setReuniao(x && (reuniaoTemConteudo(x) || x.inicio > 0) ? x : null);
+  }, [id]);
 
   const tarefa = dados?.tarefas.find((t) => t.id === id);
   const cat = dados?.categorias.items.find((c) => c.id === tarefa?.categoriaId);
@@ -183,6 +191,13 @@ function Conteudo() {
                 </Button>
               </Dica>
             )}
+            {ehAberta && (
+              <Dica texto="Pauta, anotações, decisões e ata numa tela só">
+                <Button variant="outline" asChild data-slot="modo-reuniao">
+                  <Link href={`/tarefas/${tarefa.id}/reuniao`}><Presentation /> Modo reunião</Link>
+                </Button>
+              </Dica>
+            )}
             <Button variant="outline" onClick={() => setEditando(true)}><Pencil /> Editar</Button>
             <BotaoMenuTarefa tarefa={tarefa} semAbrir aoExcluir={() => router.push("/tarefas")} />
           </>
@@ -251,6 +266,30 @@ function Conteudo() {
               </div>
             </div>
 
+            {reuniao && (
+              <div data-slot="reuniao-aviso" role="status"
+                className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-info/30 bg-info/10 px-3.5 py-2.5 text-[13px] leading-snug">
+                <Presentation className="size-4 shrink-0 text-info" />
+                <span className="min-w-0 flex-1 basis-56">
+                  Reunião ainda não salva{reuniao.titulo ? ` (“${reuniao.titulo}”)` : ""}
+                  {reuniao.inicio > 0 ? `, começada em ${formatarDataHora(new Date(reuniao.inicio).toISOString())}` : ""}.
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" asChild><Link href={`/tarefas/${tarefa.id}/reuniao`}>Continuar</Link></Button>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    const ok = await confirmar({
+                      titulo: "Descartar esta reunião?",
+                      descricao: "As anotações, decisões e passos capturados no modo reunião se perdem.",
+                      confirmar: "Descartar",
+                      perigo: true,
+                    });
+                    if (!ok) return;
+                    apagarReuniao(tarefa.id);
+                    setReuniao(null);
+                  }}>Descartar</Button>
+                </div>
+              </div>
+            )}
             {rascunhos.map((x) => {
               const reg = x.registroId ? tarefa.registros.find((r) => r.id === x.registroId) : null;
               if (x.registroId && !reg) return null; // o registro saiu da timeline; o rascunho não tem onde entrar

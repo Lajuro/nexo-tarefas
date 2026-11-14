@@ -773,6 +773,66 @@ async function main() {
     await pg.locator("[data-slot=tempo-em-foco]").waitFor();
   });
 
+  // ---------- modo reunião ----------
+  await etapa("modo reunião: pauta, captura, rascunho que sobrevive ao F5, salvar e ata", async () => {
+    const antes = (await dados()).tarefas.find((t) => t.id === idDoModelo);
+    const abertos = antes.registros.flatMap((r) => r.proximosPassos.filter((p) => !p.feito).map((p) => `${r.id}:${p.id}`));
+    afirmar(abertos.length > 0, "a tarefa do modelo deveria ter passos em aberto para a pauta");
+    await pg.locator("[data-slot=modo-reuniao]").click();
+    await pg.locator("[data-slot=reuniao]").waitFor();
+    afirmar((await pg.locator("[data-slot=pauta] [data-slot=passo]").count()) === abertos.length, "a pauta não trouxe os passos em aberto da tarefa");
+    afirmar(await pg.locator("[data-slot=encerrar-reuniao]").isDisabled(), "reunião em branco não deveria poder ser salva");
+    await pg.getByLabel("Título da reunião").fill("Alinhamento do onboarding");
+    await pg.locator("[data-slot=comecar-reuniao]").click();
+    await pg.locator("[data-slot=relogio-reuniao]").waitFor();
+    await pg.locator("[data-slot=notas-da-reuniao] [data-slot=editor-rico-conteudo]").click();
+    await pg.keyboard.type("Passamos pelo cronograma.");
+    await pg.keyboard.press("Alt+1");
+    await pg.keyboard.type("Começar pelo squad de Pagamentos");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=decisao-capturada]").waitFor();
+    await pg.keyboard.press("Alt+2");
+    await pg.keyboard.type("Enviar o convite da próxima conversa");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=passo-capturado]").waitFor();
+    await pg.getByLabel("Responsável pelo passo").fill("Marina");
+    await pg.locator("[data-slot=pauta] [data-slot=passo] button[role=checkbox]").first().click();
+    // nada vai para a tarefa antes de encerrar
+    afirmar((await dados()).tarefas.find((t) => t.id === idDoModelo).registros.length === antes.registros.length, "a reunião gravou na tarefa antes de ser encerrada");
+    // F5 no meio da reunião: tudo volta
+    await pg.reload();
+    await pg.locator("[data-slot=passo-capturado]").waitFor();
+    afirmar((await pg.getByLabel("Título da reunião").inputValue()) === "Alinhamento do onboarding", "o título da reunião se perdeu no F5");
+    afirmar((await pg.locator("[data-slot=decisao-capturada]").count()) === 1, "a decisão capturada se perdeu no F5");
+    afirmar((await pg.locator("[data-slot=notas-da-reuniao]").innerText()).includes("Passamos pelo cronograma."), "as anotações da reunião se perderam no F5");
+    afirmar((await pg.locator("[data-slot=pauta] [data-slot=passo][data-feito]").count()) === 1, "o passo marcado como resolvido se perdeu no F5");
+    await pg.locator("[data-slot=relogio-reuniao]").waitFor();
+    // sair da tela também não perde: a tarefa avisa e leva de volta
+    await pg.goto(`${B}/tarefas/${idDoModelo}`);
+    await pg.locator("[data-slot=reuniao-aviso]").getByRole("link", { name: "Continuar" }).click();
+    await pg.locator("[data-slot=reuniao]").waitFor();
+    // o que ficou digitado sem Enter também entra
+    await pg.locator("[data-slot=novo-passo]").fill("Revisar os acessos");
+    await pg.locator("[data-slot=encerrar-reuniao]").click();
+    const ata = await pg.locator("[data-slot=ata]").innerText();
+    for (const trecho of ["Ata: Alinhamento do onboarding", "Decisões:", "- Começar pelo squad de Pagamentos", "- Enviar o convite da próxima conversa (responsável: Marina)", "- Revisar os acessos", "Pendências resolvidas:", "Passamos pelo cronograma."])
+      afirmar(ata.includes(trecho), `a ata não tem "${trecho}":\n${ata}`);
+    const depois = (await dados()).tarefas.find((t) => t.id === idDoModelo);
+    const reg = depois.registros.at(-1);
+    afirmar(reg.tipo === "reuniao" && reg.titulo === "Alinhamento do onboarding" && /^\d\d:\d\d$/.test(reg.hora || ""), "a reunião não virou registro de reunião com hora");
+    afirmar(reg.decisoes === "- Começar pelo squad de Pagamentos", "as decisões não foram para o registro");
+    afirmar(reg.proximosPassos.length === 2 && reg.proximosPassos[0].responsavel === "Marina" && reg.proximosPassos.every((p) => !p.feito), "os próximos passos não foram para o registro");
+    afirmar(reg.anotacoes.includes("Passamos pelo cronograma."), "as anotações não foram para o registro");
+    const feitos = depois.registros.flatMap((r) => r.proximosPassos.filter((p) => p.feito).map((p) => `${r.id}:${p.id}`));
+    afirmar(abertos.filter((k) => feitos.includes(k)).length === 1, "o passo resolvido na reunião não foi concluído (ou concluiu mais de um)");
+    afirmar((await pg.evaluate((id) => localStorage.getItem("nexo:reuniao:" + id), idDoModelo)) === null, "o rascunho da reunião ficou no navegador depois de salvar");
+    await pg.locator("[data-slot=copiar-ata]").click();
+    afirmar((await pg.evaluate(() => navigator.clipboard.readText())).startsWith("Ata: Alinhamento do onboarding"), "a ata não foi para a área de transferência");
+    await pg.getByRole("link", { name: "Ver na linha do tempo" }).click();
+    await pg.locator("[data-slot=registro]", { hasText: "Alinhamento do onboarding" }).first().waitFor();
+    afirmar((await pg.locator("[data-slot=reuniao-aviso]").count()) === 0, "o aviso de reunião não salva continuou depois de salvar");
+  });
+
   await etapa("diário mostra o que aconteceu hoje", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();
     await pg.keyboard.press("g");

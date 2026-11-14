@@ -77,6 +77,16 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Modo reunião (2.12)
+
+Na página da tarefa, **Modo reunião** abre uma tela só para a conversa:
+
+- **Antes**: a pauta se monta sozinha com as pendências da tarefa, as últimas decisões, onde a conversa parou e, ao informar os participantes, o que está com cada um em outras frentes. "Copiar" gera a pauta em texto para mandar antes.
+- **Durante**: anote solto no editor e capture decisões (`Alt 1`) e próximos passos (`Alt 2`, com responsável e prazo) sem tirar a mão do teclado. Marque na pauta as pendências que forem resolvidas. "Começar" liga o relógio.
+- **Depois**: "Encerrar e salvar" (`Ctrl Enter`) grava a reunião na linha do tempo e mostra a **ata** pronta para copiar, montada só com o que você escreveu.
+
+Tudo o que é digitado fica guardado no navegador a cada mudança: F5, fechar a janela ou sair da tela não perdem nada, e a tarefa avisa que há uma reunião esperando para ser salva.
+
 ## Páginas de conhecimento (2.11)
 
 - **Páginas** (`G` depois `A`): para o que não é tarefa nem reunião, mas vale guardar. Um processo, um passo a passo, quem resolve o quê. Usam o mesmo editor das notas e gravam sozinhas.
