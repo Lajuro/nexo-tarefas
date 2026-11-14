@@ -28,6 +28,7 @@ import { abrirPersonalizar, registrarRecente, useMoldura } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
+import { Esperando } from "./Esperando";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
 
@@ -198,6 +199,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} fechar={() => setNova({ aberto: false })} />
       <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
       <MoverEJuntar />
+      <Esperando />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
       <Paleta

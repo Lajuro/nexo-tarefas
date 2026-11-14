@@ -64,6 +64,8 @@ export interface Registro {
   notaId?: string;
   /** Conhecimento que vale além desta tarefa: aparece em "Referência do assunto" na página da categoria. */
   referencia?: boolean;
+  /** Minutos de uma sessão de foco registrada (0 ou ausente = não veio de uma sessão). */
+  duracaoMin?: number;
   alteracoes?: {
     status?: Alteracao<string>;
     prioridade?: Alteracao<number>;
@@ -72,6 +74,16 @@ export interface Registro {
   criadoEm: string;
   atualizadoEm: string;
   [extra: string]: unknown;
+}
+
+/** De quem (e do quê) a tarefa está esperando retorno. Só faz sentido com status "aguardando". */
+export interface Espera {
+  quem: string;
+  oQue: string;
+  /** AAAA-MM-DD em que a espera começou. */
+  desde: string;
+  /** AAAA-MM-DD da última cobrança, se houve. */
+  cobradoEm?: string | null;
 }
 
 export interface Tarefa {
@@ -95,6 +107,8 @@ export interface Tarefa {
   focoEm?: string | null;
   /** Presa na barra lateral, para abrir com um clique. */
   fixada?: boolean;
+  /** Quem ficou de responder e o quê. Limpo quando a tarefa sai de "aguardando" (vira observação do marco). */
+  esperando?: Espera | null;
   [extra: string]: unknown;
 }
 
@@ -203,6 +217,32 @@ export interface Nota {
   [extra: string]: unknown;
 }
 
+/**
+ * Modelo de tarefa: o esqueleto de uma demanda que se repete (ex.: levar uma ferramenta para mais um squad).
+ * Criar uma tarefa a partir dele preenche o formulário e já traz os passos de sempre.
+ */
+export interface Modelo {
+  id: string; // novoId("mo")
+  nome: string;
+  /** Quando usar este modelo (aparece na lista de modelos). */
+  quando: string;
+  /** Título sugerido para a tarefa. O usuário completa (ex.: o nome do squad). */
+  titulo: string;
+  descricao: string;
+  categoriaId: string | null;
+  prioridade: number;
+  tags: string[];
+  /** Próximos passos que toda tarefa deste modelo começa tendo. */
+  passos: string[];
+  /** Prazo sugerido, em dias a partir da criação (null = sem prazo). */
+  prazoEmDias?: number | null;
+  /** Quantas tarefas já nasceram dele. */
+  usos?: number;
+  criadoEm: string;
+  atualizadoEm: string;
+  [extra: string]: unknown;
+}
+
 export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
@@ -210,6 +250,8 @@ export interface Dados {
   pessoas: Colecao<Pessoa>;
   times: Colecao<Time>;
   notas: Colecao<Nota>;
+  /** Ausente em dados lidos por código antigo: trate como vazio. */
+  modelos: Colecao<Modelo>;
   avisos: string[];
 }
 
@@ -280,6 +322,7 @@ export function normalizarRegistro(r: Partial<Registro>): Registro {
     respostaIABruta: str(r.respostaIABruta),
     notaId: str(r.notaId),
     referencia: Boolean(r.referencia),
+    duracaoMin: Number.isFinite(Number(r.duracaoMin)) ? Math.min(24 * 60, Math.max(0, Math.round(Number(r.duracaoMin)))) : 0,
     criadoEm: str(r.criadoEm) || agoraISO(),
     atualizadoEm: str(r.atualizadoEm) || agoraISO(),
   };
@@ -307,6 +350,46 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     lembrarEm: typeof t.lembrarEm === "string" && t.lembrarEm ? t.lembrarEm : null,
     focoEm: typeof t.focoEm === "string" && t.focoEm ? t.focoEm : null,
     fixada: t.fixada === true,
+    esperando: normalizarEspera(t.esperando),
+  };
+}
+
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Espera sem "quem" e sem "o quê" não diz nada: vira null. */
+export function normalizarEspera(e: unknown): Espera | null {
+  if (!e || typeof e !== "object") return null;
+  const x = e as Partial<Espera>;
+  const quem = str(x.quem).trim().slice(0, 120);
+  const oQue = str(x.oQue).trim().slice(0, 300);
+  if (!quem && !oQue) return null;
+  return {
+    ...x,
+    quem,
+    oQue,
+    desde: DATA_ISO.test(str(x.desde)) ? str(x.desde) : hojeISO(),
+    cobradoEm: DATA_ISO.test(str(x.cobradoEm)) ? str(x.cobradoEm) : null,
+  };
+}
+
+export function normalizarModelo(m: Partial<Modelo>): Modelo {
+  const prio = Number(m.prioridade);
+  const dias = Number(m.prazoEmDias);
+  return {
+    ...m,
+    id: str(m.id) || novoId("mo"),
+    nome: str(m.nome, "Modelo sem nome"),
+    quando: str(m.quando),
+    titulo: str(m.titulo),
+    descricao: str(m.descricao),
+    categoriaId: typeof m.categoriaId === "string" && m.categoriaId ? m.categoriaId : null,
+    prioridade: Number.isFinite(prio) ? Math.min(10, Math.max(1, Math.round(prio))) : 5,
+    tags: arrStr(m.tags),
+    passos: arrStr(m.passos).map((p) => p.trim()).filter(Boolean),
+    prazoEmDias: m.prazoEmDias != null && Number.isFinite(dias) && dias > 0 ? Math.min(3650, Math.round(dias)) : null,
+    usos: Number.isFinite(Number(m.usos)) ? Math.max(0, Math.round(Number(m.usos))) : 0,
+    criadoEm: str(m.criadoEm) || agoraISO(),
+    atualizadoEm: str(m.atualizadoEm) || agoraISO(),
   };
 }
 

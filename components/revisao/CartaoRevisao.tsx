@@ -5,6 +5,7 @@
 
 import { ReactNode } from "react";
 import { ArrowUpRight, CircleCheck, Info, OctagonAlert, Target, TriangleAlert } from "lucide-react";
+import { pedirEspera } from "@/components/Esperando";
 import { useNexo } from "@/components/Provider";
 import { BotaoMenuTarefa, MenuContextoTarefa } from "@/components/MenuTarefa";
 import { useLembretes } from "@/components/useLembretes";
@@ -183,7 +184,10 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
 
           <aside data-slot="decisoes-revisao" className="flex shrink-0 flex-col gap-3.5 border-t bg-muted/30 px-5 py-4 @2xl:w-[304px] @2xl:border-t-0 @2xl:border-l">
             <Campo rotulo="Status" className="flex-none">
-              <div><SeletorStatus status={t.status} aoMudar={(s) => atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x))} /></div>
+              <div><SeletorStatus status={t.status} aoMudar={async (s) => {
+                const ok = await atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x));
+                if (ok && s === "aguardando" && t.status !== "aguardando" && !t.esperando) pedirEspera(t.id);
+              }} /></div>
             </Campo>
             <Campo rotulo="Prioridade" className="flex-none" lado={<span className="text-[11px] text-muted-foreground tabular-nums">{t.prioridade} de 10</span>}>
               <SeletorPrioridade valor={t.prioridade} aoMudar={(p) => p !== t.prioridade && atualizarTarefa(t.id, (x) => ({ ...x, prioridade: p }))} />

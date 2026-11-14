@@ -5,7 +5,7 @@ import { toast as sonner } from "sonner";
 import { useHoje } from "./useHoje";
 import { definirMeusNomes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
-import { Categoria, Dados, EstadoApp, LinkDoc, Nota, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
+import { Categoria, Dados, EstadoApp, LinkDoc, Modelo, Nota, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
@@ -22,6 +22,7 @@ interface Ctx {
   salvarPessoas: (fn: (items: Pessoa[]) => Pessoa[]) => Promise<boolean>;
   salvarTimes: (fn: (items: Time[]) => Time[]) => Promise<boolean>;
   salvarNotas: (fn: (items: Nota[]) => Nota[]) => Promise<boolean>;
+  salvarModelos: (fn: (items: Modelo[]) => Modelo[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
@@ -194,11 +195,12 @@ export function Provider({ children }: { children: ReactNode }) {
   );
 
   const salvarColecao = useCallback(
-    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas", fn: (items: T[]) => T[]) =>
+    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas" | "modelos", fn: (items: T[]) => T[]) =>
       enfileirar(nome, async () => {
         const d = ref.current;
         if (!d) return false;
-        const col = d[nome] as unknown as { rev: number; items: T[] };
+        // coleção que o servidor ainda não mandou (dados lidos antes de ela existir) vale como vazia
+        const col = (d[nome] ?? { rev: 0, items: [] }) as unknown as { rev: number; items: T[] };
         if (col.rev < 0) {
           toast(`O arquivo ${nome}.json não pôde ser lido. Corrija antes de editar.`, "erro");
           return false;
@@ -243,6 +245,11 @@ export function Provider({ children }: { children: ReactNode }) {
     [salvarColecao],
   );
 
+  const salvarModelos = useCallback(
+    (fn: (items: Modelo[]) => Modelo[]) => salvarColecao<Modelo>("modelos", fn),
+    [salvarColecao],
+  );
+
   const enviarArquivo = useCallback(
     async (f: File) => {
       const fd = new FormData();
@@ -283,7 +290,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, enviarArquivo, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

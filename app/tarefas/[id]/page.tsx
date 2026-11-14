@@ -15,6 +15,7 @@ import { Contador, IconeTipo, Pagina, Vazio } from "@/components/comum";
 import { SeloCopilot } from "@/components/tarefa/Copilot";
 import { Lateral } from "@/components/tarefa/Lateral";
 import { Propriedades } from "@/components/tarefa/Propriedades";
+import { FaixaEspera } from "@/components/Esperando";
 import { ItensNovoRegistro, Timeline } from "@/components/tarefa/Timeline";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
@@ -196,6 +197,8 @@ function Conteudo() {
             {tarefa.descricao && (
               <p data-slot="tarefa-descricao" className="mb-4 max-w-[78ch] text-sm leading-relaxed text-muted-foreground texto-pre">{tarefa.descricao}</p>
             )}
+
+            <FaixaEspera tarefa={tarefa} className="mb-4" />
 
             <section data-slot="copilot" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-primary/20 bg-primary/[0.035] px-3.5 py-2.5 dark:bg-primary/[0.07]">
               <SeloCopilot />

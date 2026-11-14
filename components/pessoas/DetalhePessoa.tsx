@@ -12,6 +12,7 @@ import {
   UserRoundMinus, UserRoundPlus, UserRoundX, UsersRound, X,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { FaixaEspera } from "@/components/Esperando";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import {
   AvatarPessoa, CatTag, ChipPessoa, Estatistica, Etiqueta, IconeStatus, IconeTipo, Pagina, Painel, PontoCor, TipoBadge, Vazio,
@@ -50,6 +51,11 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
     () => entrada.tarefaIds.map((id) => dados!.tarefas.find((t) => t.id === id)).filter((t): t is NonNullable<typeof t> => !!t),
     [entrada, dados],
   );
+  // Tarefas em "aguardando" em que é desta pessoa que se espera retorno (pelo nome ou por um apelido).
+  const esperandoDela = useMemo(() => {
+    const chaves = new Set([chaveNome(nome), ...(p ? chavesDaPessoa(p) : [])]);
+    return dados!.tarefas.filter((t) => t.status === "aguardando" && !!t.esperando?.quem && chaves.has(chaveNome(t.esperando.quem)));
+  }, [dados, nome, p]);
   const categoria = (id: string | null) => dados!.categorias.items.find((c) => c.id === id);
   const ativas = useMemo(() => (dados!.pessoas.items ?? []).filter((x) => !x.arquivada), [dados]);
   const parecidas = useMemo(() => (p ? [] : pessoasParecidas(nome, ativas)), [p, nome, ativas]);
@@ -187,6 +193,19 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
               <ListaPassos passos={entrada.passosAbertos} />
             )}
           </Painel>
+
+          {esperandoDela.length > 0 && (
+            <Painel titulo={`Você espera retorno de ${nome.split(" ")[0]}`} icone={<Hourglass />} contagem={esperandoDela.length} corpoClassName="flex flex-col gap-2 p-2">
+              {esperandoDela.map((t) => (
+                <div key={t.id} data-slot="espera-da-pessoa" className="flex flex-col gap-1">
+                  <Link href={`/tarefas/${t.id}`} className="w-fit max-w-full truncate rounded-sm px-1 text-[13px] font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+                    {t.titulo}
+                  </Link>
+                  <FaixaEspera tarefa={t} />
+                </div>
+              ))}
+            </Painel>
+          )}
 
           {tarefas.length > 0 && (
             <Painel titulo="Tarefas em comum" icone={<ListTodo />} contagem={tarefas.length} corpoClassName="p-1.5">

@@ -2,25 +2,68 @@
 //   atualizarTarefa(t.id, (x) => comFoco(x, true))
 // Assim toda tela muda a tarefa do mesmo jeito (e os marcos da timeline nunca são esquecidos).
 
-import { Registro, Status, Tarefa, agoraISO, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
+import { Registro, Status, Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
 
 /** Muda o status e registra um marco na timeline (o marco de "concluida" é o card verde do fim). */
 export function aplicarStatus(t: Tarefa, novo: Status, anterior: Tarefa = t, obs = ""): Tarefa {
   if (anterior.status === novo) return t;
   const fim = novo === "concluida" || novo === "cancelada";
+  // Saiu de "aguardando": de quem se esperava deixa de valer, mas fica escrito no marco para a história não se perder.
+  const espera = novo !== "aguardando" ? t.esperando : null;
+  const notaDaEspera = espera
+    ? `Estava esperando ${[espera.quem, espera.oQue].filter(Boolean).join(": ")} (desde ${formatarData(espera.desde, false)}${espera.cobradoEm ? `, cobrado em ${formatarData(espera.cobradoEm, false)}` : ""}).`
+    : "";
   return {
     ...t,
     status: novo,
     concluidaEm: fim ? agoraISO() : null,
     focoEm: fim ? null : t.focoEm,
+    esperando: novo === "aguardando" ? t.esperando ?? null : null,
     registros: [
       ...t.registros,
       normalizarRegistro({
         tipo: "marco",
         data: hojeISO(),
         titulo: nomeStatus(novo),
-        anotacoes: obs,
+        anotacoes: [obs, notaDaEspera].filter(Boolean).join("\n"),
         alteracoes: { status: { de: anterior.status, para: novo } },
+      }),
+    ],
+  };
+}
+
+/** Diz de quem (e do quê) a tarefa está esperando. Sem os dois, limpa. Mantém a data em que a espera começou. */
+export function comEspera(t: Tarefa, espera: { quem: string; oQue: string } | null): Tarefa {
+  const quem = espera?.quem.trim() ?? "";
+  const oQue = espera?.oQue.trim() ?? "";
+  if (!quem && !oQue) return { ...t, esperando: null };
+  const mesma = t.esperando && t.esperando.quem === quem && t.esperando.oQue === oQue;
+  return {
+    ...t,
+    esperando: {
+      ...t.esperando,
+      quem,
+      oQue,
+      desde: t.esperando?.desde ?? hojeISO(),
+      // mudou quem ou o quê: a cobrança antiga era de outra coisa
+      cobradoEm: mesma ? t.esperando?.cobradoEm ?? null : null,
+    },
+  };
+}
+
+/** "Cobrei hoje": anota na timeline e zera a contagem de dias sem retorno. */
+export function comCobranca(t: Tarefa): Tarefa {
+  const e = t.esperando;
+  return {
+    ...t,
+    esperando: e ? { ...e, cobradoEm: hojeISO() } : e,
+    registros: [
+      ...t.registros,
+      normalizarRegistro({
+        tipo: "atividade",
+        data: hojeISO(),
+        titulo: e?.quem ? `Cobrei ${e.quem}` : "Cobrei o retorno",
+        anotacoes: e?.oQue ? `Sobre: ${e.oQue}` : "",
       }),
     ],
   };

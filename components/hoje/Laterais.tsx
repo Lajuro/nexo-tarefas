@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
-import { CircleCheck, ListChecks, NotebookPen, TrendingUp } from "lucide-react";
+import { CircleCheck, Copy, ListChecks, MessageSquareReply, NotebookPen, TrendingUp } from "lucide-react";
+import { useCobranca } from "@/components/Esperando";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { IconeStatus, NumeroAnimado, Painel } from "@/components/comum";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/diversos";
+import { Dica } from "@/components/ui/popover";
+import { diasEsperando, resumoEspera } from "@/lib/espera";
 import { LIMITES, ResumoDia, dataLocal, diasSemAtividade } from "@/lib/lembretes";
 import { Tarefa, formatarData, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -71,8 +75,48 @@ function Marcador({ icone, valor, rotulo }: { icone: ReactNode; valor: number; r
 // ---------- Listas compactas (aguardando retorno, bloqueadas e paradas) ----------
 
 function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) {
-  const dias = diasSemAtividade(t);
+  const { copiar, cobrei } = useCobranca();
+  // Com "esperando quem" preenchido, a conta é desde a última cobrança; sem, desde a última novidade.
+  const espera = t.status === "aguardando" ? resumoEspera(t) : "";
+  const dias = (espera ? diasEsperando(t) : null) ?? diasSemAtividade(t);
   const passou = dias >= limite;
+  if (espera)
+    return (
+      <div data-slot="linha-espera" className="group/esp relative">
+        <MenuContextoTarefa tarefa={t}>
+          <Link
+            href={`/tarefas/${t.id}`}
+            data-slot="linha-tarefa"
+            className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors outline-none hover:bg-accent/60 focus-visible:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/35"
+          >
+            <IconeStatus status={t.status} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
+              <span className="block truncate text-[11px] text-muted-foreground">
+                <span className="font-medium text-foreground/80">{t.esperando?.quem || "Esperando"}</span>
+                {t.esperando?.oQue ? `${t.esperando.quem ? ": " : " "}${t.esperando.oQue}` : ""}
+              </span>
+            </span>
+            <span
+              className={cn(
+                "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums transition-opacity group-focus-within/esp:opacity-0 group-hover/esp:opacity-0",
+                passou ? "bg-alerta/16 text-alerta" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {dias === 0 ? "hoje" : `${dias}d`}
+            </span>
+          </Link>
+        </MenuContextoTarefa>
+        <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5 rounded-md bg-card opacity-0 shadow-xs ring-1 ring-border transition-opacity group-focus-within/esp:opacity-100 group-hover/esp:opacity-100">
+          <Dica texto="Copiar mensagem de cobrança">
+            <Button variant="ghost" size="icon-sm" aria-label={`Copiar mensagem de cobrança de “${t.titulo}”`} onClick={() => copiar(t)}><Copy /></Button>
+          </Dica>
+          <Dica texto="Cobrei hoje: anota na linha do tempo e recomeça a contagem">
+            <Button variant="ghost" size="icon-sm" aria-label={`Marcar que cobrei “${t.titulo}” hoje`} onClick={() => cobrei(t)}><MessageSquareReply /></Button>
+          </Dica>
+        </div>
+      </div>
+    );
   return (
     <MenuContextoTarefa tarefa={t}>
       <Link

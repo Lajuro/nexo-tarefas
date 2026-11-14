@@ -6,11 +6,12 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Merge, Pin, PinOff, Target, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, Merge, MessageSquareReply, Pin, PinOff, Target, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
 import { IconeStatus, copiarTexto } from "./comum";
+import { pedirEspera, useCobranca } from "@/components/Esperando";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
@@ -25,7 +26,12 @@ export function useAcoesTarefa() {
   const router = useRouter();
   return {
     abrir: (t: Tarefa) => router.push(`/tarefas/${t.id}`),
-    mudarStatus: (t: Tarefa, s: Status) => atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x)),
+    mudarStatus: async (t: Tarefa, s: Status) => {
+      const ok = await atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x));
+      // Foi para "aguardando" sem dizer de quem: é a hora em que isso está fresco na cabeça.
+      if (ok && s === "aguardando" && t.status !== "aguardando" && !t.esperando) pedirEspera(t.id);
+      return ok;
+    },
     mudarPrioridade: (t: Tarefa, p: number) => atualizarTarefa(t.id, (x) => ({ ...x, prioridade: p })),
     alternarFoco: async (t: Tarefa) => {
       const ligar = !ehFocoHoje(t);
@@ -72,6 +78,7 @@ const KIT_CONTEXTO = {
 
 function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: boolean; aoExcluir?: () => void }) {
   const a = useAcoesTarefa();
+  const cobranca = useCobranca();
   const { toast } = useNexo();
   const hoje = hojeISO();
   const foco = ehFocoHoje(t);
@@ -114,6 +121,15 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
           </k.RadioGroup>
         </k.SubContent>
       </k.Sub>
+      {t.status === "aguardando" && (
+        <>
+          <k.Item onSelect={() => pedirEspera(t.id)}>
+            <Hourglass /> {t.esperando ? "Esperando: alterar..." : "Esperando quem?..."}
+          </k.Item>
+          {t.esperando && <k.Item onSelect={() => cobranca.copiar(t)}><Copy /> Copiar mensagem de cobrança</k.Item>}
+          {t.esperando && <k.Item onSelect={() => cobranca.cobrei(t)}><MessageSquareReply /> Cobrei hoje</k.Item>}
+        </>
+      )}
       {aberta(t) && (
         <k.Sub>
           <k.SubTrigger><AlarmClock /> Lembrar de voltar{t.lembrarEm ? ` (${formatarData(t.lembrarEm, false)})` : ""}</k.SubTrigger>

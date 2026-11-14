@@ -183,7 +183,8 @@ export function gerarLembretes(tarefas: Tarefa[]): Lembrete[] {
         titulo: `Bloqueada há ${dias(parado)} sem novidade`, detalhe: "Vale escalar ou procurar outro caminho." });
     else if (t.status === "aguardando" && parado >= LIMITES.aguardando)
       out.push({ ...base, id: `aguardando:${t.id}`, tipo: "aguardando", gravidade: "atencao", dias: parado,
-        titulo: `Aguardando retorno há ${dias(parado)}`, detalhe: "Hora de cobrar quem ficou de responder." });
+        titulo: t.esperando?.quem ? `Sem retorno de ${t.esperando.quem} há ${dias(parado)}` : `Aguardando retorno há ${dias(parado)}`,
+        detalhe: t.esperando?.oQue ? `Esperando: ${t.esperando.oQue}. Hora de cobrar.` : "Hora de cobrar quem ficou de responder." });
     else if ((t.status === "a_fazer" || t.status === "em_andamento") && parado >= LIMITES.parada)
       out.push({ ...base, id: `parada:${t.id}`, tipo: "parada", gravidade: "info", dias: parado,
         titulo: `Sem movimento há ${dias(parado)}`, detalhe: "Registre o que aconteceu ou reveja a prioridade." });
