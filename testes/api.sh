@@ -200,6 +200,33 @@ checa "histórico: versão que não existe" 'não existe' "$(curl -s "$B/api/pag
 curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[],\"revEsperada\":$((RP+7))}" >/dev/null
 checa "histórico: excluir a página não apaga as versões" '2' "$(ls "$TMP/dados/_historico/paginas/pgh1" | wc -l | tr -d ' ')"
 
+# ---------- jornada: rotina do dia, ponto e configuração ----------
+checa "jornada: começa vazia" '"jornada":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"config","jornadaMin":480,"pausaMin":60,"padrao":{"1":[{"inicio":"08:00","fim":"10:00","titulo":"Chamados","tipo":"atividade"}]},"campoFuturo":"x"},{"id":"2026-11-16","ponto":{"entrada":"08:12","saida":"17:30","pausas":[{"inicio":"12:00","fim":"13:00"}]},"blocos":[{"id":"bl1","inicio":"14:00","fim":"15:00","titulo":"Revisar","tipo":"tarefa","tarefaId":"t1"}],"planejado":true}],"revEsperada":0}')
+checa "jornada: grava a configuração e um dia" '"rev":1' "$R"
+checa "jornada: a configuração é reconhecida pelo id" '"tipo":"config","diasDeTrabalho":[1,2,3,4,5]' "$R"
+checa "jornada: o dia é reconhecido pela data" '"tipo":"dia","data":"2026-11-16"' "$R"
+checa "jornada: preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+checa "jornada: o dia padrão fica nos sete dias da semana" '"0":[]' "$R"
+checa "jornada: vem em /api/dados" '"entrada":"08:12"' "$(curl -s $B/api/dados)"
+checa "jornada: rev errada dá conflito" 'mudou em outro lugar' "$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[],"revEsperada":0}')"
+checa "jornada: recusa id que não é data" 'Dia inválido' "$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"../x"}],"revEsperada":1}')"
+checa "jornada: recusa data que não existe" 'Dia inválido' "$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"2026-02-30"}],"revEsperada":1}')"
+checa "jornada: recusa item sem id" 'Dia inválido' "$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"data":"2026-11-16"}],"revEsperada":1}')"
+checa "jornada: recusa dia repetido" 'ID repetido' "$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"2026-11-16"},{"id":"2026-11-16"}],"revEsperada":1}')"
+R=$(curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"config"},{"id":"2026-11-16"},{"id":"2026-11-17","ponto":{"entrada":"09:00","saida":"08:00","pausas":[{"inicio":"25:00"},{"inicio":"12:00","fim":"11:00"}]},"blocos":[{"id":"../../x","inicio":"30:00","fim":"07:00","titulo":"<img src=x onerror=alert(1)>","tipo":"qualquer","tarefaId":"../../etc/passwd"}],"jornadaMin":99999}],"revEsperada":1}')
+checa "jornada: saída antes da entrada não vale" '"entrada":"09:00","saida":null' "$R"
+checa "jornada: pausa torta é descartada ou fica sem fim" '"pausas":[{"inicio":"12:00","fim":null}]' "$R"
+checa "jornada: horário torto do bloco vira um horário válido" '"inicio":"08:00","fim":"09:00"' "$R"
+checa "jornada: tipo desconhecido vira atividade, sem tarefa" '"tipo":"atividade","tarefaId":null' "$R"
+checa "jornada: id de bloco que não serve é trocado" '"id":"bl' "$R"
+checa "jornada: jornada absurda é limitada" '"jornadaMin":960' "$R"
+checa "jornada: mescla com o disco (o ponto do dia 16 continua)" '"entrada":"08:12","saida":"17:30"' "$R"
+checa "jornada: mescla com o disco (a configuração continua)" '"campoFuturo":"x"' "$R"
+curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"config"}],"revEsperada":2}' >/dev/null
+checa "jornada: dia removido vai para a lixeira" '1' "$(ls "$TMP/dados/_lixeira" | grep -c '^jornada-removidos-')"
+checa "jornada: a lixeira guarda o ponto do dia removido" '"entrada":"08:12"' "$(tr -d ' \n' < "$(ls "$TMP"/dados/_lixeira/jornada-removidos-*.json | head -1)")"
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

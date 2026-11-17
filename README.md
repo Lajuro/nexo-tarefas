@@ -77,6 +77,20 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## Rotina: o dia em blocos, a hora de sair e o banco de horas (3.5)
+
+Além das tarefas, o dia tem uma rotina. Na tela **Rotina** (`G` depois `O`):
+
+- **Planeje o dia em blocos**: clique num horário da linha do tempo e reserve aquele tempo para uma tarefa do app, para uma atividade que não é tarefa (como "Chamados") ou para uma pausa (almoço, jantar). Arraste um bloco para mudar o horário e puxe a borda de baixo para mudar a duração.
+- **Dia padrão**: monte uma vez os blocos que se repetem em cada dia da semana (os chamados da manhã, o almoço). Todo dia já nasce com eles, e o que você mudar num dia vale só para aquele dia.
+- **O app acompanha**: a barra superior mostra o bloco de agora e quanto falta, e um aviso aparece quando um bloco começa e 5 minutos antes de ele acabar.
+- **Ponto**: clique em **Entrei agora** (ou digite a hora) e o Nexo diz a que horas você sai. O padrão é 8h de trabalho + 1h de almoço, 9h no total: entrou 08:12, sai 17:12. Registre a saída e a volta da pausa e a hora de sair se ajusta. Se esquecer de registrar a pausa, ele desconta 1h nos dias de mais de 6 horas.
+- **Hora extra**: dá para planejar além do expediente. A linha "Fim do expediente", a faixa hachurada e o selo "extra" nos blocos deixam claro o que passou da jornada.
+- **Banco de horas**: saldo da semana, do mês e acumulado, com o mês dia a dia e um botão para copiar em texto. Só entra no saldo o dia com entrada e saída; dia sem registro não conta contra você.
+- **Jornada** (botão no topo): horas por dia, tamanho da pausa, dias de trabalho, saldo que você já tinha e os avisos.
+
+Esqueceu de bater o ponto? Abra o dia, clique em **Ajustar** e informe os horários. Lá também se marca folga ou feriado.
+
 ## Documentação (3.1)
 
 As **Páginas** viraram um lugar para documentar de verdade:
@@ -241,6 +255,7 @@ O app mostra uma prévia antes de gravar. Quem já existe no cadastro não é du
   notas.json              folhas do bloco de notas
   modelos.json            modelos de tarefa
   paginas.json            páginas da documentação
+  jornada.json            rotina (blocos de cada dia), ponto e a configuração da jornada
   tarefas/<id>.json       uma tarefa por arquivo, com a timeline inteira
   arquivos/AAAA/...       documentos anexados, imagens coladas, vídeos e transcrições
   markdown/*.md           versão legível de cada tarefa (gerada automaticamente)

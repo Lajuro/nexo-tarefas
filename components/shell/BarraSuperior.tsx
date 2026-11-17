@@ -17,6 +17,7 @@ import { suave } from "@/lib/animacoes";
 import { IdFerramenta, abrirPersonalizar, useMoldura } from "@/lib/moldura";
 import { cn } from "@/lib/utils";
 import { Agenda, AnotarRapido, BotaoAparencia, FocoRapido } from "./Ferramentas";
+import { FerramentaRotina } from "@/components/jornada/Ferramenta";
 import { SessaoFoco } from "./SessaoFoco";
 import { Sino } from "./Sino";
 import { nomeDaRota } from "./navegacao";
@@ -125,6 +126,7 @@ export function BarraSuperior({
           <div className="flex shrink-0 items-center gap-1.5">
             {/* só aparece com uma sessão de foco em andamento ou esperando registro */}
             <SessaoFoco />
+            <Vaga id="rotina" ocultas={ocultas}><FerramentaRotina /></Vaga>
             <Vaga id="agenda" ocultas={ocultas}><Agenda /></Vaga>
             <Vaga id="foco" ocultas={ocultas}><FocoRapido planejarDia={planejarDia} /></Vaga>
             <Vaga id="anotar" ocultas={ocultas}><AnotarRapido /></Vaga>

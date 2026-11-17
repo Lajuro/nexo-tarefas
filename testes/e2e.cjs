@@ -1247,6 +1247,180 @@ async function main() {
     await ed.getByText("Frase que não pode sumir.").waitFor();
   });
 
+  // ---------- rotina: blocos do dia, ponto, hora de sair e banco de horas ----------
+  await etapa("rotina: entrada e hora de sair, blocos, hora extra, pausa, aviso, banco de horas e dia padrão", async () => {
+    // Um navegador à parte, com o relógio na mão: o dia é fixado numa terça a sexta (para ontem também ser
+    // dia útil) e a hora anda só quando o teste manda. setFixedTime fixa a data e deixa os temporizadores
+    // e as animações andando.
+    const p2 = (n) => String(n).padStart(2, "0");
+    const base = new Date();
+    // (e nunca o dia 1º, para ontem cair no mesmo mês)
+    while (base.getDay() < 2 || base.getDay() > 5 || base.getDate() === 1) base.setDate(base.getDate() + 1);
+    const noDia = (delta) => { const d = new Date(base); d.setDate(d.getDate() + delta); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+    const hojeR = noDia(0);
+    const ontemR = noDia(-1);
+    const as = (h, m) => { const d = new Date(base); d.setHours(h, m, 0, 0); return d; };
+    const ctxR = await navegador.newContext({ viewport: { width: 1440, height: 900 }, locale: "pt-BR" });
+    await ctxR.addInitScript((v) => {
+      try {
+        localStorage.setItem("nexo:rotina", v);
+        localStorage.setItem("nexo:novidadesVistas", JSON.stringify("99.0"));
+      } catch {}
+    }, ROTINA_DESLIGADA);
+    const r = await ctxR.newPage();
+    const errosR = [];
+    r.on("pageerror", (e) => errosR.push(String(e)));
+    try {
+      await r.clock.setFixedTime(as(10, 20));
+      await r.goto(B + "/rotina");
+      await r.locator(`[data-slot=rotina][data-data="${hojeR}"]`).waitFor();
+      afirmar((await r.locator("[data-slot=painel-do-ponto]").getAttribute("data-estado")) === "sem-registro", "o dia deveria começar sem ponto");
+
+      // entrada digitada: 8h de trabalho + 1h de pausa = sai 9h depois
+      const entrei = r.getByLabel("Hora em que entrei");
+      await entrei.fill("812");
+      await entrei.press("Enter");
+      await r.locator("[data-slot=saida-prevista]", { hasText: "17:12" }).waitFor();
+      afirmar((await r.locator("[data-slot=conta-da-saida]").innerText()).includes("08:12 + 8h de trabalho + 1h de pausa (planejada)"), "a conta da hora de saída não está explicada");
+      const diaR = async () => (await dados()).jornada.items.find((x) => x.id === hojeR);
+      await ateOsDados((d) => d.jornada.items.find((x) => x.id === hojeR)?.ponto.entrada === "08:12", "a entrada não foi gravada");
+      afirmar((await diaR()).jornadaMin === 480, "a jornada do dia não foi fixada na entrada");
+
+      // blocos do dia
+      const novoBloco = async (tipo, titulo, ini, fim) => {
+        await r.locator("[data-slot=novo-bloco]").click();
+        const f = r.locator("[data-slot=bloco-form]");
+        await f.waitFor();
+        await f.getByRole("radio", { name: tipo }).click();
+        await f.locator("[data-slot=titulo-do-bloco]").fill(titulo);
+        await f.getByLabel("Início do bloco").fill(ini);
+        await f.getByLabel("Início do bloco").press("Tab");
+        await f.getByLabel("Fim do bloco").fill(fim);
+        await f.getByLabel("Fim do bloco").press("Tab");
+        await r.locator("[data-slot=salvar-bloco]").click();
+        await f.waitFor({ state: "detached" });
+        await r.locator("[data-slot=bloco]", { hasText: titulo }).first().waitFor();
+      };
+      await novoBloco("Atividade", "Chamados da manhã", "815", "10:00");
+      await novoBloco("Atividade", "Projeto do scan", "10:00", "12:00");
+      await novoBloco("Pausa", "Almoço", "12:00", "13:00");
+      await novoBloco("Atividade", "Chamados da tarde", "13:00", "16:30");
+      await novoBloco("Atividade", "Janela de mudança", "16:30", "19:00");
+      await ateOsDados((d) => d.jornada.items.find((x) => x.id === hojeR)?.blocos.length === 5, "os cinco blocos não foram gravados");
+      afirmar((await diaR()).planejado === true, "o dia não ficou com plano próprio");
+
+      // o bloco de agora, na linha do tempo e na barra superior
+      afirmar((await r.locator("[data-slot=bloco][data-agora]").innerText()).includes("Projeto do scan"), "o bloco de agora não é o das 10:00");
+      const ficha = await r.locator("[data-slot=ferramenta-rotina]").innerText();
+      afirmar(ficha.includes("Projeto do scan") && ficha.includes("1h40"), "a barra superior não mostra o bloco de agora e quanto falta: " + ficha);
+
+      // hora extra planejada: 9h45 de trabalho para 8h de jornada, e o bloco que passa do fim do expediente
+      await r.locator("[data-slot=plano-extra]", { hasText: "1h45" }).waitFor();
+      afirmar((await r.locator("[data-slot=fim-do-expediente]").innerText()).includes("17:12"), "o fim do expediente não está na linha do tempo");
+      afirmar((await r.locator("[data-slot=bloco][data-extra]").count()) === 1, "só o bloco que passa do expediente deveria estar marcado como extra");
+      afirmar((await r.locator("[data-slot=aviso-de-extra]").innerText()).includes("hora extra planejada"), "o aviso de hora extra planejada não apareceu");
+
+      // arrastar um bloco muda o horário (de 5 em 5 minutos) e não abre o formulário
+      const arrastado = r.locator("[data-slot=bloco]", { hasText: "Chamados da manhã" });
+      await arrastado.scrollIntoViewIfNeeded();
+      const cx = await arrastado.boundingBox();
+      await r.mouse.move(cx.x + cx.width / 2, cx.y + 40);
+      await r.mouse.down();
+      await r.mouse.move(cx.x + cx.width / 2, cx.y + 10, { steps: 5 });
+      await r.mouse.move(cx.x + cx.width / 2, cx.y - 20, { steps: 5 });
+      await r.mouse.up();
+      await ateOsDados((d) => {
+        const b = d.jornada.items.find((x) => x.id === hojeR)?.blocos.find((x) => x.titulo === "Chamados da manhã");
+        return b?.inicio === "07:25" && b?.fim === "09:10";
+      }, "arrastar o bloco 60 px para cima deveria levá-lo de 08:15 para 07:25");
+      afirmar((await r.locator("[data-slot=bloco-form]").count()) === 0, "arrastar um bloco não deveria abrir o formulário");
+
+      // editar um bloco pelo clique: encurta a janela, e o nome com HTML continua sendo texto
+      await r.locator("[data-slot=bloco]", { hasText: "Janela de mudança" }).click();
+      const f = r.locator("[data-slot=bloco-form]");
+      await f.waitFor();
+      await f.locator("[data-slot=titulo-do-bloco]").fill('Janela <img src=x onerror="window.__xss=3">');
+      await f.getByLabel("Fim do bloco").fill("18:00");
+      await f.getByLabel("Fim do bloco").press("Tab");
+      await r.locator("[data-slot=salvar-bloco]").click();
+      await f.waitFor({ state: "detached" });
+      await r.locator("[data-slot=plano-extra]", { hasText: "45 min" }).waitFor();
+      afirmar((await r.locator("[data-slot=linha-do-dia] img").count()) === 0 && (await r.evaluate(() => window.__xss)) === undefined, "HTML no nome do bloco foi interpretado");
+
+      // marcar um bloco como cumprido
+      const manha = r.locator("[data-slot=bloco]", { hasText: "Chamados da manhã" });
+      await manha.hover();
+      await manha.locator("[data-slot=bloco-feito]").click();
+      await r.locator("[data-slot=bloco][data-feito]", { hasText: "Chamados da manhã" }).waitFor();
+
+      // pausa de 45 minutos: a hora de saída acompanha (15 min mais cedo)
+      await r.locator("[data-slot=sair-para-pausa]").click();
+      await r.locator("[data-slot=em-pausa]").waitFor();
+      await r.clock.setFixedTime(as(11, 5));
+      await r.locator("[data-slot=voltar-da-pausa]").click();
+      await r.locator("[data-slot=saida-prevista]", { hasText: "16:57" }).waitFor();
+      afirmar((await r.locator("[data-slot=conta-da-saida]").innerText()).includes("45 min de pausa (registrada)"), "a pausa registrada não entrou na conta da saída");
+
+      // o app avisa quando um bloco começa
+      await r.clock.setFixedTime(as(12, 0));
+      await r.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await r.getByText("Hora da pausa: Almoço").waitFor();
+
+      // encerrar o dia: 17:27 − 08:12 − 45 min de pausa = 8h30, saldo de +0h30
+      await r.clock.setFixedTime(as(17, 27));
+      await r.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await r.locator("[data-slot=encerrar-o-dia]").click();
+      await r.locator("[data-slot=painel-do-ponto][data-estado=fechado]").waitFor();
+      await r.locator("[data-slot=saldo-do-dia]", { hasText: "+0h30" }).waitFor();
+      const fechado = await diaR();
+      afirmar(fechado.ponto.saida === "17:27" && fechado.ponto.pausas.length === 1 && fechado.ponto.pausas[0].fim === "11:05", "o ponto do dia não foi gravado como esperado: " + JSON.stringify(fechado.ponto));
+
+      // ontem, informado depois: 08:00 a 16:00 sem pausa registrada desconta 1h, saldo de −1h00
+      await r.getByRole("button", { name: "Dia anterior" }).click();
+      await r.locator(`[data-slot=rotina][data-data="${ontemR}"]`).waitFor();
+      await r.locator("[data-slot=ajustar-horarios]").click();
+      const aj = r.locator("[data-slot=ajustar-ponto]");
+      await aj.waitFor();
+      await aj.getByLabel("Entrada", { exact: true }).fill("0800");
+      await aj.getByLabel("Saída", { exact: true }).fill("1600");
+      await aj.getByLabel("Saída", { exact: true }).press("Tab");
+      await r.locator("[data-slot=salvar-ponto]").click();
+      await aj.waitFor({ state: "detached" });
+      await r.locator("[data-slot=saldo-do-dia]", { hasText: "−1h00" }).waitFor();
+      afirmar((await r.locator("[data-slot=ponto-trabalhado]").innerText()).includes("não registrada, descontada"), "a pausa não registrada deveria ter sido descontada");
+      await r.locator("[data-slot=saldo-da-semana]", { hasText: "−0h30" }).waitFor();
+
+      // banco de horas: o mês e o acumulado
+      await r.getByRole("radio", { name: "Banco de horas" }).click();
+      await r.locator("[data-slot=banco-de-horas]").waitFor();
+      await r.locator("[data-slot=banco-total]", { hasText: "−0h30" }).waitFor();
+      afirmar((await r.locator(`[data-slot=linha-do-banco][data-data="${ontemR}"]`).getAttribute("data-estado")) === "fechado", "ontem não aparece fechado no banco de horas");
+      await r.locator("[data-slot=copiar-banco]").click();
+
+      // dia padrão: um bloco que se repete aparece na semana que vem, e o dia de hoje (que já tem plano) não muda
+      await r.getByRole("radio", { name: "Dia", exact: true }).click();
+      await r.locator("[data-slot=abrir-dia-padrao]").click();
+      const dp = r.locator("[data-slot=dia-padrao]");
+      await dp.waitFor();
+      await r.locator("[data-slot=padrao-nova-atividade]").click();
+      await dp.locator("[data-slot=linha-do-padrao]").getByLabel("Nome do bloco").fill("Chamados de sempre");
+      await r.locator("[data-slot=salvar-dia-padrao]").click();
+      await dp.waitFor({ state: "detached" });
+      await r.goto(B + "/rotina?d=" + noDia(6));
+      await r.locator("[data-slot=selo-dia-padrao]").waitFor();
+      await r.locator("[data-slot=linha-do-dia][data-padrao] [data-slot=bloco]", { hasText: "Chamados de sempre" }).waitFor();
+      afirmar(!(await dados()).jornada.items.some((x) => x.id === noDia(6)), "ver um dia que segue o padrão não deveria gravar nada");
+      afirmar((await diaR()).blocos.length === 5, "mexer no dia padrão mudou um dia que já tinha plano próprio");
+
+      // a tela Hoje mostra o resumo do dia
+      await r.goto(B + "/");
+      await r.locator("[data-slot=cartao-da-rotina-ponto]", { hasText: "08:12 a 17:27" }).waitFor();
+      afirmar(errosR.length === 0, "erro de JavaScript na rotina: " + errosR.join(" | "));
+    } finally {
+      await ctxR.close();
+    }
+  });
+
   // ---------- perguntar ao Nexo ----------
   await etapa("perguntar: achar os trechos, copiar o prompt, colar a resposta e guardar como página", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();

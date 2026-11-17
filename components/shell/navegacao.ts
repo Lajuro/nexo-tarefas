@@ -1,5 +1,5 @@
 import {
-  BookOpenText, BookText, CalendarCheck, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, MessageCircleQuestion, NotebookPen, Radar, Settings, Shapes, Sun, Users,
+  BookOpenText, BookText, CalendarCheck, CalendarClock, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, MessageCircleQuestion, NotebookPen, Radar, Settings, Shapes, Sun, Users,
 } from "lucide-react";
 
 export interface ItemNav {
@@ -16,6 +16,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     itens: [
       { href: "/", nome: "Hoje", icone: Sun, tecla: "h" },
       { href: "/tarefas", nome: "Tarefas", icone: ListTodo, tecla: "t" },
+      { href: "/rotina", nome: "Rotina", icone: CalendarClock, tecla: "o" },
       { href: "/pendencias", nome: "Pendências", icone: CircleCheckBig, tecla: "p" },
       { href: "/notas", nome: "Notas", icone: NotebookPen, tecla: "n" },
     ],
@@ -60,6 +61,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["/"], descricao: "Buscar" },
   { teclas: ["G", "H"], descricao: "Ir para Hoje" },
   { teclas: ["G", "T"], descricao: "Ir para Tarefas" },
+  { teclas: ["G", "O"], descricao: "Ir para a Rotina (o dia em blocos, a hora de sair e o banco de horas)" },
   { teclas: ["G", "P"], descricao: "Ir para Pendências" },
   { teclas: ["G", "N"], descricao: "Ir para Notas (bloco de notas)" },
   { teclas: ["G", "A"], descricao: "Ir para Páginas (conhecimento)" },

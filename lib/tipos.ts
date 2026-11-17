@@ -336,6 +336,83 @@ export const ESTADOS_PAGINA: { id: EstadoPagina; nome: string }[] = [
   { id: "publicada", nome: "Pronta" },
 ];
 
+// ---------- jornada: a rotina do dia em blocos de horário e o ponto ----------
+
+/** "tarefa": um bloco para uma tarefa do app. "atividade": trabalho que não é tarefa (chamados, e-mails). "pausa": almoço, jantar, intervalo. */
+export type TipoDeBloco = "tarefa" | "atividade" | "pausa";
+export const TIPOS_DE_BLOCO: TipoDeBloco[] = ["tarefa", "atividade", "pausa"];
+
+/** Um bloco de horário do plano do dia. Sempre dentro do mesmo dia: o fim vem depois do início. */
+export interface BlocoDaJornada {
+  id: string;
+  /** "HH:MM" */
+  inicio: string;
+  /** "HH:MM", depois do início */
+  fim: string;
+  titulo: string;
+  tipo: TipoDeBloco;
+  tarefaId?: string | null;
+  nota?: string;
+  /** O usuário marcou que cumpriu o bloco. */
+  feito?: boolean;
+}
+
+export interface PausaDoPonto {
+  inicio: string;
+  /** null = a pausa ainda não acabou */
+  fim: string | null;
+}
+
+/** O ponto do dia: a que horas entrou, as pausas e a que horas saiu. */
+export interface PontoDoDia {
+  entrada: string | null;
+  saida: string | null;
+  pausas: PausaDoPonto[];
+}
+
+/** Um dia da jornada. O id é a própria data (AAAA-MM-DD). */
+export interface DiaDaJornada {
+  id: string;
+  tipo: "dia";
+  data: string;
+  /** false: o plano ainda é o dia padrão daquele dia da semana. true: "blocos" é o plano deste dia (mesmo vazio). */
+  planejado: boolean;
+  blocos: BlocoDaJornada[];
+  ponto: PontoDoDia;
+  /** Folga, feriado, férias: nada é esperado; o que for trabalhado conta como extra. */
+  folga: boolean;
+  /** Jornada esperada neste dia, em minutos, fixada quando a entrada é registrada (a configuração pode mudar depois). */
+  jornadaMin: number | null;
+  /** Pausa planejada neste dia, em minutos, fixada junto com a jornada. */
+  pausaMin: number | null;
+  obs: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export const ID_CONFIG_JORNADA = "config";
+
+/** A configuração da jornada e o dia padrão de cada dia da semana. Mora na mesma coleção, com o id "config". */
+export interface ConfigDaJornada {
+  id: typeof ID_CONFIG_JORNADA;
+  tipo: "config";
+  /** Minutos de trabalho por dia (padrão 480 = 8h). */
+  jornadaMin: number;
+  /** Minutos de pausa por dia (padrão 60 = 1h de almoço). */
+  pausaMin: number;
+  /** Dias da semana em que há expediente: 0 = domingo ... 6 = sábado. */
+  diasDeTrabalho: number[];
+  /** Se a pausa não for registrada num dia de mais de 6h, desconta a pausa planejada. */
+  descontarPausa: boolean;
+  /** Saldo de banco de horas que já existia antes de começar a usar o app, em minutos. */
+  saldoInicialMin: number;
+  /** O dia padrão de cada dia da semana ("0" a "6"). */
+  padrao: Record<string, BlocoDaJornada[]>;
+  atualizadoEm: string;
+}
+
+export type ItemDaJornada = DiaDaJornada | ConfigDaJornada;
+
 export interface Dados {
   tarefas: Tarefa[];
   categorias: Colecao<Categoria>;
@@ -347,6 +424,8 @@ export interface Dados {
   modelos: Colecao<Modelo>;
   /** Páginas de conhecimento. Ausente em dados lidos por código antigo: trate como vazio. */
   paginas: Colecao<Pagina>;
+  /** Rotina do dia e ponto. Ausente em dados lidos por código antigo: trate como vazio. */
+  jornada: Colecao<ItemDaJornada>;
   avisos: string[];
 }
 
@@ -486,6 +565,118 @@ export function normalizarPagina(p: Partial<Pagina>): Pagina {
     criadaEm: str(p.criadaEm) || agoraISO(),
     atualizadaEm: str(p.atualizadaEm) || agoraISO(),
   };
+}
+
+// ---------- jornada ----------
+
+const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const horaValida = (v: unknown): v is string => typeof v === "string" && HORA_VALIDA.test(v);
+const emMin = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+const emHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+/** Data de calendário que existe de verdade (2026-02-30 não vale). */
+export function dataReal(v: unknown): v is string {
+  if (typeof v !== "string" || !DATA_ISO.test(v)) return false;
+  const [a, m, d] = v.split("-").map(Number);
+  const dt = new Date(a, m - 1, d);
+  return dt.getFullYear() === a && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
+
+const inteiro = (v: unknown, padrao: number, minimo: number, maximo: number) => {
+  const n = Number(v);
+  return v != null && v !== "" && Number.isFinite(n) ? Math.min(maximo, Math.max(minimo, Math.round(n))) : padrao;
+};
+
+export function normalizarBloco(b: Partial<BlocoDaJornada>): BlocoDaJornada {
+  // horário torto não some com o bloco: volta para um horário válido, com o fim depois do início
+  let inicio = horaValida(b.inicio) ? emMin(b.inicio) : 8 * 60;
+  if (inicio > 23 * 60 + 54) inicio = 23 * 60 + 54;
+  let fim = horaValida(b.fim) ? emMin(b.fim) : inicio + 60;
+  if (fim <= inicio) fim = inicio + 60;
+  if (fim > 23 * 60 + 59) fim = 23 * 60 + 59;
+  const tipo = TIPOS_DE_BLOCO.includes(b.tipo as TipoDeBloco) ? (b.tipo as TipoDeBloco) : "atividade";
+  return {
+    ...b,
+    id: typeof b.id === "string" && ID_VALIDO.test(b.id) ? b.id : novoId("bl"),
+    inicio: emHora(inicio),
+    fim: emHora(fim),
+    titulo: str(b.titulo).trim().slice(0, 160),
+    tipo,
+    tarefaId: tipo === "tarefa" && typeof b.tarefaId === "string" && ID_VALIDO.test(b.tarefaId) ? b.tarefaId : null,
+    nota: str(b.nota).slice(0, 600),
+    feito: b.feito === true,
+  };
+}
+
+const MAX_BLOCOS = 60;
+const blocos = (v: unknown) =>
+  (Array.isArray(v) ? v : [])
+    .filter((x) => x && typeof x === "object")
+    .slice(0, MAX_BLOCOS)
+    .map((x) => normalizarBloco(x as Partial<BlocoDaJornada>))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio) || a.fim.localeCompare(b.fim));
+
+export function normalizarPonto(p: unknown): PontoDoDia {
+  const x = (p && typeof p === "object" ? p : {}) as Partial<PontoDoDia>;
+  const entrada = horaValida(x.entrada) ? x.entrada : null;
+  return {
+    ...x,
+    entrada,
+    // sem entrada não há saída; saída antes da entrada não é saída
+    saida: entrada && horaValida(x.saida) && x.saida > entrada ? x.saida : null,
+    pausas: (Array.isArray(x.pausas) ? x.pausas : [])
+      .filter((q) => q && typeof q === "object" && horaValida((q as PausaDoPonto).inicio))
+      .slice(0, 20)
+      .map((q) => {
+        const pausa = q as PausaDoPonto;
+        return { ...pausa, inicio: pausa.inicio, fim: horaValida(pausa.fim) && pausa.fim > pausa.inicio ? pausa.fim : null };
+      })
+      .sort((a, b) => a.inicio.localeCompare(b.inicio)),
+  };
+}
+
+export function normalizarConfigDaJornada(c: Partial<ConfigDaJornada> | null | undefined): ConfigDaJornada {
+  const x = (c && typeof c === "object" ? c : {}) as Partial<ConfigDaJornada>;
+  const dias = [...new Set((Array.isArray(x.diasDeTrabalho) ? x.diasDeTrabalho : [1, 2, 3, 4, 5]).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+  const padrao: Record<string, BlocoDaJornada[]> = {};
+  const bruto = (x.padrao && typeof x.padrao === "object" ? x.padrao : {}) as Record<string, unknown>;
+  for (const d of ["0", "1", "2", "3", "4", "5", "6"]) padrao[d] = blocos(bruto[d]).map((b) => ({ ...b, feito: false }));
+  return {
+    ...x,
+    id: ID_CONFIG_JORNADA,
+    tipo: "config",
+    jornadaMin: inteiro(x.jornadaMin, 480, 30, 16 * 60),
+    pausaMin: inteiro(x.pausaMin, 60, 0, 4 * 60),
+    diasDeTrabalho: dias,
+    descontarPausa: x.descontarPausa !== false,
+    saldoInicialMin: inteiro(x.saldoInicialMin, 0, -600000, 600000),
+    padrao,
+    atualizadoEm: str(x.atualizadoEm) || agoraISO(),
+  };
+}
+
+export function normalizarDiaDaJornada(d: Partial<DiaDaJornada>): DiaDaJornada {
+  const data = dataReal(d.id) ? d.id : dataReal(d.data) ? d.data : str(d.id);
+  return {
+    ...d,
+    id: str(d.id) || data,
+    tipo: "dia",
+    data,
+    planejado: d.planejado === true,
+    blocos: blocos(d.blocos),
+    ponto: normalizarPonto(d.ponto),
+    folga: d.folga === true,
+    jornadaMin: d.jornadaMin == null ? null : inteiro(d.jornadaMin, 480, 0, 16 * 60),
+    pausaMin: d.pausaMin == null ? null : inteiro(d.pausaMin, 60, 0, 4 * 60),
+    obs: str(d.obs).slice(0, 600),
+    criadoEm: str(d.criadoEm) || agoraISO(),
+    atualizadoEm: str(d.atualizadoEm) || agoraISO(),
+  };
+}
+
+/** O item de id "config" é a configuração; qualquer outro é um dia. */
+export function normalizarItemDaJornada(x: Partial<ItemDaJornada>): ItemDaJornada {
+  return x && x.id === ID_CONFIG_JORNADA ? normalizarConfigDaJornada(x as Partial<ConfigDaJornada>) : normalizarDiaDaJornada(x as Partial<DiaDaJornada>);
 }
 
 export function normalizarModelo(m: Partial<Modelo>): Modelo {

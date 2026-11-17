@@ -3,8 +3,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import {
-  Categoria, Colecao, Dados, EstadoApp, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, ID_VALIDO,
-  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarLink, normalizarModelo, normalizarNota, normalizarPagina, normalizarPessoa, normalizarTarefa,
+  Categoria, Colecao, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, ID_VALIDO,
+  agoraISO, hojeISO, slugify, normalizarCategoria, normalizarItemDaJornada, normalizarLink, normalizarModelo, normalizarNota, normalizarPagina, normalizarPessoa, normalizarTarefa,
   normalizarTime,
 } from "./tipos";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
@@ -20,6 +20,7 @@ import { tarefaParaMarkdown } from "./markdown";
   times.json             -> times, com responsáveis e membros (ausente = nenhum)
   notas.json             -> folhas do bloco de notas (ausente = nenhuma)
   modelos.json           -> modelos de tarefa (ausente = nenhum)
+  jornada.json           -> rotina do dia em blocos, ponto e a configuração da jornada (ausente = nada)
   paginas.json           -> páginas de conhecimento (ausente = nenhuma)
   tarefas/<id>.json      -> uma tarefa por arquivo, com toda a timeline dentro
   arquivos/AAAA/...      -> documentos anexados (nunca são sobrescritos)
@@ -33,10 +34,10 @@ import { tarefaParaMarkdown } from "./markdown";
 */
 
 /** Coleções gravadas como arquivo único { rev, items } na raiz da pasta de dados. */
-export const COLECOES = ["categorias", "links", "pessoas", "times", "notas", "modelos", "paginas"] as const;
+export const COLECOES = ["categorias", "links", "pessoas", "times", "notas", "modelos", "paginas", "jornada"] as const;
 export type NomeColecao = (typeof COLECOES)[number];
 /** Coleções novas: cada item precisa ter id válido (ID_VALIDO) e único para ser gravado. */
-const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times", "notas", "modelos", "paginas"];
+const COLECOES_COM_ID_ESTRITO: NomeColecao[] = ["pessoas", "times", "notas", "modelos", "paginas", "jornada"];
 
 const CONFIG_DIR = path.join(os.homedir(), ".nexo");
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
@@ -296,7 +297,8 @@ export async function lerTudo(): Promise<Dados> {
   const notas = await lerColecao<Nota>(dir, "notas", normalizarNota, avisos);
   const modelos = await lerColecao<Modelo>(dir, "modelos", normalizarModelo, avisos);
   const paginas = await lerColecao<Pagina>(dir, "paginas", normalizarPagina, avisos);
-  return { tarefas, categorias, links, pessoas, times, notas, modelos, paginas, avisos };
+  const jornada = await lerColecao<ItemDaJornada>(dir, "jornada", normalizarItemDaJornada, avisos);
+  return { tarefas, categorias, links, pessoas, times, notas, modelos, paginas, jornada, avisos };
 }
 
 async function lerColecao<T>(

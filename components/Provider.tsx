@@ -5,7 +5,7 @@ import { toast as sonner } from "sonner";
 import { useHoje } from "./useHoje";
 import { definirMeusNomes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
-import { Categoria, Dados, EstadoApp, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
+import { Categoria, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
@@ -23,6 +23,8 @@ interface Ctx {
   salvarTimes: (fn: (items: Time[]) => Time[]) => Promise<boolean>;
   salvarNotas: (fn: (items: Nota[]) => Nota[]) => Promise<boolean>;
   salvarModelos: (fn: (items: Modelo[]) => Modelo[]) => Promise<boolean>;
+  /** Rotina do dia e ponto: um item por dia (id = data) mais o item "config". Use as funções de lib/jornada.ts (comDia, comConfig). */
+  salvarJornada: (fn: (items: ItemDaJornada[]) => ItemDaJornada[]) => Promise<boolean>;
   salvarPaginas: (fn: (items: Pagina[]) => Pagina[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   /** Vídeo ou áudio: vai em pedaços para a pasta de dados, avisando o progresso (0 a 1). */
@@ -198,7 +200,7 @@ export function Provider({ children }: { children: ReactNode }) {
   );
 
   const salvarColecao = useCallback(
-    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas" | "modelos" | "paginas", fn: (items: T[]) => T[]) =>
+    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas" | "modelos" | "paginas" | "jornada", fn: (items: T[]) => T[]) =>
       enfileirar(nome, async () => {
         const d = ref.current;
         if (!d) return false;
@@ -250,6 +252,11 @@ export function Provider({ children }: { children: ReactNode }) {
 
   const salvarModelos = useCallback(
     (fn: (items: Modelo[]) => Modelo[]) => salvarColecao<Modelo>("modelos", fn),
+    [salvarColecao],
+  );
+
+  const salvarJornada = useCallback(
+    (fn: (items: ItemDaJornada[]) => ItemDaJornada[]) => salvarColecao<ItemDaJornada>("jornada", fn),
     [salvarColecao],
   );
 
@@ -319,7 +326,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
-        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

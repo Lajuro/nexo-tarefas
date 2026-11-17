@@ -17,9 +17,10 @@ export const NOME_SECAO: Record<IdSecao, { nome: string; descricao: string }> = 
 };
 
 /** Ferramentas opcionais da barra superior. O sino e a aparência ficam sempre. */
-export const FERRAMENTAS = ["agenda", "foco", "anotar", "busca", "telaCheia", "ajuda"] as const;
+export const FERRAMENTAS = ["rotina", "agenda", "foco", "anotar", "busca", "telaCheia", "ajuda"] as const;
 export type IdFerramenta = (typeof FERRAMENTAS)[number];
 export const NOME_FERRAMENTA: Record<IdFerramenta, { nome: string; descricao: string }> = {
+  rotina: { nome: "Rotina de hoje", descricao: "O bloco de agora e quanto falta, ou a hora de sair. Ao clicar, o próximo bloco e os botões do ponto." },
   agenda: { nome: "Data e agenda", descricao: "O dia e a hora. Ao clicar, os prazos das próximas duas semanas." },
   foco: { nome: "Foco de hoje", descricao: "Quantos passos do foco já saíram. Ao clicar, marca passos sem trocar de tela." },
   anotar: { nome: "Anotar rápido", descricao: "Cria uma tarefa ou uma folha do bloco de notas de qualquer tela (atalho A)." },

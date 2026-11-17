@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, Clapperboard, Component, MessageCircleQuestion, type LucideIcon, Presentation, Radar, ShieldCheck, Sparkles, Waypoints,
+  BookText, CalendarClock, Clapperboard, Component, MessageCircleQuestion, type LucideIcon, Presentation, Radar, ShieldCheck, Sparkles, Waypoints,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.4";
+export const VERSAO_NOVIDADES = "3.5";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
 
 const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string }[] = [
+  { icone: CalendarClock, titulo: "Rotina: o dia em blocos e a hora de sair", texto: "Reserve horários para tarefas, chamados e pausas, e o app avisa o que é para fazer agora. Registre a entrada e ele diz a que horas você sai, com banco de horas da semana e do mês.", href: "/rotina", rotulo: "Abrir a Rotina" },
   { icone: BookText, titulo: "Documentação de verdade", texto: "Páginas dentro de páginas, numa árvore que você arrasta. Abas, modo leitura com sumário, modelos (processo, guia, runbook) e [[ para ligar uma página à outra.", href: "/paginas", rotulo: "Abrir Páginas" },
   { icone: Component, titulo: "Componentes no texto", texto: "Destaques coloridos, blocos que abrem e fecham, código com cores e botão copiar, índice automático, arquivos anexados e cartões vivos de tarefa.", href: "/paginas", rotulo: "Digite / numa página" },
   { icone: Clapperboard, titulo: "Páginas de vídeo", texto: "A gravação com player próprio, a transcrição acompanhando o que é dito, capítulos e anotações com o instante. Clique numa fala e o vídeo vai até ela.", href: "/paginas", rotulo: "Criar uma página de vídeo" },
@@ -54,7 +55,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Documentação em árvore, componentes, páginas de vídeo com transcrição e mais.",
+          description: "Rotina do dia em blocos, hora de sair e banco de horas.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

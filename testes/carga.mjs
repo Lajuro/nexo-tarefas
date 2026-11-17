@@ -219,7 +219,7 @@ if (COM_TELAS) {
   await ctx.addInitScript((h) => {
     try {
       localStorage.setItem("nexo:rotina", JSON.stringify({ ultimoPlanejamento: h, ultimaRevisao: h, abrirSozinho: false }));
-      localStorage.setItem("nexo:novidadesVistas", JSON.stringify("3.4"));
+      localStorage.setItem("nexo:novidadesVistas", JSON.stringify("3.5"));
     } catch {}
   }, hoje);
   const pg = await ctx.newPage();

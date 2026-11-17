@@ -45,7 +45,7 @@ export interface Verificacao {
 const ALGUNS = 8;
 const alguns = (itens: string[]) => (itens.length > ALGUNS ? [...itens.slice(0, ALGUNS), `e mais ${itens.length - ALGUNS}`] : itens);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-const COLECOES_RAIZ = /^(categorias|links|pessoas|times|notas|modelos|paginas|nexo)[ ._(-].*\.json$/i;
+const COLECOES_RAIZ = /^(categorias|links|pessoas|times|notas|modelos|paginas|jornada|nexo)[ ._(-].*\.json$/i;
 const IMAGEM = /!\[[^\]]*\]\((arquivos\/[^)\s]+)\)/g;
 
 /** Todos os textos em Markdown dos dados, com um nome de onde vieram. */
@@ -113,6 +113,7 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   conferir("times", (dados.times?.items ?? []).map((x) => x.id));
   conferir("notas", (dados.notas?.items ?? []).map((x) => x.id));
   conferir("modelos", (dados.modelos?.items ?? []).map((x) => x.id));
+  conferir("jornada", (dados.jornada?.items ?? []).map((x) => x.id));
   conferir("páginas", (dados.paginas?.items ?? []).map((x) => x.id));
   for (const t of dados.tarefas) conferir(`registros de "${t.titulo}"`, t.registros.map((r) => r.id));
   if (repetidos.length)
@@ -137,6 +138,11 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   for (const p of dados.paginas?.items ?? []) if (p.categoriaId && !cats.has(p.categoriaId)) orfaos.push(`página "${p.titulo || "sem título"}": a categoria não existe`);
   for (const p of dados.paginas?.items ?? []) if (p.paiId && !paginas.has(p.paiId)) orfaos.push(`página "${p.titulo || "sem título"}": a página em que ela estava não existe mais (aparece na raiz)`);
   for (const m of dados.modelos?.items ?? []) if (m.categoriaId && !cats.has(m.categoriaId)) orfaos.push(`modelo "${m.nome}": a categoria não existe`);
+  for (const d of dados.jornada?.items ?? []) {
+    if (d.tipo !== "dia") continue;
+    const n = d.blocos.filter((b) => b.tarefaId && !tarefas.has(b.tarefaId)).length;
+    if (n) orfaos.push(`rotina de ${d.data}: ${plural(n, "bloco aponta", "blocos apontam")} para tarefa que não existe mais`);
+  }
   for (const n of dados.notas?.items ?? [])
     for (const g of n.gerou ?? []) if (!tarefas.has(g.tarefaId)) orfaos.push(`folha "${n.titulo || "sem título"}": gerou algo numa tarefa que ${naLixeira(g.tarefaId) ? "está na lixeira" : "não existe"}`);
   for (const t of dados.tarefas) for (const r of t.registros) if (r.notaId && !notas.has(r.notaId)) orfaos.push(`registro de ${r.data} em "${t.titulo}": a folha original não existe mais`);

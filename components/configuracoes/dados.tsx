@@ -179,7 +179,7 @@ async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   return j as T;
 }
 
-const NOME_COLECAO: Record<string, string> = { categorias: "Categorias", links: "Links e docs", pessoas: "Pessoas", times: "Times", notas: "Folhas do bloco de notas", modelos: "Modelos de tarefa", paginas: "Páginas" };
+const NOME_COLECAO: Record<string, string> = { categorias: "Categorias", links: "Links e docs", pessoas: "Pessoas", times: "Times", notas: "Folhas do bloco de notas", modelos: "Modelos de tarefa", paginas: "Páginas", jornada: "Rotina e ponto (dias)" };
 
 /** Janela que mostra o que muda antes de restaurar um backup. Só restaura com a confirmação. */
 function RestaurarBackup({ nome, fechar, aoRestaurar }: { nome: string | null; fechar: () => void; aoRestaurar: () => void }) {

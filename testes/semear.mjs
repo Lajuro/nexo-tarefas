@@ -261,6 +261,33 @@ const modelos = [
 const comModelos = await api("/api/dados");
 await api("/api/modelos", { method: "PUT", headers: J, body: JSON.stringify({ items: modelos, revEsperada: comModelos.modelos?.rev ?? 0 }) });
 
+// a rotina: um dia padrão para os dias úteis, o ponto da semana passada e o plano de hoje
+const util = (data) => { const [a, m, d] = data.split("-").map(Number); const s = new Date(a, m - 1, d).getDay(); return s >= 1 && s <= 5; };
+const padraoDoDia = () => [
+  { id: "blp1", inicio: "08:00", fim: "10:00", titulo: "Chamados", tipo: "atividade" },
+  { id: "blp2", inicio: "12:00", fim: "13:00", titulo: "Almoço", tipo: "pausa" },
+  { id: "blp3", inicio: "16:00", fim: "17:00", titulo: "Chamados", tipo: "atividade" },
+];
+const pontos = [["08:05", "17:20"], ["08:30", "17:10"], ["07:55", "18:15"], ["08:10", "16:40"], ["08:00", "17:00"], ["08:20", "17:45"], ["08:02", "17:02"]];
+const jornada = [{ id: "config", padrao: Object.fromEntries([1, 2, 3, 4, 5].map((d) => [d, padraoDoDia()])) }];
+let usados = 0;
+for (let delta = -12; delta < 0 && usados < pontos.length; delta++) {
+  if (!util(dia(delta))) continue;
+  const [entrada, saida] = pontos[usados++];
+  jornada.push({ id: dia(delta), ponto: { entrada, saida, pausas: usados % 3 === 0 ? [] : [{ inicio: "12:00", fim: usados % 2 ? "13:00" : "13:10" }] }, jornadaMin: 480, pausaMin: 60 });
+}
+jornada.push({
+  id: dia(0), planejado: true,
+  blocos: [
+    ...padraoDoDia(),
+    { id: "bld1", inicio: "10:00", fim: "12:00", titulo: "Onboarding do squad de Pagamentos", tipo: "tarefa", tarefaId: "tdemo1" },
+    { id: "bld2", inicio: "13:00", fim: "15:30", titulo: "Revisar exceções pendentes", tipo: "tarefa", tarefaId: "tdemo5" },
+    { id: "bld3", inicio: "17:00", fim: "18:30", titulo: "Janela de mudança", tipo: "atividade", nota: "Combinada com o time de plataforma" },
+  ],
+});
+const comJornada = await api("/api/dados");
+await api("/api/jornada", { method: "PUT", headers: J, body: JSON.stringify({ items: jornada, revEsperada: comJornada.jornada?.rev ?? 0 }) });
+
 console.log(
   `Cenário de demonstração criado em ${B}: ${tarefas.length} tarefas, ${cats.length} categorias, ${links.length} links, ` +
     `${pessoas.length} pessoas, ${times.length} times.`,

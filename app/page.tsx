@@ -6,6 +6,7 @@
 import { useMemo } from "react";
 import { motion } from "motion/react";
 import { Ban, CalendarX2, Hourglass, ListChecks, ListTodo, Plus, Sunrise, Target } from "lucide-react";
+import { CartaoDaRotina } from "@/components/jornada/Ferramenta";
 import { useNexo } from "@/components/Provider";
 import { abrirNovaTarefa, abrirPlanejarDia } from "@/components/Shell";
 import { useLembretes } from "@/components/useLembretes";
@@ -117,6 +118,9 @@ export default function Hoje() {
           </div>
 
           <aside className="grid min-w-0 content-start items-start gap-4 @xl:grid-cols-2 @5xl:grid-cols-1">
+            <motion.div variants={itemLista} className="min-w-0 @xl:col-span-2 @5xl:col-span-1">
+              <CartaoDaRotina />
+            </motion.div>
             <motion.div variants={itemLista} className="min-w-0 @xl:col-span-2 @5xl:col-span-1">
               <ProgressoDoDia resumo={resumo} />
             </motion.div>

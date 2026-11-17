@@ -32,6 +32,7 @@ import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
 import { ModeloForm } from "./Modelos";
 import { Celebracao } from "./jogo/Celebracao";
+import { AvisosDaJornada } from "./jornada/Ferramenta";
 import { Confete } from "./jogo/pecas";
 import { cn } from "@/lib/utils";
 import versao from "@/package.json";
@@ -207,6 +208,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <Esperando />
       <ModeloForm />
       <Celebracao />
+      <AvisosDaJornada />
       <Confete />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
