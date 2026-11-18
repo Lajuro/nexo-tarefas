@@ -1711,7 +1711,7 @@ async function main() {
     await pg.getByRole("menuitemradio", { name: "A-Z" }).click();
     await pg.locator("[data-slot=visoes-salvas]", { hasText: "Visões" }).waitFor();
     await pg.keyboard.press("Control+k");
-    await pg.keyboard.type("abertas por prazo");
+    await dialogo().locator("input").first().fill("abertas por prazo");
     await pg.locator('[data-paleta-item^="visao:"]').first().click();
     await pg.locator("[data-slot=ordenacao][data-valor=prazo]").waitFor();
     await pg.locator("[data-slot=visoes-salvas]", { hasText: "Abertas por prazo" }).waitFor();
