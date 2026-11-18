@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="4bdb849"
+MANIFEST_COMMIT="773ac63"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 442924668f100cac4080543401fd6ae11abd640f AGENTS.md
+100644 b35ec9d8b79f782ec60131f110d7113e53fe36e1 AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 72ba1fcdd990261de76a0734fb92d7dcefc0a835 README.md
+100644 7d08b57bdb1cfd0fd5917261b0de60bd0330455c README.md
 100644 d0be4fccca3425f6416821aaf169f200cb20a6b4 app/api/arquivos/route.ts
 100644 4ff6063b6877106221de3fccfdf6bbf0b8c86e17 app/api/assuntos/route.ts
 100644 83dd22f13bd37936d542901525e190cd4bec8323 app/api/backup/restaurar/route.ts
@@ -430,8 +430,8 @@ manifest() {
 100644 598b5c2091632d1bd12a4be1e754a3679a247c67 app/api/times/route.ts
 100644 941f483574db493e236276c8643bfba6ed48dd81 app/api/transcricoes/route.ts
 100644 442c39f1efe7b775ef67ecf703154f6d07091cbb app/api/verificar/route.ts
-100644 a8cce82a8bf19316da639aad05460d0a6e229e4c app/busca/page.tsx
-100644 bfd8fd347cf5dd3140c966bf89d51cc13d159297 app/categorias/[id]/page.tsx
+100644 f0d0c7ce551b342c8e6c52cdf2e5f8e065a3a7fa app/busca/page.tsx
+100644 efec4e2c8f7b36373a340eb747a2c7f2100a8080 app/categorias/[id]/page.tsx
 100644 4649c1cc859b94ceade84984d56befd9e06e122e app/categorias/page.tsx
 100644 0be5c2433d1aacccee092db7852ad66e4809fb5c app/configuracoes/page.tsx
 100644 3296de2089fb3f7952f6d4ce8180c2c1c35c52a0 app/conquistas/page.tsx
@@ -439,9 +439,9 @@ manifest() {
 100644 0cae0455e3b84501ce01ebcd2a6107313398d80b app/globals.css
 100644 314684907ed8f33fd74039c3a2d62805b56ad974 app/icon.svg
 100644 8432111675d171a9084049a3d2aeb8cbf8ef4cb2 app/layout.tsx
-100644 d8a57c1385a883c3180cad8d2b23e2160afa6d4c app/links/page.tsx
+100644 71b561584a21b5b9d29f02fa45e9c1db3e6b335e app/links/page.tsx
 100644 0d402fdde973d79361413b1b7e7ac454b0f305d1 app/manifest.ts
-100644 0ecadbf924dea5d2de25ea8f2ac1a03cf062c53f app/notas/page.tsx
+100644 aae490d97895bd4dd9f6eb56b1d33a409992dd8f app/notas/page.tsx
 100644 c72b5dc2c341bca5b9feb56ec13d79733a052909 app/page.tsx
 100644 fa1faa2e193236bf4bc66d699356959850af50b1 app/paginas/page.tsx
 100644 e467626eadf25e15385a7a6455b0fc01b31e4cbe app/pendencias/page.tsx
@@ -451,7 +451,7 @@ manifest() {
 100644 f0032e43d30e5be4bb0e5aed9e35772b9ba8e99f app/relatorios/page.tsx
 100644 8f2dddef9bd826a95c5dd02a5b7f68f0624f8253 app/revisao/page.tsx
 100644 80861d021ef33cfb3452f16d5badc730641a07b2 app/rotina/page.tsx
-100644 ee334e6c34cde7250d89ec1725edc35d42e22693 app/tarefas/[id]/page.tsx
+100644 49a9275772f8b4d9b52a628433de71d4112dc7c7 app/tarefas/[id]/page.tsx
 100644 3b08199c51f22df1c2ecdce3469b3f55b74165a4 app/tarefas/[id]/reuniao/page.tsx
 100644 492ad131935de58c05b9478c1f3519318ee94b24 app/tarefas/page.tsx
 100644 f580316fc46d384d0219ffa08ad4e6773e251b64 app/template.tsx
@@ -463,10 +463,10 @@ manifest() {
 100644 c16c63f5dc6b58707e456b3ba7e3a0342bc9879a components/Citacoes.tsx
 100644 8d1998e2d9853346bc5ecddfde317fc0de732f52 components/Esperando.tsx
 100644 494d80ed7dce5cd827d2fd775e9b0d230bdd5631 components/Impressao.tsx
-100644 d307ae68cc86c2517d2b813a3fc269c04e1497a1 components/LinkForm.tsx
+100644 41e37a36e0f7bba13ba032874b51f2412258c135 components/LinkForm.tsx
 100644 21d112e8cdb8bf99f2caae786434a9ceb23545bb components/MenuTarefa.tsx
 100644 b886225ad9a9c7fe7184584216ec7dc742f8bbb5 components/Modelos.tsx
-100644 21019f843aa63d80854af83e3a72ef3b8654a52b components/MoverEJuntar.tsx
+100644 092cae0aca9972d1f09358553934aff1219f1371 components/MoverEJuntar.tsx
 100644 491a00b86fd4b40d588c1f8aec15917ff85960f3 components/PromptModal.tsx
 100644 8928b2b2c5034eea15733647fba6fc7f61d02941 components/Provider.tsx
 100644 0787a476e3beaa1cdf5bc2868ea0248119f8de26 components/Raiz.tsx
@@ -482,14 +482,14 @@ manifest() {
 100644 48184171b2e9788a586e4c1d8001a5f25b6018c6 components/configuracoes/dados.tsx
 100644 77cc4bae8d082f210303c42c6577da35b96ce763 components/configuracoes/preferencias.tsx
 100644 a62dbb63c88a488bf3ff68e44f4bb134762c40cc components/desfazer.ts
-100644 4d484a9efe3c1128feac903ff3da73dc9b59d401 components/editor/EditorRico.tsx
-100644 abdc26cb55f3396e1c858eb0f95659441ab1b78b components/editor/extensoes.ts
+100644 8578a7e21209a738566398d3d6f09e68d510b4a5 components/editor/EditorRico.tsx
+100644 83cfbaf05d283caffd3479888d2564ffd4c611ac components/editor/extensoes.ts
 100644 473dfaa730d055a4567c36842cd3b213db1ec712 components/hoje/CapturaRapida.tsx
 100644 3b15eac36822a81710945fa3c79e5eef77b0a981 components/hoje/FocoHoje.tsx
 100644 476ac387f9b12b0a68613a84f64445ffe04756cd components/hoje/Laterais.tsx
 100644 ba2816773c9667dd073424fa043d402b1c52db76 components/hoje/PrecisaDeVoce.tsx
 100644 5417d6a507129f0e74fcae0dcbaaaea05f43e56e components/hoje/Semana.tsx
-100644 d3e9165b9a495dc9f24a690d9f2bad94d6d005d0 components/hoje/apoio.tsx
+100644 254cb1e7f06e65290350be9cce7dbd5cb4d33282 components/hoje/apoio.tsx
 100644 14e456f7ac068a31e50caeeede52efc04806d9fe components/jogo/Celebracao.tsx
 100644 5263100f087d6887cc688e1f00f379f895a04ce6 components/jogo/NivelLateral.tsx
 100644 879f3671b63b60934fb7ac301415418462a6b00c components/jogo/pecas.tsx
@@ -499,11 +499,13 @@ manifest() {
 100644 32969f8d7b20d0566d049ee4f0025ae958f22fb4 components/jornada/LinhaDoDia.tsx
 100644 f69afedcafd65b3c6e7747b144e60e833963f05c components/jornada/Paineis.tsx
 100644 aa327e2d87c5103cad81eca182349084c630001f components/jornada/pecas.tsx
+100644 160c61acd3c91e146c1aea21c8eeb440af81feb5 components/links/EstadoLink.tsx
 100644 a9219bb38a12a80d304c651252e431b0c3a8355d components/links/IconeLink.tsx
-100644 e56ede64fd5a55ccd9bba7f010a522dc8ed9997a components/notas/EditorNota.tsx
+100644 fb96a514ece9bb56bff669b9ee61aa0a76831e07 components/links/SeletorDeTarefas.tsx
+100644 0d5bc20c4f3e65c7ea826c507b0d90682b634338 components/notas/EditorNota.tsx
 100644 91f4681dbfa83ffafec1afd9d3443e5d8c081158 components/notas/OrganizarNota.tsx
 100644 d780958fb2c55d3a0cbe9fb77a41babd2f900450 components/paginas/Abas.tsx
-100644 c7098fb84fc8357fbc50f3d6c430c76f878d3b76 components/paginas/EditorPagina.tsx
+100644 111839d538ef070ed2ba5ebce708aa6a53970d4a components/paginas/EditorPagina.tsx
 100644 36c49c402e65337e0133b2610fe354b96f550c41 components/paginas/Explorador.tsx
 100644 f6f19a93814576da1a8041c771be5cedf4443ebe components/paginas/Historico.tsx
 100644 3c4c1c902c2937d3b2801ca99c6a4c0ecd9cbb59 components/paginas/ListaPaginas.tsx
@@ -546,7 +548,7 @@ manifest() {
 100644 5e1f8cc0bd06d81b0793d37b028bb7bdd96360ff components/shell/Ferramentas.tsx
 100644 09cdbdb16bde39b3e1149209de9e1a32efea2bde components/shell/Lateral.tsx
 100644 7326a3992d41da49bb4cc174b173eed1c876307f components/shell/Logo.tsx
-100644 1ca3ba31492ec36b881f3b912fb3c3b64c969c87 components/shell/Novidades.tsx
+100644 967f603654648961652de24b1b2eef34fa046727 components/shell/Novidades.tsx
 100644 0c76532f0aa84316e115b366b3b6aa72d5e098c4 components/shell/Paleta.tsx
 100644 29209e9de55028ca4cf5de83ccf10fd4b6ea50a2 components/shell/Personalizar.tsx
 100644 1a4ba106e98bdb7c4e9c4ee586bc8ddb38f6cc25 components/shell/SessaoFoco.tsx
@@ -557,10 +559,11 @@ manifest() {
 100644 f3a0e7d53d9dde960025644d375a864b238461f5 components/shell/paleta/pecas.tsx
 100644 9ccae0a99b72c75af2c23df60b30c207e9c94239 components/tarefa/Copilot.tsx
 100644 d22c4ec40eb45a1f61761a60b0cf1bc821a5f5a2 components/tarefa/Dependencias.tsx
-100644 3f4527538b6903feda45a945c253eddd99abbe99 components/tarefa/Lateral.tsx
+100644 ee6cead6cce7c3c423e7429567461a60cdc5824f components/tarefa/Lateral.tsx
 100644 4b797f16d87f49eab365280f730d5ae3a689301a components/tarefa/Passos.tsx
 100644 400627058997887992302bda064cf5cd6711e251 components/tarefa/Propriedades.tsx
-100644 6d2f16dcc1c5940ff0fd1736dd6e6c5e98ba3f44 components/tarefa/Texto.tsx
+100644 bb25a42d6bddb8b9eeb19fcc1fe755a63559b661 components/tarefa/Referencias.tsx
+100644 6e49fa2625a967e68fcf891f1ad9b96491d1f159 components/tarefa/Texto.tsx
 100644 701d0b6b7a3a520cb947064da467945040236c5e components/tarefa/Timeline.tsx
 100644 2f280ceab6867c468b2071024b010cf01fa3b859 components/tarefas/ComboCategoria.tsx
 100644 240115fb75360fb54805b60e0fa46811d27962a4 components/tarefas/ListaTarefas.tsx
@@ -581,9 +584,9 @@ manifest() {
 100644 b18b1be9ebeccb5be3a7b4b25ee9c82d6186357e components/ui/select.tsx
 100644 183d40d56eeb58bf806c6ece1559c7ebb769f893 components/useGravacao.ts
 100644 7c74bc378088e2976702b69195074adcd069d8d3 components/useHoje.ts
-100644 92a00e71445823eb76d14efbedf4a91ad2a9f060 components/useLembretes.ts
+100644 3ae6167df33ca968308632f07befbdde200924d1 components/useLembretes.ts
 100644 fdb00b5b919dc2417cd19dff563c7e4374bc10e1 components/useTranscricoes.ts
-100644 71d7cf65e3dcf9faa58fb4db478f084ec23a6b20 lib/acoes.ts
+100644 a1e00c3e92229579f8baeef7b7b1239571728175 lib/acoes.ts
 100644 3198e421c5ca7157371f58d197959a2d2849ce76 lib/animacoes.ts
 100644 8a3a2a65ea7dc933fee203d3bef57efcd2dab5a6 lib/aparencia.ts
 100644 020b9295c9744297e1b017fcabde4b29cbdab127 lib/armazenamento.ts
@@ -595,11 +598,12 @@ manifest() {
 100644 e26cc9d5d67c34fd79eb2965337b73da307bd8ca lib/fechamento.ts
 100644 98b502a721913fd5ea15bbff440303b46ffd147d lib/grafo.ts
 100644 55a06342e9e7d3114c28c6d867021ce961b243ba lib/importar-pessoas.ts
-100644 9758729e73e657206f1fab8949b614337734636e lib/integridade.ts
+100644 28c74c8ec0fea550bdd9a3e3f519b7ede42b8392 lib/integridade.ts
 100644 4d39f1780cd62e38fbdbf4bc6748666d656ab1d8 lib/jogo.ts
 100644 21433bd1d73319262eea8775acf477bfb6a97b59 lib/jornada.ts
-100644 561c253d07a49b0af4adcf03b847433313f3434b lib/lembretes.ts
-100644 e80693e89d9ae3dc6124149aab7ef550301b2320 lib/ligacoes.ts
+100644 378d22d3276143db4fd780a0a988033f68ba52c8 lib/lembretes.ts
+100644 bf133d34c183ff24622468029d91aad76b93107d lib/ligacoes.ts
+100644 7abba0cff2f695f3b7a45d61bc8627d2a896b1a0 lib/links.ts
 100644 728bd823dd87f96d630ea5519f0294a54e3ccc5a lib/markdown.ts
 100644 306cd900e20302ac2c5761ec3b0b65ebdd9a59bb lib/migracoes.ts
 100644 ca8388332320142b1d58c3c73111eac9ec73893d lib/modelos.ts
@@ -607,7 +611,7 @@ manifest() {
 100644 711395759ece28813433ac8001617d751b6a7bb0 lib/notas.ts
 100644 9f8815bb16b1243b960add84b90cdd20e782c33f lib/notificar.ts
 100644 725b378d4f0694609af18569b22a4f12ac409dee lib/paginas.ts
-100644 8298bb724efa262922856a666a737158f5142bfe lib/perguntar.ts
+100644 7368e4c527620ca653b19052c8b40c5fcb35f0c0 lib/perguntar.ts
 100644 77b48a280bf5ffdba414a6ae393b70b54540f0bb lib/personalizacao.ts
 100644 dcd751bb9a402f99fd908b362912017426ff0b1e lib/pessoas.ts
 100644 9dfb2919c6cb1c57c97be4938cd4b4bf23064949 lib/preferencias.ts
@@ -620,13 +624,13 @@ manifest() {
 100644 78692bdd4c6673dac457c92d985168f2ca971f1a lib/reuniao.ts
 100644 9a5405f9b240a17e9c12168c5e5c7a0c3a71f4a1 lib/tela-hoje.ts
 100644 16e4cce4c12f7879eb0e43a0ba484d8c071a9a21 lib/tema.ts
-100644 51669589425dac2d9667255a0ff84eb9ab0c2af8 lib/texto-rico.ts
-100644 cb4d9018e8d8dac5ee982a6e01c890f7cbff5caa lib/tipos.ts
+100644 7c5f00bbe9ff590baeba811147012962b182b37e lib/texto-rico.ts
+100644 3b599426a7bc8f5fe7bf5c51affe1ec422df517d lib/tipos.ts
 100644 a47702cb16f36e82bf8189e0f03a1f8e4f9480e4 lib/transcricao.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
 100644 feef254d16d9b68ee24ec1424a95db12f840e5f4 next.config.ts
-100644 8c061a22350476c58ece25c25ba20ffa64148f43 package-lock.json
-100644 75b6c8479ac16b84429c79d84ea7a23778550bfb package.json
+100644 02fb0959a9b6b7511121d99f441d7b7fc2095c35 package-lock.json
+100644 f4c794d2d61a6237388e7237bc15ddcf34910d0c package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 9f1d221053f6ddb6f82346cf95faf1701cf787c0 proxy.ts
 100755 - scripts/baixar-nexo.sh
@@ -634,11 +638,11 @@ manifest() {
 100644 68a98f7f69c9e9628299ea390a20f053130edc45 scripts/instalar-nexo.ps1
 100755 - scripts/nexo-offline.sh
 100644 77db78868daf724b14313636ddf1d7b1d34c9a16 testes/aparencia.test.mjs
-100644 82695a9fa6862ceb3111d2f1a334239504fb2604 testes/api.sh
+100644 7f0c44b937e6ba9f8205cc1de512190492a86eef testes/api.sh
 100644 b2a78363ee253bfeb06ccdcb2344248e1aa69563 testes/carga.mjs
 100644 a855dfcec14616ad1656d69562094dc969d34b2f testes/dependencias.test.mjs
 100644 05bf34712725bf7eba2b3b3fefeecb81e0425721 testes/diario.test.mjs
-100644 aaba61dca44e761b3a36d81a022b7f8eb7ab50dc testes/e2e.cjs
+100644 6d1e60d59b1fe5719e5386bbc9d3e0cc87213673 testes/e2e.cjs
 100644 80d928e62b422418bff733c21375b601758631e2 testes/fechamento.test.mjs
 100644 6f70d7bf03caec88f4f6dda9e2d9dcfa76da08bf testes/grafo.test.mjs
 100644 70b2fbfa8e3239ded8cc7f9891202b12c6ca0ba1 testes/integridade.test.mjs
@@ -646,13 +650,14 @@ manifest() {
 100644 512f61a26b53a847d164b807fc37ebf5c3f89fb8 testes/jornada.test.mjs
 100644 4140928f58185242566dcf95b9909bbb4e90a1ca testes/lembretes.test.mjs
 100644 30dfa52ce4aef7fe06ff2e505fb0ebee51c39940 testes/ligacoes.test.mjs
+100644 556da8fac0ae36f4656b9576f8115d7fa25bee79 testes/links.test.mjs
 100644 a079f6e3c2e9210f815adc6405621809265f1f91 testes/notas.test.mjs
 100644 419c41fa8bc7505714f4bd1029e75b5f50ee0310 testes/paginas.test.mjs
 100644 3b63db8ea29aa787bf687c4eb6ecb32f277a3591 testes/perguntar.test.mjs
 100644 01ad3d1d401e114e651ce756995c206a6d42233b testes/pessoas.test.mjs
 100644 1aa07fa7fb3b614cfaffed84333dd597b7cca85f testes/radar.test.mjs
 100644 6ad501b7f9ce531f3f0a0da8e711b264716b5dae testes/reuniao.test.mjs
-100644 d115473f88542e67cd415f7225fb167f8a6af0b1 testes/semear.mjs
+100644 95406917c23578309b9f3a9362c93aa60cc4104b testes/semear.mjs
 100644 1472801f1c2a693f64ba1f4b13c1c2d8ee5aa305 testes/texto-rico.test.mjs
 100644 0eda418f309fd02636845b5140f2116daf623d86 testes/transcricao.test.mjs
 100644 c57d6d4be14f3a81315899909c4ac1979d09a2e5 testes/versoes.test.mjs
