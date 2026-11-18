@@ -1718,6 +1718,17 @@ async function main() {
     await pg.locator("[data-slot=ver-novidades]").click();
     await pg.locator("[data-slot=novidades]").waitFor();
     afirmar((await pg.locator("[data-slot=novidades] li").count()) >= 6, "a janela de novidades veio vazia");
+    // o que é desta versão vem em destaque; o histórico por versão abre ao clicar, um item por vez
+    afirmar((await pg.locator("[data-slot=novidade-atual]").count()) >= 1, "a novidade desta versão não veio em destaque");
+    afirmar((await pg.locator("[data-slot=versao-anterior]").count()) === 5, "o histórico devia abrir com as cinco versões mais recentes");
+    await pg.locator("[data-slot=novidades-antigas]").click();
+    afirmar((await pg.locator("[data-slot=versao-anterior]").count()) >= 10, "o histórico completo veio curto");
+    const antigas = pg.locator("[data-slot=novidade-anterior]");
+    await antigas.nth(0).click();
+    await pg.locator("[data-slot=novidade-anterior][data-state=open]").waitFor();
+    await antigas.nth(1).click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=novidade-anterior][data-state=open]").length === 1);
+    afirmar((await antigas.nth(1).getAttribute("data-state")) === "open", "o segundo item do histórico não abriu");
     await pg.keyboard.press("Escape");
     await pg.locator("[data-slot=novidades]").waitFor({ state: "detached" });
     // as etapas seguintes contam com estar fora de Configurações (lá há um segundo seletor de tema)

@@ -86,6 +86,7 @@ O Nexo lembra você do que fazer:
 - **Lista de tarefas**: o título aparece inteiro. Num notebook, as outras colunas ficam mais justas para dar lugar a ele.
 - **Quadro**: as cinco colunas cabem na tela de um notebook, sem a última ficar cortada.
 - **Barra lateral**: o que não cabe esmaece no fim, em vez de um item aparecer pela metade, e o nome do seu nível aparece inteiro.
+- **O que há de novo** (em Configurações): o que é da versão atual aparece primeiro, em frases curtas. As versões anteriores viraram um histórico enxuto, uma linha por novidade, que abre ao clicar.
 - Acertos pequenos: o cabeçalho "Último contato" da tela Pessoas não quebra mais em duas linhas, e os ícones das ações da paleta (`Ctrl K`) ficaram neutros.
 
 ## 3.11: formulários com o essencial primeiro
