@@ -399,15 +399,15 @@ EOF
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="773ac63"
+MANIFEST_COMMIT="63cb106"
 manifest() {
   cat <<'MANIFESTO'
 100644 93e976eb627abb713950f1412bb566bf1302ce52 .github/workflows/scripts-de-copia.yml
 100644 c3138d29f7fbb27099a70e1d0b08dbacf5a3ea25 .gitignore
-100644 b35ec9d8b79f782ec60131f110d7113e53fe36e1 AGENTS.md
+100644 c12b5c53c444eb944dd08e0da416989decef474a AGENTS.md
 100644 a3956e75a7eb876f829596f3471f06fd76fc6111 CLAUDE.md
 100644 c8e208f1f27f1045381a6cb7ee047bea044c7bf7 Iniciar Nexo.cmd
-100644 7d08b57bdb1cfd0fd5917261b0de60bd0330455c README.md
+100644 61a5b26ed5166c12ec1d46d046d03e4645c81329 README.md
 100644 d0be4fccca3425f6416821aaf169f200cb20a6b4 app/api/arquivos/route.ts
 100644 4ff6063b6877106221de3fccfdf6bbf0b8c86e17 app/api/assuntos/route.ts
 100644 83dd22f13bd37936d542901525e190cd4bec8323 app/api/backup/restaurar/route.ts
@@ -430,16 +430,16 @@ manifest() {
 100644 598b5c2091632d1bd12a4be1e754a3679a247c67 app/api/times/route.ts
 100644 941f483574db493e236276c8643bfba6ed48dd81 app/api/transcricoes/route.ts
 100644 442c39f1efe7b775ef67ecf703154f6d07091cbb app/api/verificar/route.ts
-100644 f0d0c7ce551b342c8e6c52cdf2e5f8e065a3a7fa app/busca/page.tsx
-100644 efec4e2c8f7b36373a340eb747a2c7f2100a8080 app/categorias/[id]/page.tsx
+100644 acf8c30750016a30111c42e52e6676ceb502b1b1 app/busca/page.tsx
+100644 d0ff5a8193303489cb4550fe3e30a1a7d00a065a app/categorias/[id]/page.tsx
 100644 4649c1cc859b94ceade84984d56befd9e06e122e app/categorias/page.tsx
 100644 0be5c2433d1aacccee092db7852ad66e4809fb5c app/configuracoes/page.tsx
 100644 3296de2089fb3f7952f6d4ce8180c2c1c35c52a0 app/conquistas/page.tsx
 100644 882f991953d6a13c6d28952cd8c5929316718f0f app/diario/page.tsx
-100644 0cae0455e3b84501ce01ebcd2a6107313398d80b app/globals.css
+100644 96508c51b2ccdbe1952bee4f381600c4a964cb2a app/globals.css
 100644 314684907ed8f33fd74039c3a2d62805b56ad974 app/icon.svg
 100644 8432111675d171a9084049a3d2aeb8cbf8ef4cb2 app/layout.tsx
-100644 71b561584a21b5b9d29f02fa45e9c1db3e6b335e app/links/page.tsx
+100644 2b08c48f66236387a0d7cb8390f7ce666aa7fd2a app/links/page.tsx
 100644 0d402fdde973d79361413b1b7e7ac454b0f305d1 app/manifest.ts
 100644 aae490d97895bd4dd9f6eb56b1d33a409992dd8f app/notas/page.tsx
 100644 c72b5dc2c341bca5b9feb56ec13d79733a052909 app/page.tsx
@@ -471,8 +471,9 @@ manifest() {
 100644 8928b2b2c5034eea15733647fba6fc7f61d02941 components/Provider.tsx
 100644 0787a476e3beaa1cdf5bc2868ea0248119f8de26 components/Raiz.tsx
 100644 705f8e28b4200ebda687736be1b0c92db93164ff components/RegistroEditor.tsx
-100644 2db1df82be7294f9f8096cfd428ecfde9ab7294c components/Shell.tsx
+100644 0bc24f5c86e4ccd16eeea664a1f655bc0be1dab9 components/Shell.tsx
 100644 6193d3b42a0bd8b18717be93733be5391ec34ad2 components/TarefaForm.tsx
+100644 51baf5e69502a8620d5bbee2fceba1cfd132706c components/VisorDeImagem.tsx
 100644 853b57ea933d3108e61b2f0a42b3d35c2dd88083 components/busca/CampoBusca.tsx
 100644 8f8ed53b8168a7d70df4c1f01611b7496a5b081a components/categorias/CartaoCategoria.tsx
 100644 95fee2178db26f2e1a016e464ddfa37108e7e430 components/categorias/EmblemaCategoria.tsx
@@ -482,7 +483,7 @@ manifest() {
 100644 48184171b2e9788a586e4c1d8001a5f25b6018c6 components/configuracoes/dados.tsx
 100644 77cc4bae8d082f210303c42c6577da35b96ce763 components/configuracoes/preferencias.tsx
 100644 a62dbb63c88a488bf3ff68e44f4bb134762c40cc components/desfazer.ts
-100644 8578a7e21209a738566398d3d6f09e68d510b4a5 components/editor/EditorRico.tsx
+100644 e16d29666d580eba66e98b3a2c7dfe97883c4d8c components/editor/EditorRico.tsx
 100644 83cfbaf05d283caffd3479888d2564ffd4c611ac components/editor/extensoes.ts
 100644 473dfaa730d055a4567c36842cd3b213db1ec712 components/hoje/CapturaRapida.tsx
 100644 3b15eac36822a81710945fa3c79e5eef77b0a981 components/hoje/FocoHoje.tsx
@@ -548,7 +549,7 @@ manifest() {
 100644 5e1f8cc0bd06d81b0793d37b028bb7bdd96360ff components/shell/Ferramentas.tsx
 100644 09cdbdb16bde39b3e1149209de9e1a32efea2bde components/shell/Lateral.tsx
 100644 7326a3992d41da49bb4cc174b173eed1c876307f components/shell/Logo.tsx
-100644 967f603654648961652de24b1b2eef34fa046727 components/shell/Novidades.tsx
+100644 87310fb6d04cc999b4511928cf7a7e7bfe48f27d components/shell/Novidades.tsx
 100644 0c76532f0aa84316e115b366b3b6aa72d5e098c4 components/shell/Paleta.tsx
 100644 29209e9de55028ca4cf5de83ccf10fd4b6ea50a2 components/shell/Personalizar.tsx
 100644 1a4ba106e98bdb7c4e9c4ee586bc8ddb38f6cc25 components/shell/SessaoFoco.tsx
@@ -562,8 +563,8 @@ manifest() {
 100644 ee6cead6cce7c3c423e7429567461a60cdc5824f components/tarefa/Lateral.tsx
 100644 4b797f16d87f49eab365280f730d5ae3a689301a components/tarefa/Passos.tsx
 100644 400627058997887992302bda064cf5cd6711e251 components/tarefa/Propriedades.tsx
-100644 bb25a42d6bddb8b9eeb19fcc1fe755a63559b661 components/tarefa/Referencias.tsx
-100644 6e49fa2625a967e68fcf891f1ad9b96491d1f159 components/tarefa/Texto.tsx
+100644 71bf151955a6c676783ab543eb42b902ba96216f components/tarefa/Referencias.tsx
+100644 2e9851c775194c5c3f3dcdd4da24a17c91724d7f components/tarefa/Texto.tsx
 100644 701d0b6b7a3a520cb947064da467945040236c5e components/tarefa/Timeline.tsx
 100644 2f280ceab6867c468b2071024b010cf01fa3b859 components/tarefas/ComboCategoria.tsx
 100644 240115fb75360fb54805b60e0fa46811d27962a4 components/tarefas/ListaTarefas.tsx
@@ -628,9 +629,10 @@ manifest() {
 100644 3b599426a7bc8f5fe7bf5c51affe1ec422df517d lib/tipos.ts
 100644 a47702cb16f36e82bf8189e0f03a1f8e4f9480e4 lib/transcricao.ts
 100644 3aa5c8f254234a99b83208ea53bcae526954d3e5 lib/utils.ts
+100644 d0a28d2e33e2a3c4596826d078cd1dee0aa757ad lib/visor.ts
 100644 feef254d16d9b68ee24ec1424a95db12f840e5f4 next.config.ts
-100644 02fb0959a9b6b7511121d99f441d7b7fc2095c35 package-lock.json
-100644 f4c794d2d61a6237388e7237bc15ddcf34910d0c package.json
+100644 34cae4c3e6c1a35761d74da5afbaefc0f43614b8 package-lock.json
+100644 386bdb1d7c00f2c3c1fa0fe5ccf1daefae576111 package.json
 100644 61e36849cf7cfa9f1f71b4a3964a4953e3e243d3 postcss.config.mjs
 100644 9f1d221053f6ddb6f82346cf95faf1701cf787c0 proxy.ts
 100755 - scripts/baixar-nexo.sh
@@ -642,7 +644,7 @@ manifest() {
 100644 b2a78363ee253bfeb06ccdcb2344248e1aa69563 testes/carga.mjs
 100644 a855dfcec14616ad1656d69562094dc969d34b2f testes/dependencias.test.mjs
 100644 05bf34712725bf7eba2b3b3fefeecb81e0425721 testes/diario.test.mjs
-100644 6d1e60d59b1fe5719e5386bbc9d3e0cc87213673 testes/e2e.cjs
+100644 ccfc99a0ed0fe735f7dcb5fa6a0a610749a8ca48 testes/e2e.cjs
 100644 80d928e62b422418bff733c21375b601758631e2 testes/fechamento.test.mjs
 100644 6f70d7bf03caec88f4f6dda9e2d9dcfa76da08bf testes/grafo.test.mjs
 100644 70b2fbfa8e3239ded8cc7f9891202b12c6ca0ba1 testes/integridade.test.mjs
@@ -661,6 +663,7 @@ manifest() {
 100644 1472801f1c2a693f64ba1f4b13c1c2d8ee5aa305 testes/texto-rico.test.mjs
 100644 0eda418f309fd02636845b5140f2116daf623d86 testes/transcricao.test.mjs
 100644 c57d6d4be14f3a81315899909c4ac1979d09a2e5 testes/versoes.test.mjs
+100644 4d908bb7590f735f6888872a14e8ce49f633a353 testes/visor.test.mjs
 100644 1a0ca4a34fe96c15554af6446dbe6aca722fa8c7 tsconfig.json
 MANIFESTO
 }
