@@ -27,7 +27,8 @@
 // modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada que amplia num visor por cima do app, conteúdo
 // perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), links e documentos como
 // material de trabalho (um link em várias tarefas, status de chamado, trava, página e folha ligadas à tarefa,
-// folha que vira página, Ctrl + clique num link do editor), conquistas (nível, meta do dia, desligar) e
+// folha que vira página, Ctrl + clique num link do editor), arquivos vistos por dentro do app (planilha, CSV,
+// Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar) e
 // tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
@@ -2174,6 +2175,126 @@ async function main() {
     await noTexto.click({ modifiers: ["Control"] });
     await pg.waitForFunction(() => window.__abriu === "https://exemplo.com/guia-ferramenta-x");
     await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
+  });
+
+  // ---------- ver arquivos por dentro do app (3.15) ----------
+  await etapa("arquivos por dentro do app: planilha, CSV, Word, PowerPoint, PDF, Markdown, HTML como texto e ZIP", async () => {
+    const { montarDocx, montarPdf, montarPptx, montarXlsx, montarZip } = await import("./zip-de-teste.mjs");
+    const XSS = "<img src=x onerror=window.__xss=1>";
+    const exemplos = [
+      ["achados.xlsx", montarXlsx([
+        { nome: "Achados", linhas: [["Id", "Título", "Aberta em", "% corrigido"], [1001, "Injeção de SQL em /busca", { v: 46344, s: 1 }, { v: 0.5, s: 2 }], [1002, XSS, { v: 46345, s: 1 }, { v: 0.125, s: 2 }], [1003, "Cabeçalho ausente", null, 1.5]] },
+        { nome: "Resumo", linhas: [["Squad", "Abertos"], ["Pagamentos", 34]] },
+      ]), "Planilha de achados"],
+      // CSV em ANSI (como o Excel em português grava), com ponto e vírgula e um campo entre aspas
+      ["chamados.csv", Buffer.from('Chamado;Assunto;Status\n4521;Janela de mudança;Concluído\n4544;"Usuário de serviço; teste";Aberto\n', "latin1"), "Chamados em CSV"],
+      ["plano.docx", montarDocx('<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Plano de adoção</w:t></w:r></w:p><w:p><w:r><w:t>O scan roda na pipeline. ' + XSS.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Squad</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>Prazo</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'), "Plano em Word"],
+      ["kickoff.pptx", montarPptx([{ titulo: "Abertura do kickoff", linhas: ["Por que agora"] }, { titulo: "Cronograma", linhas: ["Piloto em novembro", "Treinamento"] }]), "Kickoff em PowerPoint"],
+      ["laudo.pdf", montarPdf("Laudo de teste"), "Laudo em PDF"],
+      ["LEIAME.md", Buffer.from("# Runbook de triagem\n\nComece pelos **críticos**.\n\n" + XSS + "\n"), "Runbook em Markdown"],
+      ["relatorio.html", Buffer.from("<h1>Relatório exportado</h1>\n<script>window.__xss = 1</script>\n"), "Relatório em HTML"],
+      ["evidencias.zip", montarZip({ "prints/": "", "prints/tela.png": Buffer.alloc(3000, 1), "logs/scan.log": "linha\n".repeat(50) }), "Evidências em ZIP"],
+      ["antiga.xls", Buffer.from("planilha no formato antigo"), "Planilha antiga"],
+    ];
+    const novos = [];
+    for (const [nome, bytes, titulo] of exemplos) {
+      const r = await (await pg.request.post(B + "/api/arquivos", { multipart: { arquivo: { name: nome, mimeType: "application/octet-stream", buffer: Buffer.from(bytes) } } })).json();
+      afirmar(r.arquivo, "o arquivo de exemplo não subiu: " + nome);
+      novos.push({ id: "lver" + novos.length, tipo: "arquivo", titulo, arquivo: r.arquivo, nomeArquivo: r.nomeArquivo, tamanho: r.tamanho, descricao: "", tags: [], criadoEm: new Date().toISOString() });
+    }
+    const bruto = await (await pg.request.get(B + "/api/dados")).json();
+    const gravou = await pg.request.put(B + "/api/links", { data: { items: [...bruto.links.items, ...novos], revEsperada: bruto.links.rev } });
+    afirmar(gravou.ok(), "os links dos arquivos de exemplo não foram gravados");
+
+    await pg.goto(B + "/links");
+    const endereco = pg.url();
+    const visor = pg.locator("[data-slot=visor-de-arquivo]");
+    const abrir = async (titulo, jeito) => {
+      await pg.locator("[data-slot=link]", { hasText: titulo }).locator("[data-slot=link-titulo]").click();
+      await pg.locator(`[data-slot=visor-de-arquivo][data-jeito=${jeito}] [data-slot=visor-corpo][data-fase=pronto]`).waitFor();
+      afirmar(pg.url() === endereco && (await ctx.pages()).length === 1, "abrir o arquivo não pode trocar de tela nem abrir outra aba: " + titulo);
+    };
+    const fecharVisor = async () => {
+      await pg.keyboard.press("Escape");
+      await visor.waitFor({ state: "detached" });
+    };
+
+    // planilha: abas, valores como se lê em português, célula inteira, filtro
+    await abrir("Planilha de achados", "planilha");
+    afirmar((await visor.locator("[data-slot=aba-da-planilha]").count()) === 2, "a planilha devia mostrar as duas abas");
+    const celula = (ref) => visor.locator(`[data-slot=celula][data-ref=${ref}]`);
+    afirmar((await celula("B2").innerText()) === "Injeção de SQL em /busca", "o texto da célula B2 não veio");
+    afirmar((await celula("C2").innerText()) === "18/11/2026", "a data da planilha tem que aparecer como data, não como número: " + (await celula("C2").innerText()));
+    afirmar((await celula("D2").innerText()) === "50%" && (await celula("D4").innerText()) === "1,5", "percentual e decimal têm que sair como se lê em português");
+    afirmar((await celula("B3").innerText()) === XSS, "conteúdo com cara de HTML tem que aparecer como texto");
+    await celula("B2").click();
+    await visor.locator("[data-slot=celula-escolhida]", { hasText: "Injeção de SQL em /busca" }).waitFor();
+    await visor.getByLabel("Filtrar as linhas da planilha").fill("cabecalho");
+    await visor.locator("[data-slot=contagem-de-linhas]", { hasText: "1 de 3 linhas" }).waitFor();
+    afirmar((await visor.locator("[data-slot=linha-da-planilha]").count()) === 2, "com o filtro, ficam o cabeçalho e a linha achada");
+    await visor.locator("[data-slot=aba-da-planilha]", { hasText: "Resumo" }).click();
+    await visor.locator("[data-slot=celula][data-ref=A2]", { hasText: "Pagamentos" }).waitFor();
+    await fecharVisor();
+    afirmar(await pg.locator("[data-slot=link-titulo]", { hasText: "Planilha de achados" }).evaluate((el) => el === document.activeElement), "ao fechar, o foco volta para o link do arquivo");
+
+    // CSV em ANSI: acentos certos, separador achado, campo entre aspas inteiro
+    await abrir("Chamados em CSV", "tabela");
+    afirmar((await celula("C2").innerText()) === "Concluído" && (await celula("B2").innerText()) === "Janela de mudança", "os acentos do CSV em ANSI vieram errados");
+    afirmar((await celula("B3").innerText()) === "Usuário de serviço; teste", "o campo entre aspas do CSV foi partido");
+    await fecharVisor();
+
+    // Word e PowerPoint: o texto, na ordem
+    await abrir("Plano em Word", "documento");
+    await visor.locator("[data-slot=visor-documento] h1", { hasText: "Plano de adoção" }).waitFor();
+    await visor.locator("[data-slot=visor-documento] td", { hasText: "Prazo" }).waitFor();
+    await visor.getByText("O scan roda na pipeline. " + XSS).waitFor();
+    await fecharVisor();
+    await abrir("Kickoff em PowerPoint", "slides");
+    afirmar((await visor.locator("[data-slot=slide]").count()) === 2, "a apresentação devia ter dois slides");
+    afirmar((await visor.locator("[data-slot=slide]").first().innerText()).includes("Abertura do kickoff"), "o primeiro slide tem que ser o primeiro da apresentação, não o primeiro arquivo");
+    await fecharVisor();
+
+    // PDF: embutido pelo leitor do navegador, só com o pedido do visor
+    await abrir("Laudo em PDF", "pdf");
+    const srcDoPdf = await visor.locator("iframe[data-slot=visor-pdf]").getAttribute("src");
+    afirmar(/^\/api\/arquivos\?p=[^&]+&ver=1$/.test(srcDoPdf), "o PDF tem que ser pedido pela rota de anexos com ver=1: " + srcDoPdf);
+    const cabDoPdf = (await pg.request.get(B + srcDoPdf)).headers();
+    afirmar(cabDoPdf["content-security-policy"] === "frame-ancestors 'self'" && cabDoPdf["content-type"] === "application/pdf", "o PDF do visor veio com cabeçalhos errados");
+    await fecharVisor();
+
+    // Markdown desenhado pelo leitor do app (HTML dentro dele é texto) e o texto cru
+    await abrir("Runbook em Markdown", "markdown");
+    await visor.locator("[data-slot=visor-markdown] h1", { hasText: "Runbook de triagem" }).waitFor();
+    await visor.locator("[data-slot=visor-markdown] strong", { hasText: "críticos" }).waitFor();
+    await visor.getByRole("radio", { name: "Texto cru" }).click();
+    await visor.locator("[data-slot=visor-codigo]", { hasText: "# Runbook de triagem" }).waitFor();
+    await fecharVisor();
+
+    // HTML anexado aparece como código-fonte: nada dele roda
+    await abrir("Relatório em HTML", "texto");
+    await visor.locator("[data-slot=visor-codigo]", { hasText: "<script>window.__xss = 1</script>" }).waitFor();
+    afirmar((await visor.locator("[data-slot=visor-texto] h1").count()) === 0, "o HTML anexado não pode ser interpretado");
+    await fecharVisor();
+
+    // ZIP: a lista do que tem dentro
+    await abrir("Evidências em ZIP", "zip");
+    afirmar((await visor.locator("[data-slot=entrada-do-zip]").count()) === 2, "o ZIP devia listar os dois arquivos (a pasta não conta)");
+    await visor.locator("[data-slot=entrada-do-zip]", { hasText: "logs/scan.log" }).waitFor();
+    await fecharVisor();
+
+    afirmar(!(await pg.evaluate(() => window.__xss)), "conteúdo de um arquivo anexado foi executado");
+
+    // os anexos abertos direto no navegador vão em sandbox (a política das telas não passa por cima)
+    const direto = (await pg.request.get(B + "/api/arquivos?p=" + encodeURIComponent(novos[6].arquivo))).headers();
+    afirmar(/^sandbox/.test(direto["content-security-policy"] || "") && direto["x-frame-options"] === "DENY", "o anexo aberto direto tem que ir em sandbox: " + direto["content-security-policy"]);
+
+    // formato antigo do Office não abre por dentro: o link segue (baixa) e um aviso diz o que fazer
+    // (o teste segura a navegação do link depois de o app tratar o clique, para não baixar nada de verdade)
+    await pg.evaluate(() => window.addEventListener("click", (e) => { window.__seguiuOLink = !e.defaultPrevented; e.preventDefault(); }, { once: true }));
+    await pg.locator("[data-slot=link]", { hasText: "Planilha antiga" }).locator("[data-slot=link-titulo]").click();
+    await pg.getByText("salve como .xlsx para ver aqui").waitFor();
+    afirmar(await pg.evaluate(() => window.__seguiuOLink === true), "para o formato antigo, o link tem que seguir normalmente (baixar)");
+    afirmar((await visor.count()) === 0, "planilha no formato antigo não abre o visor");
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

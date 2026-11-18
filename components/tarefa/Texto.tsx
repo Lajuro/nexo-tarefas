@@ -11,7 +11,8 @@ import {
   Check, ChevronRight, CircleAlert, CircleCheckBig, CircleHelp, Clock, Copy, FlaskConical, Info, Lightbulb, ListTree, type LucideIcon, OctagonAlert, Paperclip, TriangleAlert,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { abrirImagem, aoClicarEmArquivo } from "@/components/VisorDeImagem";
+import { aoClicarEmArquivo } from "@/components/VisorDeArquivo";
+import { abrirImagem } from "@/components/VisorDeImagem";
 import { type ItemDoSumario, nomeDaPagina, sumarioDosBlocos } from "@/lib/paginas";
 import { nomeDaFolha } from "@/lib/links";
 import { NOMES_DE_LINGUAGEM, realcar } from "@/lib/realce";
@@ -75,7 +76,8 @@ function desenharInlines(f: Inline[], o: Opcoes = {}): ReactNode {
         // citação de tarefa, página, pessoa ou categoria: navega dentro do app
         return <Link key={k} href={i.rota} data-slot="link-interno" data-tipo={i.tipo}>{desenharInlines(i.f, o)}</Link>;
       case "anexo":
-        // arquivo da pasta de dados: abre pela API local, em outra aba (se for imagem, no visor, por cima do app)
+        // arquivo da pasta de dados: o que dá para ver por dentro (PDF, planilha, texto...) abre no visor, por cima do app;
+        // o resto segue o link (a API local baixa o arquivo)
         return (
           <a key={k} href={i.url} target="_blank" rel="noopener noreferrer" data-slot="anexo" className="!no-underline"
             onClick={(e) => aoClicarEmArquivo(e, i.url, nomeNaUrl(i.url), textoDosInlines(i.f))}>

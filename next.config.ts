@@ -32,13 +32,22 @@ const CABECALHOS = [
   ...(process.env.NODE_ENV === "production" ? [{ key: "Content-Security-Policy", value: CSP }] : []),
 ];
 
+// Anexos (/api/arquivos) são conteúdo de terceiros guardado pelo usuário: a política deles é outra e é a própria
+// rota que manda (Content-Security-Policy: sandbox, para um HTML ou SVG anexado nunca rodar script na origem do
+// app). Os cabeçalhos daqui passam por cima dos da rota quando têm o mesmo nome, então a CSP das telas e o
+// X-Frame-Options ficam de fora desse caminho. Até a 3.14 não ficavam, e o sandbox dos anexos se perdia em produção.
+const SEM_POLITICA_DE_TELA = CABECALHOS.filter((c) => c.key !== "Content-Security-Policy" && c.key !== "X-Frame-Options");
+
 const nextConfig: NextConfig = {
   // Ferramenta local: sem telemetria de imagem, sem otimizações remotas.
   images: { unoptimized: true },
   devIndicators: false,
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: CABECALHOS }];
+    return [
+      { source: "/((?!api/arquivos$).*)", headers: CABECALHOS },
+      { source: "/api/arquivos", headers: SEM_POLITICA_DE_TELA },
+    ];
   },
 };
 

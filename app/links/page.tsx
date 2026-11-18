@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Copy, Download, ExternalLink, FilterX, Library, Lock, Pencil, Plus, SearchX, Tag, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
-import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
+import { aoClicarEmArquivo } from "@/components/VisorDeArquivo";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { CampoBusca } from "@/components/busca/CampoBusca";
 import { IconeEstadoLink, OpcoesDeEstadoNoContexto, SeletorEstadoLink, useMudarEstado } from "@/components/links/EstadoLink";

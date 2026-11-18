@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon,
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -19,7 +19,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.14";
+export const VERSAO_NOVIDADES = "3.15";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -34,6 +34,15 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.15", icone: FileSearch, titulo: "Ver os arquivos por dentro do app", texto: "Clicar num arquivo anexado abre o conteúdo por cima da tela, sem baixar e sem sair de onde você está: PDF, planilha do Excel (com as abas), CSV, documento do Word e apresentação do PowerPoint (o texto), Markdown, arquivos de texto e de código, a lista de um ZIP, áudio e vídeo. Imagens já abriam assim. Esc fecha e você volta para o mesmo lugar.", href: "/links", rotulo: "Abrir Links e docs",
+    pontos: [
+      "Clique num arquivo (no texto, em Links e documentos da tarefa, na tela de Links): ele abre por cima do app. Esc fecha e você volta para onde estava.",
+      "Planilha do Excel e CSV: grade com as abas, filtro das linhas, a célula inteira ao clicar e Copiar para colar no Excel. Datas e números saem como se lê em português.",
+      "PDF: o leitor do próprio navegador, embutido, com zoom, busca e impressão.",
+      "Word e PowerPoint: o texto do documento e de cada slide, para ler e copiar. A formatação e as imagens ficam para quando você baixar.",
+      "Markdown formatado, texto, log e código com número de linha e cores, a lista do que tem num ZIP, áudio e vídeo no player do app.",
+      "Formatos antigos (.xls, .doc, .ppt) continuam baixando: salve como .xlsx, .docx ou .pptx para ver aqui.",
+    ] },
   { versao: "3.14", icone: Ticket, titulo: "Links que servem a várias tarefas, com status", texto: "Um link ou documento pode servir a várias tarefas ao mesmo tempo. Cada um pode ter um status (para ler, lido, chamado aberto, em andamento, aguardando retorno, concluído), com ícone próprio e filtro na tela de Links. Um chamado pode ser marcado como trava da tarefa: aparece no cabeçalho dela e, quando fecha, o app avisa que destravou. Páginas e folhas do bloco de notas também se ligam a tarefas.", href: "/links", rotulo: "Abrir Links e docs",
     pontos: [
       "O mesmo link serve a várias tarefas: em \"Adicionar\", na tarefa, escolha algo que já está no banco, ou marque as tarefas ao editar o link.",
@@ -116,7 +125,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Um link agora serve a várias tarefas e pode ter status (para ler, chamado aberto, concluído...) e travar a tarefa. Páginas e folhas se ligam a tarefas, e o editor ficou mais completo.",
+          description: "Agora dá para ver os arquivos por dentro do app: PDF, planilha, CSV, Word, PowerPoint, texto e mais. Clique num arquivo e ele abre por cima da tela.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

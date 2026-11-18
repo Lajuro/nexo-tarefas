@@ -31,6 +31,7 @@ import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
 import { VisorDeImagem } from "./VisorDeImagem";
+import { VisorDeArquivo } from "./VisorDeArquivo";
 import { desfazerUltimo } from "./desfazer";
 import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
@@ -236,6 +237,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <FecharDia aberto={fechamento} fechar={() => setFechamento(false)} />
       <MoverEJuntar />
       <VisorDeImagem />
+      <VisorDeArquivo />
       <Esperando />
       <JanelaAssunto />
       <ModeloForm />

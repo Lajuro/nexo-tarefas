@@ -12,7 +12,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Copy, Ellipsis, ExternalLink, FilePlus2, Link2, Lock, LockOpen, Paperclip, Pencil, Plus, StickyNote, Unlink } from "lucide-react";
 import { toast as sonner } from "sonner";
 import { useNexo } from "@/components/Provider";
-import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
+import { aoClicarEmArquivo } from "@/components/VisorDeArquivo";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { Painel, copiarTexto, formatarTamanho } from "@/components/comum";
 import { IconeEstadoLink, OpcoesDeEstado, SeletorEstadoLink, SeloTrava, useMudarEstado } from "@/components/links/EstadoLink";

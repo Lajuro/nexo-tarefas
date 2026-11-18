@@ -19,6 +19,7 @@ import {
   TriangleAlert, Undo2, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { abrirArquivo } from "@/components/VisorDeArquivo";
 import { abrirImagem } from "@/components/VisorDeImagem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import { paginaNova } from "@/lib/paginas";
 import { LINGUAGENS, NOMES_DE_LINGUAGEM } from "@/lib/realce";
 import { anexoDoSrc, hrefInterno, linkInterno, linkPermitido, srcDoAnexo, urlDoAnexo } from "@/lib/texto-rico";
 import { formatarData, hojeISO } from "@/lib/tipos";
+import { nomeNaUrl } from "@/lib/visor";
 import { cn } from "@/lib/utils";
 import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, linkDoEditor, pareceMarkdown } from "./extensoes";
 
@@ -265,7 +267,10 @@ export function EditorRico({
     const interno = linkInterno(href);
     if (interno) routerRef.current.push(interno.rota);
     else {
-      const url = urlDoAnexo(href) ?? linkPermitido(href);
+      const anexo = urlDoAnexo(href);
+      // anexo que dá para ver por dentro (PDF, planilha, imagem...) abre no visor, por cima do app
+      if (anexo && abrirArquivo(anexo, nomeNaUrl(anexo))) return true;
+      const url = anexo ?? linkPermitido(href);
       if (!url) return false;
       window.open(url, "_blank", "noopener,noreferrer");
     }

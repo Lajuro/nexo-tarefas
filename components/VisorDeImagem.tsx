@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { ChevronLeft, ChevronRight, Download, ExternalLink, Maximize, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Dica } from "@/components/ui/popover";
-import { ESCALAS, type ImagemDoVisor, ehNomeDeImagem, ehUrlDeAnexo, imagensValidas, indiceVizinho, proximaEscala, urlParaBaixar } from "@/lib/visor";
+import { ESCALAS, type ImagemDoVisor, ehUrlDeAnexo, imagensValidas, indiceVizinho, proximaEscala, urlParaBaixar } from "@/lib/visor";
 import { cn } from "@/lib/utils";
 
 const EVENTO = "nexo:imagem";
@@ -42,17 +42,6 @@ export function abrirImagem(url: string, alt = "", origem?: Element | null): boo
   }
   window.dispatchEvent(new CustomEvent<Pedido>(EVENTO, { detail: { lista, indice } }));
   return true;
-}
-
-/**
- * Para pôr no onClick de um link que leva a um arquivo: se o arquivo é imagem, abre no visor em vez de sair
- * da tela. Com Ctrl, Shift ou o botão do meio, vale o comportamento do link (abrir em outra aba).
- */
-export function aoClicarEmArquivo(e: React.MouseEvent, url: string, nome: string, titulo?: string) {
-  if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-  if (!ehNomeDeImagem(nome) || !ehUrlDeAnexo(url)) return;
-  e.preventDefault();
-  abrirImagem(url, titulo || nome, e.currentTarget);
 }
 
 const BOTAO =

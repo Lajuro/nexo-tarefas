@@ -79,6 +79,32 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.15: ver os arquivos por dentro do app
+
+Clicar num arquivo anexado (no texto de um registro ou de uma página, em "Links e documentos" da tarefa, na tela de Links, na busca) abre o conteúdo **por cima da tela**, sem baixar e sem sair de onde você está. `Esc`, o X ou um clique fora fecham, e você volta para o mesmo lugar.
+
+| Arquivo | O que você vê |
+|---|---|
+| **PDF** | O leitor do próprio navegador, embutido: zoom, busca e impressão são os dele. |
+| **Planilha do Excel** (`.xlsx`, `.xlsm`) | A grade com as abas embaixo, como no Excel. Filtre as linhas, clique numa célula para ver o conteúdo inteiro e use **Copiar** para colar no Excel ou num e-mail. Datas, percentuais e números saem como se lê em português (18/11/2026, 12,5%, 1,5). |
+| **CSV e TSV** | A mesma grade. O separador (ponto e vírgula, vírgula ou tabulação) e os acentos são reconhecidos sozinhos, inclusive nos arquivos que o Excel em português grava. |
+| **Word** (`.docx`) | O texto: títulos, parágrafos, listas e tabelas. |
+| **PowerPoint** (`.pptx`) | O título e o texto de cada slide, na ordem da apresentação. |
+| **Markdown** | Formatado, ou o texto cru. |
+| **Texto, log e código** (`.txt`, `.log`, `.json`, `.yaml`, `.xml`, `.sql`, `.ps1`, `.sh`, `.py` e outros) | Com número de linha e cores. |
+| **ZIP** | A lista do que tem dentro. |
+| **Áudio e vídeo** | O player do app. |
+| **Imagem** | O visor de imagem, como já era. |
+
+O que vale saber:
+
+- **Word e PowerPoint mostram só o texto.** A formatação, as imagens e os comentários ficam para quando você baixar e abrir no Office. Serve para ler e copiar rápido, não para ver o documento como ele é.
+- **Planilha mostra os valores**, não as fórmulas, as cores nem os gráficos. De uma fórmula aparece o resultado.
+- **Formatos antigos** (`.xls`, `.doc`, `.ppt`) não abrem por dentro: continuam baixando, e um aviso lembra de salvar como `.xlsx`, `.docx` ou `.pptx`.
+- **HTML e SVG anexados aparecem como código-fonte**, nunca como página: nada de um arquivo anexado roda dentro do Nexo.
+- Arquivo com mais de 40 MB não é aberto por dentro (PDF, áudio e vídeo não têm esse limite). Com `Ctrl` + clique, o arquivo abre do jeito antigo.
+- Nenhum programa novo foi instalado para isso: a leitura é feita pelo próprio Nexo.
+
 ## 3.14: links que servem a várias tarefas, com status, e editor mais completo
 
 **Links e documentos** deixaram de ser só uma lista de endereços e viraram material de trabalho:

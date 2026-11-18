@@ -9,7 +9,7 @@ import { useNexo } from "@/components/Provider";
 import { useTranscricoes } from "@/components/useTranscricoes";
 import { emTrechos, formatarTempo } from "@/lib/transcricao";
 import { hrefLink } from "@/components/LinkForm";
-import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
+import { aoClicarEmArquivo } from "@/components/VisorDeArquivo";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { CampoBusca } from "@/components/busca/CampoBusca";
 import { SeloEstadoLink } from "@/components/links/EstadoLink";

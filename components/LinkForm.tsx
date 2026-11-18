@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, FileText, FolderOpen, Globe, Link2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useFecharComCuidado } from "./Raiz";
+import { aoClicarEmArquivo } from "./VisorDeArquivo";
 import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, formatarTamanho } from "./comum";
 import { IconeEstadoLink } from "./links/EstadoLink";
 import { IconeLink } from "./links/IconeLink";
@@ -187,7 +188,7 @@ export function LinkForm({
                     <div className="text-xs text-muted-foreground tabular-nums">{formatarTamanho(link.tamanho) || "Tamanho desconhecido"}</div>
                   </div>
                   <Button asChild variant="ghost" size="sm">
-                    <a href={hrefLink(link)} target="_blank" rel="noreferrer"><ExternalLink /> Abrir</a>
+                    <a href={hrefLink(link)} target="_blank" rel="noreferrer" onClick={(e) => aoClicarEmArquivo(e, hrefLink(link), link.nomeArquivo || link.arquivo || "", link.titulo)}><ExternalLink /> Abrir</a>
                   </Button>
                 </div>
               </Campo>

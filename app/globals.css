@@ -555,6 +555,13 @@ html[data-lateral="colorida"] [data-slot="lateral"] {
 .prosa [data-slot="copiar-codigo"]:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
 .prosa [data-slot="copiar-codigo"] svg { width: 1.1em; height: 1.1em; }
 .prosa [data-slot="bloco-de-codigo"] pre { border-radius: 0; background: none; margin: 0; }
+/* as mesmas cores valem no visor de arquivos (components/VisorDeArquivo.tsx), que mostra código fora de um texto */
+[data-slot="visor-codigo"] [data-rc="comentario"] { color: var(--muted-foreground); font-style: italic; }
+[data-slot="visor-codigo"] [data-rc="texto"] { color: var(--sucesso); }
+[data-slot="visor-codigo"] [data-rc="numero"] { color: var(--alerta); }
+[data-slot="visor-codigo"] [data-rc="palavra"] { color: var(--primary); font-weight: 500; }
+[data-slot="visor-codigo"] [data-rc="chave"] { color: var(--info); }
+[data-slot="visor-codigo"] [data-rc="sinal"] { color: var(--destructive); }
 .prosa [data-rc="comentario"] { color: var(--muted-foreground); font-style: italic; }
 .prosa [data-rc="texto"] { color: var(--sucesso); }
 .prosa [data-rc="numero"] { color: var(--alerta); }

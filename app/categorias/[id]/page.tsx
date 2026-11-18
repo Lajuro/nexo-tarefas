@@ -13,7 +13,7 @@ import { CategoriaForm } from "@/components/CategoriaForm";
 import { PromptModal } from "@/components/PromptModal";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
-import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
+import { aoClicarEmArquivo } from "@/components/VisorDeArquivo";
 import { SeloEstadoLink } from "@/components/links/EstadoLink";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
 import { TextoRico } from "@/components/tarefa/Texto";

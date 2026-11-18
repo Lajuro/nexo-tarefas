@@ -315,4 +315,36 @@ checa "versão antiga desvinculou: status preservado" '"estado":"aberto"' "$R"
 R=$(curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lv\",\"titulo\":\"Runbook\",\"estado\":\"explodiu\"}],\"revEsperada\":$(revLinks)}")
 checa "link: status desconhecido vira sem status" '"estado":null' "$R"
 
+# 3.15: política dos anexos. São arquivos de terceiros: por padrão vão em "sandbox" e não podem ser embutidos;
+# só o PDF pedido pelo visor do app (?ver=1) vai sem sandbox, e só o próprio app pode embuti-lo.
+# (Até a 3.14 os cabeçalhos das telas passavam por cima dos da rota e o sandbox se perdia em produção.)
+sobe() { # nome conteudo -> caminho codificado do anexo
+  printf '%s' "$2" > "$TMP/$1"
+  curl -s -X POST $B/api/arquivos -F "arquivo=@$TMP/$1;filename=$1" | sed 's/.*"arquivo":"\([^"]*\)".*/\1/' | sed 's|/|%2F|g'
+}
+cab() { curl -s -D - -o /dev/null "$B/api/arquivos?p=$1" | tr -d '\r' | tr 'A-Z' 'a-z'; }
+SVG=$(sobe desenho.svg '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
+CAB=$(cab "$SVG")
+checa "anexo: SVG vai em sandbox (script dele não roda na origem do app)" 'content-security-policy: sandbox' "$CAB"
+checa "anexo: não pode ser embutido" 'x-frame-options: deny' "$CAB"
+checa "anexo: nosniff" 'x-content-type-options: nosniff' "$CAB"
+checa "anexo: a política das telas não passa por cima da do anexo" 'ok' "$(echo "$CAB" | grep -q "script-src" && echo vazou || echo ok)"
+checa "anexo: informa o tamanho para o visor" "x-nexo-tamanho: $(wc -c < "$TMP/desenho.svg" | tr -d ' ')" "$CAB"
+HTML=$(sobe pagina.html '<script>alert(1)</script>')
+CAB=$(cab "$HTML")
+checa "anexo: HTML é servido como texto" 'content-type: text/plain' "$CAB"
+checa "anexo: HTML também em sandbox" 'content-security-policy: sandbox' "$CAB"
+PDF=$(sobe laudo.pdf '%PDF-1.4 teste')
+checa "anexo: PDF aberto direto continua em sandbox" 'content-security-policy: sandbox' "$(cab "$PDF")"
+CAB=$(cab "$PDF&ver=1")
+checa "anexo: PDF pedido pelo visor pode ser embutido só pelo app" "content-security-policy: frame-ancestors 'self'" "$CAB"
+checa "anexo: PDF no visor: mesma origem" 'x-frame-options: sameorigin' "$CAB"
+checa "anexo: PDF no visor é sempre application/pdf" 'content-type: application/pdf' "$CAB"
+checa "anexo: ver=1 só vale para PDF (HTML continua em sandbox)" 'content-security-policy: sandbox' "$(cab "$HTML&ver=1")"
+checa "anexo: ver=1 só vale para PDF (SVG continua em sandbox)" 'content-security-policy: sandbox' "$(cab "$SVG&ver=1")"
+checa "anexo: baixar o PDF continua em sandbox" 'content-security-policy: sandbox' "$(cab "$PDF&baixar=1&ver=1")"
+checa "telas: continuam com a política completa" "script-src 'self'" "$(curl -s -D - -o /dev/null $B/links | tr -d '\r')"
+checa "telas: continuam sem poder ser embutidas" "frame-ancestors 'none'" "$(curl -s -D - -o /dev/null $B/links | tr -d '\r')"
+checa "resto da API: continua com a política das telas" "frame-ancestors 'none'" "$(curl -s -D - -o /dev/null $B/api/dados | tr -d '\r')"
+
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }
