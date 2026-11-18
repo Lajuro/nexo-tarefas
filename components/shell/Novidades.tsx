@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, CalendarClock, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, type LucideIcon, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints,
+  BookText, CalendarClock, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, PanelTop, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.7";
+export const VERSAO_NOVIDADES = "3.8";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -28,6 +28,7 @@ const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: strin
   { icone: FileAudio, titulo: "Transcrição do Teams na reunião", texto: "Cole a transcrição no modo reunião: o Copilot organiza e decisões, passos e impedimentos já entram na captura. O texto original fica anexado.", href: "/tarefas", rotulo: "Abrir uma tarefa" },
   { icone: Link2, titulo: "Dependências, repetição e falar com", texto: "Ligue uma tarefa a outra e saiba quando ela destravou. Modelos que se repetem lembram de criar a tarefa. E anote o que levar para a próxima conversa com cada pessoa.", href: "/pessoas", rotulo: "Abrir Pessoas" },
   { icone: Printer, titulo: "Imprimir, comparar e avisar", texto: "Tarefa e categoria em PDF para o gestor, comparação entre versões de uma página, busca dentro das transcrições e avisos do Windows (ligue em Configurações).", href: "/configuracoes", rotulo: "Abrir Configurações" },
+  { icone: PanelTop, titulo: "Página da tarefa mais enxuta", texto: "A linha do tempo começa logo abaixo das propriedades. Panorama e Preparar próxima reunião estão no botão Copilot do cabeçalho. Categoria e tags agora mudam ali mesmo, e cada registro tem o botão \"...\" com todas as ações, também pelo teclado.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: Sparkles, titulo: "Hoje mais direto e letras maiores", texto: "A tela Hoje abre com o que precisa de você, uma linha por tarefa com os motivos dentro, e o sino conta tarefas, não avisos. As letras miúdas cresceram, os prazos ficaram mais legíveis e cada coisa passou a ter um nome só: categoria, passo, lembrete de voltar.", href: "/", rotulo: "Abrir a tela Hoje" },
   { icone: CalendarClock, titulo: "Rotina: o dia em blocos e a hora de sair", texto: "Reserve horários para tarefas, chamados e pausas, e o app avisa o que é para fazer agora. Registre a entrada e ele diz a que horas você sai, com banco de horas da semana e do mês.", href: "/rotina", rotulo: "Abrir a Rotina" },
   { icone: BookText, titulo: "Documentação de verdade", texto: "Páginas dentro de páginas, numa árvore que você arrasta. Abas, modo leitura com sumário, modelos (processo, guia, runbook) e [[ para ligar uma página à outra.", href: "/paginas", rotulo: "Abrir Páginas" },

@@ -1,4 +1,4 @@
-// Testes das novidades de organização da 3.7: dependências entre tarefas (lib/dependencias.ts), tarefas que se
+// Testes das novidades de organização da 3.8: dependências entre tarefas (lib/dependencias.ts), tarefas que se
 // repetem (lib/recorrencia.ts), "falar com Fulano" (lib/assuntos.ts) e os lembretes que nascem delas (lib/lembretes.ts).
 // Uso: node testes/dependencias.test.mjs   (Node 22.18+ importa .ts direto)
 

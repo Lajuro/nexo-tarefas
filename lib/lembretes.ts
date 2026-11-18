@@ -31,9 +31,9 @@ export type TipoLembrete =
   | "parada"
   | "passos_antigos"
   | "sem_proximo_passo"
-  /** Todas as tarefas de que ela dependia terminaram (3.7). */
+  /** Todas as tarefas de que ela dependia terminaram (3.8). */
   | "destravou"
-  /** Um modelo que se repete chegou no dia (3.7). Não tem tarefa: tarefaId é "". */
+  /** Um modelo que se repete chegou no dia (3.8). Não tem tarefa: tarefaId é "". */
   | "recorrencia";
 
 export type Gravidade = "critico" | "atencao" | "info";

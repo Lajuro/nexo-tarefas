@@ -12,14 +12,13 @@ import { RegistroEditor } from "@/components/RegistroEditor";
 import { PromptModal } from "@/components/PromptModal";
 import { LinkForm } from "@/components/LinkForm";
 import { Contador, IconeTipo, Pagina, Vazio } from "@/components/comum";
-import { SeloCopilot } from "@/components/tarefa/Copilot";
 import { Lateral } from "@/components/tarefa/Lateral";
 import { Propriedades } from "@/components/tarefa/Propriedades";
 import { FaixaEspera } from "@/components/Esperando";
 import { ItensNovoRegistro, Timeline } from "@/components/tarefa/Timeline";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { ehFocoHoje, semRegistro } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
@@ -39,17 +38,21 @@ const FILTROS: { valor: Filtro; rotulo: string }[] = [
   { valor: "atividade", rotulo: "Atividades" },
   { valor: "marco", rotulo: "Marcos" },
 ];
+// Botões do cabeçalho: com rótulo quando o cabeçalho é largo, só o ícone (quadrado) quando é estreito.
+const SO_ICONE = "@max-5xl/cabecalho:w-8 @max-5xl/cabecalho:px-0";
+const ROTULO = "hidden @5xl/cabecalho:inline";
+
 const noFiltro = (r: Registro, f: Filtro) =>
   f === "tudo" || (f === "reuniao" ? r.tipo === "reuniao" : f === "marco" ? r.tipo === "marco" : r.tipo !== "reuniao" && r.tipo !== "marco");
 
-/** Título que mostra a dica com o texto inteiro só quando não coube no cabeçalho. */
+/** Título que mostra a dica com o texto inteiro só quando não coube nas duas linhas do cabeçalho. */
 function TituloTarefa({ texto }: { texto: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [cortado, setCortado] = useState(false);
   useEffect(() => {
     const h1 = ref.current?.parentElement;
     if (!h1) return;
-    const medir = () => setCortado(h1.scrollWidth > h1.clientWidth + 1);
+    const medir = () => setCortado(h1.scrollHeight > h1.clientHeight + 1 || h1.scrollWidth > h1.clientWidth + 1);
     medir();
     const ro = new ResizeObserver(medir);
     ro.observe(h1);
@@ -173,9 +176,11 @@ function Conteudo() {
       <Pagina
         semRolagem
         className="@container"
+        quebrarTitulo
         voltar={{ href: "/tarefas", rotulo: "Tarefas" }}
         titulo={<TituloTarefa texto={tarefa.titulo} />}
         acoes={
+          // Em cabeçalho estreito os botões viram só ícone (com nome e dica), para o título não ser cortado antes deles.
           <>
             {ehAberta && (
               <Dica texto={foco ? "Está no foco de hoje. Clique para tirar." : "Colocar no foco de hoje"}>
@@ -184,21 +189,51 @@ function Conteudo() {
                   data-slot="foco"
                   data-ativo={foco || undefined}
                   aria-pressed={foco}
+                  aria-label="Focar hoje"
                   onClick={() => acoes.alternarFoco(tarefa)}
-                  className={cn(foco && "border-primary/45 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary dark:bg-primary/20 dark:text-foreground dark:hover:bg-primary/25")}
+                  className={cn(SO_ICONE, foco && "border-primary/45 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary dark:bg-primary/20 dark:text-foreground dark:hover:bg-primary/25")}
                 >
-                  <Target /> Focar hoje {foco && <Check className="size-3.5" strokeWidth={2.6} />}
+                  <Target /> <span className={ROTULO}>Focar hoje</span> {foco && <Check className="hidden size-3.5 @5xl/cabecalho:block" strokeWidth={2.6} />}
                 </Button>
               </Dica>
             )}
             {ehAberta && (
-              <Dica texto="Pauta, anotações, decisões e ata numa tela só">
-                <Button variant="outline" asChild data-slot="modo-reuniao">
-                  <Link href={`/tarefas/${tarefa.id}/reuniao`}><Presentation /> Modo reunião</Link>
+              <Dica texto="Modo reunião: pauta, anotações, decisões e ata numa tela só">
+                <Button variant="outline" asChild data-slot="modo-reuniao" className={SO_ICONE}>
+                  <Link href={`/tarefas/${tarefa.id}/reuniao`} aria-label="Modo reunião"><Presentation /> <span className={ROTULO}>Modo reunião</span></Link>
                 </Button>
               </Dica>
             )}
-            <Button variant="outline" onClick={() => setEditando(true)}><Pencil /> Editar</Button>
+            <DropdownMenu>
+              <Dica texto="Prompts prontos com o histórico desta tarefa, para copiar e colar no Copilot">
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" data-slot="copilot-tarefa" aria-label="Copilot" className={cn(SO_ICONE, "aria-expanded:bg-accent")}>
+                    <Sparkles className="text-primary" /> <span className={ROTULO}>Copilot</span>
+                    <ChevronDown className="hidden size-3.5 opacity-60 @5xl/cabecalho:block" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </Dica>
+              <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Prompts com o histórico desta tarefa</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setPrompt("panorama")} className="items-start">
+                  <Sparkles className="mt-0.5 !text-primary" />
+                  <span className="flex flex-col">
+                    Panorama da tarefa
+                    <span className="text-xs text-muted-foreground">Resumo da situação; a resposta fica guardada na tarefa</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setPrompt("reuniao")} className="items-start">
+                  <WandSparkles className="mt-0.5 !text-primary" />
+                  <span className="flex flex-col">
+                    Preparar próxima reunião
+                    <span className="text-xs text-muted-foreground">Pauta a partir do histórico e das pendências</span>
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Dica texto="Editar título, descrição e o resto da tarefa">
+              <Button variant="outline" aria-label="Editar" onClick={() => setEditando(true)} className={SO_ICONE}><Pencil /> <span className={ROTULO}>Editar</span></Button>
+            </Dica>
             <BotaoMenuTarefa tarefa={tarefa} semAbrir aoExcluir={() => router.push("/tarefas")} />
           </>
         }
@@ -213,46 +248,41 @@ function Conteudo() {
         <div className="mx-auto h-full w-full max-w-[1360px] overflow-y-auto @5xl:flex @5xl:overflow-hidden">
           {/* Coluna principal: descrição, Copilot e a linha do tempo */}
           {/* Sem padding em cima no contêiner que rola: senão a barra fixa da timeline para abaixo da borda e o conteúdo aparece por trás. */}
-          <div data-slot="tarefa-principal" className="min-w-0 px-6 pb-6 @5xl:flex-1 @5xl:overflow-y-auto @5xl:pb-12">
-            <div aria-hidden className="h-5" />
+          {/* contêiner "linha": a barra da linha do tempo se ajusta à largura desta coluna, não à da janela */}
+          <div data-slot="tarefa-principal" className="@container/linha min-w-0 px-6 pb-6 @5xl:flex-1 @5xl:overflow-y-auto @5xl:pb-12">
+            <div aria-hidden className="h-4" />
             {tarefa.descricao && (
-              <p data-slot="tarefa-descricao" className="mb-4 max-w-[78ch] text-sm leading-relaxed text-muted-foreground texto-pre">{tarefa.descricao}</p>
+              <p data-slot="tarefa-descricao" className="mb-3 max-w-[78ch] text-sm leading-relaxed text-muted-foreground texto-pre">{tarefa.descricao}</p>
             )}
 
-            <section data-slot="copilot" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-primary/20 bg-primary/[0.035] px-3.5 py-2.5 dark:bg-primary/[0.07]">
-              <SeloCopilot />
-              <div className="min-w-0 flex-1 basis-56 sem-selecao">
-                <h2 className="text-[13px] leading-tight font-semibold tracking-tight">Copilot</h2>
-                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">Prompts prontos com o histórico desta tarefa, para copiar e colar.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPrompt("panorama")}><Sparkles className="text-primary" /> Panorama da tarefa</Button>
-                <Button variant="outline" size="sm" onClick={() => setPrompt("reuniao")}><WandSparkles className="text-primary" /> Preparar próxima reunião</Button>
-              </div>
-            </section>
-
-            <div className="mt-6 flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold tracking-tight">Linha do tempo</h2>
-              <Contador n={tarefa.registros.length} />
-              <Dica texto="Inverter a ordem da linha do tempo">
-                <Button variant="ghost" size="sm" data-slot="ordem" data-recentes={recentes || undefined} className="ml-auto"
+            {/* Uma linha só: título, filtros, ordem e os botões de registrar. Fica presa no topo ao rolar. */}
+            <div data-slot="timeline-barra" className="sticky top-0 z-10 -mx-2 mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-2 bg-background/95 px-2 py-2 backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-background after:to-transparent">
+              <h2 className="flex shrink-0 items-center gap-1.5 text-[13px] font-semibold tracking-tight sem-selecao">
+                Linha do tempo <Contador n={tarefa.registros.length} />
+              </h2>
+              <Segmentado aria-label="Filtrar a linha do tempo" tamanho="sm" valor={filtro} aoMudar={setFiltro} opcoes={FILTROS} />
+              <Dica texto={recentes ? "Mais recentes primeiro. Clique para mostrar os mais antigos primeiro." : "Mais antigos primeiro. Clique para mostrar os mais recentes primeiro."}>
+                <Button variant="ghost" size="icon-sm" data-slot="ordem" data-recentes={recentes || undefined}
+                  aria-label={recentes ? "Ordem: mais recentes primeiro. Inverter" : "Ordem: mais antigos primeiro. Inverter"}
                   onClick={() => setPrefRecentes(!recentes)}>
                   {recentes ? <ArrowUpNarrowWide /> : <ArrowDownNarrowWide />}
-                  {recentes ? "Mais recentes primeiro" : "Mais antigos primeiro"}
                 </Button>
               </Dica>
-            </div>
-
-            <div data-slot="timeline-barra" className="sticky top-0 z-10 -mx-2 mt-1.5 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 bg-background/95 px-2 py-2 backdrop-blur-sm after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-3 after:bg-linear-to-b after:from-background after:to-transparent">
-              <Segmentado aria-label="Filtrar a linha do tempo" tamanho="sm" valor={filtro} aoMudar={setFiltro} opcoes={FILTROS} />
-              <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              <div className="ml-auto flex items-center gap-1.5">
                 <Button size="sm" data-slot="registrar" data-tipo="reuniao" onClick={() => registrar("reuniao")}><Plus /> Reunião</Button>
-                <Button size="sm" variant="outline" data-slot="registrar" data-tipo="atividade" onClick={() => registrar("atividade")}>
-                  <IconeTipo tipo="atividade" /> Atividade
-                </Button>
-                <Button size="sm" variant="outline" data-slot="registrar" data-tipo="impedimento" onClick={() => registrar("impedimento")}>
-                  <IconeTipo tipo="impedimento" /> Impedimento
-                </Button>
+                {/* em coluna estreita, impedimento (e depois atividade) ficam só com o ícone, com nome e dica */}
+                <Dica texto="Registrar atividade">
+                  <Button size="sm" variant="outline" data-slot="registrar" data-tipo="atividade" aria-label="Atividade"
+                    className="@max-[44rem]/linha:w-7 @max-[44rem]/linha:px-0" onClick={() => registrar("atividade")}>
+                    <IconeTipo tipo="atividade" /> <span className="hidden @[44rem]/linha:inline">Atividade</span>
+                  </Button>
+                </Dica>
+                <Dica texto="Registrar impedimento">
+                  <Button size="sm" variant="outline" data-slot="registrar" data-tipo="impedimento" aria-label="Impedimento"
+                    className="@max-[47rem]/linha:w-7 @max-[47rem]/linha:px-0" onClick={() => registrar("impedimento")}>
+                    <IconeTipo tipo="impedimento" /> <span className="hidden @[47rem]/linha:inline">Impedimento</span>
+                  </Button>
+                </Dica>
                 <DropdownMenu>
                   <Dica texto="Decisão ou nota">
                     <DropdownMenuTrigger asChild>

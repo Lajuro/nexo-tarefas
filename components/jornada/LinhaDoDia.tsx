@@ -227,7 +227,7 @@ export function LinhaDoDia({
                     }}
                     className={cn(
                       "inline-flex size-4 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
-                      b.feito ? "border-sucesso bg-sucesso text-white" : "border-foreground/25 bg-card/70 text-transparent opacity-0 group-hover/bloco:opacity-100 hover:border-sucesso hover:text-sucesso",
+                      b.feito ? "border-sucesso bg-sucesso text-white" : "border-foreground/25 bg-card/70 text-transparent opacity-0 group-focus-within/bloco:opacity-100 group-hover/bloco:opacity-100 focus-visible:opacity-100 hover:border-sucesso hover:text-sucesso",
                     )}
                   >
                     <Check className="size-2.5" strokeWidth={3} />

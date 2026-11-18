@@ -38,7 +38,7 @@ A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia 
 
 ### Referência do assunto
 
-Quando um registro explica como algo funciona (um processo, quem cuida do quê), marque-o como **referência** no botão do próprio card. Ele passa a aparecer no topo da página da categoria, para consultar em qualquer tarefa daquele assunto. No bloco de notas, o Copilot já sugere isso sozinho quando a folha é uma explicação.
+Quando um registro explica como algo funciona (um processo, quem cuida do quê), marque-o como **referência** no menu "..." do próprio card. Ele passa a aparecer no topo da página da categoria, para consultar em qualquer tarefa daquele assunto. No bloco de notas, o Copilot já sugere isso sozinho quando a folha é uma explicação.
 
 ### Busca e "só os meus"
 
@@ -63,7 +63,9 @@ Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o
 3. Cole no Copilot, copie a resposta e cole de volta no app.
 4. **Preencher campos**: resumo, decisões, próximos passos (com responsável), impedimentos e participantes são separados sozinhos. Passos antigos que a resposta disser que foram resolvidos já vêm marcados para concluir.
 
-Também tem prompts de **panorama da tarefa**, **preparar próxima reunião**, **panorama da categoria** e **relatório do período**.
+Também tem prompts de **panorama da tarefa** e **preparar próxima reunião** (no botão **Copilot** do cabeçalho da tarefa), **panorama da categoria** e **relatório do período**.
+
+Na página da tarefa, categoria, status, prioridade, prazo, lembrete de voltar e tags mudam ali mesmo: tudo que tem a setinha ao lado abre um seletor. Cada registro da linha do tempo tem o botão "..." com editar, guardar como referência, mover e remover, e ele também é alcançado pelo Tab.
 
 ## Rotina
 
@@ -77,7 +79,7 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
-## Novidades da 3.7
+## Novidades da 3.8
 
 - **Fechar o dia**: ao clicar em **Encerrar o dia** na Rotina (ou `Shift D`), o Nexo mostra o que saiu hoje, os focos que ficaram (leve para o próximo dia de trabalho com um clique), seus passos vencidos, os impedimentos e a **daily** pronta para copiar. De manhã, o botão de copiar daily fica na tela Hoje. É texto montado só com o que você registrou, sem IA.
 - **Desfazer**: mudou o status, a prioridade ou o prazo, moveu um registro, mandou algo para a lixeira? O aviso traz **Desfazer**, e `Ctrl Z` (fora de campos de texto) faz o mesmo.

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { campoBase } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -177,6 +177,7 @@ function SeletorData({
   limpavel = true,
   className,
   compacto,
+  seta,
   id,
   disabled,
   "aria-label": ariaLabel,
@@ -188,6 +189,8 @@ function SeletorData({
   className?: string;
   /** Sem borda, para usar dentro de linhas e barras. */
   compacto?: boolean;
+  /** Setinha no fim, a pista de que o valor abre um seletor (faixa de propriedades da tarefa). */
+  seta?: boolean;
   id?: string;
   disabled?: boolean;
   "aria-label"?: string;
@@ -227,6 +230,7 @@ function SeletorData({
         >
           <CalendarDays className="size-3.5 shrink-0 opacity-60" />
           <span className="flex-1 truncate">{valor ? dataPorExtenso(valor) : placeholder}</span>
+          {seta && <ChevronDown aria-hidden data-slot="seta-editavel" className="-ml-0.5 size-3 shrink-0 opacity-50" />}
           {valor && limpavel && !compacto && (
             <span
               role="button"

@@ -109,7 +109,7 @@ export interface Tarefa {
   fixada?: boolean;
   /** Quem ficou de responder e o quê. Limpo quando a tarefa sai de "aguardando" (vira observação do marco). */
   esperando?: Espera | null;
-  /** Ids das tarefas de que esta depende (3.7). As contas (quem segura quem, o que destravou) estão em lib/dependencias.ts. */
+  /** Ids das tarefas de que esta depende (3.8). As contas (quem segura quem, o que destravou) estão em lib/dependencias.ts. */
   dependeDe?: string[];
   [extra: string]: unknown;
 }
@@ -240,7 +240,7 @@ export interface Modelo {
   prazoEmDias?: number | null;
   /** Quantas tarefas já nasceram dele. */
   usos?: number;
-  /** Demanda que se repete (3.7): de quanto em quanto tempo o app lembra de criar uma tarefa dele. */
+  /** Demanda que se repete (3.8): de quanto em quanto tempo o app lembra de criar uma tarefa dele. */
   repetir?: RepeticaoDoModelo | null;
   criadoEm: string;
   atualizadoEm: string;
@@ -248,7 +248,7 @@ export interface Modelo {
 }
 
 /**
- * Assunto para levar a uma pessoa na próxima conversa (assuntos.json, 3.7): "falar com Fulano sobre X".
+ * Assunto para levar a uma pessoa na próxima conversa (assuntos.json, 3.8): "falar com Fulano sobre X".
  * O nome fica como texto, como nos registros e passos; a ligação com o cadastro é feita na leitura.
  */
 export interface AssuntoParaFalar {
@@ -469,7 +469,7 @@ export interface Dados {
   paginas: Colecao<Pagina>;
   /** Rotina do dia e ponto. Ausente em dados lidos por código antigo: trate como vazio. */
   jornada: Colecao<ItemDaJornada>;
-  /** Assuntos para falar com alguém (3.7). Ausente em dados lidos por código antigo: trate como vazio. */
+  /** Assuntos para falar com alguém (3.8). Ausente em dados lidos por código antigo: trate como vazio. */
   assuntos?: Colecao<AssuntoParaFalar>;
   avisos: string[];
 }

@@ -73,7 +73,7 @@ function CampoChips({
             >
               {v}
               <button type="button" aria-label={`Remover ${v}`} onClick={(e) => { e.stopPropagation(); aoMudar(valor.filter((x) => x !== v)); }}
-                className="inline-flex size-4 items-center justify-center rounded opacity-60 hover:bg-primary/15 hover:opacity-100">
+                className="inline-flex size-4 items-center justify-center rounded opacity-60 outline-none hover:bg-primary/15 hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/50">
                 <X className="size-3" />
               </button>
             </motion.span>

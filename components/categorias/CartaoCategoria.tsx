@@ -76,7 +76,7 @@ export function CartaoCategoria({ cat, tarefas, aoEditar }: { cat: Categoria; ta
               cat.arquivada && "opacity-70 group-hover/cat:opacity-100 focus-visible:opacity-100",
             )}
           >
-            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-(--cor) opacity-80 transition-opacity duration-200 group-hover/cat:opacity-100" />
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-(--cor) opacity-80 transition-opacity duration-200 group-focus-within/cat:opacity-100 group-hover/cat:opacity-100" />
 
             <div className="flex items-center gap-3 pr-7">
               <EmblemaCategoria nome={cat.nome} cor={cat.cor} />

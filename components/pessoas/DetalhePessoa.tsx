@@ -324,7 +324,7 @@ function TimesDaPessoa({ p, entrada }: { p: Pessoa; entrada: EntradaPessoa }) {
                   : <span className="text-xs text-muted-foreground">Membro</span>}
                 <BotaoMenu
                   rotulo={`Papel em ${t.nome}`}
-                  className="opacity-60 group-hover/linha:opacity-100 data-[state=open]:opacity-100"
+                  className="opacity-60 group-hover/linha:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
                   acoes={[
                     resp
                       ? { rotulo: "Deixar de ser responsável", icone: <Crown />, aoClicar: () => acoesTime.definirResponsavel(t.id, p.id, false) }
@@ -383,7 +383,7 @@ function CategoriasDaPessoa({ p, times }: { p: Pessoa; times: Time[] }) {
                 <CatTag cat={c} className="text-[13px] text-foreground" />
               </Link>
               <Dica texto="Desligar desta categoria">
-                <Button variant="ghost" size="icon-sm" aria-label={`Desligar de ${c.nome}`} className="opacity-60 group-hover/linha:opacity-100"
+                <Button variant="ghost" size="icon-sm" aria-label={`Desligar de ${c.nome}`} className="opacity-60 group-hover/linha:opacity-100 focus-visible:opacity-100"
                   onClick={() => mudar((ids) => ids.filter((x) => x !== c.id))}>
                   <X />
                 </Button>

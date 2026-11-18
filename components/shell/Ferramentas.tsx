@@ -279,7 +279,7 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
                       <Link href={`/tarefas/${t.id}`} onClick={() => setAberto(false)}
                         className="group/f flex min-w-0 flex-1 items-center gap-1.5 rounded-sm text-[13px] font-medium outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/50">
                         <span className="min-w-0 truncate">{t.titulo}</span>
-                        <ArrowRight className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover/f:translate-x-0 group-hover/f:opacity-100" />
+                        <ArrowRight className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,transform] group-hover/f:translate-x-0 group-hover/f:opacity-100 group-focus-visible/f:translate-x-0 group-focus-visible/f:opacity-100" />
                       </Link>
                       <Dica texto="Começar uma sessão de foco de 25 minutos nesta tarefa">
                         <Button variant="ghost" size="icon-sm" data-slot="comecar-sessao" aria-label={`Começar sessão de foco em “${t.titulo}”`}

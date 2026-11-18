@@ -205,7 +205,7 @@ function Conteudo() {
     return { tarefas, registros, links, cadastro, times, paginas };
   }, [dados, n, termo]);
 
-  // transcrições dos vídeos (3.7): pedidas à parte; cada trecho de fala que tem todas as palavras é um resultado
+  // transcrições dos vídeos (3.8): pedidas à parte; cada trecho de fala que tem todas as palavras é um resultado
   const transcricoes = useTranscricoes();
   const videos = useMemo(() => {
     if (!n || !transcricoes?.length) return [] as AchadoVideo[];

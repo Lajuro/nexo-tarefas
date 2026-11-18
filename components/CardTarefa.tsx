@@ -128,7 +128,7 @@ export function CardTarefa({
   const barra = cat?.cor && (
     <span
       aria-hidden
-      className={cn("absolute left-0 w-[3px] rounded-r-full transition-opacity duration-200 group-hover/card:opacity-100", compacto ? "inset-y-2.5" : "inset-y-3.5", aberta ? "opacity-75" : "opacity-35")}
+      className={cn("absolute left-0 w-[3px] rounded-r-full transition-opacity duration-200 group-focus-within/card:opacity-100 group-hover/card:opacity-100", compacto ? "inset-y-2.5" : "inset-y-3.5", aberta ? "opacity-75" : "opacity-35")}
       style={{ background: cat.cor }}
     />
   );

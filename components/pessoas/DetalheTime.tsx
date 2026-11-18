@@ -119,7 +119,7 @@ export function DetalheTime({ time, diretorio }: { time: Time; diretorio: Entrad
                               </div>
                             )}
                           </div>
-                          <BotaoMenu acoes={acoesMembro(e)} rotulo={`Ações de ${e.nome} no time`} className="-mt-1 -mr-1 opacity-60 group-hover/linha:opacity-100 data-[state=open]:opacity-100" />
+                          <BotaoMenu acoes={acoesMembro(e)} rotulo={`Ações de ${e.nome} no time`} className="-mt-1 -mr-1 opacity-60 group-hover/linha:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" />
                         </div>
                       </MenuContexto>
                     </motion.div>
@@ -160,7 +160,7 @@ export function DetalheTime({ time, diretorio }: { time: Time; diretorio: Entrad
                           {e.passosAbertos.length > 0
                             ? <Badge variant="alerta"><Hourglass /> {e.passosAbertos.length}</Badge>
                             : <span />}
-                          <BotaoMenu acoes={acoesMembro(e)} rotulo={`Ações de ${e.nome} no time`} className="opacity-60 group-hover/linha:opacity-100 data-[state=open]:opacity-100" />
+                          <BotaoMenu acoes={acoesMembro(e)} rotulo={`Ações de ${e.nome} no time`} className="opacity-60 group-hover/linha:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" />
                         </div>
                       </MenuContexto>
                     </motion.div>
@@ -265,7 +265,7 @@ function CategoriasDoTime({ time }: { time: Time }) {
                 <CatTag cat={c} className="text-[13px] text-foreground" />
               </Link>
               <Dica texto="Desligar do time">
-                <Button variant="ghost" size="icon-sm" aria-label={`Desligar ${c.nome} do time`} className="opacity-60 group-hover/linha:opacity-100"
+                <Button variant="ghost" size="icon-sm" aria-label={`Desligar ${c.nome} do time`} className="opacity-60 group-hover/linha:opacity-100 focus-visible:opacity-100"
                   onClick={() => acoes.definirCategorias(time.id, (ids) => ids.filter((x) => x !== c.id))}>
                   <X />
                 </Button>

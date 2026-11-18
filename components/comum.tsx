@@ -7,7 +7,7 @@ import Link from "next/link";
 import { ReactNode, useEffect, useId, useRef } from "react";
 import { animate, motion } from "motion/react";
 import {
-  Ban, CalendarClock, Check, ChevronLeft, Circle, CircleCheck, CircleDot, CircleSlash, Flag, Gavel, Hourglass,
+  Ban, CalendarClock, Check, ChevronDown, ChevronLeft, Circle, CircleCheck, CircleDot, CircleSlash, Flag, Gavel, Hourglass,
   type LucideIcon, NotebookPen, OctagonAlert, Users, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ import { Dica } from "@/components/ui/popover";
  * e o corpo com rolagem própria. O Shell dá a altura; quem rola é o corpo, não a janela.
  */
 export function Pagina({
-  titulo, descricao, acoes, barra, children, voltar, antes, semRolagem, estreita, className,
+  titulo, descricao, acoes, barra, children, voltar, antes, semRolagem, estreita, quebrarTitulo, className,
 }: {
   titulo: ReactNode;
   descricao?: ReactNode;
@@ -46,12 +46,15 @@ export function Pagina({
   semRolagem?: boolean;
   /** Conteúdo de leitura: limita a largura a ~900px. */
   estreita?: boolean;
+  /** Título longo quebra em até duas linhas em vez de virar reticências numa linha só (página da tarefa). */
+  quebrarTitulo?: boolean;
   className?: string;
 }) {
   const largura = estreita ? "max-w-[920px]" : "max-w-[1360px]";
   return (
     <div data-slot="pagina" className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 border-b bg-background/80 backdrop-blur-sm">
+      {/* O cabeçalho é um contêiner: as ações podem encolher para só ícone conforme a largura dele (@container/cabecalho). */}
+      <header className="@container/cabecalho shrink-0 border-b bg-background/80 backdrop-blur-sm">
         <div className={cn("mx-auto flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3.5", largura)}>
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             {voltar && (
@@ -63,7 +66,7 @@ export function Pagina({
             )}
             {antes}
             <div className="min-w-0">
-              <h1 className="truncate text-lg leading-tight font-semibold tracking-tight">{titulo}</h1>
+              <h1 className={cn("text-lg leading-tight font-semibold tracking-tight", quebrarTitulo ? "line-clamp-2 [overflow-wrap:anywhere]" : "truncate")}>{titulo}</h1>
               {descricao && <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{descricao}</p>}
             </div>
           </div>
@@ -248,9 +251,11 @@ export function StatusBadge({ status, className }: { status: Status; className?:
 
 /** Badge de status clicável que abre o menu para trocar. */
 export function SeletorStatus({
-  status, aoMudar, className, disabled,
+  status, aoMudar, className, disabled, seta,
 }: {
   status: Status; aoMudar: (s: Status) => void; className?: string; disabled?: boolean;
+  /** Mostra uma setinha no fim, a pista de que o selo abre um menu (faixa de propriedades da tarefa). */
+  seta?: boolean;
 }) {
   const v = STATUS_VISUAL[status];
   return (
@@ -263,6 +268,7 @@ export function SeletorStatus({
           )}>
           <v.icone className="size-3.5" />
           {nomeStatus(status)}
+          {seta && <ChevronDown aria-hidden data-slot="seta-editavel" className="-mr-0.5 size-3 opacity-60" />}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">

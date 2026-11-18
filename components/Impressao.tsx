@@ -1,6 +1,6 @@
 "use client";
 
-// Imprimir ou salvar em PDF (3.7): uma folha limpa da tarefa ou da categoria, para mandar ao gestor sem
+// Imprimir ou salvar em PDF (3.8): uma folha limpa da tarefa ou da categoria, para mandar ao gestor sem
 // depender de nada além do navegador ("Salvar como PDF" é o destino de impressão do próprio Edge/Chrome).
 // pedirImpressao() de qualquer lugar; o componente <Impressao/> fica montado no Shell, põe a folha direto no
 // <body> só durante a impressão e o CSS de app/globals.css (@media print) esconde todo o resto.

@@ -32,7 +32,7 @@ export function Abas({ abertas, ativaId, aoAtivar, aoFechar, aoFecharOutras, aoN
             <IconePagina pagina={p} className={cn(ativa && "text-primary")} />
             <span className="min-w-0 flex-1 truncate">{nomeDaPagina(p)}</span>
             <button type="button" aria-label={`Fechar ${nomeDaPagina(p)}`} data-slot="fechar-aba" onClick={(e) => { e.stopPropagation(); aoFechar(p.id); }}
-              className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded outline-none hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/40", !ativa && "opacity-0 group-hover/aba:opacity-100")}>
+              className={cn("inline-flex size-4 shrink-0 items-center justify-center rounded outline-none hover:bg-foreground/10 focus-visible:ring-2 focus-visible:ring-ring/40", !ativa && "opacity-0 group-focus-within/aba:opacity-100 group-hover/aba:opacity-100 focus-visible:opacity-100")}>
               <X className="size-3" />
             </button>
           </div>

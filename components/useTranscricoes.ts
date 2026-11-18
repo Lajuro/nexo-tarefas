@@ -1,6 +1,6 @@
 "use client";
 
-// As transcrições dos vídeos para a busca global e o Perguntar (3.7). Pedidas uma vez a /api/transcricoes
+// As transcrições dos vídeos para a busca global e o Perguntar (3.8). Pedidas uma vez a /api/transcricoes
 // e lidas no navegador por lerTranscricao() (lib/transcricao.ts); voltam a ser pedidas quando as páginas mudam.
 
 import { useEffect, useState } from "react";

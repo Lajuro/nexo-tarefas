@@ -791,7 +791,7 @@ body:has([data-slot="lateral"][data-arrastando]) {
   -webkit-user-select: none;
 }
 
-/* ---------- impressão (3.7): só a folha de components/Impressao.tsx vai para o papel ---------- */
+/* ---------- impressão (3.8): só a folha de components/Impressao.tsx vai para o papel ---------- */
 [data-impressao] {
   display: none;
 }

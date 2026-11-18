@@ -1,6 +1,6 @@
 "use client";
 
-// Avisos do Windows (3.7): a notificação do sistema que o navegador mostra, para quando o Nexo está aberto
+// Avisos do Windows (3.8): a notificação do sistema que o navegador mostra, para quando o Nexo está aberto
 // mas em segundo plano (atrás do Teams, minimizado). Opcional e desligado por padrão (preferência
 // "nexo:notificacoes"). Não usa servidor nem nada de fora: é a API Notification do próprio navegador,
 // que funciona em 127.0.0.1. Com a janela do Nexo à vista, nada é enviado: o aviso dentro do app basta.
