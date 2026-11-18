@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Copy, Download, ExternalLink, FilterX, Library, Lock, Pencil, Plus, SearchX, Tag, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
+import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { CampoBusca } from "@/components/busca/CampoBusca";
 import { IconeEstadoLink, OpcoesDeEstadoNoContexto, SeletorEstadoLink, useMudarEstado } from "@/components/links/EstadoLink";
@@ -215,7 +216,7 @@ function LinhaLink({
                   rel="noreferrer"
                   data-slot="link-titulo"
                   // O navegador costuma bloquear file:// a partir de uma página http: deixa o caminho pronto para colar.
-                  onClick={genero === "rede" ? aoCopiar : undefined}
+                  onClick={genero === "rede" ? aoCopiar : l.tipo === "arquivo" ? (e) => aoClicarEmArquivo(e, href, l.nomeArquivo || l.arquivo || "", l.titulo) : undefined}
                   className="group/titulo inline-flex max-w-full items-center gap-1 rounded-sm font-medium outline-none hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/35"
                 >
                   <span className="truncate underline-offset-2 group-hover/titulo:underline">{l.titulo}</span>

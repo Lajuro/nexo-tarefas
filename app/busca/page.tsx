@@ -9,6 +9,7 @@ import { useNexo } from "@/components/Provider";
 import { useTranscricoes } from "@/components/useTranscricoes";
 import { emTrechos, formatarTempo } from "@/lib/transcricao";
 import { hrefLink } from "@/components/LinkForm";
+import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { CampoBusca } from "@/components/busca/CampoBusca";
 import { SeloEstadoLink } from "@/components/links/EstadoLink";
@@ -529,7 +530,8 @@ function Conteudo() {
               <ListaResultados>
                 {r.links.slice(0, limite).map((l) => (
                   <Resultado key={l.id} tipo="link">
-                    <a href={hrefLink(l)} target="_blank" rel="noreferrer" className={CLASSE_RESULTADO}>
+                    <a href={hrefLink(l)} target="_blank" rel="noreferrer" className={CLASSE_RESULTADO}
+                      onClick={l.tipo === "arquivo" ? (e) => aoClicarEmArquivo(e, hrefLink(l), l.nomeArquivo || l.arquivo || "", l.titulo) : undefined}>
                       <IconeLink link={l} />
                       <div className="min-w-0 flex-1">
                         <h3 className="flex min-w-0 items-center gap-2 text-sm leading-snug font-medium">

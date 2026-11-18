@@ -13,6 +13,7 @@ import { CategoriaForm } from "@/components/CategoriaForm";
 import { PromptModal } from "@/components/PromptModal";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
+import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
 import { SeloEstadoLink } from "@/components/links/EstadoLink";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
 import { TextoRico } from "@/components/tarefa/Texto";
@@ -270,6 +271,7 @@ export default function PaginaCategoria() {
                           target="_blank"
                           rel="noreferrer"
                           data-slot="link-do-assunto"
+                          onClick={l.tipo === "arquivo" ? (e) => aoClicarEmArquivo(e, hrefLink(l), l.nomeArquivo || l.arquivo || "", l.titulo) : undefined}
                           className="group/link flex items-start gap-2.5 rounded-lg px-2 py-2 outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35"
                         >
                           <span className={`mt-px inline-flex size-7 shrink-0 items-center justify-center rounded-md ${l.tipo === "arquivo" ? "bg-primary/12 text-primary" : "bg-info/14 text-info"}`}>

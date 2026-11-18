@@ -24,7 +24,7 @@
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
 // painel Personalizar: cor de destaque, esconder item e ferramenta, separar as telas de acompanhar),
 // "Acompanhar" (item único no menu, abas em comum, última aba lembrada), menu "Mais", esperando quem (cobrança),
-// modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
+// modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada que amplia num visor por cima do app, conteúdo
 // perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), links e documentos como
 // material de trabalho (um link em várias tarefas, status de chamado, trava, página e folha ligadas à tarefa,
 // folha que vira página, Ctrl + clique num link do editor), conquistas (nível, meta do dia, desligar) e
@@ -688,6 +688,49 @@ async function main() {
       const i = [...document.querySelectorAll("[data-slot=registro] [data-slot=imagem-anexada] img")][0];
       return i && i.complete && i.naturalWidth > 0;
     });
+    // clicar na imagem amplia por cima do app: a tela de baixo não muda, e fechar devolve o usuário ao mesmo lugar
+    const endereco = pg.url();
+    const miniatura = card.locator("[data-slot=imagem-anexada]").first();
+    await miniatura.scrollIntoViewIfNeeded();
+    const rolagem = () => pg.evaluate(() => [...document.querySelectorAll("*")].filter((e) => e.scrollTop > 0).map((e) => e.scrollTop).join());
+    const rolagemAntes = await rolagem();
+    await miniatura.click();
+    const visor = pg.locator("[data-slot=visor-de-imagem]");
+    await visor.waitFor();
+    await pg.waitForFunction(() => { const i = document.querySelector("[data-slot=visor-imagem]"); return i && i.complete && i.naturalWidth > 0; });
+    afirmar(pg.url() === endereco, "abrir a imagem não pode trocar de tela");
+    afirmar((await ctx.pages()).length === 1, "abrir a imagem não pode abrir outra aba");
+    afirmar(await card.isVisible(), "a tarefa tem que continuar atrás do visor");
+    afirmar((await visor.locator("[data-slot=visor-baixar]").getAttribute("href")).endsWith("&baixar=1"), "o visor não oferece baixar a imagem");
+    // um clique na imagem (ou a tecla +) sai do ajuste à janela; 0 volta
+    await visor.locator("[data-slot=visor-escala][data-escala=ajustada]").waitFor();
+    await visor.locator("[data-slot=visor-imagem]").click();
+    await visor.locator('[data-slot=visor-escala][data-escala="1"]').waitFor();
+    await pg.keyboard.press("+");
+    await visor.locator('[data-slot=visor-escala][data-escala="1.5"]').waitFor();
+    await pg.keyboard.press("0");
+    await visor.locator("[data-slot=visor-escala][data-escala=ajustada]").waitFor();
+    await pg.keyboard.press("Escape");
+    await visor.waitFor({ state: "detached" });
+    afirmar(pg.url() === endereco, "fechar o visor tem que deixar na mesma tela");
+    afirmar((await rolagem()) === rolagemAntes, "fechar o visor mudou a rolagem da tela");
+    afirmar(await miniatura.evaluate((el) => el === document.activeElement), "o foco tem que voltar para a imagem que foi aberta");
+    // clicar fora da imagem também fecha
+    await miniatura.click();
+    await visor.waitFor();
+    await visor.locator("[data-slot=visor-area]").click({ position: { x: 8, y: 8 } });
+    await visor.waitFor({ state: "detached" });
+    // no editor, dois cliques na imagem ampliam (um só seleciona)
+    await card.locator("[data-slot=registro-menu]").click();
+    await pg.getByRole("menuitem", { name: "Editar registro" }).click();
+    const noEditor = dialogo().locator("[data-slot=anotacoes] img[data-anexo]").first();
+    await noEditor.scrollIntoViewIfNeeded();
+    await noEditor.dblclick();
+    await visor.waitFor();
+    await pg.keyboard.press("Escape");
+    await visor.waitFor({ state: "detached" });
+    afirmar(await dialogo().locator("[data-slot=anotacoes]").isVisible(), "fechar o visor não pode fechar o editor que estava aberto por baixo");
+    await fecharDialogo();
     // o espelho em Markdown aponta para a pasta de anexos ao lado
     pg.off("request", olheiro);
     afirmar(externas.length === 0, "o editor fez chamada externa: " + externas.join(", "));

@@ -42,13 +42,14 @@ const NOVIDADES: Novidade[] = [
       "Chamado em aberto há 5 dias sem mudar de status entra em \"Precisa de você\".",
       "Páginas e folhas do bloco de notas também se ligam a tarefas e aparecem em Links e documentos de cada uma. Dá para criar uma já ligada, pelo mesmo \"Adicionar\".",
     ] },
-  { versao: "3.14", icone: SquarePen, titulo: "Editor mais completo", texto: "No editor de páginas, folhas e registros, o @ agora também cita links do banco, folhas do bloco de notas e categorias. Ctrl + clique num link abre o destino. Arquivos (PDF, planilha) podem ser arrastados ou colados no texto. Na barra, desfazer, refazer e anexar; no menu /, data de hoje e hora de agora. A folha conta as palavras e pode virar página.", href: "/notas", rotulo: "Abrir as Notas",
+  { versao: "3.14", icone: SquarePen, titulo: "Editor mais completo", texto: "No editor de páginas, folhas e registros, o @ agora também cita links do banco, folhas do bloco de notas e categorias. Ctrl + clique num link abre o destino. Arquivos (PDF, planilha) podem ser arrastados ou colados no texto. Na barra, desfazer, refazer e anexar; no menu /, data de hoje e hora de agora. A folha conta as palavras e pode virar página. Clicar numa imagem do texto amplia por cima do app, sem trocar de tela.", href: "/notas", rotulo: "Abrir as Notas",
     pontos: [
       "@ também cita links e documentos do banco (entra o endereço de verdade), folhas do bloco de notas e categorias.",
       "Ctrl + clique num link do texto abre o destino. O balão do link ganhou o botão Abrir.",
       "Arraste ou cole um PDF, uma planilha ou outro arquivo no texto: ele é guardado e entra como link.",
       "Na barra: desfazer, refazer e anexar arquivo (aparecem quando há largura). No menu /: data de hoje, hora de agora e citar.",
       "A folha mostra quantas palavras tem e ganhou \"Virar página\": o texto vira página de conhecimento e a folha fica arquivada.",
+      "Clicar numa imagem do texto amplia por cima do app, sem sair da tela: setas passam para a próxima, + e - dão zoom e Esc volta para onde você estava.",
     ] },
   { versao: "3.13", icone: Paintbrush, titulo: "O Nexo com a sua cara", texto: "Temas prontos que trocam tudo com um clique, cor de destaque livre (qualquer matiz), tons neutros frios, cinza, quentes ou puxados para a sua cor, escuro profundo e fundo em grade. A tela Hoje pode ter o seu nome na saudação, só os blocos que você usa e na ordem que preferir. E um código leva a personalização inteira para outro computador.", href: "/", rotulo: "Abrir o Personalizar", acao: () => abrirPersonalizar("aparencia"),
     pontos: [

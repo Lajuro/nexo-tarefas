@@ -11,10 +11,12 @@ import {
   Check, ChevronRight, CircleAlert, CircleCheckBig, CircleHelp, Clock, Copy, FlaskConical, Info, Lightbulb, ListTree, type LucideIcon, OctagonAlert, Paperclip, TriangleAlert,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { abrirImagem, aoClicarEmArquivo } from "@/components/VisorDeImagem";
 import { type ItemDoSumario, nomeDaPagina, sumarioDosBlocos } from "@/lib/paginas";
 import { nomeDaFolha } from "@/lib/links";
 import { NOMES_DE_LINGUAGEM, realcar } from "@/lib/realce";
-import { Bloco, Inline, NOME_DO_DESTAQUE, type TipoDeDestaque, analisarMarkdown, paraTextoPlano } from "@/lib/texto-rico";
+import { Bloco, Inline, NOME_DO_DESTAQUE, type TipoDeDestaque, analisarMarkdown, paraTextoPlano, textoDosInlines } from "@/lib/texto-rico";
+import { nomeNaUrl } from "@/lib/visor";
 import { dataCurta, nomeStatus } from "@/lib/tipos";
 import { lerTempo } from "@/lib/transcricao";
 import { cn } from "@/lib/utils";
@@ -73,9 +75,10 @@ function desenharInlines(f: Inline[], o: Opcoes = {}): ReactNode {
         // citação de tarefa, página, pessoa ou categoria: navega dentro do app
         return <Link key={k} href={i.rota} data-slot="link-interno" data-tipo={i.tipo}>{desenharInlines(i.f, o)}</Link>;
       case "anexo":
-        // arquivo da pasta de dados: abre pela API local, em outra aba
+        // arquivo da pasta de dados: abre pela API local, em outra aba (se for imagem, no visor, por cima do app)
         return (
-          <a key={k} href={i.url} target="_blank" rel="noopener noreferrer" data-slot="anexo" className="!no-underline">
+          <a key={k} href={i.url} target="_blank" rel="noopener noreferrer" data-slot="anexo" className="!no-underline"
+            onClick={(e) => aoClicarEmArquivo(e, i.url, nomeNaUrl(i.url), textoDosInlines(i.f))}>
             <Paperclip aria-hidden />{desenharInlines(i.f, o)}
           </a>
         );
@@ -90,11 +93,14 @@ function desenharInlines(f: Inline[], o: Opcoes = {}): ReactNode {
         );
       case "imagem":
         // só chega aqui imagem que é anexo da pasta de dados (lib/texto-rico.ts barra as de fora)
+        // Clicar amplia a imagem por cima do app (components/VisorDeImagem.tsx): antes ela abria no lugar da tela
+        // inteira e o usuário perdia onde estava. É um botão, não um link: não sai de onde está.
         return (
-          <a key={k} href={i.url} target="_blank" rel="noopener noreferrer" data-slot="imagem-anexada" className="!no-underline">
+          <button key={k} type="button" data-slot="imagem-anexada" aria-label={i.alt ? `Ampliar a imagem: ${i.alt}` : "Ampliar a imagem"}
+            onClick={(e) => abrirImagem(i.url, i.alt, e.currentTarget)}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={i.url} alt={i.alt} loading="lazy" decoding="async" />
-          </a>
+          </button>
         );
     }
   });

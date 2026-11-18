@@ -99,6 +99,8 @@ O **editor** (páginas, folhas e anotações do registro) também cresceu:
 
 Nada muda nos dados que você já tem: os links antigos continuam ligados à mesma tarefa.
 
+**Imagem que abre sem tirar você do lugar (3.14.1).** Clicar numa imagem do texto (na linha do tempo, numa página, numa folha) amplia a imagem por cima do app, em vez de trocar a tela inteira por ela. `Esc`, o X ou um clique fora fecham e você volta exatamente para onde estava. Lá dentro: as setas passam para as outras imagens do mesmo texto, `+` e `-` aproximam e afastam, `0` volta a ajustar à janela, e um clique na imagem alterna entre ajustada e tamanho real. Dá para baixar ou abrir em outra aba. No editor, um clique seleciona a imagem e dois cliques ampliam. Arquivos de imagem do banco de links abrem do mesmo jeito.
+
 ## 3.13: o Nexo com a sua cara
 
 Abra **Personalizar** (o botão ao lado de Configurações, no pé do menu, ou o "..." da barra superior). Tudo muda na hora e fica só no seu navegador; suas tarefas não mudam.

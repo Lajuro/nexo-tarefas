@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Copy, Ellipsis, ExternalLink, FilePlus2, Link2, Lock, LockOpen, Paperclip, Pencil, Plus, StickyNote, Unlink } from "lucide-react";
 import { toast as sonner } from "sonner";
 import { useNexo } from "@/components/Provider";
+import { aoClicarEmArquivo } from "@/components/VisorDeImagem";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { Painel, copiarTexto, formatarTamanho } from "@/components/comum";
 import { IconeEstadoLink, OpcoesDeEstado, SeletorEstadoLink, SeloTrava, useMudarEstado } from "@/components/links/EstadoLink";
@@ -107,7 +108,8 @@ function LinhaLink({ l, tarefa, aoEditar }: { l: LinkDoc; tarefa: Tarefa; aoEdit
       <div className="group/link -mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent/60">
         <IconeLink link={l} className="size-7 rounded-md [&_svg]:size-3.5" />
         <div className="min-w-0 flex-1">
-          <a href={hrefLink(l)} target="_blank" rel="noreferrer" onClick={genero === "rede" ? copiar : undefined}
+          <a href={hrefLink(l)} target="_blank" rel="noreferrer"
+            onClick={genero === "rede" ? copiar : l.tipo === "arquivo" ? (e) => aoClicarEmArquivo(e, hrefLink(l), l.nomeArquivo || l.arquivo || "", l.titulo) : undefined}
             className="line-clamp-2 rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none [overflow-wrap:anywhere] hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
             {l.titulo}
           </a>

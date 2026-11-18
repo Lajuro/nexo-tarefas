@@ -19,6 +19,7 @@ import {
   TriangleAlert, Undo2, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { abrirImagem } from "@/components/VisorDeImagem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
@@ -420,10 +421,22 @@ export function EditorRico({
         }
         return true;
       },
-      // Ctrl + clique num link abre o destino (clique simples continua pondo o cursor, para dar para editar o texto)
+      // Duplo clique numa imagem amplia por cima do app (um clique só seleciona, para dar para apagar ou mover)
+      handleDoubleClick: (_view, _pos, evento) => {
+        const alvo = evento.target as HTMLElement | null;
+        if (alvo?.tagName !== "IMG") return false;
+        evento.preventDefault();
+        return abrirImagem(alvo.getAttribute("src") || "", alvo.getAttribute("alt") || "", alvo);
+      },
+      // Ctrl + clique num link abre o destino (e numa imagem, amplia) (clique simples continua pondo o cursor, para dar para editar o texto)
       handleClick: (_view, _pos, evento) => {
         if (!evento.ctrlKey && !evento.metaKey) return false;
-        const a = (evento.target as HTMLElement | null)?.closest?.("a[href]");
+        const alvo = evento.target as HTMLElement | null;
+        if (alvo?.tagName === "IMG") {
+          evento.preventDefault();
+          return abrirImagem(alvo.getAttribute("src") || "", alvo.getAttribute("alt") || "", alvo);
+        }
+        const a = alvo?.closest?.("a[href]");
         const href = a?.getAttribute("href");
         if (!href) return false;
         evento.preventDefault();

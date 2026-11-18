@@ -661,6 +661,25 @@ html[data-lateral="colorida"] [data-slot="lateral"] {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
+/* a imagem do texto é um botão que amplia por cima do app (components/VisorDeImagem.tsx) */
+.prosa button[data-slot="imagem-anexada"] {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+  cursor: zoom-in;
+  border-radius: var(--radius-md);
+  outline: none;
+}
+.prosa button[data-slot="imagem-anexada"]:hover img {
+  border-color: color-mix(in oklch, var(--ring) 55%, var(--border));
+}
+.prosa button[data-slot="imagem-anexada"]:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 40%, transparent);
+}
+/* no editor, um clique seleciona a imagem; dois ampliam */
+.editor-rico .ProseMirror img {
+  cursor: zoom-in;
+}
 .prosa table {
   border-collapse: collapse;
   width: 100%;
