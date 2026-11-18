@@ -78,7 +78,7 @@ function Coluna({
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...suave, delay: indice * 0.04 }}
       className={cn(
-        "flex min-h-0 min-w-[220px] flex-1 basis-0 flex-col rounded-xl border bg-muted/55 transition-[background-color,border-color,box-shadow] duration-150 dark:bg-muted/35",
+        "flex min-h-0 min-w-[200px] flex-1 basis-0 flex-col rounded-xl border bg-muted/55 transition-[background-color,border-color,box-shadow] duration-150 dark:bg-muted/35",
         alvo ? "border-primary/60 bg-primary/[0.07] ring-[3px] ring-primary/15 dark:bg-primary/[0.1]" : possivel ? "border-dashed border-foreground/15" : "border-transparent",
       )}
     >
@@ -214,7 +214,7 @@ export function QuadroTarefas({
         setAtivaId(null);
       }}
     >
-      <div data-slot="quadro-tarefas" data-arrastando={ativa ? "" : undefined} className="flex h-full min-h-0 gap-3 overflow-x-auto pb-1">
+      <div data-slot="quadro-tarefas" data-arrastando={ativa ? "" : undefined} className="esmaece-fim-x flex h-full min-h-0 gap-3 overflow-x-auto pb-1">
         {COLUNAS.map((s, i) => (
           <Coluna
             key={s}

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, CalendarClock, Telescope, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
+  BookText, CalendarClock, Telescope, Clapperboard, Component, Eye, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.11";
+export const VERSAO_NOVIDADES = "3.12";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
 
 const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string }[] = [
+  { icone: Eye, titulo: "Hoje mais fácil de bater o olho", texto: "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha (passe o mouse para ver a explicação) e embaixo fica só o que dá para resolver ali: o passo com o botão Concluir. A barra superior perdeu as molduras, a lista de tarefas mostra o título inteiro e o quadro cabe na tela.", href: "/", rotulo: "Abrir a tela Hoje" },
   { icone: PencilLine, titulo: "Formulários com o essencial primeiro", texto: "No registro, o Copilot fica no topo da coluna da direita e resumo, decisões, passos e impedimentos aparecem quando têm conteúdo (ou em \"Preencher à mão\"). Em Nova tarefa, status, lembrete de voltar, tags e descrição estão em \"Mais opções\", que lembra se você prefere aberto. A prioridade mostra as faixas baixa, média e alta.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: Telescope, titulo: "Menu mais curto: Acompanhar", texto: "Radar, Diário, Revisão semanal, Relatórios e Conquistas viraram um item só no menu, \"Acompanhar\", e trocam por abas no topo. Os atalhos G F, G D, G S, G R e G Q continuam. Prefere separadas? Personalizar > Lateral. Tema, tela cheia e atalhos estão no botão \"...\" da barra superior.", href: "/radar", rotulo: "Abrir Acompanhar" },
   { icone: MoonStar, titulo: "Fechar o dia e daily pronta", texto: "Ao encerrar o dia (ou Shift D): o que saiu, o que fica para amanhã, os impedimentos e a daily pronta para copiar. De manhã, \"Copiar daily\" na tela Hoje.", href: "/", rotulo: "Ir para Hoje" },

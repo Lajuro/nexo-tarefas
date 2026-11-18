@@ -23,10 +23,14 @@ const GRADE = cn(
   "grid items-center gap-x-3 px-3",
   "grid-cols-[minmax(0,1fr)_52px_136px_88px_28px]",
   "@3xl:grid-cols-[minmax(0,1fr)_148px_52px_140px_56px_88px_28px]",
-  "@5xl:grid-cols-[minmax(0,1fr)_176px_52px_148px_56px_116px_96px_28px]",
+  // O título é a informação principal: entre 64rem e 80rem (1366px com a barra lateral aberta) as outras
+  // colunas ficam justas para ele não ser a única coisa cortada; com folga, elas voltam a respirar.
+  "@5xl:grid-cols-[minmax(0,1fr)_136px_52px_148px_44px_84px_82px_28px]",
+  "@7xl:grid-cols-[minmax(0,1fr)_176px_52px_148px_56px_116px_96px_28px]",
 );
 const SO_MEDIA = "hidden @3xl:flex";
 const SO_LARGA = "hidden @5xl:flex";
+const SO_FOLGADA = "hidden @7xl:inline-flex";
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -149,13 +153,13 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
           )}
           {reunioes > 0 && (
             <Dica texto={plural(reunioes, "reunião registrada", "reuniões registradas")}>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+              <span className={cn(SO_FOLGADA, "items-center gap-1 text-xs text-muted-foreground tabular-nums")}>
                 <Users className="size-3.5" />
                 {reunioes}
               </span>
             </Dica>
           )}
-          {pessoas.length === 0 && reunioes === 0 && <span className="text-xs text-muted-foreground">Ninguém ainda</span>}
+          {pessoas.length === 0 && reunioes === 0 && <span className="truncate text-xs text-muted-foreground">Ninguém ainda</span>}
         </span>
 
         <span className="truncate text-xs text-muted-foreground">{dataRelativa(ult)}</span>

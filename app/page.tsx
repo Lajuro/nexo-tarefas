@@ -71,7 +71,7 @@ export default function Hoje() {
 
   if (tarefas.length === 0) {
     return (
-      <Pagina titulo={saudacao(agora)} descricao={dataLonga(hoje)} acoes={acoes}>
+      <Pagina destaque titulo={saudacao(agora)} descricao={dataLonga(hoje)} acoes={acoes}>
         <CapturaRapida />
         <Vazio titulo="Seu dia começa aqui" icone={<Sunrise />} className="mt-4">
           <p>
@@ -88,6 +88,7 @@ export default function Hoje() {
 
   return (
     <Pagina
+      destaque
       titulo={saudacao(agora)}
       descricao={
         <span className="inline-flex max-w-full items-center gap-2">

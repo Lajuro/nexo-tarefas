@@ -22,7 +22,7 @@ import { VISUAL_DO_BLOCO, horaDeAgora, useJornada, useMinuto, usePonto } from ".
 import { useEncerrarDia } from "@/components/rotina/FecharDia";
 
 const ficha =
-  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:border-ring/40 hover:bg-muted/70 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:border-ring/50 data-[state=open]:text-foreground";
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:bg-muted data-[state=open]:text-foreground";
 
 /** A rotina de hoje, pronta para mostrar: o bloco de agora, o próximo e a conta do ponto. */
 export function useRotinaDeHoje() {
@@ -39,7 +39,7 @@ export function useRotinaDeHoje() {
 function LinhaDoBloco({ rotulo, bloco, detalhe, parte }: { rotulo: string; bloco: BlocoDaJornada; detalhe: string; parte?: number }) {
   const v = VISUAL_DO_BLOCO[bloco.tipo];
   return (
-    <div className="rounded-lg border bg-card px-2.5 py-2">
+    <div className="rounded-lg bg-muted/60 px-2.5 py-2">
       <p className="text-xs text-muted-foreground">{rotulo}</p>
       <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium">
         <v.icone className={cn("size-3.5 shrink-0", v.texto)} />
@@ -181,7 +181,7 @@ export function CartaoDaRotina() {
   const { atual, restante, proximo, emQuanto } = r;
   return (
     <Painel titulo="Rotina de hoje" icone={<CalendarClock />} acoes={<Button asChild variant="ghost" size="sm"><Link href="/rotina">Abrir <ArrowRight /></Link></Button>}>
-      <div data-slot="cartao-da-rotina" className="flex flex-col gap-2 p-3">
+      <div data-slot="cartao-da-rotina" className="flex flex-col gap-2">
         {atual && <LinhaDoBloco rotulo="Agora" bloco={atual} detalhe={`faltam ${duracao(restante)}`} />}
         {proximo && <LinhaDoBloco rotulo={atual ? "Depois" : "Próximo bloco"} bloco={proximo} detalhe={`às ${proximo.inicio}${atual ? "" : ` · em ${duracao(emQuanto)}`}`} />}
         {!atual && !proximo && <p className="px-0.5 text-xs leading-snug text-muted-foreground">{r.blocos.length ? "O plano de hoje acabou." : "Nenhum bloco planejado para hoje."}</p>}

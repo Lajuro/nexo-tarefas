@@ -32,7 +32,7 @@ import {
 
 type Ordem = "contato" | "nome" | "pendencias";
 
-const COLUNAS = "grid grid-cols-[minmax(0,8fr)_minmax(0,5fr)_6.5rem_6.5rem_1.75rem] items-center gap-4 px-4";
+const COLUNAS = "grid grid-cols-[minmax(0,8fr)_minmax(0,5fr)_6.5rem_7.5rem_1.75rem] items-center gap-4 px-4";
 
 function textoDaEntrada(e: EntradaPessoa) {
   const p = e.pessoa;
@@ -203,7 +203,7 @@ export function ListaPessoas({ diretorio, totalTimes }: { diretorio: EntradaPess
                   <span>Pessoa</span>
                   <span>Times e categorias</span>
                   <span>Com ela</span>
-                  <span className="text-right">Último contato</span>
+                  <span className="text-right whitespace-nowrap">Último contato</span>
                   <span />
                 </div>
                 <motion.div variants={cascata} initial="escondido" animate="visivel">
@@ -363,7 +363,7 @@ function UltimoContato({ data }: { data: string | null }) {
   );
 }
 
-const COLUNAS_SOLTO = "grid grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_auto] items-center gap-4 px-4";
+const COLUNAS_SOLTO = "grid grid-cols-[minmax(0,1fr)_6.5rem_7.5rem_auto] items-center gap-4 px-4";
 
 function LinhaSolta({
   e, termo, pessoas, cadastrar, juntar,

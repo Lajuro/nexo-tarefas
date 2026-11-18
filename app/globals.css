@@ -770,6 +770,36 @@ html[data-fundo="pontilhado"] [data-slot="pagina"] > header {
   }
 }
 
+/* Lista que rola e é cortada por outra coisa (barra lateral, quadro): o fim esmaece enquanto ainda há
+   conteúdo para lá, em vez de um item aparecer pela metade. Sem rolagem, a linha do tempo fica inativa
+   e nada esmaece. Navegador sem animação por rolagem só não esmaece. */
+@property --nexo-esmaece {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@supports (animation-timeline: scroll()) {
+  .esmaece-fim-y {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - var(--nexo-esmaece)), transparent);
+    animation: nexo-esmaece linear both;
+    animation-timeline: scroll(self block);
+  }
+  .esmaece-fim-x {
+    mask-image: linear-gradient(to right, #000 calc(100% - var(--nexo-esmaece)), transparent);
+    animation: nexo-esmaece linear both;
+    animation-timeline: scroll(self inline);
+  }
+}
+@keyframes nexo-esmaece {
+  0%,
+  96% {
+    --nexo-esmaece: 2rem;
+  }
+  100% {
+    --nexo-esmaece: 0px;
+  }
+}
+
 /* Movimento "sutil": as coisas só esmaecem. Nada desliza nem cresce ao entrar ou sair. */
 html[data-movimento="sutil"] * {
   --nexo-desloca: 0px;

@@ -458,6 +458,10 @@ async function main() {
   await etapa("focar tarefa aparece em Foco de hoje", async () => {
     await pg.locator("[data-slot=anotada]", { hasText: CAPTURA }).getByRole("button", { name: "Focar hoje" }).click();
     await pg.locator("#foco-hoje", { hasText: CAPTURA }).waitFor();
+    // 3.12: a saudação é o título em destaque e cada motivo de "Precisa de você" é um selo
+    afirmar((await pg.locator("[data-slot=pagina] h1[data-destaque]").count()) === 1, "a saudação da tela Hoje não veio como título em destaque");
+    const semSelo = await pg.locator("[data-slot=lembrete] [data-slot=motivo]").evaluateAll((els) => els.filter((e) => !e.querySelector("[data-slot=badge]")).length);
+    afirmar(semSelo === 0, "há motivo de lembrete sem selo na tela Hoje");
   });
 
   // ---------- ritual ----------

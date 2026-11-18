@@ -29,7 +29,7 @@ import { Dica } from "@/components/ui/popover";
  * e o corpo com rolagem própria. O Shell dá a altura; quem rola é o corpo, não a janela.
  */
 export function Pagina({
-  titulo, descricao, acoes, barra, children, voltar, antes, semRolagem, estreita, quebrarTitulo, className,
+  titulo, descricao, acoes, barra, children, voltar, antes, semRolagem, estreita, quebrarTitulo, destaque, className,
 }: {
   titulo: ReactNode;
   descricao?: ReactNode;
@@ -48,6 +48,8 @@ export function Pagina({
   estreita?: boolean;
   /** Título longo quebra em até duas linhas em vez de virar reticências numa linha só (página da tarefa). */
   quebrarTitulo?: boolean;
+  /** Título maior (22px): a tela tem três níveis de leitura em vez de dois. Piloto na tela Hoje (3.12). */
+  destaque?: boolean;
   className?: string;
 }) {
   const largura = estreita ? "max-w-[920px]" : "max-w-[1360px]";
@@ -66,7 +68,7 @@ export function Pagina({
             )}
             {antes}
             <div className="min-w-0">
-              <h1 className={cn("text-lg leading-tight font-semibold tracking-tight", quebrarTitulo ? "line-clamp-2 [overflow-wrap:anywhere]" : "truncate")}>{titulo}</h1>
+              <h1 data-destaque={destaque || undefined} className={cn(destaque ? "text-[22px] tracking-[-0.02em]" : "text-lg tracking-tight", "leading-tight font-semibold", quebrarTitulo ? "line-clamp-2 [overflow-wrap:anywhere]" : "truncate")}>{titulo}</h1>
               {descricao && <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{descricao}</p>}
             </div>
           </div>

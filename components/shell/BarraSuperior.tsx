@@ -144,7 +144,7 @@ export function BarraSuperior({
             <Vaga id="anotar" ocultas={ocultas}><AnotarRapido /></Vaga>
             <Vaga id="busca" ocultas={ocultas}>
               <button type="button" onClick={abrirPaleta} data-slot="busca-topo"
-                className="hidden h-7 items-center gap-2 rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground transition-colors outline-none sem-selecao hover:border-ring/40 hover:bg-muted/70 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 lg:flex 2xl:w-52">
+                className="hidden h-7 items-center gap-2 rounded-md border border-transparent px-2 text-xs text-muted-foreground transition-colors outline-none sem-selecao hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 lg:flex 2xl:w-52 2xl:border-border 2xl:bg-muted/40">
                 <Search className="size-3.5" />
                 <span className="hidden flex-1 text-left 2xl:inline">Buscar em tudo</span>
                 <Kbd>/</Kbd>

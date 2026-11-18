@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlarmClockOff, ArrowUpRight, BellRing, Check, ChevronRight, CircleCheck, Clock, Eye, Plus } from "lucide-react";
+import { AlarmClockOff, ArrowUpRight, BellRing, Check, ChevronRight, CircleCheck, Clock, Eye, ListTodo, Plus } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useRepeticoes } from "@/components/Modelos";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import type { useLembretes } from "@/components/useLembretes";
 import { Contador, Secao } from "@/components/comum";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
+import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { comPassoAlternado } from "@/lib/acoes";
@@ -121,9 +121,13 @@ export function PrecisaDeVoce({ grupos, adiados, adiar, reativarTodos }: ReturnT
   );
 }
 
-const COR_DO_MOTIVO: Record<Gravidade, string> = { critico: "text-destructive", atencao: "text-alerta", info: "text-muted-foreground" };
+const SELO_DO_MOTIVO: Record<Gravidade, "perigo" | "alerta" | "secondary"> = { critico: "perigo", atencao: "alerta", info: "secondary" };
 
-/** Uma tarefa que pede atenção: o título uma vez só e, embaixo, cada motivo com o que dá para fazer ali mesmo. */
+/**
+ * Uma tarefa que pede atenção: o título uma vez só, os motivos como selos numa linha (a cor diz a gravidade)
+ * e, embaixo, só o que dá para resolver ali mesmo: o passo vencido ou de hoje, com o botão de concluir.
+ * A explicação de cada motivo fica na dica do selo, para a lista não virar um bloco de texto.
+ */
 function LinhaDaTarefa({
   grupo: g, aoAdiar,
 }: {
@@ -136,6 +140,7 @@ function LinhaDaTarefa({
   const repeticoes = useRepeticoes();
   // grupo de um modelo que se repete: não há tarefa ainda, as ações são criar ou pular
   const repeticao = g.modeloId && g.data ? { modeloId: g.modeloId, data: g.data } : null;
+  const comPasso = g.lembretes.filter((l) => l.passoId);
 
   const concluirPasso = async (l: Lembrete) => {
     if (!l.registroId || !l.passoId) return;
@@ -144,34 +149,51 @@ function LinhaDaTarefa({
   };
 
   const linha = (
-    <div className="group/lembrete flex items-start gap-3 px-3.5 py-2.5 transition-colors hover:bg-accent/40">
+    <div className="group/lembrete flex items-start gap-3 px-3.5 py-3 transition-colors hover:bg-accent/40">
       <span className={cn("mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full", TOM_GRAVIDADE[g.gravidade])}>
         <Icone className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
         {repeticao ? (
-          <span className="block truncate text-[13px] leading-7 font-medium">{g.tarefaTitulo}</span>
+          <span className="block truncate text-sm leading-7 font-semibold tracking-tight">{g.tarefaTitulo}</span>
         ) : (
           <Link
             href={href}
-            className="block truncate rounded-sm text-[13px] leading-7 font-medium outline-none hover:underline focus-visible:underline"
+            className="block truncate rounded-sm text-sm leading-7 font-semibold tracking-tight outline-none hover:underline focus-visible:underline"
           >
             {g.tarefaTitulo}
           </Link>
         )}
-        <ul className="flex flex-col gap-1 pb-0.5">
-          {g.lembretes.map((l) => (
-            <li key={l.id} data-slot="motivo" data-tipo={l.tipo} className="flex min-h-6 min-w-0 items-center gap-2 text-xs">
-              <span className={cn("shrink-0 font-medium", COR_DO_MOTIVO[l.gravidade])}>{l.titulo}</span>
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.detalhe}</span>
-              {l.passoId && (
+        <ul data-slot="motivos" className="mt-0.5 flex flex-wrap gap-1.5">
+          {g.lembretes.map((l) => {
+            // o texto de um passo já aparece logo abaixo, com o botão de concluir
+            const explicacao = l.passoId ? "" : l.detalhe;
+            const selo = (
+              <Badge variant={SELO_DO_MOTIVO[l.gravidade]}>
+                {l.titulo}
+                {explicacao && <span className="sr-only">. {explicacao}</span>}
+              </Badge>
+            );
+            return (
+              <li key={l.id} data-slot="motivo" data-tipo={l.tipo} data-gravidade={l.gravidade} className="inline-flex">
+                {explicacao ? <Dica texto={explicacao}>{selo}</Dica> : selo}
+              </li>
+            );
+          })}
+        </ul>
+        {comPasso.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {comPasso.map((l) => (
+              <li key={l.id} data-slot="passo-do-motivo" className="flex min-h-6 min-w-0 items-center gap-2 text-[13px]">
+                <ListTodo aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 truncate">{l.detalhe}</span>
                 <Button variant="outline" size="sm" className="h-6 shrink-0" onClick={() => concluirPasso(l)} data-acao="concluir-passo">
                   <Check /> Concluir
                 </Button>
-              )}
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
         {repeticao && (

@@ -19,7 +19,7 @@ export function NivelLateral({ recolhida }: { recolhida: boolean }) {
       {hoje.bateu ? <Check className="size-3.5 text-sucesso" strokeWidth={3} /> : <span className="text-[11px] font-semibold tabular-nums">{hoje.avancos}/{hoje.meta}</span>}
     </Anel>
   );
-  const dica = `Meta do dia: ${hoje.avancos} de ${hoje.meta} avanços. Nível ${nivel.n} (${nivel.nome}), faltam ${nivel.falta} XP para o próximo.`;
+  const dica = `Meta do dia: ${hoje.avancos} de ${hoje.meta} avanços. Nível ${nivel.n} (${nivel.nome}), ${estado.xp} XP: faltam ${nivel.falta} para o próximo.`;
   if (recolhida)
     return (
       <Dica texto={dica} side="right">
@@ -32,12 +32,12 @@ export function NivelLateral({ recolhida }: { recolhida: boolean }) {
   return (
     <Dica texto={dica} side="right">
       <Link href="/conquistas" data-slot="nivel-lateral"
-        className="group/nivel mx-2.5 mb-2 flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-background/50 px-2.5 py-2 transition-colors outline-none sem-selecao hover:border-primary/40 hover:bg-sidebar-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/35">
+        className="group/nivel @container/nivel mx-2.5 mb-2 flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-background/50 px-2.5 py-2 transition-colors outline-none sem-selecao hover:border-primary/40 hover:bg-sidebar-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/35">
         {anel}
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className="truncate text-xs font-semibold text-foreground">Nível {nivel.n} <span className="font-normal text-muted-foreground">· {nivel.nome}</span></span>
-            <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums"><NumeroAnimado valor={estado.xp} /> XP</span>
+            <span className="hidden shrink-0 text-[11px] text-muted-foreground tabular-nums @[17rem]/nivel:inline"><NumeroAnimado valor={estado.xp} /> XP</span>
           </span>
           <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-foreground/10">
             <span className={cn("block h-full rounded-full bg-primary transition-[width] duration-700 ease-out")} style={{ width: `${Math.max(3, nivel.parte * 100)}%` }} />

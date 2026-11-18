@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { iniciarSessao } from "./SessaoFoco";
 
 const ficha =
-  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:border-ring/40 hover:bg-muted/70 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:border-ring/50 data-[state=open]:text-foreground";
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-transparent px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:bg-muted data-[state=open]:text-foreground";
 
 // =====================================================================
 // Agenda

@@ -79,6 +79,15 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.12: mais fácil de bater o olho
+
+- **Tela Hoje**: em "Precisa de você", os motivos de cada tarefa viraram selos numa linha (vermelho para o que está errado, âmbar para o que pede atenção, cinza para o resto). Passe o mouse num selo para ver a explicação. Embaixo fica só o que dá para resolver ali mesmo: o passo, com o botão **Concluir**. A saudação ficou maior e a lista ocupa menos espaço, então o foco de hoje aparece sem rolar.
+- **Barra superior mais leve**: as ferramentas (rotina, agenda, foco, anotar, busca) perderam a moldura; o fundo aparece quando você passa o mouse.
+- **Lista de tarefas**: o título aparece inteiro. Num notebook, as outras colunas ficam mais justas para dar lugar a ele.
+- **Quadro**: as cinco colunas cabem na tela de um notebook, sem a última ficar cortada.
+- **Barra lateral**: o que não cabe esmaece no fim, em vez de um item aparecer pela metade, e o nome do seu nível aparece inteiro.
+- Acertos pequenos: o cabeçalho "Último contato" da tela Pessoas não quebra mais em duas linhas, e os ícones das ações da paleta (`Ctrl K`) ficaram neutros.
+
 ## 3.11: formulários com o essencial primeiro
 
 - **Novo registro**: à esquerda tipo, título, data e hora, participantes e as anotações, com mais espaço. À direita o **Copilot** vem no topo, inteiro na tela mesmo num notebook de 1366x768: copiar o prompt, colar a resposta e preencher os campos sem rolar.
