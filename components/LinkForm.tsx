@@ -5,14 +5,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { ExternalLink, FileText, FolderOpen, Globe, Link2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useFecharComCuidado } from "./Raiz";
-import { Campo, ChipsInput, IconeStatus, Modal, PontoCor, formatarTamanho } from "./comum";
+import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, formatarTamanho } from "./comum";
+import { IconeEstadoLink } from "./links/EstadoLink";
 import { IconeLink } from "./links/IconeLink";
+import { opcoesDeTarefa } from "./links/SeletorDeTarefas";
+import { SeletorMultiplo } from "./pessoas/SeletorMultiplo";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Segmentado } from "@/components/ui/controles";
 import { Combobox } from "@/components/ui/command";
 import { AreaArquivo } from "@/components/ui/chips";
-import { LinkDoc, STATUS_ABERTOS, nomeStatus, normalizarLink, novoId } from "@/lib/tipos";
+import { Seletor } from "@/components/ui/select";
+import { comEstado, comTarefasNoLink, tarefasDoLink } from "@/lib/links";
+import { ESTADOS_LINK, type EstadoLink, LinkDoc, agoraISO, normalizarLink, novoId } from "@/lib/tipos";
 
 export function LinkForm({
   aberto, fechar, link, tarefaId, categoriaId,
@@ -26,8 +31,9 @@ export function LinkForm({
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [descricao, setDescricao] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [tId, setTId] = useState("");
+  const [tIds, setTIds] = useState<string[]>([]);
   const [cId, setCId] = useState("");
+  const [estado, setEstado] = useState<EstadoLink | "">("");
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -38,8 +44,9 @@ export function LinkForm({
     setArquivo(null);
     setDescricao(link?.descricao ?? "");
     setTags(link?.tags ?? []);
-    setTId(link?.tarefaId ?? tarefaId ?? "");
+    setTIds(link ? tarefasDoLink(link) : tarefaId ? [tarefaId] : []);
     setCId(link?.categoriaId ?? categoriaId ?? "");
+    setEstado(link?.estado ?? "");
     setSalvando(false);
   }, [aberto, link, tarefaId, categoriaId]);
 
@@ -58,17 +65,24 @@ export function LinkForm({
     }
     let u = url.trim();
     if (tipo === "link" && u && !/^[a-z]+:\/\//i.test(u) && !u.startsWith("\\\\")) u = "https://" + u;
-    const novo = normalizarLink({
-      ...(link || {}),
-      id: link?.id ?? novoId("l"),
-      tipo,
-      titulo: titulo.trim() || arquivo?.name || u,
-      url: tipo === "link" ? u : "",
-      descricao, tags,
-      tarefaId: tId || null,
-      categoriaId: cId || null,
-      ...extra,
-    });
+    // tarefas e status passam pelas funções de lib/links.ts: o campo antigo (tarefaId), a trava e o carimbo do status ficam coerentes
+    const novo = comEstado(
+      comTarefasNoLink(
+        normalizarLink({
+          ...(link || {}),
+          id: link?.id ?? novoId("l"),
+          tipo,
+          titulo: titulo.trim() || arquivo?.name || u,
+          url: tipo === "link" ? u : "",
+          descricao, tags,
+          categoriaId: cId || null,
+          ...extra,
+        }),
+        tIds,
+      ),
+      estado || null,
+      agoraISO(),
+    );
     const ok = await salvarLinks((items) =>
       link ? items.map((i) => (i.id === link.id ? novo : i)) : [...items, novo],
     );
@@ -88,27 +102,7 @@ export function LinkForm({
 
   const tagsExist = useMemo(() => [...new Set((dados?.links.items ?? []).flatMap((l) => l.tags))].sort((a, b) => a.localeCompare(b, "pt-BR")), [dados]);
 
-  const opcoesTarefa = useMemo(
-    () =>
-      [...(dados?.tarefas ?? [])]
-        .sort((a, b) => {
-          const aa = STATUS_ABERTOS.includes(a.status) ? 0 : 1;
-          const bb = STATUS_ABERTOS.includes(b.status) ? 0 : 1;
-          return aa - bb || a.titulo.localeCompare(b.titulo, "pt-BR");
-        })
-        .map((t) => ({
-          valor: t.id,
-          rotulo: t.titulo,
-          detalhe: nomeStatus(t.status),
-          render: (
-            <>
-              <IconeStatus status={t.status} />
-              <span className="truncate">{t.titulo}</span>
-            </>
-          ),
-        })),
-    [dados],
-  );
+  const opcoesTarefa = useMemo(() => opcoesDeTarefa(dados?.tarefas ?? []), [dados]);
 
   const opcoesCategoria = useMemo(
     () =>
@@ -217,30 +211,42 @@ export function LinkForm({
           <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Para que serve, quando usar" />
         </Campo>
         {/* Um por linha: a lista do seletor tem a largura do campo e os títulos de tarefa são longos. */}
-        <Campo rotulo="Vincular à tarefa">
-          <Combobox
-            aria-label="Vincular à tarefa"
-            valor={tId}
-            aoMudar={setTId}
+        <Campo rotulo="Usar nas tarefas" dica="O mesmo link pode servir a várias tarefas: ele aparece em Links e documentos de cada uma.">
+          <SeletorMultiplo
+            aria-label="Usar nas tarefas"
+            valor={tIds}
+            aoMudar={setTIds}
             opcoes={opcoesTarefa}
-            placeholder="Nenhuma"
-            rotuloLimpar="Nenhuma"
+            placeholder="Nenhuma tarefa"
             buscaPlaceholder="Buscar tarefa..."
             vazio="Nenhuma tarefa com esse nome."
           />
         </Campo>
-        <Campo rotulo="Vincular à categoria">
-          <Combobox
-            aria-label="Vincular à categoria"
-            valor={cId}
-            aoMudar={setCId}
-            opcoes={opcoesCategoria}
-            placeholder="Nenhuma"
-            rotuloLimpar="Nenhuma"
-            buscaPlaceholder="Buscar categoria..."
-            vazio="Nenhuma categoria com esse nome."
-          />
-        </Campo>
+        <LinhaCampos>
+          <Campo rotulo="Vincular à categoria">
+            <Combobox
+              aria-label="Vincular à categoria"
+              valor={cId}
+              aoMudar={setCId}
+              opcoes={opcoesCategoria}
+              placeholder="Nenhuma"
+              rotuloLimpar="Nenhuma"
+              buscaPlaceholder="Buscar categoria..."
+              vazio="Nenhuma categoria com esse nome."
+            />
+          </Campo>
+          <Campo rotulo="Status" dica="Para acompanhar: uma leitura pendente ou um chamado que você abriu.">
+            <Seletor
+              aria-label="Status"
+              valor={estado}
+              aoMudar={(v) => setEstado(v as EstadoLink | "")}
+              opcoes={[
+                { valor: "", rotulo: "Sem status" },
+                ...ESTADOS_LINK.map((e) => ({ valor: e.id, rotulo: <><IconeEstadoLink estado={e.id} />{e.nome}</> })),
+              ]}
+            />
+          </Campo>
+        </LinhaCampos>
         <Campo rotulo="Tags">
           <ChipsInput valor={tags} mudar={setTags} sugestoes={tagsExist} placeholder="Ex.: runbook, padrão, acesso" />
         </Campo>

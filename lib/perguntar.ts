@@ -6,6 +6,7 @@
 
 import { quemSouEu } from "./prompts";
 import { type Fala, emTrechos, formatarTempo } from "./transcricao";
+import { resumoDoEstado, tarefasDoLink } from "./links";
 import { hrefInterno, paraTextoPlano } from "./texto-rico";
 import { type Dados, type Registro, type Tarefa, formatarData, hojeISO, nomeStatus, semAcento, tipoInfo } from "./tipos";
 
@@ -203,11 +204,12 @@ function candidatas(dados: Dados, categoriaId: string | null): Candidata[] {
       });
     }
   for (const l of dados.links.items) {
-    const t = l.tarefaId ? tarefaPorId.get(l.tarefaId) : undefined;
-    if (!daCategoria(l.categoriaId ?? t?.categoriaId)) continue;
-    const corpo = [l.descricao, l.url ?? l.nomeArquivo ?? "", l.tags.length ? `Tags: ${l.tags.join(", ")}` : ""].filter(Boolean).join("\n");
+    // um link pode servir a várias tarefas (3.14): vale para a categoria se for dela ou de qualquer tarefa dela
+    const ts = tarefasDoLink(l).map((id) => tarefaPorId.get(id)).filter((x): x is Tarefa => !!x);
+    if (categoriaId && !(l.categoriaId ? [l.categoriaId] : ts.map((t) => t.categoriaId)).includes(categoriaId)) continue;
+    const corpo = [l.descricao, l.url ?? l.nomeArquivo ?? "", l.tags.length ? `Tags: ${l.tags.join(", ")}` : "", l.estado ? `Status: ${resumoDoEstado(l)}` : ""].filter(Boolean).join("\n");
     out.push({
-      tipo: "link", chave: `link:${l.id}`, titulo: `${l.tipo === "arquivo" ? "Documento" : "Link"}: ${l.titulo}`, contexto: t ? `tarefa "${t.titulo}"` : "", data: (l.criadoEm || "").slice(0, 10) || null,
+      tipo: "link", chave: `link:${l.id}`, titulo: `${l.tipo === "arquivo" ? "Documento" : "Link"}: ${l.titulo}`, contexto: ts.length ? ts.map((t) => `tarefa "${t.titulo}"`).join(", ") : "", data: (l.criadoEm || "").slice(0, 10) || null,
       rota: "/links", interno: null, corpo, peso: 0.9,
     });
   }

@@ -7,9 +7,11 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import {
   ArchiveRestore, ArrowLeft, ArrowRight, BookOpenText, Bookmark, Check, ChevronRight, CloudOff, FilePlus2, History, LoaderCircle, PanelRight, PencilLine,
 } from "lucide-react";
+import Link from "next/link";
 import { PainelCitacoes } from "@/components/Citacoes";
+import { SeletorDeTarefas } from "@/components/links/SeletorDeTarefas";
 import { useNexo } from "@/components/Provider";
-import { ChipsInput, PontoCor } from "@/components/comum";
+import { ChipsInput, IconeStatus, PontoCor } from "@/components/comum";
 import { type ApiDoEditor, EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { useGravacao } from "@/components/useGravacao";
@@ -64,6 +66,9 @@ export function EditorPagina({
   const categorias = (dados?.categorias.items ?? []).filter((c) => !c.arquivada || c.id === pagina.categoriaId);
   const cat = categorias.find((c) => c.id === pagina.categoriaId);
   const todasAsTags = useMemo(() => [...new Set(paginas.flatMap((p) => p.tags))].sort(), [paginas]);
+  // tarefas a que esta página serve (3.14): aparecem aqui e a página aparece em "Links e documentos" de cada uma
+  const tarefas = dados?.tarefas ?? [];
+  const tarefasDaPagina = (pagina.tarefaIds ?? []).map((t) => tarefas.find((x) => x.id === t)).filter((x) => !!x);
 
   // página em branco abre para escrever, mesmo no modo leitura
   const vazia = !valor.texto.trim();
@@ -205,6 +210,12 @@ export function EditorPagina({
                   <SeloEstado estado={pagina.estado ?? "rascunho"} />
                   {cat && <span className="inline-flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span>}
                   {pagina.tags.map((t) => <span key={t} className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium">#{t}</span>)}
+                  {tarefasDaPagina.map((t) => (
+                    <Link key={t.id} href={`/tarefas/${t.id}`} data-slot="tarefa-da-pagina"
+                      className="inline-flex max-w-56 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                      <IconeStatus status={t.status} className="size-3" /><span className="truncate">{t.titulo}</span>
+                    </Link>
+                  ))}
                 </>
               ) : (
                 <>
@@ -216,6 +227,8 @@ export function EditorPagina({
                     opcoes={categorias.map((c) => ({ valor: c.id, rotulo: c.nome, render: <><PontoCor cor={c.cor} /><span className="truncate">{c.nome}</span></> }))}
                     placeholder="Sem categoria" rotuloLimpar="Sem categoria" aria-label="Categoria da página" className="h-7 w-44 text-xs"
                   />
+                  <SeletorDeTarefas valor={pagina.tarefaIds ?? []} aoMudar={(tarefaIds) => acoes.mudar(id, { tarefaIds })} tarefas={tarefas}
+                    aria-label="Tarefas a que esta página serve" className="max-w-52" />
                   <div className="min-w-44 flex-1 [&_[data-slot=campo-chips]>div]:min-h-7 [&_[data-slot=campo-chips]>div]:py-0.5">
                     <ChipsInput valor={pagina.tags} mudar={(tags) => acoes.mudar(id, { tags })} sugestoes={todasAsTags} placeholder="Tags" />
                   </div>

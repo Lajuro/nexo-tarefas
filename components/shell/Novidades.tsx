@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -19,7 +19,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.13";
+export const VERSAO_NOVIDADES = "3.14";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -34,6 +34,22 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.14", icone: Ticket, titulo: "Links que servem a várias tarefas, com status", texto: "Um link ou documento pode servir a várias tarefas ao mesmo tempo. Cada um pode ter um status (para ler, lido, chamado aberto, em andamento, aguardando retorno, concluído), com ícone próprio e filtro na tela de Links. Um chamado pode ser marcado como trava da tarefa: aparece no cabeçalho dela e, quando fecha, o app avisa que destravou. Páginas e folhas do bloco de notas também se ligam a tarefas.", href: "/links", rotulo: "Abrir Links e docs",
+    pontos: [
+      "O mesmo link serve a várias tarefas: em \"Adicionar\", na tarefa, escolha algo que já está no banco, ou marque as tarefas ao editar o link.",
+      "Status em cada link: para ler, lido, aberto, em andamento, aguardando retorno, concluído ou cancelado. Clique no ícone para mudar; a tela de Links filtra por status.",
+      "\"Está travando esta tarefa\": o chamado aparece no cabeçalho da tarefa e vira um impedimento na linha do tempo. Quando você marca como concluído, o app avisa que ela destravou.",
+      "Chamado em aberto há 5 dias sem mudar de status entra em \"Precisa de você\".",
+      "Páginas e folhas do bloco de notas também se ligam a tarefas e aparecem em Links e documentos de cada uma. Dá para criar uma já ligada, pelo mesmo \"Adicionar\".",
+    ] },
+  { versao: "3.14", icone: SquarePen, titulo: "Editor mais completo", texto: "No editor de páginas, folhas e registros, o @ agora também cita links do banco, folhas do bloco de notas e categorias. Ctrl + clique num link abre o destino. Arquivos (PDF, planilha) podem ser arrastados ou colados no texto. Na barra, desfazer, refazer e anexar; no menu /, data de hoje e hora de agora. A folha conta as palavras e pode virar página.", href: "/notas", rotulo: "Abrir as Notas",
+    pontos: [
+      "@ também cita links e documentos do banco (entra o endereço de verdade), folhas do bloco de notas e categorias.",
+      "Ctrl + clique num link do texto abre o destino. O balão do link ganhou o botão Abrir.",
+      "Arraste ou cole um PDF, uma planilha ou outro arquivo no texto: ele é guardado e entra como link.",
+      "Na barra: desfazer, refazer e anexar arquivo (aparecem quando há largura). No menu /: data de hoje, hora de agora e citar.",
+      "A folha mostra quantas palavras tem e ganhou \"Virar página\": o texto vira página de conhecimento e a folha fica arquivada.",
+    ] },
   { versao: "3.13", icone: Paintbrush, titulo: "O Nexo com a sua cara", texto: "Temas prontos que trocam tudo com um clique, cor de destaque livre (qualquer matiz), tons neutros frios, cinza, quentes ou puxados para a sua cor, escuro profundo e fundo em grade. A tela Hoje pode ter o seu nome na saudação, só os blocos que você usa e na ordem que preferir. E um código leva a personalização inteira para outro computador.", href: "/", rotulo: "Abrir o Personalizar", acao: () => abrirPersonalizar("aparencia"),
     pontos: [
       "Temas prontos: Oceano, Floresta, Pôr do sol, Papel, Ameixa, Meia-noite e outros. Um clique troca cor, tons, cantos, letra, barra lateral e fundo.",
@@ -99,7 +115,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Personalização nova: temas prontos, cor de destaque livre, tons neutros, tela Hoje sob medida e um código para levar tudo a outro computador.",
+          description: "Um link agora serve a várias tarefas e pode ter status (para ler, chamado aberto, concluído...) e travar a tarefa. Páginas e folhas se ligam a tarefas, e o editor ficou mais completo.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

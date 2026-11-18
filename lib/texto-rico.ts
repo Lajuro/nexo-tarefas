@@ -97,10 +97,10 @@ export function linkPermitido(href: string): string | null {
   return h;
 }
 
-// ---------- links internos (citar uma tarefa, uma página, uma pessoa ou uma categoria) ----------
+// ---------- links internos (citar uma tarefa, uma página, uma pessoa, uma categoria ou uma folha do bloco de notas) ----------
 
-export type TipoDeAlvo = "tarefa" | "pagina" | "pessoa" | "categoria";
-const INTERNO = /^nexo:(tarefa|pagina|categoria)\/([a-zA-Z0-9_-]{1,80})$/;
+export type TipoDeAlvo = "tarefa" | "pagina" | "pessoa" | "categoria" | "nota";
+const INTERNO = /^nexo:(tarefa|pagina|categoria|nota)\/([a-zA-Z0-9_-]{1,80})$/;
 const INTERNO_PESSOA = /^nexo:pessoa\/([^/?#\s]{1,300})$/;
 
 /** Endereço que vai para o Markdown quando algo é citado: "nexo:tarefa/<id>", "nexo:pessoa/<nome codificado>". */
@@ -114,7 +114,7 @@ export function linkInterno(href: string): { tipo: TipoDeAlvo; alvo: string; rot
   const m = INTERNO.exec(h);
   if (m) {
     const tipo = m[1] as TipoDeAlvo;
-    const rota = tipo === "tarefa" ? `/tarefas/${m[2]}` : tipo === "pagina" ? `/paginas?p=${m[2]}` : `/categorias/${m[2]}`;
+    const rota = tipo === "tarefa" ? `/tarefas/${m[2]}` : tipo === "pagina" ? `/paginas?p=${m[2]}` : tipo === "nota" ? `/notas?n=${m[2]}` : `/categorias/${m[2]}`;
     return { tipo, alvo: m[2], rota };
   }
   const p = INTERNO_PESSOA.exec(h);

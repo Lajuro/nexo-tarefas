@@ -52,6 +52,26 @@ export function comEspera(t: Tarefa, espera: { quem: string; oQue: string } | nu
 }
 
 /** "Cobrei hoje": anota na timeline e zera a contagem de dias sem retorno. */
+/**
+ * Um link (em geral um chamado) passou a travar a tarefa (3.14): fica um registro de impedimento na linha
+ * do tempo, com a data, para o histórico mostrar quando e por quê ela parou. Só usa o que o usuário escreveu.
+ */
+export function comImpedimentoDoLink(t: Tarefa, titulo: string, endereco?: string): Tarefa {
+  return {
+    ...t,
+    registros: [
+      ...t.registros,
+      normalizarRegistro({
+        tipo: "impedimento",
+        data: hojeISO(),
+        titulo: `Travada por “${titulo}”`,
+        impedimentos: `Depende de “${titulo}”, que ainda não foi resolvido.`,
+        anotacoes: endereco && /^https?:\/\//i.test(endereco) ? endereco : "",
+      }),
+    ],
+  };
+}
+
 export function comCobranca(t: Tarefa): Tarefa {
   const e = t.esperando;
   return {

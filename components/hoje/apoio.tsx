@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  AlarmClock, Ban, CalendarClock, CalendarX2, CirclePause, Footprints, History, Hourglass, ListTodo, type LucideIcon, LockOpen, Repeat } from "lucide-react";
+  AlarmClock, Ban, CalendarClock, CalendarX2, CirclePause, Footprints, History, Hourglass, ListTodo, type LucideIcon, LockOpen, Repeat, Ticket } from "lucide-react";
 import { deISO } from "@/components/ui/data";
 import { Badge } from "@/components/ui/diversos";
 import type { Gravidade, TipoLembrete } from "@/lib/lembretes";
@@ -42,6 +42,7 @@ export const ICONE_LEMBRETE: Record<TipoLembrete, LucideIcon> = {
   sem_proximo_passo: Footprints,
   destravou: LockOpen,
   recorrencia: Repeat,
+  chamado_parado: Ticket,
 };
 
 export const TOM_GRAVIDADE: Record<Gravidade, string> = {

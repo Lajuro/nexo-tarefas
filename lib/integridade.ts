@@ -3,6 +3,7 @@
 // Nada é consertado sozinho: o resultado explica o que foi achado e o que fazer.
 
 import { alvosDoTexto } from "./ligacoes";
+import { tarefasDoLink } from "./links";
 import { anexoDoSrc } from "./texto-rico";
 import { type Dados, hojeISO } from "./tipos";
 
@@ -127,7 +128,7 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
 
   const orfaos: string[] = [];
   for (const l of dados.links.items) {
-    if (l.tarefaId && !tarefas.has(l.tarefaId)) orfaos.push(`link "${l.titulo}": a tarefa ${naLixeira(l.tarefaId) ? "está na lixeira" : "não existe"}`);
+    for (const id of tarefasDoLink(l)) if (!tarefas.has(id)) orfaos.push(`link "${l.titulo}": a tarefa ${naLixeira(id) ? "está na lixeira" : "não existe"}`);
     if (l.categoriaId && !cats.has(l.categoriaId)) orfaos.push(`link "${l.titulo}": a categoria não existe`);
   }
   for (const t of dados.times?.items ?? []) {
@@ -137,6 +138,10 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   }
   for (const p of dados.pessoas?.items ?? []) if (p.categoriaIds.some((id) => !cats.has(id))) orfaos.push(`pessoa "${p.nome}": categoria que não existe`);
   for (const p of dados.paginas?.items ?? []) if (p.categoriaId && !cats.has(p.categoriaId)) orfaos.push(`página "${p.titulo || "sem título"}": a categoria não existe`);
+  for (const p of dados.paginas?.items ?? [])
+    for (const id of p.tarefaIds ?? []) if (!tarefas.has(id)) orfaos.push(`página "${p.titulo || "sem título"}": a tarefa a que ela serve ${naLixeira(id) ? "está na lixeira" : "não existe"}`);
+  for (const n of dados.notas?.items ?? [])
+    for (const id of n.tarefaIds ?? []) if (!tarefas.has(id)) orfaos.push(`folha "${n.titulo || "sem título"}": a tarefa a que ela serve ${naLixeira(id) ? "está na lixeira" : "não existe"}`);
   for (const p of dados.paginas?.items ?? []) if (p.paiId && !paginas.has(p.paiId)) orfaos.push(`página "${p.titulo || "sem título"}": a página em que ela estava não existe mais (aparece na raiz)`);
   for (const a of dados.assuntos?.items ?? []) if (a.tarefaId && !tarefas.has(a.tarefaId)) orfaos.push(`assunto para falar com ${a.pessoa || "alguém"}: a tarefa ${naLixeira(a.tarefaId) ? "está na lixeira" : "não existe"}`);
   for (const m of dados.modelos?.items ?? []) if (m.categoriaId && !cats.has(m.categoriaId)) orfaos.push(`modelo "${m.nome}": a categoria não existe`);
@@ -161,8 +166,8 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   for (const { onde, texto } of todosOsTextos)
     for (const alvo of alvosDoTexto(texto)) {
       const [tipo, id] = [alvo.slice(0, alvo.indexOf(":")), alvo.slice(alvo.indexOf(":") + 1)];
-      const existe = tipo === "tarefa" ? tarefas.has(id) : tipo === "pagina" ? paginas.has(id) : tipo === "categoria" ? cats.has(id) : true; // pessoa é texto livre
-      if (!existe) quebrados.push(`${onde}: cita ${tipo === "tarefa" ? "uma tarefa" : tipo === "pagina" ? "uma página" : "uma categoria"} que ${tipo === "tarefa" && naLixeira(id) ? "está na lixeira" : "não existe mais"}`);
+      const existe = tipo === "tarefa" ? tarefas.has(id) : tipo === "pagina" ? paginas.has(id) : tipo === "categoria" ? cats.has(id) : tipo === "nota" ? notas.has(id) : true; // pessoa é texto livre
+      if (!existe) quebrados.push(`${onde}: cita ${tipo === "tarefa" ? "uma tarefa" : tipo === "pagina" ? "uma página" : tipo === "nota" ? "uma folha do bloco de notas" : "uma categoria"} que ${tipo === "tarefa" && naLixeira(id) ? "está na lixeira" : "não existe mais"}`);
     }
   if (quebrados.length)
     por({ id: "link-interno-quebrado", gravidade: "info", titulo: plural(quebrados.length, "citação (@) leva a algo que não existe mais", "citações (@) levam a algo que não existe mais"), detalhe: "O texto continua lá, mas o link não abre nada. Restaure o item da lixeira ou edite o texto.", itens: quebrados });

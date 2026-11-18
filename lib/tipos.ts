@@ -135,11 +135,38 @@ export interface LinkDoc {
   tamanho?: number;
   descricao: string;
   tags: string[];
+  /**
+   * A primeira tarefa em que o link é usado. Até a 3.13 era o único vínculo; continua sendo gravado
+   * (igual a tarefaIds[0]) para uma versão antiga do app ainda mostrar o link em uma tarefa.
+   */
   tarefaId?: string | null;
+  /** Todas as tarefas em que o link é usado (3.14). */
+  tarefaIds?: string[];
   categoriaId?: string | null;
+  /** Em que pé está (3.14): leitura (para ler, lido) ou chamado (aberto, em andamento...). null = sem status. */
+  estado?: EstadoLink | null;
+  /** Carimbo de quando o status mudou pela última vez (para "aberto há 5 dias"). */
+  estadoEm?: string | null;
+  /** Ids das tarefas que este link está travando (um chamado de que a tarefa depende). Sempre dentro de tarefaIds. */
+  trava?: string[];
   criadoEm: string;
   [extra: string]: unknown;
 }
+
+/**
+ * Status de um link ou documento (3.14). Dois grupos: leitura ("já li?") e chamado ("em que pé está?").
+ * `aberto` diz se ainda pede alguma coisa; os fechados (lido, concluído, cancelado) não travam tarefa.
+ */
+export const ESTADOS_LINK = [
+  { id: "para_ler", nome: "Para ler", grupo: "leitura", aberto: true },
+  { id: "lido", nome: "Lido", grupo: "leitura", aberto: false },
+  { id: "aberto", nome: "Aberto", grupo: "chamado", aberto: true },
+  { id: "em_andamento", nome: "Em andamento", grupo: "chamado", aberto: true },
+  { id: "aguardando", nome: "Aguardando retorno", grupo: "chamado", aberto: true },
+  { id: "concluido", nome: "Concluído", grupo: "chamado", aberto: false },
+  { id: "cancelado", nome: "Cancelado", grupo: "chamado", aberto: false },
+] as const;
+export type EstadoLink = (typeof ESTADOS_LINK)[number]["id"];
 
 /**
  * Pessoa cadastrada (pessoas.json). Os registros e passos continuam guardando nomes como texto;
@@ -214,6 +241,8 @@ export interface Nota {
   gerou?: FrutoDaNota[];
   /** O que a IA não conseguiu encaixar e o usuário não guardou em nenhuma tarefa. */
   sobras?: string;
+  /** Tarefas para as quais esta folha serve (3.14): ela aparece em "Links e documentos" de cada uma. */
+  tarefaIds?: string[];
   criadaEm: string;
   atualizadaEm: string;
   [extra: string]: unknown;
@@ -312,6 +341,8 @@ export interface Pagina {
   tipo?: "doc" | "video";
   /** O vídeo da página (3.3). O texto da página são as anotações sobre ele. */
   video?: VideoDaPagina | null;
+  /** Tarefas para as quais esta página serve (3.14): ela aparece em "Links e documentos" de cada uma. */
+  tarefaIds?: string[];
   criadaEm: string;
   atualizadaEm: string;
   [extra: string]: unknown;
@@ -608,6 +639,7 @@ export function normalizarPagina(p: Partial<Pagina>): Pagina {
     fixada: p.fixada === true,
     tipo: p.tipo === "video" ? "video" : "doc",
     video: p.tipo === "video" ? normalizarVideo(p.video) ?? {} : p.video ? normalizarVideo(p.video) : null,
+    tarefaIds: normalizarDependencias(p.tarefaIds),
     criadaEm: str(p.criadaEm) || agoraISO(),
     atualizadaEm: str(p.atualizadaEm) || agoraISO(),
   };
@@ -801,7 +833,23 @@ export function normalizarCategoria(c: Partial<Categoria>): Categoria {
   };
 }
 
+/**
+ * As tarefas de um link, lendo os dois campos. O app novo grava sempre tarefaId === tarefaIds[0]. Se os dois
+ * estão gravados e não batem, quem mexeu foi uma versão antiga (que só conhece tarefaId e grava null quando
+ * desvincula): ela trocou ou tirou a primeira tarefa, e é isso que vale. Sem tarefaIds (dado antigo), a lista
+ * é só o tarefaId; sem tarefaId (objeto montado em código, só com a lista), vale a lista.
+ */
+export function tarefasDoLinkBruto(l: { tarefaId?: unknown; tarefaIds?: unknown }): string[] {
+  const unico = typeof l.tarefaId === "string" && l.tarefaId ? l.tarefaId : null;
+  if (!Array.isArray(l.tarefaIds)) return normalizarDependencias(unico ? [unico] : []);
+  const lista = normalizarDependencias(l.tarefaIds);
+  if (l.tarefaId === undefined || (lista[0] ?? null) === unico) return lista;
+  return normalizarDependencias([unico, ...lista.slice(1)]);
+}
+
 export function normalizarLink(l: Partial<LinkDoc>): LinkDoc {
+  const tarefaIds = tarefasDoLinkBruto(l);
+  const estado = ESTADOS_LINK.some((e) => e.id === l.estado) ? (l.estado as EstadoLink) : null;
   return {
     ...l,
     id: str(l.id) || novoId("l"),
@@ -813,8 +861,12 @@ export function normalizarLink(l: Partial<LinkDoc>): LinkDoc {
     tamanho: typeof l.tamanho === "number" ? l.tamanho : undefined,
     descricao: str(l.descricao),
     tags: arrStr(l.tags),
-    tarefaId: l.tarefaId || null,
+    tarefaId: tarefaIds[0] ?? null,
+    tarefaIds,
     categoriaId: l.categoriaId || null,
+    estado,
+    estadoEm: estado && typeof l.estadoEm === "string" && l.estadoEm ? l.estadoEm : null,
+    trava: normalizarDependencias(l.trava).filter((id) => tarefaIds.includes(id)),
     criadoEm: str(l.criadoEm) || agoraISO(),
   };
 }
@@ -882,6 +934,7 @@ export function normalizarNota(n: Partial<Nota>): Nota {
     arquivadaEm: typeof n.arquivadaEm === "string" && n.arquivadaEm ? n.arquivadaEm : null,
     gerou,
     sobras: str(n.sobras),
+    tarefaIds: normalizarDependencias(n.tarefaIds),
     criadaEm: str(n.criadaEm) || agoraISO(),
     atualizadaEm: str(n.atualizadaEm) || agoraISO(),
   };

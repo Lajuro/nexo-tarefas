@@ -300,4 +300,19 @@ checa "verificar: anexo citado que não está na pasta" '"id":"anexo-faltando","
 checa "verificar: diz qual anexo" '2026/nao-existe.pdf' "$V"
 checa "verificar: só lê (não cria nem apaga arquivo)" 'nao-existe' "$(cat "$TMP/dados/links.json")"
 
+# 3.14: um link em várias tarefas, sem perder o que uma versão antiga gravou ou mexeu
+revLinks() { curl -s $B/api/dados | sed 's/.*"links":{"rev":\([0-9-]*\).*/\1/'; }
+R=$(curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lv\",\"titulo\":\"Runbook\",\"url\":\"https://exemplo.local\",\"tarefaId\":\"t1\"}],\"revEsperada\":$(revLinks)}")
+checa "link antigo (só tarefaId) ganha a lista de tarefas" '"tarefaIds":["t1"]' "$R"
+R=$(curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lv\",\"titulo\":\"Runbook\",\"tarefaId\":\"t1\",\"tarefaIds\":[\"t1\",\"t2\",\"../x\"],\"estado\":\"aberto\",\"estadoEm\":\"2026-11-10T12:00:00.000Z\",\"trava\":[\"t2\",\"t9\"]}],\"revEsperada\":$(revLinks)}")
+checa "link em duas tarefas: id inválido fica de fora" '"tarefaIds":["t1","t2"]' "$R"
+checa "link: o campo antigo continua sendo a primeira tarefa" '"tarefaId":"t1"' "$R"
+checa "link: status gravado" '"estado":"aberto"' "$R"
+checa "link: trava só de tarefa em que o link é usado" '"trava":["t2"]' "$R"
+R=$(curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lv\",\"titulo\":\"Runbook\",\"tarefaId\":null}],\"revEsperada\":$(revLinks)}")
+checa "versão antiga desvinculou (tarefaId nulo): sai só a primeira tarefa" '"tarefaIds":["t2"]' "$R"
+checa "versão antiga desvinculou: status preservado" '"estado":"aberto"' "$R"
+R=$(curl -s -X PUT $B/api/links -H "$J" -d "{\"items\":[{\"id\":\"lv\",\"titulo\":\"Runbook\",\"estado\":\"explodiu\"}],\"revEsperada\":$(revLinks)}")
+checa "link: status desconhecido vira sem status" '"estado":null' "$R"
+
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }

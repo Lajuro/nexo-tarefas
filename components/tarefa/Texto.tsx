@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { type ItemDoSumario, nomeDaPagina, sumarioDosBlocos } from "@/lib/paginas";
+import { nomeDaFolha } from "@/lib/links";
 import { NOMES_DE_LINGUAGEM, realcar } from "@/lib/realce";
 import { Bloco, Inline, NOME_DO_DESTAQUE, type TipoDeDestaque, analisarMarkdown, paraTextoPlano } from "@/lib/texto-rico";
 import { dataCurta, nomeStatus } from "@/lib/tipos";
@@ -193,6 +194,13 @@ function CartaoInterno({ i }: { i: Extract<Inline, { t: "interno" }> }) {
       titulo = nomeDaPagina(p);
       linha = paraTextoPlano(p.texto).replace(/\n+/g, " ").slice(0, 140) || (p.arquivadaEm ? "Página arquivada" : "Página em branco");
     }
+  } else if (i.tipo === "nota") {
+    const n = dados?.notas?.items.find((x) => x.id === i.alvo);
+    existe = !!n;
+    if (n) {
+      titulo = nomeDaFolha(n);
+      linha = paraTextoPlano(n.texto).replace(/\n+/g, " ").slice(0, 140) || (n.arquivadaEm ? "Folha arquivada" : "Folha em branco");
+    }
   } else if (i.tipo === "pessoa") {
     const p = dados?.pessoas?.items.find((x) => x.nome.toLowerCase() === i.alvo.toLowerCase() || x.apelidos.some((a) => a.toLowerCase() === i.alvo.toLowerCase()));
     if (p) {
@@ -210,7 +218,7 @@ function CartaoInterno({ i }: { i: Extract<Inline, { t: "interno" }> }) {
   }
   return (
     <Link href={i.rota} data-slot="cartao-interno" data-tipo={i.tipo} data-existe={existe || undefined}>
-      <span data-slot="cartao-tipo">{i.tipo === "tarefa" ? "Tarefa" : i.tipo === "pagina" ? "Página" : i.tipo === "pessoa" ? "Pessoa" : "Categoria"}</span>
+      <span data-slot="cartao-tipo">{i.tipo === "tarefa" ? "Tarefa" : i.tipo === "pagina" ? "Página" : i.tipo === "pessoa" ? "Pessoa" : i.tipo === "nota" ? "Folha" : "Categoria"}</span>
       <span data-slot="cartao-titulo">{titulo}</span>
       <span data-slot="cartao-linha">{existe ? linha : "Não existe mais (pode estar na lixeira)"}</span>
     </Link>

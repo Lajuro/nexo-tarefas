@@ -25,8 +25,10 @@
 // painel Personalizar: cor de destaque, esconder item e ferramenta, separar as telas de acompanhar),
 // "Acompanhar" (item único no menu, abas em comum, última aba lembrada), menu "Mais", esperando quem (cobrança),
 // modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
-// perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), conquistas (nível,
-// meta do dia, desligar) e tema escuro (pelo menu "Mais").
+// perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), links e documentos como
+// material de trabalho (um link em várias tarefas, status de chamado, trava, página e folha ligadas à tarefa,
+// folha que vira página, Ctrl + clique num link do editor), conquistas (nível, meta do dia, desligar) e
+// tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -2001,6 +2003,134 @@ async function main() {
     await pg.getByRole("button", { name: "Descartar reunião" }).click();
     await pg.getByRole("button", { name: "Descartar", exact: true }).click();
     await pg.locator("[data-slot=propriedades]").waitFor();
+  });
+
+  // ---------- links e documentos como material de trabalho (3.14) ----------
+  await etapa("links e documentos: um link em duas tarefas, status de chamado, trava, página e folha ligadas", async () => {
+    const d0 = await dados();
+    const abertas = d0.tarefas.filter((t) => !["concluida", "cancelada"].includes(t.status));
+    afirmar(abertas.length >= 2, "precisa de duas tarefas abertas");
+    const [a, b] = abertas;
+    const GUIA = "Guia de integração da Ferramenta X";
+    const guia0 = d0.links.find((l) => l.titulo === GUIA);
+    afirmar(guia0, "o link criado na etapa de links sumiu");
+    const guia = (d) => d.links.find((l) => l.id === guia0.id);
+    const painel = pg.locator("[data-slot=links-tarefa]");
+    const linha = painel.locator("[data-slot=link]", { hasText: GUIA });
+    // os menus fecham com animação: espera sumirem antes de abrir outro (senão o clique pega o menu fechando)
+    const semMenu = () => pg.waitForFunction(() => !document.querySelector("[role=menu]"));
+    const ligarDoBanco = async () => {
+      await painel.locator("[data-slot=adicionar-referencia]").click();
+      await pg.keyboard.type("Guia de integ");
+      await pg.locator("[data-slot=ligar-link]", { hasText: GUIA }).click();
+      await linha.waitFor();
+    };
+
+    // o mesmo link passa a servir às duas tarefas (antes só dava para uma)
+    await pg.goto(`${B}/tarefas/${a.id}`);
+    await ligarDoBanco();
+    await ateOsDados((d) => guia(d).tarefaId === a.id && (guia(d).tarefaIds || []).join() === a.id, "o link não foi ligado à primeira tarefa");
+    await pg.goto(`${B}/tarefas/${b.id}`);
+    await ligarDoBanco();
+    await ateOsDados((d) => (guia(d).tarefaIds || []).join() === `${a.id},${b.id}` && guia(d).tarefaId === a.id, "o link não ficou nas duas tarefas (o campo antigo tem que ser a primeira)");
+    await linha.locator("[data-slot=tambem-em]", { hasText: "em mais 1 tarefa" }).waitFor();
+
+    // status de chamado, pelo menu do link
+    await linha.locator("[data-slot=link-menu]").click();
+    await pg.locator("[data-slot=menu-status]").click();
+    await pg.getByRole("menuitemradio", { name: "Aberto" }).click();
+    await semMenu();
+    await ateOsDados((d) => guia(d).estado === "aberto" && !!guia(d).estadoEm, "o status não foi gravado");
+    await linha.locator("[data-slot=seletor-estado-link][data-estado=aberto]").waitFor();
+    await linha.locator("[data-slot=resumo-estado]", { hasText: "Aberto hoje" }).waitFor();
+
+    // travando esta tarefa (e só esta): faixa no cabeçalho e o impedimento na linha do tempo
+    await linha.locator("[data-slot=link-menu]").click();
+    await pg.getByRole("menuitemcheckbox", { name: "Está travando esta tarefa" }).click();
+    await semMenu();
+    await ateOsDados((d) => (guia(d).trava || []).join() === b.id, "a trava não foi gravada só para esta tarefa");
+    await ateOsDados((d) => d.tarefas.find((t) => t.id === b.id).registros.some((r) => r.tipo === "impedimento" && r.titulo.includes(GUIA)), "o impedimento não foi para a linha do tempo");
+    const faixa = pg.locator("[data-slot=faixa-travas]");
+    await faixa.locator("[data-slot=trava]", { hasText: GUIA }).waitFor();
+    await linha.locator("[data-slot=trava-link]").waitFor();
+    await pg.locator("[data-slot=timeline]", { hasText: `Travada por “${GUIA}”` }).first().waitFor();
+
+    // o chamado foi concluído: a faixa some e o link mostra que não trava mais
+    await faixa.locator("[data-slot=seletor-estado-link]").click();
+    await pg.getByRole("menuitemradio", { name: "Concluído" }).click();
+    await semMenu();
+    await ateOsDados((d) => guia(d).estado === "concluido", "o status concluído não foi gravado");
+    await faixa.waitFor({ state: "detached" });
+    await linha.locator("[data-slot=destravou-link]").waitFor();
+    await linha.locator("[data-slot=seletor-estado-link][data-estado=concluido]").waitFor();
+
+    // na tela de Links: as duas tarefas na linha e o filtro por status
+    await pg.goto(B + "/links");
+    const naLista = pg.locator("[data-slot=link]", { hasText: GUIA });
+    await naLista.waitFor();
+    afirmar((await naLista.locator("[data-slot=tarefa-do-link]").count()) === 2, "a tela de Links não mostra as duas tarefas do link");
+    await naLista.locator("[data-slot=seletor-estado-link][data-estado=concluido]").waitFor();
+    await pg.getByLabel("Filtrar por status").click();
+    await pg.getByRole("option", { name: "Concluído" }).click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=link]").length === 1);
+    await pg.getByLabel("Filtrar por status").click();
+    await pg.getByRole("option", { name: "Em aberto" }).click();
+    await pg.getByText("Nada encontrado").waitFor();
+
+    // página nova para a tarefa: nasce ligada, e a própria página escolhe mais tarefas
+    await pg.goto(`${B}/tarefas/${a.id}`);
+    await painel.locator("[data-slot=adicionar-referencia]").click();
+    await pg.locator("[data-slot=nova-pagina-da-tarefa]").click();
+    await pg.waitForURL("**/paginas**");
+    const daTarefa = (d) => d.paginas.items.find((p) => p.titulo === a.titulo && (p.tarefaIds || []).includes(a.id));
+    await ateOsDados((d) => !!daTarefa(d), "a página não nasceu ligada à tarefa");
+    const seletor = pg.locator("[data-slot=editor-pagina] [data-slot=seletor-de-tarefas]");
+    await pg.locator('[data-slot=editor-pagina] [data-slot=seletor-de-tarefas][data-quantas="1"]').waitFor();
+    await seletor.click();
+    await pg.keyboard.type(b.titulo.slice(0, 14));
+    await pg.keyboard.press("Enter");
+    await ateOsDados((d) => (daTarefa(d).tarefaIds || []).join() === `${a.id},${b.id}`, "a página não ficou ligada às duas tarefas");
+    await pg.keyboard.press("Escape");
+    await pg.goto(`${B}/tarefas/${b.id}`);
+    const paginaLigada = painel.locator("[data-slot=pagina-da-tarefa]", { hasText: a.titulo });
+    await paginaLigada.waitFor();
+    await paginaLigada.hover();
+    await paginaLigada.getByRole("button", { name: /^Desvincular/ }).click();
+    await ateOsDados((d) => (daTarefa(d).tarefaIds || []).join() === a.id, "a página não foi desvinculada só desta tarefa");
+
+    // folha nova para a tarefa, citando o link do banco com @; depois ela vira página e leva tudo junto
+    await painel.locator("[data-slot=adicionar-referencia]").click();
+    await pg.locator("[data-slot=nova-folha-da-tarefa]").click();
+    await pg.waitForURL("**/notas**");
+    const folha = (d) => d.notas.items.find((n) => (n.tarefaIds || []).join() === b.id && !n.arquivadaEm);
+    await ateOsDados((d) => !!folha(d), "a folha não nasceu ligada à tarefa");
+    await pg.locator('[data-slot=editor-nota] [data-slot=seletor-de-tarefas][data-quantas="1"]').waitFor();
+    const texto = pg.locator("[data-slot=texto-da-folha] [data-slot=editor-rico-conteudo]");
+    await texto.click();
+    await pg.keyboard.type("Seguir o ");
+    await pg.keyboard.type("@Guia de integ");
+    await pg.locator("[data-slot=menu-editor] [role=option]", { hasText: GUIA }).first().click();
+    await texto.locator('a[href="https://exemplo.com/guia-ferramenta-x"]').waitFor();
+    await pg.locator("[data-slot=nota-situacao][data-situacao=salvo]").waitFor();
+    const idDaFolha = folha(await dados()).id;
+    afirmar(folha(await dados()).texto.includes("](https://exemplo.com/guia-ferramenta-x)"), "o link do banco não entrou no texto como link de verdade");
+    await pg.locator("[data-slot=contagem-de-palavras]").waitFor();
+    await pg.locator("[data-slot=virar-pagina]").click();
+    await pg.waitForURL("**/paginas**");
+    await ateOsDados((d) => !!d.notas.items.find((n) => n.id === idDaFolha).arquivadaEm, "a folha que virou página não foi arquivada");
+    const virou = (d) => d.paginas.items.find((p) => p.texto.includes("](https://exemplo.com/guia-ferramenta-x)") && (p.tarefaIds || []).join() === b.id);
+    await ateOsDados((d) => !!virou(d), "a página criada da folha não levou o texto e a tarefa ligada");
+
+    // Ctrl + clique num link do texto abre o destino (clique simples só põe o cursor)
+    await pg.locator("[data-slot=editor-pagina]").waitFor();
+    if (await pg.locator("[data-slot=editor-pagina][data-modo=ler]").count()) await pg.getByRole("radio", { name: "Editar" }).click();
+    await pg.evaluate(() => { window.open = (u) => { window.__abriu = String(u); return null; }; });
+    const noTexto = pg.locator('[data-slot=texto-da-pagina] a[href="https://exemplo.com/guia-ferramenta-x"]');
+    await noTexto.click();
+    afirmar(!(await pg.evaluate(() => window.__abriu)), "clique simples num link do editor não pode abrir nada");
+    await noTexto.click({ modifiers: ["Control"] });
+    await pg.waitForFunction(() => window.__abriu === "https://exemplo.com/guia-ferramenta-x");
+    await pg.locator("[data-slot=pagina-situacao][data-situacao=salvo]").waitFor();
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

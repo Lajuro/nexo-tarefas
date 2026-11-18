@@ -18,13 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { apagarNotaPendente } from "@/lib/rascunhos";
-import { paraTextoPlano } from "@/lib/texto-rico";
+import { nomeDaFolha } from "@/lib/links";
+import { paginaNova } from "@/lib/paginas";
 import { Nota, agoraISO, dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Aba = "abertas" | "arquivadas";
-
-const nomeDaFolha = (n: Nota) => n.titulo.trim() || paraTextoPlano(n.texto).split("\n")[0].slice(0, 80) || "Folha sem título";
 
 export default function Notas() {
   // useSearchParams exige Suspense no Next 16.
@@ -32,7 +31,7 @@ export default function Notas() {
 }
 
 function Conteudo() {
-  const { dados, salvarNotas, toast } = useNexo();
+  const { dados, salvarNotas, salvarPaginas, toast } = useNexo();
   const router = useRouter();
   const pedida = useSearchParams().get("n");
   const confirmar = useConfirmar();
@@ -84,6 +83,15 @@ function Conteudo() {
       setAba("abertas");
       setSel(id);
     }
+  };
+  // A folha que cresceu vira página de conhecimento: o texto vai junto (com as tarefas ligadas) e a folha fica arquivada.
+  const virarPagina = async (n: Nota) => {
+    const pagina = paginaNova({ titulo: n.titulo.trim() || nomeDaFolha(n), texto: n.texto, tarefaIds: n.tarefaIds ?? [], ordem: Date.now() / 1e9 });
+    if (!(await salvarPaginas((items) => [...items, pagina]))) return;
+    const agora = agoraISO();
+    await salvarNotas((items) => items.map((x) => (x.id === n.id ? { ...x, arquivadaEm: agora, atualizadaEm: agora } : x)));
+    toast("Página criada com o texto da folha. A folha ficou em Arquivadas.");
+    router.push(`/paginas?p=${pagina.id}`);
   };
   const excluir = async (n: Nota) => {
     const ok = await confirmar({
@@ -148,7 +156,7 @@ function Conteudo() {
 
           <section className="min-w-0 flex-1">
             {aba === "abertas" && idAtual && (
-              <EditorNota key={idAtual} id={idAtual} nota={atual} aoOrganizar={setOrganizar} aoArquivar={arquivarFolha} aoExcluir={excluir} />
+              <EditorNota key={idAtual} id={idAtual} nota={atual} aoOrganizar={setOrganizar} aoArquivar={arquivarFolha} aoExcluir={excluir} aoVirarPagina={virarPagina} />
             )}
             {aba === "arquivadas" && !atual && (
               <div className="p-6">

@@ -2,7 +2,8 @@
 // É função pura (sem estado, sem disco): a interface decide o que mostrar e o que adiar.
 // Nada aqui é gravado. "Adiar" um lembrete fica em localStorage (ver components/useLembretes.ts).
 
-import { type Modelo, type Passo, type Registro, STATUS_ABERTOS, type Tarefa, dataCurta, dataLocal, dataRelativa, diasAte, hojeISO, semAcento } from "./tipos";
+import { type LinkDoc, type Modelo, type Passo, type Registro, STATUS_ABERTOS, type Tarefa, dataCurta, dataLocal, dataRelativa, diasAte, hojeISO, semAcento } from "./tipos";
+import { DIAS_CHAMADO_PARADO, chamadoAberto, destravouPeloLink, diasNoEstado, nomeDoEstado, tarefasDoLink, travando } from "./links";
 import { recorrenciasDevidas, textoDaRepeticao } from "./recorrencia";
 
 /** Limites, em dias, que disparam cada tipo de lembrete. */
@@ -17,6 +18,8 @@ export const LIMITES = {
   bloqueada: 3,
   /** Próximo passo (sem prazo próprio) aberto há muito tempo. */
   passoAntigo: 14,
+  /** Chamado (link com status em aberto) ligado à tarefa sem mudar de status. */
+  chamadoParado: DIAS_CHAMADO_PARADO,
 };
 
 export type TipoLembrete =
@@ -34,7 +37,9 @@ export type TipoLembrete =
   /** Todas as tarefas de que ela dependia terminaram (3.8). */
   | "destravou"
   /** Um modelo que se repete chegou no dia (3.8). Não tem tarefa: tarefaId é "". */
-  | "recorrencia";
+  | "recorrencia"
+  /** Um chamado ligado à tarefa (link com status em aberto) está há dias sem mudar de status (3.14). */
+  | "chamado_parado";
 
 export type Gravidade = "critico" | "atencao" | "info";
 
@@ -126,7 +131,7 @@ const PESO: Record<Gravidade, number> = { critico: 0, atencao: 1, info: 2 };
 /** Quantos dias o "destravou" continua aparecendo depois que a última dependência fechou. */
 const DIAS_DESTRAVOU = 7;
 
-export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[] } = {}): Lembrete[] {
+export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[]; links?: LinkDoc[] } = {}): Lembrete[] {
   const out: Lembrete[] = [];
   const porId = new Map(tarefas.map((x) => [x.id, x]));
   const hoje = hojeISO();
@@ -209,6 +214,30 @@ export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[] }
     if (abertos === 0 && t.status === "em_andamento")
       out.push({ ...base, id: `sem-passo:${t.id}`, tipo: "sem_proximo_passo", gravidade: "info", dias: parado,
         titulo: "Em andamento sem próximo passo", detalhe: "Defina qual é a próxima ação para não travar." });
+  }
+  // Chamados ligados a tarefas abertas (3.14): o que travava e fechou (destravou) e o que está em aberto há dias sem novidade.
+  for (const l of extras.links ?? []) {
+    for (const id of tarefasDoLink(l)) {
+      const t = porId.get(id);
+      if (!t || !aberta(t)) continue;
+      const base = { tarefaId: t.id, tarefaTitulo: t.titulo };
+      const fechou = destravouPeloLink(l, t.id);
+      if (fechou) {
+        const ha = Math.max(0, -(diasAte(fechou) ?? 0));
+        if (ha <= DIAS_DESTRAVOU || t.status === "bloqueada" || t.status === "aguardando")
+          out.push({ ...base, id: `destravou-link:${l.id}:${t.id}:${fechou}`, tipo: "destravou", gravidade: "atencao", dias: ha,
+            titulo: `Destravou: “${l.titulo}” está como ${nomeDoEstado(l.estado).toLowerCase()}`,
+            detalhe: t.status === "bloqueada" || t.status === "aguardando" ? "Ela pode andar agora. Vale tirar do status de espera." : "Ela pode andar agora." });
+        continue;
+      }
+      if (!chamadoAberto(l)) continue;
+      const ha = diasNoEstado(l);
+      if (ha < LIMITES.chamadoParado) continue;
+      const trava = travando(l, t.id);
+      out.push({ ...base, id: `chamado:${l.id}:${t.id}:${dataLocal(l.estadoEm || l.criadoEm)}`, tipo: "chamado_parado", gravidade: trava ? "atencao" : "info", dias: ha,
+        titulo: trava ? `Chamado que trava: sem novidade há ${dias(ha)}` : `Chamado sem novidade há ${dias(ha)}`,
+        detalhe: `“${l.titulo}” está como ${nomeDoEstado(l.estado).toLowerCase()}${trava ? " e está travando a tarefa" : ""}. Confira o andamento e atualize o status.` });
+    }
   }
   for (const { modelo, data } of recorrenciasDevidas(extras.modelos ?? [], hoje)) {
     const d = Math.max(0, -(diasAte(data) ?? 0));

@@ -63,7 +63,7 @@ export const Paragrafo = Paragraph.extend({
 
 /**
  * Endereços que um link pode ter dentro do app: http, https e mailto; os internos ("nexo:tarefa/...",
- * "nexo:tempo/754"); e um arquivo anexado da pasta de dados ("arquivos/AAAA/nome").
+ * "nexo:nota/...", "nexo:tempo/754"); e um arquivo anexado da pasta de dados ("arquivos/AAAA/nome").
  */
 export function linkDoEditor(bruto: string): string | null {
   const h = (bruto || "").trim();
@@ -141,8 +141,8 @@ export interface PonteDoMenu {
 const limpar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /**
- * Menu que abre ao digitar um caractere: "/" lista os blocos, "@" lista o que dá para citar (pessoas, tarefas,
- * páginas). A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
+ * Menu que abre ao digitar um caractere: "/" lista os blocos, "@" lista o que dá para citar (páginas, tarefas,
+ * pessoas, links do banco, folhas e categorias). A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
  * citações acompanhar os dados sem recriar o editor.
  */
 interface OpcoesDoMenu {
@@ -193,7 +193,7 @@ const SemQuebraNoCtrlEnter = Extension.create({
 
 export function extensoesDoEditor(opcoes: {
   placeholder: string; itens: ItemDoMenu[]; ponte: () => PonteDoMenu | null;
-  /** O que dá para citar com "@" (pessoas, tarefas, páginas). */
+  /** O que dá para citar com "@" (páginas, tarefas, pessoas, links do banco, folhas e categorias). */
   citaveis: () => ItemDoMenu[];
   /** As páginas que "[[" lista, e o item "criar página" para o que foi digitado. */
   paginas: () => ItemDoMenu[];
@@ -228,7 +228,7 @@ export function extensoesDoEditor(opcoes: {
     // uma quebra de linha simples conta como quebra: o texto antigo do app era texto puro
     Markdown.configure({ markedOptions: { gfm: true, breaks: true } }),
     MenuBarra.configure({ itens: () => opcoes.itens, ponte: opcoes.ponte }),
-    MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 8 }),
+    MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 12 }),
     // "[[" liga a outra página (e cria a página se ela ainda não existe), como numa wiki
     MenuBarra.extend({ name: "menuLigar" }).configure({ char: "[[", chave: "menuLigar", itens: opcoes.paginas, ponte: opcoes.ponte, limite: 8, extra: opcoes.criarPagina }),
     MarcasDeComponente,

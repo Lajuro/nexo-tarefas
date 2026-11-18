@@ -13,6 +13,7 @@ import { CategoriaForm } from "@/components/CategoriaForm";
 import { PromptModal } from "@/components/PromptModal";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { LinkForm, hrefLink } from "@/components/LinkForm";
+import { SeloEstadoLink } from "@/components/links/EstadoLink";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
 import { TextoRico } from "@/components/tarefa/Texto";
 import {
@@ -278,6 +279,7 @@ export default function PaginaCategoria() {
                             <span className="block text-[13px] leading-snug font-medium [overflow-wrap:anywhere]">{l.titulo}</span>
                             {detalhe && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{detalhe}</span>}
                           </span>
+                          <SeloEstadoLink link={l} className="mt-0.5" />
                           <ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100 group-focus-visible/link:opacity-100" />
                         </a>
                       </li>

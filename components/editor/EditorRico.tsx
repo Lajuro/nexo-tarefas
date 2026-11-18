@@ -8,13 +8,15 @@
 // mesma rota dos anexos e o texto guarda só o caminho. Nada é buscado de fora.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Editor, Range } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AtSign, Bold, ChevronsUpDown, CircleAlert, CircleCheckBig, CircleHelp, Code, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Info, Italic, Lightbulb, Link2, Link2Off, List,
-  ListChecks, ListOrdered, ListTodo, ListTree, Minus, OctagonAlert, Paperclip, Pilcrow, Quote, SquareCode, Strikethrough, Table2, Trash2, TriangleAlert, UserRound, type LucideIcon,
+  AtSign, Bold, CalendarDays, ChevronsUpDown, CircleAlert, CircleCheckBig, CircleHelp, Clock, Code, ExternalLink, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Info, Italic, Lightbulb,
+  Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, ListTree, Minus, OctagonAlert, Paperclip, Pilcrow, Quote, Redo2, Shapes, SquareCode, StickyNote, Strikethrough, Table2, Trash2,
+  TriangleAlert, Undo2, UserRound, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Button } from "@/components/ui/button";
@@ -22,12 +24,14 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aberta } from "@/lib/lembretes";
+import { nomeDaFolha, nomeDoEstado } from "@/lib/links";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { paginaNova } from "@/lib/paginas";
 import { LINGUAGENS, NOMES_DE_LINGUAGEM } from "@/lib/realce";
-import { hrefInterno, linkPermitido, srcDoAnexo } from "@/lib/texto-rico";
+import { anexoDoSrc, hrefInterno, linkInterno, linkPermitido, srcDoAnexo, urlDoAnexo } from "@/lib/texto-rico";
+import { formatarData, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
-import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, pareceMarkdown } from "./extensoes";
+import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, linkDoEditor, pareceMarkdown } from "./extensoes";
 
 const MAX_IMAGEM = 15 * 1024 * 1024;
 const TIPOS_DE_IMAGEM = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -37,7 +41,7 @@ const ICONE: Record<string, LucideIcon> = {
   texto: Pilcrow, h1: Heading1, h2: Heading2, h3: Heading3, lista: List, numerada: ListOrdered, tarefas: ListChecks, citacao: Quote,
   codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText, nova: FilePlus2, subpagina: FilePlus2,
   nota: Info, dica: Lightbulb, importante: CircleAlert, atencao: TriangleAlert, perigo: OctagonAlert, sucesso: CircleCheckBig, pergunta: CircleHelp, detalhes: ChevronsUpDown,
-  indice: ListTree, arquivo: Paperclip,
+  indice: ListTree, arquivo: Paperclip, folha: StickyNote, link: Link2, documento: Paperclip, categoria: Shapes, hoje: CalendarDays, agora: Clock, citar: AtSign,
 };
 const MAX_ANEXO = 200 * 1024 * 1024;
 
@@ -69,9 +73,9 @@ interface EstadoMenu {
 }
 
 function BotaoBarra({
-  dica, atalho, ativo, aoClicar, children, desabilitado,
+  dica, atalho, ativo, aoClicar, children, desabilitado, className,
 }: {
-  dica: string; atalho?: string; ativo?: boolean; aoClicar: () => void; children: React.ReactNode; desabilitado?: boolean;
+  dica: string; atalho?: string; ativo?: boolean; aoClicar: () => void; children: React.ReactNode; desabilitado?: boolean; className?: string;
 }) {
   return (
     <Dica texto={dica} atalho={atalho}>
@@ -82,6 +86,7 @@ function BotaoBarra({
         className={cn(
           "inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-3.5",
           ativo && "bg-accent text-primary",
+          className,
         )}>
         {children}
       </button>
@@ -89,8 +94,11 @@ function BotaoBarra({
   );
 }
 
+/** Só aparece quando a barra tem largura para tudo numa linha (o editor é um contêiner): o que tem atalho ou outro caminho. */
+const SO_COM_ESPACO = "hidden @[40rem]/editor:inline-flex";
+
 export function EditorRico({
-  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId, aoPronto,
+  valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId, folhaAtualId, aoPronto,
   "aria-label": rotulo, "data-slot": slot = "editor-rico",
 }: {
   /** Markdown. */
@@ -107,6 +115,8 @@ export function EditorRico({
   variante?: "campo" | "pagina" | "documento";
   /** Página em que o editor está: página criada por "[[" ou pelo bloco "Subpágina" nasce dentro dela. */
   paginaAtualId?: string;
+  /** Folha do bloco de notas em que o editor está: ela não aparece na lista de citar (não faz sentido citar a si mesma). */
+  folhaAtualId?: string;
   /** Recebe a API do editor quando ele fica pronto (e null quando sai da tela). */
   aoPronto?: (api: ApiDoEditor | null) => void;
   focoInicial?: boolean;
@@ -115,13 +125,16 @@ export function EditorRico({
   "data-slot"?: string;
 }) {
   const { enviarArquivo, toast, dados, salvarPaginas } = useNexo();
-  // O que dá para citar com "@": pessoas, tarefas (as abertas primeiro) e páginas. Lido na hora em que o menu abre.
+  // O que dá para citar com "@": páginas, tarefas (as abertas primeiro), pessoas e, desde a 3.14, links do banco,
+  // folhas do bloco de notas e categorias. Lido na hora em que o menu abre.
   const dadosRef = useRef(dados);
   dadosRef.current = dados;
+  const folhaAtual = useRef(folhaAtualId);
+  folhaAtual.current = folhaAtualId;
   const citaveis = useRef((): ItemDoMenu[] => {
     const d = dadosRef.current;
     if (!d) return [];
-    const citar = (tipo: "pessoa" | "tarefa" | "pagina", alvo: string, rotulo: string) => (ed: Editor, r: Range) =>
+    const citar = (tipo: "pessoa" | "tarefa" | "pagina" | "nota" | "categoria", alvo: string, rotulo: string) => (ed: Editor, r: Range) =>
       ed.chain().focus().deleteRange(r)
         .insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href: hrefInterno(tipo, alvo) } }] }, { type: "text", text: " " }])
         .run();
@@ -132,18 +145,38 @@ export function EditorRico({
     const paginas = (d.paginas?.items ?? [])
       .filter((p) => !p.arquivadaEm)
       .map((p): ItemDoMenu => ({ id: `pagina:${p.id}`, nome: p.titulo || "Página sem título", dica: "Página", palavras: "pagina", icone: "pagina", fazer: citar("pagina", p.id, p.titulo || "Página sem título") }));
-    // intercala para os três tipos aparecerem mesmo com a lista curta
+    // 3.14: também dá para citar o que está no banco de links (entra o endereço de verdade, ou o arquivo
+    // guardado), as folhas do bloco de notas e as categorias. Caminho de rede (\\servidor) fica de fora:
+    // o navegador não abre, e o texto só aceita http, https, mailto e anexos.
+    const porLink = (rotulo: string, href: string) => (ed: Editor, r: Range) =>
+      ed.chain().focus().deleteRange(r).insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href } }] }, { type: "text", text: " " }]).run();
+    const links = [...d.links.items]
+      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
+      .flatMap((l): ItemDoMenu[] => {
+        const href = l.tipo === "arquivo" ? (anexoDoSrc(l.arquivo || "") ? srcDoAnexo(anexoDoSrc(l.arquivo || "")!) : null) : linkPermitido(l.url || "");
+        if (!href) return [];
+        const dica = [l.tipo === "arquivo" ? "Documento do banco" : "Link do banco", l.estado ? nomeDoEstado(l.estado) : ""].filter(Boolean).join(" · ");
+        return [{ id: `link:${l.id}`, nome: l.titulo, dica, palavras: `link documento ${l.tags.join(" ")} ${l.descricao}`, icone: l.tipo === "arquivo" ? "documento" : "link", fazer: porLink(l.titulo, href) }];
+      });
+    const folhas = (d.notas?.items ?? [])
+      .filter((n) => n.id !== folhaAtual.current)
+      .sort((a, b) => Number(!!a.arquivadaEm) - Number(!!b.arquivadaEm) || b.atualizadaEm.localeCompare(a.atualizadaEm))
+      .map((n): ItemDoMenu => ({ id: `nota:${n.id}`, nome: nomeDaFolha(n), dica: n.arquivadaEm ? "Folha arquivada" : "Folha do bloco de notas", palavras: "folha nota bloco", icone: "folha", fazer: citar("nota", n.id, nomeDaFolha(n)) }));
+    const categorias = d.categorias.items
+      .filter((c) => !c.arquivada)
+      .map((c): ItemDoMenu => ({ id: `categoria:${c.id}`, nome: c.nome, dica: "Categoria", palavras: "categoria assunto", icone: "categoria", fazer: citar("categoria", c.id, c.nome) }));
+    // intercala para todos os tipos aparecerem mesmo com a lista curta (páginas, tarefas e pessoas vêm antes)
+    const grupos = [paginas, tarefas, pessoas, links, folhas, categorias];
     const out: ItemDoMenu[] = [];
-    for (let i = 0; i < Math.max(pessoas.length, tarefas.length, paginas.length); i++) {
-      if (paginas[i]) out.push(paginas[i]);
-      if (tarefas[i]) out.push(tarefas[i]);
-      if (pessoas[i]) out.push(pessoas[i]);
-    }
+    for (let i = 0; i < Math.max(...grupos.map((g) => g.length)); i++) for (const g of grupos) if (g[i]) out.push(g[i]);
     return out;
   });
   // "[[" liga a uma página; se o que foi digitado não existe, oferece criar (nasce dentro da página atual).
   const paginaAtual = useRef(paginaAtualId);
   paginaAtual.current = paginaAtualId;
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const criarPaginaRef = useRef((titulo: string): string => {
     const mae = dadosRef.current?.paginas?.items.find((p) => p.id === paginaAtual.current);
     const nova = paginaNova({ titulo, paiId: mae?.id ?? null, categoriaId: mae?.categoriaId ?? null, ordem: Date.now() / 1e9 });
@@ -220,7 +253,25 @@ export function EditorRico({
       ed.chain().focus().insertContent([{ type: "text", text: r.nomeArquivo, marks: [{ type: "link", attrs: { href: srcDoAnexo(r.arquivo) } }] }, { type: "text", text: " " }]).run();
     }
   }
+  const anexarArquivosRef = useRef(anexarArquivos);
+  anexarArquivosRef.current = anexarArquivos;
   const qualquerArquivo = useRef<HTMLInputElement>(null);
+
+  /** Abre o destino de um link do texto: o interno navega dentro do app; anexo e link de fora abrem em outra aba. */
+  const abrirHref = (bruto: string) => {
+    const href = linkDoEditor(bruto);
+    if (!href) return false;
+    const interno = linkInterno(href);
+    if (interno) routerRef.current.push(interno.rota);
+    else {
+      const url = urlDoAnexo(href) ?? linkPermitido(href);
+      if (!url) return false;
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+    return true;
+  };
+  const abrirHrefRef = useRef(abrirHref);
+  abrirHrefRef.current = abrirHref;
 
   const itens = useMemo<ItemDoMenu[]>(() => {
     const bloco = (fn: (ed: Editor, r: Range) => void) => fn;
@@ -254,6 +305,10 @@ export function EditorRico({
       { id: "pergunta", nome: "Pergunta e resposta", dica: "A pergunta aparece; a resposta abre ao clicar", palavras: "faq duvida pergunta resposta", fazer: bloco((ed, r) => limpo(ed, r).insertContent("[!PERGUNTA]- ").setBlockquote().run()) },
       { id: "indice", nome: "Índice", dica: "Lista dos títulos da página, montada sozinha", palavras: "indice sumario toc titulos", fazer: bloco((ed, r) => limpo(ed, r).insertContent({ type: "paragraph", content: [{ type: "text", text: "[TOC]" }] }).run()) },
       { id: "arquivo", nome: "Arquivo", dica: "Anexa um PDF, planilha ou outro arquivo", palavras: "arquivo anexo pdf planilha documento upload", fazer: bloco((ed, r) => { limpo(ed, r).run(); qualquerArquivo.current?.click(); }) },
+      // abre o menu de citar no mesmo lugar: tarefa, página, pessoa, folha, categoria ou algo do banco de links
+      { id: "citar", nome: "Citar ou ligar", dica: "Tarefa, página, pessoa, folha ou link do banco", palavras: "citar mencionar ligar link tarefa pagina pessoa folha chamado @", fazer: bloco((ed, r) => limpo(ed, r).insertContent("@").run()) },
+      { id: "hoje", nome: "Data de hoje", dica: "Escreve a data de hoje", palavras: "data hoje dia", fazer: bloco((ed, r) => limpo(ed, r).insertContent(`${formatarData(hojeISO())} `).run()) },
+      { id: "agora", nome: "Hora de agora", dica: "Escreve a hora deste instante", palavras: "hora agora horario relogio", fazer: bloco((ed, r) => { const d = new Date(); limpo(ed, r).insertContent(`${p2(d.getHours())}:${p2(d.getMinutes())} `).run(); }) },
       // só dentro de uma página: cria uma página filha e já deixa o link para ela
       ...(paginaAtualId
         ? [{
@@ -329,7 +384,14 @@ export function EditorRico({
         const cd = evento.clipboardData;
         if (!cd) return false;
         const imagens = Array.from(cd.files).filter((f) => f.type.startsWith("image/"));
+        const outros = Array.from(cd.files).filter((f) => !f.type.startsWith("image/"));
         const texto = cd.getData("text/plain");
+        // arquivo copiado do Explorador (PDF, planilha...): vai para a pasta de dados e entra como link para ele
+        if (outros.length > 0 && !texto.trim()) {
+          evento.preventDefault();
+          void anexarArquivosRef.current(Array.from(cd.files));
+          return true;
+        }
         // print ou imagem copiada (sem texto junto): vira anexo. Planilha e Word mandam texto E imagem: fica o texto.
         if (imagens.length > 0 && !texto.trim()) {
           evento.preventDefault();
@@ -345,11 +407,27 @@ export function EditorRico({
         return false;
       },
       handleDrop: (view, evento) => {
-        const imagens = Array.from(evento.dataTransfer?.files ?? []).filter((f) => f.type.startsWith("image/"));
-        if (imagens.length === 0) return false;
+        const soltos = Array.from(evento.dataTransfer?.files ?? []);
+        if (soltos.length === 0) return false;
         evento.preventDefault();
-        anexarRef.current(imagens, view.posAtCoords({ left: evento.clientX, top: evento.clientY })?.pos);
+        const imagens = soltos.filter((f) => f.type.startsWith("image/"));
+        const pos = view.posAtCoords({ left: evento.clientX, top: evento.clientY })?.pos;
+        if (imagens.length === soltos.length) anexarRef.current(imagens, pos);
+        else {
+          // arquivo que não é imagem (PDF, planilha...): o cursor vai para onde foi solto e o arquivo entra como link
+          if (pos !== undefined) editorRef.current?.commands.setTextSelection(pos);
+          void anexarArquivosRef.current(soltos);
+        }
         return true;
+      },
+      // Ctrl + clique num link abre o destino (clique simples continua pondo o cursor, para dar para editar o texto)
+      handleClick: (_view, _pos, evento) => {
+        if (!evento.ctrlKey && !evento.metaKey) return false;
+        const a = (evento.target as HTMLElement | null)?.closest?.("a[href]");
+        const href = a?.getAttribute("href");
+        if (!href) return false;
+        evento.preventDefault();
+        return abrirHrefRef.current(href);
       },
     },
     onCreate: ({ editor: ed }) => {
@@ -419,6 +497,7 @@ export function EditorRico({
             lista: ed.isActive("bulletList"), numerada: ed.isActive("orderedList"), tarefas: ed.isActive("taskList"),
             citacao: ed.isActive("blockquote"), bloco: ed.isActive("codeBlock"), link: ed.isActive("link"), tabela: ed.isActive("table"),
             href: (ed.getAttributes("link").href as string | undefined) ?? "",
+            podeDesfazer: ed.can().undo(), podeRefazer: ed.can().redo(),
             linguagem: (ed.getAttributes("codeBlock").language as string | undefined) ?? "",
           }
         : null,
@@ -449,7 +528,7 @@ export function EditorRico({
   return (
     <div ref={caixa} data-slot={slot} data-variante={variante}
       className={cn(
-        "editor-rico relative flex min-w-0 flex-col",
+        "editor-rico @container/editor relative flex min-w-0 flex-col",
         documento ? "" : pagina ? "h-full min-h-0" : "rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] duration-150 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/25 hover:border-ring/40 focus-within:hover:border-ring dark:bg-input/20",
         desabilitado && "pointer-events-none opacity-60",
         className,
@@ -459,6 +538,10 @@ export function EditorRico({
           "flex shrink-0 flex-wrap items-center gap-0.5 border-b px-1.5 py-1 sem-selecao", pagina && "px-4",
           documento && "sticky top-0 z-20 -mx-2 rounded-lg border bg-background/95 px-1.5 shadow-xs backdrop-blur-sm",
         )}>
+        {/* desfazer, refazer e anexar só entram quando cabem na mesma linha: os três têm outro caminho (Ctrl Z, Ctrl Y, o bloco "Arquivo" do menu / e arrastar) */}
+        <BotaoBarra className={SO_COM_ESPACO} dica="Desfazer" atalho="Ctrl Z" desabilitado={!estado?.podeDesfazer} aoClicar={() => c().undo().run()}><Undo2 /></BotaoBarra>
+        <BotaoBarra className={SO_COM_ESPACO} dica="Refazer" atalho="Ctrl Y" desabilitado={!estado?.podeRefazer} aoClicar={() => c().redo().run()}><Redo2 /></BotaoBarra>
+        <span aria-hidden className="mx-1 hidden h-4 w-px bg-border @[40rem]/editor:block" />
         <BotaoBarra dica="Título 1" ativo={estado?.h1} aoClicar={() => c().toggleHeading({ level: 1 }).run()}><Heading1 /></BotaoBarra>
         <BotaoBarra dica="Título 2" ativo={estado?.h2} aoClicar={() => c().toggleHeading({ level: 2 }).run()}><Heading2 /></BotaoBarra>
         <BotaoBarra dica="Título 3" ativo={estado?.h3} aoClicar={() => c().toggleHeading({ level: 3 }).run()}><Heading3 /></BotaoBarra>
@@ -483,6 +566,14 @@ export function EditorRico({
             <form className="flex items-center gap-1.5" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); aplicarLink(); }}>
               <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." aria-label="Endereço do link" className="h-7 text-xs" />
               <Button type="submit" size="sm">Aplicar</Button>
+              {estado?.link && (
+                <Dica texto="Abrir o link (ou Ctrl + clique nele)">
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Abrir o link" data-slot="abrir-link-do-texto"
+                    onClick={() => { if (abrirHref(estado.href)) setLinkAberto(false); }}>
+                    <ExternalLink />
+                  </Button>
+                </Dica>
+              )}
               {estado?.link && (
                 <Dica texto="Tirar o link">
                   <Button type="button" variant="ghost" size="icon-sm" aria-label="Tirar o link"
@@ -521,7 +612,8 @@ export function EditorRico({
         )}
         <span aria-hidden className="mx-1 h-4 w-px bg-border" />
         <BotaoBarra dica="Imagem (ou cole com Ctrl V)" aoClicar={() => arquivo.current?.click()}><ImagePlus /></BotaoBarra>
-        <BotaoBarra dica="Citar uma pessoa, tarefa ou página (ou digite @)" aoClicar={() => c().insertContent("@").run()}><AtSign /></BotaoBarra>
+        <BotaoBarra className={SO_COM_ESPACO} dica="Anexar um arquivo (PDF, planilha...) ou arraste para o texto" aoClicar={() => qualquerArquivo.current?.click()}><Paperclip /></BotaoBarra>
+        <BotaoBarra dica="Citar tarefa, página, pessoa, folha ou link do banco (ou digite @)" aoClicar={() => c().insertContent("@").run()}><AtSign /></BotaoBarra>
         {estado?.tabela ? (
           <DropdownMenu>
             <Dica texto="Mexer na tabela">
@@ -547,7 +639,7 @@ export function EditorRico({
           <BotaoBarra dica="Tabela" aoClicar={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></BotaoBarra>
         )}
         {pagina && (
-          <span className="ml-auto hidden pr-1.5 text-xs text-muted-foreground lg:inline">
+          <span className="ml-auto hidden pr-1.5 text-xs text-muted-foreground @[50rem]/editor:inline">
             digite <kbd className="rounded border bg-muted px-1 font-mono text-[11px]">/</kbd> para blocos
           </span>
         )}

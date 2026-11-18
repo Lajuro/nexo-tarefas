@@ -10,11 +10,11 @@ import { BotaoMenuTarefa, useAcoesTarefa } from "@/components/MenuTarefa";
 import { TarefaForm } from "@/components/TarefaForm";
 import { RegistroEditor } from "@/components/RegistroEditor";
 import { PromptModal } from "@/components/PromptModal";
-import { LinkForm } from "@/components/LinkForm";
 import { Contador, IconeTipo, Pagina, Vazio } from "@/components/comum";
 import { Lateral } from "@/components/tarefa/Lateral";
 import { Propriedades } from "@/components/tarefa/Propriedades";
 import { FaixaEspera } from "@/components/Esperando";
+import { FaixaTravas } from "@/components/tarefa/Referencias";
 import { ItensNovoRegistro, Timeline } from "@/components/tarefa/Timeline";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
@@ -81,7 +81,6 @@ function Conteudo() {
   const [editando, setEditando] = useState(false);
   const [editor, setEditor] = useState<{ aberto: boolean; registro?: Registro | null; tipo?: TipoRegistro }>({ aberto: false });
   const [prompt, setPrompt] = useState<null | "panorama" | "reuniao">(null);
-  const [linkForm, setLinkForm] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("tudo");
   const [destaque, setDestaque] = useState<string | null>(null);
   // Versões antigas gravaram "1"/"0" nesta chave; Boolean(Number()) entende os dois formatos.
@@ -104,7 +103,6 @@ function Conteudo() {
 
   const tarefa = dados?.tarefas.find((t) => t.id === id);
   const cat = dados?.categorias.items.find((c) => c.id === tarefa?.categoriaId);
-  const links = useMemo(() => (dados?.links.items ?? []).filter((l) => l.tarefaId === id), [dados?.links.items, id]);
 
   // Leva a linha do tempo até um registro e acende o card por um instante.
   const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -242,6 +240,8 @@ function Conteudo() {
             <Propriedades tarefa={tarefa} cat={cat} />
             {/* fica no cabeçalho fixo: enquanto a tarefa espera alguém, isso é o que mais importa nela */}
             <FaixaEspera tarefa={tarefa} className="w-full" />
+            {/* o chamado que trava a tarefa (link marcado como trava em Links e documentos) */}
+            <FaixaTravas tarefa={tarefa} className="w-full" />
           </>
         }
       >
@@ -377,9 +377,7 @@ function Conteudo() {
             <Lateral
               className="grid items-start gap-4 @2xl:grid-cols-2 @5xl:grid-cols-1"
               tarefa={tarefa}
-              links={links}
               aoIrPara={irPara}
-              aoAdicionarLink={() => setLinkForm(true)}
               aoGerarPanorama={() => setPrompt("panorama")}
             />
           </aside>
@@ -389,7 +387,6 @@ function Conteudo() {
       <TarefaForm aberto={editando} fechar={() => setEditando(false)} tarefa={tarefa} />
       <RegistroEditor aberto={editor.aberto} fechar={() => setEditor((e) => ({ ...e, aberto: false }))} tarefa={tarefa}
         registro={editor.registro} tipoInicial={editor.tipo} />
-      <LinkForm aberto={linkForm} fechar={() => setLinkForm(false)} tarefaId={tarefa.id} categoriaId={tarefa.categoriaId} />
       <PromptModal
         aberto={prompt === "panorama"}
         fechar={() => setPrompt(null)}

@@ -1,5 +1,5 @@
 // Ligações entre as coisas do Nexo: quem cita quem. Os textos em Markdown podem ter links internos
-// ("nexo:tarefa/<id>", "nexo:pagina/<id>", "nexo:pessoa/<nome>", "nexo:categoria/<id>"); aqui eles são
+// ("nexo:tarefa/<id>", "nexo:pagina/<id>", "nexo:pessoa/<nome>", "nexo:categoria/<id>", "nexo:nota/<id>"); aqui eles são
 // lidos para responder "quem aponta para cá?". Função pura: nada é gravado, o índice é montado na hora.
 
 import { type TipoDeAlvo, linkInterno } from "./texto-rico";
@@ -16,7 +16,7 @@ export interface Citacao {
   data: string;
 }
 
-const LINK = /\]\((nexo:(?:tarefa|pagina|categoria|pessoa)\/[^)\s]+)\)/g;
+const LINK = /\]\((nexo:(?:tarefa|pagina|categoria|pessoa|nota)\/[^)\s]+)\)/g;
 
 /** Chave única de um alvo. Pessoa é comparada sem acento nem maiúscula, como no resto do app. */
 export function chaveDoAlvo(tipo: TipoDeAlvo, alvo: string): string {
@@ -59,7 +59,7 @@ export function indiceDeCitacoes(dados: Dados): Map<string, Citacao[]> {
   for (const p of dados.paginas?.items ?? [])
     anotar(p.texto, { origem: "pagina", rotulo: p.titulo || "Página sem título", detalhe: "Página de conhecimento", rota: `/paginas?p=${p.id}`, data: p.atualizadaEm }, chaveDoAlvo("pagina", p.id));
   for (const n of dados.notas?.items ?? [])
-    anotar(n.texto, { origem: "nota", rotulo: n.titulo || "Folha do bloco de notas", detalhe: n.arquivadaEm ? "Folha arquivada" : "Folha aberta", rota: `/notas?n=${n.id}`, data: n.atualizadaEm });
+    anotar(n.texto, { origem: "nota", rotulo: n.titulo || "Folha do bloco de notas", detalhe: n.arquivadaEm ? "Folha arquivada" : "Folha aberta", rota: `/notas?n=${n.id}`, data: n.atualizadaEm }, chaveDoAlvo("nota", n.id));
   for (const lista of indice.values()) lista.sort((a, b) => b.data.localeCompare(a.data));
   return indice;
 }

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
 import { comRegistroRecebido, comTarefaJuntada, semRegistroMovido } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
+import { comTarefaTrocada, linkEhDaTarefa } from "@/lib/links";
 import { dataCurta, nomeStatus, tipoInfo } from "@/lib/tipos";
 
 type Pedido = { tipo: "mover"; tarefaId: string; registroId: string } | { tipo: "juntar"; tarefaId: string };
@@ -28,7 +29,7 @@ export const pedirMoverRegistro = (tarefaId: string, registroId: string) => pedi
 export const pedirJuntarTarefa = (tarefaId: string) => pedir({ tipo: "juntar", tarefaId });
 
 export function MoverEJuntar() {
-  const { dados, dadosAtuais, atualizarTarefa, excluirTarefa, salvarLinks, salvarNotas, toast } = useNexo();
+  const { dados, dadosAtuais, atualizarTarefa, excluirTarefa, salvarLinks, salvarNotas, salvarPaginas, toast } = useNexo();
   const router = useRouter();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [destinoId, setDestinoId] = useState("");
@@ -92,22 +93,28 @@ export function MoverEJuntar() {
     if (!origem || !destino || fazendo) return;
     setFazendo(true);
     const destinoAntes = structuredClone(destino);
-    const linksMovidos = (dados?.links.items ?? []).filter((l) => l.tarefaId === origem.id).map((l) => l.id);
+    // o que servia à origem (links, páginas, folhas) passa a servir ao destino; guarda como estava para o desfazer
+    const linksAntes = (dados?.links.items ?? []).filter((l) => linkEhDaTarefa(l, origem.id));
+    const paginasAntes = (dados?.paginas?.items ?? []).filter((p) => (p.tarefaIds ?? []).includes(origem.id));
+    const notasAntes = (dados?.notas?.items ?? []).filter((n) => (n.tarefaIds ?? []).includes(origem.id));
     const recebeu = await atualizarTarefa(destino.id, (t) => comTarefaJuntada(t, origem));
     if (recebeu) {
-      if (dados?.links.items.some((l) => l.tarefaId === origem.id))
-        await salvarLinks((items) => items.map((l) => (l.tarefaId === origem.id ? { ...l, tarefaId: destino.id } : l)));
-      if (dados?.notas?.items.some((n) => n.gerou?.some((f) => f.tarefaId === origem.id)))
+      if (linksAntes.length) await salvarLinks((items) => items.map((l) => comTarefaTrocada(l, origem.id, destino.id)));
+      if (paginasAntes.length) await salvarPaginas((items) => items.map((p) => comTarefaTrocada(p, origem.id, destino.id)));
+      if (notasAntes.length || dados?.notas?.items.some((n) => n.gerou?.some((f) => f.tarefaId === origem.id)))
         await salvarNotas((items) =>
-          items.map((n) => ({ ...n, gerou: n.gerou?.map((f) => (f.tarefaId === origem.id ? { ...f, tarefaId: destino.id } : f)) })),
+          items.map((n) => ({ ...comTarefaTrocada(n, origem.id, destino.id), gerou: n.gerou?.map((f) => (f.tarefaId === origem.id ? { ...f, tarefaId: destino.id } : f)) })),
         );
-      const de = origem;
       const desfazerJunto = async () => {
         // o destino volta a ser como era, se ninguém mexeu nele depois; os links voltam para a origem
         const atual = dadosAtuais()?.tarefas.find((t) => t.id === destinoAntes.id);
         if (atual && atual.rev === recebeu.rev) await atualizarTarefa(destinoAntes.id, (x) => ({ ...destinoAntes, rev: x.rev }));
         else toast("A tarefa de destino mudou depois da junção: os registros copiados para ela ficaram lá.", "info");
-        if (linksMovidos.length) await salvarLinks((items) => items.map((l) => (linksMovidos.includes(l.id) ? { ...l, tarefaId: de.id } : l)));
+        // os vínculos voltam a ser os de antes da junção (só os campos de vínculo: o resto do item pode ter mudado depois)
+        const l0 = new Map(linksAntes.map((x) => [x.id, x])), p0 = new Map(paginasAntes.map((x) => [x.id, x])), n0 = new Map(notasAntes.map((x) => [x.id, x]));
+        if (l0.size) await salvarLinks((items) => items.map((l) => { const a = l0.get(l.id); return a ? { ...l, tarefaId: a.tarefaId, tarefaIds: a.tarefaIds, trava: a.trava } : l; }));
+        if (p0.size) await salvarPaginas((items) => items.map((p) => { const a = p0.get(p.id); return a ? { ...p, tarefaIds: a.tarefaIds } : p; }));
+        if (n0.size) await salvarNotas((items) => items.map((n) => { const a = n0.get(n.id); return a ? { ...n, tarefaIds: a.tarefaIds } : n; }));
       };
       if (await excluirTarefa(origem.id, { texto: `“${origem.titulo}” foi juntada em “${destino.titulo}”.`, aoDesfazer: desfazerJunto })) {
         fechar();

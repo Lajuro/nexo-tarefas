@@ -242,9 +242,32 @@ const links = [
   { id: "ldemo2", tipo: "link", titulo: "Baseline de hardening", url: "https://exemplo.local/baseline", descricao: "Padrão aprovado", tags: ["padrão"], tarefaId: "tdemo4", categoriaId: "cdemohard" },
   { id: "ldemo3", tipo: "link", titulo: "Política de exceções (versão atual)", url: "https://exemplo.local/politica-excecoes", descricao: "", tags: ["política"], tarefaId: "tdemo5", categoriaId: "cdemovuln" },
   { id: "ldemo4", tipo: "link", titulo: "Pasta da trilha de champions", url: "\\\\servidor\\seguranca\\champions", descricao: "Slides e exercícios", tags: ["treinamento"], tarefaId: null, categoriaId: "cdemochamp" },
+  // 3.14: um chamado com status que trava uma tarefa, e uma leitura pendente que serve a duas tarefas
+  {
+    id: "ldemo5", tipo: "link", titulo: "Chamado 4521: janela de mudança em homologação", url: "https://exemplo.local/chamados/4521", descricao: "Aberto com o time de plataforma",
+    tags: ["chamado"], tarefaId: "tdemo4", tarefaIds: ["tdemo4"], categoriaId: "cdemohard", estado: "aguardando", estadoEm: carimbo(-6), trava: ["tdemo4"],
+  },
+  {
+    id: "ldemo6", tipo: "link", titulo: "Guia de triagem de achados da Ferramenta X", url: "https://exemplo.local/docs/triagem", descricao: "Como classificar o que o scan acha",
+    tags: ["runbook"], tarefaId: "tdemo1", tarefaIds: ["tdemo1", "tdemo6"], categoriaId: "cdemoferr", estado: "para_ler", estadoEm: carimbo(-2),
+  },
 ].map((l) => ({ ...l, criadoEm: carimbo(-7) }));
 const atual = await api("/api/dados");
 await api("/api/links", { method: "PUT", headers: J, body: JSON.stringify({ items: links, revEsperada: atual.links.rev }) });
+
+// 3.14: uma página e uma folha do bloco de notas que servem a tarefas (aparecem em "Links e documentos" delas)
+const paginas = [
+  {
+    id: "pgdemo1", titulo: "Como entra um squad novo na Ferramenta X", categoriaId: "cdemoferr", tags: ["onboarding"], estado: "publicada", tarefaIds: ["tdemo1", "tdemo7"],
+    texto: "## Antes de começar\n\nPeça o acesso aos repositórios e combine a conversa de abertura.\n\n## Na pipeline\n\n- Ligar o scan\n- Fazer a triagem dos primeiros achados\n\n> [!DICA] Comece por um repositório pequeno.",
+    criadaEm: carimbo(-15), atualizadaEm: carimbo(-3),
+  },
+];
+await api("/api/paginas", { method: "PUT", headers: J, body: JSON.stringify({ items: paginas, revEsperada: atual.paginas?.rev ?? 0 }) });
+const notas = [
+  { id: "ndemo1", titulo: "Dúvidas para a próxima conversa com Pagamentos", texto: "- Quem aprova a exceção do repositório legado?\n- O scan roda em todo commit ou só no merge?", tarefaIds: ["tdemo1"], criadaEm: carimbo(-1), atualizadaEm: carimbo(-1) },
+];
+await api("/api/notas", { method: "PUT", headers: J, body: JSON.stringify({ items: notas, revEsperada: atual.notas?.rev ?? 0 }) });
 
 await semearPessoas();
 

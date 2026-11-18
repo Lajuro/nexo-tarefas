@@ -5,11 +5,13 @@
 // intervalo o texto fica também no navegador (lib/rascunhos.ts), para não se perder com F5,
 // janela fechada ou travamento.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Archive, Check, CloudOff, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Archive, Check, CloudOff, FileText, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Button } from "@/components/ui/button";
 import { EditorRico } from "@/components/editor/EditorRico";
+import { SeletorDeTarefas } from "@/components/links/SeletorDeTarefas";
+import { tamanhoDaLeitura } from "@/lib/paginas";
 import { Input } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { apagarNotaPendente, gravarNotaPendente, lerNotaPendente } from "@/lib/rascunhos";
@@ -21,7 +23,7 @@ const ESPERA_MS = 1500;
 type Situacao = "salvo" | "pendente" | "salvando" | "erro";
 
 export function EditorNota({
-  id, nota, aoOrganizar, aoArquivar, aoExcluir,
+  id, nota, aoOrganizar, aoArquivar, aoExcluir, aoVirarPagina,
 }: {
   /** Id da folha. Se `nota` não existir ainda, a folha é criada com este id na primeira gravação. */
   id: string;
@@ -29,8 +31,10 @@ export function EditorNota({
   aoOrganizar: (n: Nota) => void;
   aoArquivar: (id: string) => void;
   aoExcluir: (n: Nota) => void;
+  /** Promove a folha a página de conhecimento (o texto vai junto; a folha fica arquivada). */
+  aoVirarPagina: (n: Nota) => void;
 }) {
-  const { salvarNotas, estado } = useNexo();
+  const { salvarNotas, estado, dados } = useNexo();
   const somenteLeitura = !!estado?.somenteLeitura;
   // O que ficou no navegador sem chegar à pasta de dados (se houver) vale mais que o que está salvo.
   const [inicio] = useState(() => {
@@ -118,6 +122,9 @@ export function EditorNota({
   }, [situacao, agendar]);
 
   const vazia = !titulo.trim() && !texto.trim();
+  const palavras = useMemo(() => tamanhoDaLeitura(texto).palavras, [texto]);
+  // tarefas a que a folha serve (3.14): grava na hora, sem mexer no texto que ainda está sendo guardado
+  const ligarTarefas = (tarefaIds: string[]) => void salvarNotas((items) => items.map((n) => (n.id === id ? { ...n, tarefaIds } : n)));
   const montarNota = (): Nota => ({ ...(nota ?? normalizarNota({ id })), titulo, texto });
 
   return (
@@ -134,11 +141,12 @@ export function EditorNota({
         <EditorRico
           data-slot="texto-da-folha"
           variante="pagina"
+          folhaAtualId={id}
           focoInicial
           valor={texto}
           aoMudar={(v) => mudar("texto", v)}
           desabilitado={somenteLeitura}
-          placeholder="Escreva solto, do seu jeito. Digite / para títulos, listas, tarefas e tabelas, ou cole um print com Ctrl V."
+          placeholder="Escreva solto, do seu jeito. Digite / para títulos, listas e tabelas, @ para citar uma tarefa ou um link, ou cole um print com Ctrl V."
           aria-label="Texto da folha"
           className="min-h-0 flex-1 rounded-md border border-input bg-card shadow-xs dark:bg-input/20"
           classeConteudo="px-4 py-3.5 leading-relaxed"
@@ -148,17 +156,23 @@ export function EditorNota({
         <span data-slot="nota-situacao" data-situacao={situacao} role="status"
           className={cn("mr-auto inline-flex items-center gap-1.5 text-xs sem-selecao", situacao === "erro" ? "text-alerta" : "text-muted-foreground")}>
           {situacao === "salvo" && (vazia ? "Folha em branco" : <><Check className="size-3.5 text-sucesso" /> Salvo na pasta de dados</>)}
+          {situacao === "salvo" && palavras > 0 && <span data-slot="contagem-de-palavras" className="tabular-nums">· {palavras} {palavras === 1 ? "palavra" : "palavras"}</span>}
           {situacao === "pendente" && "Guardando..."}
           {situacao === "salvando" && <><LoaderCircle className="size-3.5 animate-spin" /> Salvando...</>}
           {situacao === "erro" && <><CloudOff className="size-3.5" /> Não consegui salvar. O texto está guardado neste navegador e tento de novo quando você digitar.</>}
         </span>
         {nota && (
           <>
+            <SeletorDeTarefas valor={nota.tarefaIds ?? []} aoMudar={ligarTarefas} tarefas={dados?.tarefas ?? []} desabilitado={somenteLeitura}
+              aria-label="Tarefas a que esta folha serve" className="h-8 max-w-56" />
             <Dica texto="Excluir a folha (vai para a lixeira da pasta de dados)">
               <Button variant="ghost" size="icon" aria-label="Excluir folha" onClick={() => aoExcluir(montarNota())}><Trash2 /></Button>
             </Dica>
             <Dica texto="Guardar sem organizar. A folha sai da lista do dia e fica em Arquivadas.">
               <Button variant="outline" disabled={vazia} onClick={async () => { if (await gravar()) aoArquivar(id); }}><Archive /> Arquivar</Button>
+            </Dica>
+            <Dica texto="Cria uma página de conhecimento com este texto e arquiva a folha">
+              <Button variant="outline" data-slot="virar-pagina" disabled={!texto.trim() || somenteLeitura} onClick={async () => { if (await gravar()) aoVirarPagina(montarNota()); }}><FileText /> Virar página</Button>
             </Dica>
           </>
         )}

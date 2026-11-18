@@ -1,14 +1,13 @@
 "use client";
 
-// Coluna lateral da página da tarefa: pendências, links, pessoas, último panorama e um resumo em números.
+// Coluna lateral da página da tarefa: pendências, links e documentos (Referencias.tsx), pessoas, último panorama e um resumo em números.
 
 import { ReactNode, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
-import { ChevronRight, CircleCheck, FileText, Link2, ListChecks, Paperclip, Plus, RefreshCw, Unlink, Users } from "lucide-react";
+import { ChevronRight, CircleCheck, ListChecks, RefreshCw, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { hrefLink } from "@/components/LinkForm";
-import { AvatarPessoa, ChipPessoa, Painel, copiarTexto, formatarTamanho } from "@/components/comum";
+import { AvatarPessoa, ChipPessoa, Painel, copiarTexto } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
@@ -17,12 +16,13 @@ import { formatarMinutos, minutosEmFoco } from "@/lib/acoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
-import { LinkDoc, Tarefa, diasAte, dataCurta, passosAbertos } from "@/lib/tipos";
+import { Tarefa, diasAte, dataCurta, passosAbertos } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
 import { PainelCitacoes } from "@/components/Citacoes";
 import { PainelDependencias } from "./Dependencias";
+import { PainelReferencias } from "./Referencias";
 import { TextoRico } from "./Texto";
 
 function Bloco({ slot, children }: { slot: string; children: ReactNode }) {
@@ -62,57 +62,6 @@ function Pendencias({ tarefa, aoIrPara }: { tarefa: Tarefa; aoIrPara: (registroI
           </motion.div>
         ))}
       </AnimatePresence>
-    </Painel>
-  );
-}
-
-function Links({ links, aoAdicionar }: { links: LinkDoc[]; aoAdicionar: () => void }) {
-  const { salvarLinks, toast } = useNexo();
-  const desvincular = async (l: LinkDoc) => {
-    if (await salvarLinks((items) => items.map((i) => (i.id === l.id ? { ...i, tarefaId: null } : i))))
-      toast("Desvinculado desta tarefa. Continua no banco de links.", "info");
-  };
-  return (
-    <Painel
-      titulo="Links e documentos"
-      icone={<Paperclip />}
-      contagem={links.length || undefined}
-      corpoClassName="py-2.5"
-      acoes={
-        <Button variant="ghost" size="sm" onClick={aoAdicionar} aria-label="Adicionar link ou documento">
-          <Plus /> Adicionar
-        </Button>
-      }
-    >
-      {links.length === 0 && <Nada>Nada vinculado ainda.</Nada>}
-      <ul className="flex flex-col">
-        <AnimatePresence initial={false}>
-          {links.map((l) => (
-            <motion.li key={l.id} {...itemRemovivel} layout={false} data-slot="link" className="overflow-hidden">
-              <div className="group/link -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent/60">
-                <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5">
-                  {l.tipo === "arquivo" ? <FileText /> : <Link2 />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <a href={hrefLink(l)} target="_blank" rel="noreferrer"
-                    className="line-clamp-2 rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none [overflow-wrap:anywhere] hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
-                    {l.titulo}
-                  </a>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {l.descricao || (l.tipo === "arquivo" ? formatarTamanho(l.tamanho) || l.nomeArquivo : l.url)}
-                  </span>
-                </div>
-                <Dica texto="Desvincular desta tarefa">
-                  <Button variant="ghost" size="icon-sm" aria-label={`Desvincular ${l.titulo}`} onClick={() => desvincular(l)}
-                    className="shrink-0 opacity-0 group-focus-within/link:opacity-100 group-hover/link:opacity-100 focus-visible:opacity-100">
-                    <Unlink />
-                  </Button>
-                </Dica>
-              </div>
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </ul>
     </Painel>
   );
 }
@@ -289,13 +238,11 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
 }
 
 export function Lateral({
-  tarefa, links, aoIrPara, aoAdicionarLink, aoGerarPanorama, className,
+  tarefa, aoIrPara, aoGerarPanorama, className,
 }: {
   tarefa: Tarefa;
-  links: LinkDoc[];
   /** Leva a linha do tempo até o registro e o destaca. */
   aoIrPara: (registroId: string) => void;
-  aoAdicionarLink: () => void;
   aoGerarPanorama: () => void;
   className?: string;
 }) {
@@ -303,7 +250,7 @@ export function Lateral({
     <motion.div data-slot="lateral" variants={lista} initial="escondido" animate="visivel" className={className}>
       <Bloco slot="pendencias-tarefa"><Pendencias tarefa={tarefa} aoIrPara={aoIrPara} /></Bloco>
       <Bloco slot="dependencias"><PainelDependencias tarefa={tarefa} /></Bloco>
-      <Bloco slot="links-tarefa"><Links links={links} aoAdicionar={aoAdicionarLink} /></Bloco>
+      <Bloco slot="links-tarefa"><PainelReferencias tarefa={tarefa} /></Bloco>
       <Pessoas tarefa={tarefa} />
       <QuemAjuda tarefa={tarefa} />
       <Panorama tarefa={tarefa} aoGerar={aoGerarPanorama} />

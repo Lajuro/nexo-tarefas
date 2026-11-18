@@ -79,6 +79,26 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.14: links que servem a várias tarefas, com status, e editor mais completo
+
+**Links e documentos** deixaram de ser só uma lista de endereços e viraram material de trabalho:
+
+- **Um link, várias tarefas.** O mesmo link, arquivo ou chamado pode servir a quantas tarefas precisar. Na tarefa, **Adicionar** (em "Links e documentos") agora busca no que já existe: escolha um item do banco e ele passa a aparecer ali também. Ao editar um link, o campo **Usar nas tarefas** aceita várias. Desvincular tira o link só daquela tarefa.
+- **Status em cada link.** Para leitura: *Para ler* e *Lido*. Para chamado: *Aberto*, *Em andamento*, *Aguardando retorno*, *Concluído* e *Cancelado*. Cada um tem um ícone próprio. Clique no ícone (na tarefa ou na tela de Links) para mudar; o app guarda desde quando está naquele status ("Aberto há 3 dias"). A tela **Links e docs** ganhou a coluna e o filtro de status.
+- **Chamado que trava a tarefa.** No menu "..." do link, dentro da tarefa, marque **Está travando esta tarefa**. O chamado aparece numa faixa no cabeçalho da tarefa, um impedimento é anotado na linha do tempo e o app oferece marcar a tarefa como bloqueada. Quando você muda o chamado para *Concluído*, a faixa some e aparece o lembrete de que a tarefa **destravou**. É por tarefa: o mesmo chamado pode travar uma e ser só referência em outra.
+- **Chamado esquecido vira lembrete.** Chamado em aberto há 5 dias sem mudar de status entra em "Precisa de você" (com mais peso se estiver travando a tarefa).
+- **Páginas e folhas ligadas a tarefas.** No mesmo **Adicionar**, escolha uma página ou uma folha do bloco de notas, ou crie uma já ligada à tarefa. Na página, o botão de tarefas (ao lado da categoria) escolhe a quais ela serve; na folha, ele fica no rodapé. Uma página pode servir a várias tarefas.
+
+O **editor** (páginas, folhas e anotações do registro) também cresceu:
+
+- `@` agora cita também **links e documentos do banco** (entra o endereço de verdade, ou o arquivo guardado), **folhas do bloco de notas** e **categorias**, além de páginas, tarefas e pessoas.
+- **Ctrl + clique** num link do texto abre o destino (o clique simples continua pondo o cursor, para editar). O balão do link ganhou o botão **Abrir**.
+- **Arraste ou cole um arquivo** (PDF, planilha...) no texto: ele é guardado na pasta de dados e entra como link.
+- Na barra: **desfazer**, **refazer** e **anexar arquivo** (aparecem quando há largura; `Ctrl Z` e `Ctrl Y` funcionam sempre). No menu `/`: **Data de hoje**, **Hora de agora** e **Citar ou ligar**.
+- A folha do bloco de notas mostra **quantas palavras** tem e ganhou **Virar página**: o texto vira página de conhecimento (com as tarefas ligadas) e a folha fica arquivada.
+
+Nada muda nos dados que você já tem: os links antigos continuam ligados à mesma tarefa.
+
 ## 3.13: o Nexo com a sua cara
 
 Abra **Personalizar** (o botão ao lado de Configurações, no pé do menu, ou o "..." da barra superior). Tudo muda na hora e fica só no seu navegador; suas tarefas não mudam.

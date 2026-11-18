@@ -11,6 +11,7 @@ import { emTrechos, formatarTempo } from "@/lib/transcricao";
 import { hrefLink } from "@/components/LinkForm";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { CampoBusca } from "@/components/busca/CampoBusca";
+import { SeloEstadoLink } from "@/components/links/EstadoLink";
 import { IconeLink, enderecoCurto } from "@/components/links/IconeLink";
 import { montarPessoas } from "@/components/pessoas/dados";
 import {
@@ -531,7 +532,10 @@ function Conteudo() {
                     <a href={hrefLink(l)} target="_blank" rel="noreferrer" className={CLASSE_RESULTADO}>
                       <IconeLink link={l} />
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm leading-snug font-medium"><Destaque texto={l.titulo} termo={termo} /></h3>
+                        <h3 className="flex min-w-0 items-center gap-2 text-sm leading-snug font-medium">
+                          <span className="truncate"><Destaque texto={l.titulo} termo={termo} /></span>
+                          <SeloEstadoLink link={l} />
+                        </h3>
                         <p className="mt-0.5 truncate text-[13px] text-muted-foreground [&_mark]:text-foreground">
                           {l.descricao && <Destaque texto={l.descricao} termo={termo} />}
                           {l.descricao && enderecoCurto(l) && <span className="text-muted-foreground/80"> · </span>}
