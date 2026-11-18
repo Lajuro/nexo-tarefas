@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, CalendarClock, Telescope, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, PanelTop, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
+  BookText, CalendarClock, Telescope, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.9";
+export const VERSAO_NOVIDADES = "3.11";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
 
 const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string }[] = [
+  { icone: PencilLine, titulo: "Formulários com o essencial primeiro", texto: "No registro, o Copilot fica no topo da coluna da direita e resumo, decisões, passos e impedimentos aparecem quando têm conteúdo (ou em \"Preencher à mão\"). Em Nova tarefa, status, lembrete de voltar, tags e descrição estão em \"Mais opções\", que lembra se você prefere aberto. A prioridade mostra as faixas baixa, média e alta.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: Telescope, titulo: "Menu mais curto: Acompanhar", texto: "Radar, Diário, Revisão semanal, Relatórios e Conquistas viraram um item só no menu, \"Acompanhar\", e trocam por abas no topo. Os atalhos G F, G D, G S, G R e G Q continuam. Prefere separadas? Personalizar > Lateral. Tema, tela cheia e atalhos estão no botão \"...\" da barra superior.", href: "/radar", rotulo: "Abrir Acompanhar" },
   { icone: MoonStar, titulo: "Fechar o dia e daily pronta", texto: "Ao encerrar o dia (ou Shift D): o que saiu, o que fica para amanhã, os impedimentos e a daily pronta para copiar. De manhã, \"Copiar daily\" na tela Hoje.", href: "/", rotulo: "Ir para Hoje" },
   { icone: Undo2, titulo: "Desfazer em todo lugar", texto: "Mudou o status, moveu, excluiu? O aviso traz \"Desfazer\", e Ctrl Z faz o mesmo fora dos campos de texto.", href: "/tarefas", rotulo: "Ir para Tarefas" },
@@ -64,7 +65,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Menu mais curto: Radar, Diário, Revisão, Relatórios e Conquistas agora ficam em Acompanhar.",
+          description: "Registro e nova tarefa mostram o essencial primeiro. O resto fica a um clique, em \"Preencher à mão\" e \"Mais opções\".",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

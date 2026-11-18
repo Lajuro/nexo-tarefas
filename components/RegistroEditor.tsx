@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ClipboardPaste, History, ListChecks, RefreshCw, WandSparkles, X } from "lucide-react";
+import { ChevronDown, ClipboardPaste, History, ListChecks, PencilLine, RefreshCw, Undo2, WandSparkles, X } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { Campo, ChipsInput, IconeTipo, LinhaCampos, Modal, SeletorPrioridade, copiarTexto, opcoesStatus } from "./comum";
@@ -14,7 +14,7 @@ import { Seletor } from "@/components/ui/select";
 import { Checkbox, Label, Segmentado } from "@/components/ui/controles";
 import { SeletorData, SeletorHora } from "@/components/ui/data";
 import { CampoSugestoes } from "@/components/ui/chips";
-import { Kbd } from "@/components/ui/diversos";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger, Kbd } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
@@ -51,6 +51,39 @@ function Realce({ ativo, children, className }: { ativo: boolean; children: Reac
   );
 }
 
+/**
+ * Seção que recolhe na coluna da direita (3.11). `travado` = tem conteúdo: fica aberta e sem a setinha,
+ * porque o que já foi escrito ou marcado nunca fica escondido.
+ */
+function Recolhivel({
+  slot, icone, titulo, resumo, aberto, travado, aoMudar, children, className,
+}: {
+  slot: string; icone: ReactNode; titulo: ReactNode; resumo?: ReactNode; aberto: boolean; travado?: boolean;
+  aoMudar: (v: boolean) => void; children: ReactNode; className?: string;
+}) {
+  const ver = aberto || !!travado;
+  return (
+    <Collapsible open={ver} onOpenChange={(v) => !travado && aoMudar(v)} data-slot={slot} data-aberto={ver || undefined}
+      className={cn("rounded-xl border bg-card shadow-xs dark:bg-input/10", className)}>
+      <CollapsibleTrigger
+        disabled={travado}
+        data-slot={`${slot}-botao`}
+        className="group/rec flex min-h-10 w-full items-center gap-2 rounded-xl px-3.5 py-2 text-left outline-none transition-colors enabled:hover:bg-accent/50 focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:cursor-default sem-selecao"
+      >
+        <span className="text-muted-foreground [&>svg]:size-3.5">{icone}</span>
+        <span className="shrink-0 text-[13px] font-semibold tracking-tight">{titulo}</span>
+        {resumo && <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">{resumo}</span>}
+        {!travado && (
+          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=open]/rec:rotate-180", !resumo && "ml-auto")} />
+        )}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="px-3.5 pb-3.5">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 /** "antes: X" ao lado do rótulo quando o valor vai mudar na tarefa. */
 function Antes({ children }: { children: ReactNode }) {
   return <span className="truncate text-xs text-primary dark:text-foreground/80">antes: {children}</span>;
@@ -78,6 +111,11 @@ export function RegistroEditor({
   const [preenchido, setPreenchido] = useState<null | { ok: boolean; texto: string }>(null);
   const [realce, setRealce] = useState<{ campos: CampoIA[]; passos: string[] }>({ campos: [], passos: [] });
   const [focarPasso, setFocarPasso] = useState<string | null>(null);
+  // Seções da direita abertas à mão (3.11). Com conteúdo elas abrem sozinhas, isto é só o clique do usuário.
+  const [verCampos, setVerCampos] = useState(false);
+  const [verAnteriores, setVerAnteriores] = useState(false);
+  const [verAtualizar, setVerAtualizar] = useState(false);
+  const campoResumo = useRef<HTMLTextAreaElement>(null);
   const [copiado, marcarCopiado] = useCopiado();
   const inicial = useRef("");
   const relogioRealce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,6 +160,9 @@ export function RegistroEditor({
     setPreenchido(null);
     setRealce({ campos: [], passos: [] });
     setFocarPasso(null);
+    setVerCampos(false);
+    setVerAnteriores(false);
+    setVerAtualizar(false);
     inicial.current = retrato(original, coladoOriginal, tarefa.status, tarefa.prioridade, tarefa.prazo ?? "", []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, registro?.id]);
@@ -210,6 +251,13 @@ export function RegistroEditor({
     setRealce({ campos, passos: novosPassos.map((p) => p.id) });
     if (relogioRealce.current) clearTimeout(relogioRealce.current);
     relogioRealce.current = setTimeout(() => setRealce({ campos: [], passos: [] }), 2400);
+    // Os campos abrem sozinhos (agora têm conteúdo) logo abaixo do Copilot: rola até eles para o usuário ver o que entrou.
+    if (res.reconheceu || res.resumo)
+      setTimeout(() => {
+        const alvo = document.querySelector<HTMLElement>("[data-slot=editor-organizado] [data-slot=editor-campos]");
+        const semMovimento = document.documentElement.dataset.movimento === "nenhum";
+        alvo?.scrollIntoView({ block: "start", behavior: semMovimento ? "auto" : "smooth" });
+      }, 260); // depois de a seção terminar de abrir (antes disso ainda não há altura para rolar)
 
     // Mesmo texto de sempre, agora dentro do passo 3 em vez de aviso flutuante.
     setPreenchido({
@@ -322,6 +370,9 @@ export function RegistroEditor({
   const tipos = TIPOS_REGISTRO.filter((t) => t.id !== "marco" || r.tipo === "marco");
   const temResposta = !!colado.trim();
   const noRealce = (c: CampoIA) => realce.campos.includes(c);
+  // O que tem conteúdo nunca fica escondido: estas contas mantêm as seções abertas (inclusive vindo de um rascunho).
+  const temCampos = !!(r.resumoIA.trim() || r.decisoes.trim() || r.impedimentos.trim() || r.proximosPassos.length > 0);
+  const mexeuNaTarefa = status !== tarefa.status || prioridade !== tarefa.prioridade || (prazo || null) !== tarefa.prazo;
 
   return (
     <Modal
@@ -360,7 +411,7 @@ export function RegistroEditor({
         }}
       >
         {/* Esquerda: o que aconteceu, do jeito que o usuário anotou */}
-        <div data-slot="editor-anotacoes" className="flex min-w-0 flex-col gap-3.5 p-5 lg:min-h-0 lg:flex-1 lg:basis-0 lg:overflow-y-auto">
+        <div data-slot="editor-anotacoes" className="flex min-w-0 flex-col gap-3.5 p-5 lg:min-h-0 lg:flex-[1.15] lg:basis-0 lg:overflow-y-auto">
           {recuperado && (
             <div data-slot="rascunho-recuperado" role="status"
               className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-xs leading-snug">
@@ -384,22 +435,23 @@ export function RegistroEditor({
               icone: <IconeTipo tipo={t.id} className={r.tipo === t.id ? undefined : "text-muted-foreground"} />,
             }))}
           />
+          {/* título, data e hora numa linha só: sobra altura para as anotações */}
           <LinhaCampos>
-            <Campo rotulo="Data">
+            <Campo rotulo="Título" className="basis-56 [flex-grow:3]">
+              <Input
+                data-foco-inicial
+                value={r.titulo}
+                onChange={(e) => set("titulo", e.target.value)}
+                placeholder={r.tipo === "reuniao" ? "Ex.: Alinhamento com o time de arquitetura" : "Resumo em uma linha"}
+              />
+            </Campo>
+            <Campo rotulo="Data" className="!min-w-36 flex-none basis-36">
               <SeletorData valor={r.data} aoMudar={(v) => v && set("data", v)} limpavel={false} aria-label="Data do registro" />
             </Campo>
-            <Campo rotulo="Hora (opcional)">
-              <SeletorHora valor={r.hora || ""} aoMudar={(v) => set("hora", v)} />
+            <Campo rotulo="Hora" className="!min-w-28 flex-none basis-28">
+              <SeletorHora valor={r.hora || ""} aoMudar={(v) => set("hora", v)} placeholder="Opcional" />
             </Campo>
           </LinhaCampos>
-          <Campo rotulo="Título">
-            <Input
-              data-foco-inicial
-              value={r.titulo}
-              onChange={(e) => set("titulo", e.target.value)}
-              placeholder={r.tipo === "reuniao" ? "Ex.: Alinhamento com o time de arquitetura" : "Resumo em uma linha"}
-            />
-          </Campo>
           <Campo rotulo="Participantes" dica="Enter para adicionar. Sugere nomes que já apareceram antes.">
             <Realce ativo={noRealce("participantes")}>
               <ChipsInput valor={r.participantes} mudar={(v) => set("participantes", v)} sugestoes={pessoas} placeholder="Nomes" />
@@ -412,14 +464,17 @@ export function RegistroEditor({
               aoMudar={(v) => set("anotacoes", v)}
               placeholder="O que foi falado, combinado, o que ficou pendente..."
               aria-label="Anotações brutas"
-              classeConteudo="min-h-44"
+              classeConteudo="min-h-[max(11rem,calc(100vh-33rem))]"
             />
           </Campo>
+        </div>
 
+        {/* Direita: o Copilot organiza e o registro vai para a linha do tempo */}
+        <div data-slot="editor-organizado" className="flex min-w-0 flex-col gap-3 border-t bg-muted/30 p-5 lg:min-h-0 lg:flex-1 lg:basis-0 lg:overflow-y-auto lg:border-t-0 lg:border-l">
           <BlocoCopilot descricao="Sem API: o Nexo monta o prompt, você cola no Copilot do navegador e traz a resposta.">
             <PassoCopilot n={1} titulo="Copiar o prompt com o contexto da tarefa" feito={jaCopiou}>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <Button onClick={copiarPrompt}>
+                <Button data-slot="copiar-prompt-registro" onClick={copiarPrompt}>
                   <IconeCopiar copiado={copiado} /> Copiar prompt para o Copilot
                 </Button>
                 {jaCopiou && (
@@ -432,14 +487,15 @@ export function RegistroEditor({
             </PassoCopilot>
             <PassoCopilot n={2} titulo="Colar a resposta do Copilot" feito={temResposta}>
               <Textarea
-                rows={5}
+                rows={3}
                 value={colado}
                 onChange={(e) => {
                   setColado(e.target.value);
                   setPreenchido(null);
                 }}
                 placeholder="Cole a resposta aqui..."
-                className="max-h-64 min-h-24"
+                aria-label="Resposta do Copilot"
+                className="max-h-44"
               />
             </PassoCopilot>
             <PassoCopilot n={3} titulo="Preencher os campos automaticamente" feito={!!preenchido?.ok && temResposta} ultimo>
@@ -460,100 +516,107 @@ export function RegistroEditor({
               </div>
             </PassoCopilot>
           </BlocoCopilot>
-        </div>
 
-        {/* Direita: como o registro vai para a linha do tempo */}
-        <div data-slot="editor-organizado" className="flex min-w-0 flex-col gap-3.5 border-t bg-muted/30 p-5 lg:min-h-0 lg:flex-1 lg:basis-0 lg:overflow-y-auto lg:border-t-0 lg:border-l">
-          <div className="flex min-h-8 items-center gap-2 sem-selecao">
-            <ListChecks className="size-4 text-muted-foreground" />
-            <div className="min-w-0">
-              <h3 className="text-[13px] leading-tight font-semibold tracking-tight">Como vai para a linha do tempo</h3>
-              <p className="text-xs leading-snug text-muted-foreground">Preencha à mão ou deixe o Copilot organizar por você.</p>
-            </div>
-          </div>
+          {/* Campos organizados: recolhidos enquanto vazios; abrem sozinhos quando ganham conteúdo */}
+          <Recolhivel
+            slot="editor-campos"
+            icone={<ListChecks />}
+            titulo="Como vai para a linha do tempo"
+            resumo={!verCampos && !temCampos && <span className="inline-flex items-center gap-1 font-medium text-primary dark:text-foreground"><PencilLine className="size-3.5" />Preencher à mão</span>}
+            aberto={verCampos}
+            travado={temCampos}
+            aoMudar={(v) => {
+              setVerCampos(v);
+              if (v) setTimeout(() => campoResumo.current?.focus(), 60);
+            }}
+          >
+            <div className="flex flex-col gap-3.5 pt-0.5">
+              <Campo rotulo="Resumo">
+                <Realce ativo={noRealce("resumo")}>
+                  <Textarea ref={campoResumo} rows={3} value={r.resumoIA} onChange={(e) => set("resumoIA", e.target.value)} placeholder="Preenchido pela IA ou por você" aria-label="Resumo" />
+                </Realce>
+              </Campo>
+              <Campo rotulo="Decisões">
+                <Realce ativo={noRealce("decisoes")}>
+                  <Textarea rows={2} value={r.decisoes} onChange={(e) => set("decisoes", e.target.value)} placeholder="Uma decisão por linha" aria-label="Decisões" />
+                </Realce>
+              </Campo>
 
-          <Campo rotulo="Resumo">
-            <Realce ativo={noRealce("resumo")}>
-              <Textarea rows={5} value={r.resumoIA} onChange={(e) => set("resumoIA", e.target.value)} placeholder="Preenchido pela IA ou por você" />
-            </Realce>
-          </Campo>
-          <Campo rotulo="Decisões">
-            <Realce ativo={noRealce("decisoes")}>
-              <Textarea rows={3} value={r.decisoes} onChange={(e) => set("decisoes", e.target.value)} placeholder="Uma decisão por linha" />
-            </Realce>
-          </Campo>
-
-          <div data-slot="editor-passos" className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <Label>Próximos passos</Label>
-              {r.proximosPassos.length > 0 && (
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {r.proximosPassos.filter((p) => p.feito).length} de {r.proximosPassos.length} feitos
-                </span>
-              )}
-            </div>
-            <div>
-              <AnimatePresence initial={false}>
-                {r.proximosPassos.map((p, i) => (
-                  <motion.div key={p.id} {...itemRemovivel} layout={false} data-slot="editor-passo">
-                    <Realce ativo={realce.passos.includes(p.id)} className="mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Checkbox checked={p.feito} onCheckedChange={(v) => mudarPasso(i, "feito", v === true)}
-                          aria-label={p.feito ? "Passo já feito. Clique para reabrir." : "Marcar passo como já feito"} />
-                        <Input
-                          value={p.texto}
-                          autoFocus={focarPasso === p.id}
-                          onChange={(e) => mudarPasso(i, "texto", e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && p.texto.trim()) {
-                              e.preventDefault();
-                              novoPasso(i);
-                            }
-                          }}
-                          placeholder="Ação"
-                          aria-label="Ação"
-                          className={cn("min-w-0 flex-1", p.feito && "text-muted-foreground line-through")}
-                        />
-                        <CampoSugestoes valor={p.responsavel || ""} aoMudar={(v) => mudarPasso(i, "responsavel", v)} sugestoes={quem}
-                          placeholder="Quem" aria-label="Responsável" className="w-[104px] shrink-0" />
-                        <SeletorData compacto prazo valor={p.prazo ?? ""} aoMudar={(v) => mudarPasso(i, "prazo", v || null)}
-                          placeholder="Prazo" aria-label="Prazo do passo" className={cn("shrink-0", p.prazo && "text-foreground")} />
-                        <Dica texto="Remover passo">
-                          <Button variant="ghost" size="icon-sm" aria-label="Remover passo" className="shrink-0"
-                            onClick={() => set("proximosPassos", r.proximosPassos.filter((_, j) => j !== i))}>
-                            <X />
-                          </Button>
-                        </Dica>
-                      </div>
-                    </Realce>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <Button variant="outline" size="sm" onClick={() => novoPasso()}>+ Passo</Button>
-                {r.proximosPassos.length === 0 && (
-                  <span className="text-xs text-muted-foreground">O que ficou combinado de fazer, com quem e até quando.</span>
-                )}
+              <div data-slot="editor-passos" className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Próximos passos</Label>
+                  {r.proximosPassos.length > 0 && (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {r.proximosPassos.filter((p) => p.feito).length} de {r.proximosPassos.length} feitos
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <AnimatePresence initial={false}>
+                    {r.proximosPassos.map((p, i) => (
+                      <motion.div key={p.id} {...itemRemovivel} layout={false} data-slot="editor-passo">
+                        <Realce ativo={realce.passos.includes(p.id)} className="mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox checked={p.feito} onCheckedChange={(v) => mudarPasso(i, "feito", v === true)}
+                              aria-label={p.feito ? "Passo já feito. Clique para reabrir." : "Marcar passo como já feito"} />
+                            <Input
+                              value={p.texto}
+                              autoFocus={focarPasso === p.id}
+                              onChange={(e) => mudarPasso(i, "texto", e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && p.texto.trim()) {
+                                  e.preventDefault();
+                                  novoPasso(i);
+                                }
+                              }}
+                              placeholder="Ação"
+                              aria-label="Ação"
+                              className={cn("min-w-0 flex-1", p.feito && "text-muted-foreground line-through")}
+                            />
+                            <CampoSugestoes valor={p.responsavel || ""} aoMudar={(v) => mudarPasso(i, "responsavel", v)} sugestoes={quem}
+                              placeholder="Quem" aria-label="Responsável" className="w-[104px] shrink-0" />
+                            <SeletorData compacto prazo valor={p.prazo ?? ""} aoMudar={(v) => mudarPasso(i, "prazo", v || null)}
+                              placeholder="Prazo" aria-label="Prazo do passo" className={cn("shrink-0", p.prazo && "text-foreground")} />
+                            <Dica texto="Remover passo">
+                              <Button variant="ghost" size="icon-sm" aria-label="Remover passo" className="shrink-0"
+                                onClick={() => set("proximosPassos", r.proximosPassos.filter((_, j) => j !== i))}>
+                                <X />
+                              </Button>
+                            </Dica>
+                          </div>
+                        </Realce>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Button variant="outline" size="sm" onClick={() => novoPasso()}>+ Passo</Button>
+                    {r.proximosPassos.length === 0 && (
+                      <span className="text-xs text-muted-foreground">O que ficou combinado de fazer, com quem e até quando.</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <Campo rotulo="Impedimentos">
-            <Realce ativo={noRealce("impedimentos")}>
-              <Textarea rows={2} value={r.impedimentos} onChange={(e) => set("impedimentos", e.target.value)} placeholder="Bloqueios, riscos ou dependências" />
-            </Realce>
-          </Campo>
+              <Campo rotulo="Impedimentos">
+                <Realce ativo={noRealce("impedimentos")}>
+                  <Textarea rows={2} value={r.impedimentos} onChange={(e) => set("impedimentos", e.target.value)} placeholder="Bloqueios, riscos ou dependências" aria-label="Impedimentos" />
+                </Realce>
+              </Campo>
+            </div>
+          </Recolhivel>
 
           {abertosOutros.length > 0 && (
-            <div data-slot="passos-anteriores" className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <Label>Passos anteriores resolvidos aqui?</Label>
-                {concluir.length > 0 && (
-                  <span className="text-xs text-sucesso tabular-nums">
-                    {concluir.length === 1 ? "1 será concluído ao salvar" : `${concluir.length} serão concluídos ao salvar`}
-                  </span>
-                )}
-              </div>
+            <Recolhivel
+              slot="passos-anteriores"
+              icone={<Undo2 />}
+              titulo="Passos anteriores resolvidos aqui?"
+              resumo={concluir.length > 0
+                ? <span className="text-sucesso tabular-nums">{concluir.length === 1 ? "1 será concluído ao salvar" : `${concluir.length} serão concluídos ao salvar`}</span>
+                : <span className="tabular-nums">{abertosOutros.length === 1 ? "1 em aberto" : `${abertosOutros.length} em aberto`}</span>}
+              aberto={verAnteriores}
+              travado={concluir.length > 0}
+              aoMudar={setVerAnteriores}
+            >
               <Realce ativo={noRealce("anteriores")}>
                 <ul className="divide-y overflow-hidden rounded-lg border bg-card dark:bg-input/20">
                   {abertosOutros.map(({ passo, registro: origem }) => {
@@ -578,16 +641,19 @@ export function RegistroEditor({
                   })}
                 </ul>
               </Realce>
-            </div>
+            </Recolhivel>
           )}
 
-          <section data-slot="atualizar-tarefa" className="mt-1 rounded-xl border bg-card p-3.5 shadow-xs dark:bg-input/10">
-            <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-0.5 sem-selecao">
-              <RefreshCw className="size-3.5 text-muted-foreground" />
-              <h3 className="text-[13px] font-semibold tracking-tight">Atualizar a tarefa junto</h3>
-              <span className="ml-auto text-xs text-muted-foreground">Mudar o status cria um marco</span>
-            </header>
-            <div className="flex flex-col gap-3">
+          <Recolhivel
+            slot="atualizar-tarefa"
+            icone={<RefreshCw />}
+            titulo="Atualizar a tarefa junto"
+            resumo={mexeuNaTarefa ? "Mudar o status cria um marco" : "Status, prazo e prioridade"}
+            aberto={verAtualizar}
+            travado={mexeuNaTarefa}
+            aoMudar={setVerAtualizar}
+          >
+            <div className="flex flex-col gap-3 pt-0.5">
               <LinhaCampos>
                 <Campo rotulo="Status" lado={status !== tarefa.status && <Antes>{nomeStatus(tarefa.status)}</Antes>}>
                   <Seletor valor={status} aoMudar={(v) => setStatus(v as Status)} opcoes={opcoesStatus} aria-label="Status da tarefa" />
@@ -596,11 +662,14 @@ export function RegistroEditor({
                   <SeletorData prazo valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo da tarefa" />
                 </Campo>
               </LinhaCampos>
-              <Campo rotulo={`Prioridade: ${prioridade}`} lado={prioridade !== tarefa.prioridade && <Antes>{tarefa.prioridade}</Antes>}>
+              <Campo rotulo="Prioridade" lado={prioridade !== tarefa.prioridade && <Antes>{tarefa.prioridade}</Antes>}>
                 <SeletorPrioridade valor={prioridade} aoMudar={setPrioridade} />
               </Campo>
+              {verAtualizar && !mexeuNaTarefa && (
+                <span className="text-xs text-muted-foreground">Mudar o status cria um marco na linha do tempo.</span>
+              )}
             </div>
-          </section>
+          </Recolhivel>
         </div>
       </div>
     </Modal>

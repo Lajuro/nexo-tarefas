@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LayoutTemplate } from "lucide-react";
+import { ChevronDown, LayoutTemplate } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useFecharComCuidado } from "./Raiz";
 import { ComboCategoria } from "./tarefas/ComboCategoria";
@@ -11,15 +11,16 @@ import { Button } from "@/components/ui/button";
 import { type OpcaoCombo } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/controles";
 import { SeletorData, somarDias } from "@/components/ui/data";
-import { Badge, Kbd } from "@/components/ui/diversos";
+import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger, Kbd } from "@/components/ui/diversos";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { Seletor } from "@/components/ui/select";
 import { aplicarStatus } from "@/lib/acoes";
 import { porUso, registroDosPassos } from "@/lib/modelos";
+import { usePref } from "@/lib/preferencias";
 import { comOcorrenciaAtendida, ocorrenciaDevida } from "@/lib/recorrencia";
 import {
-  CORES, Modelo, Status, Tarefa, hojeISO, normalizarCategoria, normalizarRegistro,
+  CORES, Modelo, Status, Tarefa, dataCurta, hojeISO, nomeStatus, normalizarCategoria, normalizarRegistro,
   normalizarTarefa, novoId,
 } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,10 @@ export function TarefaForm({
   // Trava síncrona: Enter no título e Ctrl+Enter podem chegar juntos antes de o estado "salvando" virar.
   const gravando = useRef(false);
   const campoTitulo = useRef<HTMLInputElement>(null);
+  // "Mais opções" (3.11): status, lembrete de voltar, tags e descrição ficam recolhidos ao criar, a não ser
+  // que o usuário prefira ver tudo (a última escolha ao criar fica lembrada no navegador).
+  const [maisPref, setMaisPref] = usePref<boolean>("tarefaMaisOpcoes", false);
+  const [mais, setMais] = useState(false);
 
   useEffect(() => {
     if (!aberto) return;
@@ -68,6 +73,10 @@ export function TarefaForm({
     setPassosModelo([]);
     setSalvando(false);
     gravando.current = false;
+    // Ao editar, abre se algum campo de dentro tem valor; ao criar, segue a última escolha.
+    setMais(tarefa
+      ? tarefa.status !== "a_fazer" || !!tarefa.lembrarEm || tarefa.tags.length > 0 || !!tarefa.descricao.trim()
+      : maisPref === true);
     const inicial = !tarefa && modeloInicial ? dados?.modelos?.items.find((m) => m.id === modeloInicial) : undefined;
     if (inicial) aplicarModelo(inicial, true);
     // Só ao abrir: os dados mudando por baixo não podem apagar o que está sendo digitado.
@@ -101,6 +110,8 @@ export function TarefaForm({
     setPrioridade(m.prioridade);
     setPrazo(m.prazoEmDias ? somarDias(hojeISO(), m.prazoEmDias) : "");
     setTags(m.tags);
+    // o modelo preencheu algo que mora em "Mais opções": mostra, sem mudar a preferência
+    if (m.tags.length > 0 || m.descricao.trim()) setMais(true);
     // O título do modelo costuma ter um "..." onde entra o que muda: deixa esse trecho já selecionado para digitar por cima.
     setTimeout(() => {
       const campo = campoTitulo.current;
@@ -119,6 +130,14 @@ export function TarefaForm({
     tags.join("\n") !== partida.tags.join("\n") || novaCat.trim() !== ""
   );
   const tentarFechar = useFecharComCuidado(sujo, fechar);
+
+  // O que está guardado em "Mais opções", para o botão recolhido não esconder nada que já tem valor.
+  const resumoMais = [
+    status !== "a_fazer" && nomeStatus(status),
+    lembrarEm && `lembrar em ${dataCurta(lembrarEm)}`,
+    tags.length > 0 && (tags.length === 1 ? "1 tag" : `${tags.length} tags`),
+    descricao.trim() && "descrição",
+  ].filter(Boolean).join(" · ");
 
   const todasCategorias = dados?.categorias.items;
   const corNova = CORES[(todasCategorias?.length ?? 0) % CORES.length];
@@ -292,35 +311,60 @@ export function TarefaForm({
               }}
             />
           </Campo>
-          <Campo rotulo="Status">
-            <Seletor valor={status} aoMudar={(v) => setStatus(v as Status)} opcoes={opcoesStatus} aria-label="Status" />
-          </Campo>
-        </LinhaCampos>
-
-        <Campo
-          rotulo={<>Prioridade: <span className="font-semibold text-foreground tabular-nums">{prioridade}</span></>}
-          dica="1 = pode esperar · 10 = urgente"
-        >
-          <SeletorPrioridade valor={prioridade} aoMudar={setPrioridade} />
-        </Campo>
-
-        <LinhaCampos>
           <Campo rotulo="Prazo">
             <SeletorData prazo valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo" />
           </Campo>
-          <Campo rotulo="Lembrar de voltar em" dica="O app te avisa nesse dia para você retomar a tarefa.">
-            <SeletorData valor={lembrarEm} aoMudar={setLembrarEm} placeholder="Sem lembrete" aria-label="Lembrar de voltar em" />
-          </Campo>
         </LinhaCampos>
 
-        <Campo rotulo="Tags" dica="Enter ou vírgula para adicionar">
-          <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: pipeline, auditoria" />
+        <Campo rotulo="Prioridade" lado={<span className="text-xs text-muted-foreground">1 pode esperar · 10 é urgente</span>}>
+          <SeletorPrioridade valor={prioridade} aoMudar={setPrioridade} />
         </Campo>
 
-        <Campo rotulo="Descrição / objetivo">
-          <Textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)}
-            placeholder="O que precisa ser entregue, quem pediu, contexto..." />
-        </Campo>
+        <Collapsible
+          open={mais}
+          onOpenChange={(v) => {
+            setMais(v);
+            // só a escolha feita ao criar vira preferência (ao editar, quem decide é o que a tarefa já tem)
+            if (!tarefa) setMaisPref(v);
+          }}
+          data-slot="mais-opcoes"
+          data-aberto={mais || undefined}
+          className="rounded-lg border bg-muted/20"
+        >
+          <CollapsibleTrigger
+            data-slot="mais-opcoes-botao"
+            className="group/mais flex min-h-9 w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-[13px] font-medium outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/30 sem-selecao"
+          >
+            <ChevronDown className="size-4 shrink-0 -rotate-90 text-muted-foreground transition-transform duration-150 group-data-[state=open]/mais:rotate-0" />
+            <span className="shrink-0">Mais opções</span>
+            {!mais && (
+              <span data-slot="mais-opcoes-resumo" className="min-w-0 flex-1 truncate text-xs font-normal text-muted-foreground">
+                {resumoMais || "Status, lembrete de voltar, tags e descrição"}
+              </span>
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="flex flex-col gap-4 px-3 pt-1.5 pb-3.5">
+              <LinhaCampos>
+                <Campo rotulo="Status">
+                  <Seletor valor={status} aoMudar={(v) => setStatus(v as Status)} opcoes={opcoesStatus} aria-label="Status" />
+                </Campo>
+                <Campo rotulo="Lembrar de voltar em" dica="O app te avisa nesse dia para você retomar a tarefa.">
+                  <SeletorData valor={lembrarEm} aoMudar={setLembrarEm} placeholder="Sem lembrete" aria-label="Lembrar de voltar em" />
+                </Campo>
+              </LinhaCampos>
+
+              <Campo rotulo="Tags" dica="Enter ou vírgula para adicionar">
+                <ChipsInput valor={tags} mudar={setTags} sugestoes={todasTags} placeholder="Ex.: pipeline, auditoria" />
+              </Campo>
+
+              <Campo rotulo="Descrição / objetivo">
+                <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="O que precisa ser entregue, quem pediu, contexto..." />
+              </Campo>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {modelo && passosModelo.length > 0 && (
           <Campo

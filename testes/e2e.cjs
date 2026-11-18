@@ -13,9 +13,10 @@
 // inclusive erro ou aviso do React no console do navegador.
 // NEXO_E2E_FOTOS=<pasta> salva screenshots de cada etapa (opcional).
 //
-// Cobre: categorias, nova tarefa pelo atalho N, registro de reunião com o fluxo
-// do Copilot (copiar prompt, colar resposta, preencher campos), rascunho do registro
-// (Esc, F5, continuar, descartar), atividade que
+// Cobre: categorias, nova tarefa pelo atalho N ("Mais opções" recolhido, lembrado e aberto ao editar,
+// faixa da prioridade), registro de reunião com o fluxo do Copilot (Copilot na primeira tela, campos
+// recolhidos que abrem com a resposta e ao editar), rascunho do registro (Esc, F5, continuar, descartar,
+// campo recolhido que volta aberto), atividade que
 // conclui passo antigo, passo marcado na página da tarefa, troca de status com
 // marco, conclusão, lista/quadro/filtro em /tarefas, pendências, busca, pessoas,
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
@@ -185,6 +186,13 @@ async function main() {
     await d.getByLabel("Título da tarefa").fill(TITULO);
     await d.locator('[data-slot=combobox][aria-label="Categoria"]').click();
     await pg.locator("[data-slot=command-item]", { hasText: "Ferramenta X" }).first().click();
+    // essencial à vista; status, lembrete, tags e descrição ficam em "Mais opções", recolhido na primeira vez
+    const mais = d.locator("[data-slot=mais-opcoes]");
+    afirmar((await mais.getAttribute("data-aberto")) === null, "Mais opções devia começar recolhido");
+    afirmar((await d.locator('[data-slot=select-trigger][aria-label="Status"]').count()) === 0, "o status apareceu fora de Mais opções");
+    await d.locator("[data-slot=mais-opcoes-botao]").click();
+    await mais.locator('[data-slot=select-trigger][aria-label="Status"]').waitFor();
+    afirmar(await pg.evaluate(() => localStorage.getItem("nexo:tarefaMaisOpcoes")) === "true", "a escolha de abrir Mais opções não ficou lembrada");
     await d.locator('[data-slot=select-trigger][aria-label="Status"]').click();
     await pg.locator("[data-slot=select-item]", { hasText: "Em andamento" }).click();
     await d.locator('[data-slot=seletor-prioridade] button[aria-label="Prioridade 8"]').click();
@@ -205,6 +213,16 @@ async function main() {
     const cat = (await dados()).categorias.find((c) => c.id === t.categoriaId);
     afirmar(cat && cat.nome === "Ferramenta X", "categoria errada");
     afirmar(t.registros.some((r) => r.tipo === "marco"), "faltou o marco de tarefa criada");
+    // editar: com status, tags ou descrição preenchidos, "Mais opções" já abre mostrando o que tem
+    await pg.getByRole("button", { name: "Editar", exact: true }).first().click();
+    const e = dialogo();
+    await e.locator("[data-slot=form-tarefa]").waitFor();
+    await e.locator("[data-slot=mais-opcoes][data-aberto]").waitFor();
+    afirmar((await e.getByPlaceholder("O que precisa ser entregue, quem pediu, contexto...").inputValue()).startsWith("Colocar o scan"), "a descrição não apareceu ao editar");
+    // a prioridade mostra a faixa: 8 é "alta"
+    afirmar((await e.locator("[data-slot=seletor-prioridade]").getAttribute("data-nivel")) === "alta", "a faixa da prioridade 8 devia ser alta");
+    await e.locator('[data-faixa-nome=alta][data-atual]').waitFor();
+    await fecharDialogo();
   });
 
   // ---------- registro de reunião com o Copilot ----------
@@ -212,6 +230,18 @@ async function main() {
     await pg.locator('[data-slot=registrar][data-tipo=reuniao]').click();
     const d = dialogo();
     await d.locator("[data-slot=editor-registro]").waitFor();
+    // registro novo: os campos organizados ficam recolhidos e o Copilot inteiro cabe sem rolar
+    afirmar((await d.locator("[data-slot=editor-campos]").getAttribute("data-aberto")) === null, "os campos organizados deviam começar recolhidos");
+    afirmar((await d.getByPlaceholder("Preenchido pela IA ou por você").count()) === 0, "o resumo vazio apareceu num registro novo");
+    afirmar(await pg.evaluate(() => document.activeElement?.getAttribute("placeholder") === "Ex.: Alinhamento com o time de arquitetura"), "o foco inicial devia ir para o título");
+    for (const alvo of [d.getByRole("button", { name: "Copiar prompt para o Copilot" }), d.getByRole("button", { name: "Preencher campos com a resposta" })]) {
+      const dentro = await alvo.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const c = el.closest("[data-slot=editor-organizado]").getBoundingClientRect();
+        return r.top >= c.top && r.bottom <= c.bottom && r.bottom <= innerHeight;
+      });
+      afirmar(dentro, "a ação do Copilot não está inteira na primeira tela do editor");
+    }
     await d.getByPlaceholder("Ex.: Alinhamento com o time de arquitetura").fill("Kickoff com o squad");
     const chips = d.locator("[data-slot=campo-chips] input").first();
     await chips.fill("Marina");
@@ -225,6 +255,9 @@ async function main() {
     await d.getByPlaceholder("Cole a resposta aqui...").fill(RESP);
     await d.getByRole("button", { name: "Preencher campos com a resposta" }).click();
     await d.locator("[data-slot=retorno-preenchimento]").waitFor();
+    // a resposta aplicada abre os campos sozinha
+    await d.locator("[data-slot=editor-campos][data-aberto]").waitFor();
+    await d.getByPlaceholder("Preenchido pela IA ou por você").waitFor();
     const acoes = await d.locator('[data-slot=editor-passo] input[aria-label="Ação"]').evaluateAll((els) => els.map((e) => e.value));
     afirmar(acoes.length === 3, "esperava 3 passos preenchidos, veio " + acoes.length);
     await d.getByRole("button", { name: "Salvar registro" }).click();
@@ -237,6 +270,15 @@ async function main() {
     afirmar(r && r.proximosPassos.length === 3, "registro sem os 3 passos");
     afirmar(r.participantes.includes("Marina") && r.participantes.includes("Felipe"), "participantes: " + r.participantes);
     afirmar(r.decisoes.includes("checkout"), "decisões não vieram");
+    // editar um registro cheio: tudo o que tem conteúdo aparece aberto
+    await card.locator("[data-slot=registro-menu]").click();
+    await pg.getByRole("menuitem", { name: "Editar registro" }).click();
+    const ed = dialogo();
+    await ed.locator("[data-slot=editor-campos][data-aberto]").waitFor();
+    afirmar((await ed.getByPlaceholder("Uma decisão por linha").inputValue()).includes("checkout"), "as decisões não apareceram ao editar");
+    afirmar((await ed.locator('[data-slot=editor-passo] input[aria-label="Ação"]').count()) === 3, "os passos não apareceram ao editar");
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
   });
 
   // ---------- atividade que conclui passo antigo ----------
@@ -245,6 +287,9 @@ async function main() {
     let d = dialogo();
     await d.locator("[data-slot=editor-registro]").waitFor();
     await d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").fill("anotação que não pode sumir");
+    // um campo que começa recolhido: abre à mão, escreve, e o rascunho tem que trazer de volta no lugar certo
+    await d.locator("[data-slot=editor-campos-botao]").click();
+    await d.getByPlaceholder("Uma decisão por linha").fill("decisão que também não pode sumir");
     await d.locator("[data-slot=rascunho-estado]").waitFor();
     await pg.keyboard.press("Escape");
     await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
@@ -256,6 +301,8 @@ async function main() {
     const anotacoes = d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]");
     await anotacoes.getByText("anotação que não pode sumir").waitFor();
     afirmar((await anotacoes.innerText()).trim() === "anotação que não pode sumir", "o rascunho não voltou depois do F5");
+    await d.locator("[data-slot=editor-campos][data-aberto]").waitFor();
+    afirmar((await d.getByPlaceholder("Uma decisão por linha").inputValue()) === "decisão que também não pode sumir", "o campo recolhido não voltou do rascunho");
     await d.getByRole("button", { name: "Descartar", exact: true }).click();
     await pg.locator("[role=alertdialog][data-state=open]").getByRole("button", { name: "Descartar" }).click();
     await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
@@ -726,6 +773,8 @@ async function main() {
     await pg.locator("[data-slot=pagina] h1").first().click();
     await pg.keyboard.press("n");
     await pg.locator("[data-slot=form-tarefa]").waitFor();
+    // a última escolha (aberto) foi lembrada: "Mais opções" já abre
+    await pg.locator("[data-slot=form-tarefa] [data-slot=mais-opcoes][data-aberto]").waitFor();
     await pg.locator("[data-slot=escolher-modelo]", { hasText: "Levar a Ferramenta X" }).click();
     // o "..." do título sugerido já vem selecionado: é só digitar o que muda
     await pg.waitForFunction(() => {

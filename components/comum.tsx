@@ -329,50 +329,80 @@ export function PrioBadge({ p, className, semDica }: { p: number; className?: st
   return semDica ? el : <Dica texto={`Prioridade ${p} de 10 (${PRIO_NOME[n]})`}>{el}</Dica>;
 }
 
-/** Dez botões de 1 a 10 no lugar do controle deslizante nativo. Setas do teclado também mudam. */
+/** As três faixas que a interface distingue, com os números de cada uma (3.11). A escala gravada continua de 1 a 10. */
+const FAIXAS_PRIORIDADE = [
+  { nivel: "baixa", nome: "baixa", numeros: [1, 2, 3, 4] },
+  { nivel: "media", nome: "média", numeros: [5, 6, 7] },
+  { nivel: "alta", nome: "alta", numeros: [8, 9, 10] },
+] as const;
+
+/**
+ * Dez botões de 1 a 10 no lugar do controle deslizante nativo, agrupados nas três faixas (baixa, média, alta),
+ * com o nome de cada uma embaixo e a faixa do valor atual em destaque. Setas do teclado também mudam.
+ */
 export function SeletorPrioridade({ valor, aoMudar, className }: { valor: number; aoMudar: (p: number) => void; className?: string }) {
   const id = useId();
+  const atual = nivelPrioridade(valor);
   return (
-    <div
-      role="radiogroup"
-      aria-label="Prioridade"
-      data-slot="seletor-prioridade"
-      data-valor={valor}
-      className={cn("flex h-8 items-center gap-0.5 rounded-md border border-input bg-card p-0.5 shadow-xs sem-selecao dark:bg-input/20", className)}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); aoMudar(Math.min(10, valor + 1)); }
-        if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); aoMudar(Math.max(1, valor - 1)); }
-      }}
-    >
-      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
-        const ativo = n === valor;
-        const nivel = nivelPrioridade(n);
-        return (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={ativo}
-            aria-label={`Prioridade ${n}`}
-            tabIndex={ativo ? 0 : -1}
-            onClick={() => aoMudar(n)}
-            className={cn(
-              "relative h-full min-w-0 flex-1 rounded-[5px] text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              ativo ? "font-semibold" : n < valor ? "text-foreground/80 hover:bg-accent" : "text-muted-foreground hover:bg-accent hover:text-foreground",
-              ativo && (nivel === "baixa" ? "text-foreground" : "text-background"),
-            )}
-          >
-            {ativo && (
-              <motion.span
-                layoutId={`prio-${id}`}
-                className={cn("absolute inset-0 rounded-[5px] shadow-xs", nivel === "alta" ? "bg-foreground/85" : nivel === "media" ? "bg-muted-foreground" : "bg-card ring-1 ring-foreground/45 ring-inset")}
-                transition={{ type: "spring", stiffness: 520, damping: 38 }}
-              />
-            )}
-            <span className="relative z-10">{n}</span>
-          </button>
-        );
-      })}
+    <div data-slot="seletor-prioridade-faixas" className={cn("flex min-w-0 flex-col gap-1", className)}>
+      <div
+        role="radiogroup"
+        aria-label="Prioridade"
+        data-slot="seletor-prioridade"
+        data-valor={valor}
+        data-nivel={atual}
+        className="flex h-8 items-center rounded-md border border-input bg-card p-0.5 shadow-xs sem-selecao dark:bg-input/20"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); aoMudar(Math.min(10, valor + 1)); }
+          if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); aoMudar(Math.max(1, valor - 1)); }
+        }}
+      >
+        {FAIXAS_PRIORIDADE.map((f, i) => (
+          <div key={f.nivel} data-faixa={f.nivel} className={cn("flex h-full min-w-0 gap-0.5", i > 0 && "ml-1 border-l border-border pl-1")}
+            style={{ flex: f.numeros.length }}>
+            {f.numeros.map((n) => {
+              const ativo = n === valor;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={ativo}
+                  aria-label={`Prioridade ${n}`}
+                  aria-describedby={`${id}-${f.nivel}`}
+                  tabIndex={ativo ? 0 : -1}
+                  onClick={() => aoMudar(n)}
+                  className={cn(
+                    "relative h-full min-w-0 flex-1 rounded-[5px] text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    ativo ? "font-semibold" : n < valor ? "text-foreground/80 hover:bg-accent" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    ativo && (f.nivel === "baixa" ? "text-foreground" : "text-background"),
+                  )}
+                >
+                  {ativo && (
+                    <motion.span
+                      layoutId={`prio-${id}`}
+                      className={cn("absolute inset-0 rounded-[5px] shadow-xs", f.nivel === "alta" ? "bg-foreground/85" : f.nivel === "media" ? "bg-muted-foreground" : "bg-card ring-1 ring-foreground/45 ring-inset")}
+                      transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                    />
+                  )}
+                  <span className="relative z-10">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {/* nome das faixas, alinhado com os grupos de cima; a do valor atual fica escrita forte */}
+      <div aria-hidden className="flex px-0.5 text-xs leading-none sem-selecao">
+        {FAIXAS_PRIORIDADE.map((f, i) => (
+          <span key={f.nivel} id={`${id}-${f.nivel}`} data-faixa-nome={f.nivel} data-atual={f.nivel === atual || undefined}
+            className={cn("min-w-0 truncate text-center transition-colors", i > 0 && "ml-1 pl-1",
+              f.nivel === atual ? "font-semibold text-foreground" : "text-muted-foreground")}
+            style={{ flex: f.numeros.length }}>
+            {f.nome}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -573,8 +603,14 @@ export function Modal({
         onOpenAutoFocus={(e) => {
           // Com campos: o Radix foca o primeiro (ou o que tiver autoFocus). Sem campos: foca a janela,
           // para o anel de foco não cair no botão de fechar.
+          // Campo marcado com data-foco-inicial ganha o foco mesmo que não seja o primeiro (o título do registro
+          // vem depois do tipo).
           const el = e.currentTarget as HTMLElement;
-          if (!el.querySelector("input, textarea, [data-slot=seletor-data], [role=combobox]")) {
+          const marcado = el.querySelector<HTMLElement>("[data-foco-inicial]");
+          if (marcado) {
+            e.preventDefault();
+            marcado.focus();
+          } else if (!el.querySelector("input, textarea, [data-slot=seletor-data], [role=combobox]")) {
             e.preventDefault();
             el.focus();
           }

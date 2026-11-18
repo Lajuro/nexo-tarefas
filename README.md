@@ -79,6 +79,14 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.11: formulários com o essencial primeiro
+
+- **Novo registro**: à esquerda tipo, título, data e hora, participantes e as anotações, com mais espaço. À direita o **Copilot** vem no topo, inteiro na tela mesmo num notebook de 1366x768: copiar o prompt, colar a resposta e preencher os campos sem rolar.
+- **Resumo, decisões, próximos passos e impedimentos** só aparecem quando têm conteúdo: abrem sozinhos quando você aplica a resposta do Copilot, ao editar um registro que já tem esses campos e ao voltar de um rascunho. Para escrever à mão, clique em **Preencher à mão**. "Passos anteriores resolvidos aqui?" e "Atualizar a tarefa junto" ficam logo abaixo, recolhidos, e abrem sozinhos quando há algo marcado ou mudado.
+- **Nova tarefa**: à vista só título, categoria, prazo e prioridade. Status, lembrete de voltar, tags e descrição ficam em **Mais opções**, que mostra um resumo do que tem dentro. Se você prefere ver tudo, deixe aberto: o Nexo lembra. Ao editar uma tarefa que já tem esses campos, ele abre sozinho.
+- **Prioridade**: continua de 1 a 10, mas os números aparecem agrupados em baixa (1 a 4), média (5 a 7) e alta (8 a 10), com a faixa escolhida escrita embaixo.
+- **Campos de texto crescem com o que você escreve**, sem a alça de arrastar do navegador, até um limite a partir do qual rolam por dentro.
+
 ## 3.10: cores com significado e datas de um jeito só
 
 - **Vermelho é só o que está errado**: prazo vencido, erro, excluir e o aviso de algo crítico. A prioridade deixou de ser vermelha e âmbar: agora é um quadradinho neutro, com contorno (1 a 4), preenchido claro (5 a 7) ou escuro (8 a 10), e o número continua lá. Impedimento e tarefa parada há muito tempo ficam em âmbar, que quer dizer "pede atenção".
