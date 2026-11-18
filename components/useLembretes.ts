@@ -26,7 +26,7 @@ export function useLembretes() {
   // `hoje` entra nas dependências: os lembretes mudam quando o dia vira, mesmo sem mudar os dados.
   const hoje = useHoje();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? []), [dados?.tarefas, hoje]);
+  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? [], { modelos: dados?.modelos?.items ?? [] }), [dados?.tarefas, dados?.modelos?.items, hoje]);
   const ativos = useMemo(() => todos.filter((l) => !(adiados[l.id] && adiados[l.id] > hoje)), [todos, adiados, hoje]);
 
   /** Esconde o lembrete pelos próximos `dias` (1 = volta amanhã). */

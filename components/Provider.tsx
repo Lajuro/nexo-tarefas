@@ -6,7 +6,7 @@ import { useHoje } from "./useHoje";
 import { oferecerDesfazer } from "./desfazer";
 import { definirMeusNomes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
-import { Categoria, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
+import { AssuntoParaFalar, Categoria, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
 
@@ -40,6 +40,8 @@ interface Ctx {
   /** Rotina do dia e ponto: um item por dia (id = data) mais o item "config". Use as funções de lib/jornada.ts (comDia, comConfig). */
   salvarJornada: (fn: (items: ItemDaJornada[]) => ItemDaJornada[]) => Promise<boolean>;
   salvarPaginas: (fn: (items: Pagina[]) => Pagina[]) => Promise<boolean>;
+  /** Assuntos para falar com alguém (assuntos.json). */
+  salvarAssuntos: (fn: (items: AssuntoParaFalar[]) => AssuntoParaFalar[]) => Promise<boolean>;
   enviarArquivo: (f: File) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   /** Vídeo ou áudio: vai em pedaços para a pasta de dados, avisando o progresso (0 a 1). */
   enviarMidia: (f: File, aoProgresso?: (parte: number) => void) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
@@ -270,7 +272,7 @@ export function Provider({ children }: { children: ReactNode }) {
   );
 
   const salvarColecao = useCallback(
-    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas" | "modelos" | "paginas" | "jornada", fn: (items: T[]) => T[]) =>
+    <T,>(nome: "categorias" | "links" | "pessoas" | "times" | "notas" | "modelos" | "paginas" | "jornada" | "assuntos", fn: (items: T[]) => T[]) =>
       enfileirar(nome, async () => {
         const d = ref.current;
         if (!d) return false;
@@ -335,6 +337,11 @@ export function Provider({ children }: { children: ReactNode }) {
     [salvarColecao],
   );
 
+  const salvarAssuntos = useCallback(
+    (fn: (items: AssuntoParaFalar[]) => AssuntoParaFalar[]) => salvarColecao<AssuntoParaFalar>("assuntos", fn),
+    [salvarColecao],
+  );
+
   const enviarArquivo = useCallback(
     async (f: File) => {
       const fd = new FormData();
@@ -396,7 +403,7 @@ export function Provider({ children }: { children: ReactNode }) {
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, atualizarComVolta, dadosAtuais, excluirTarefa, restaurarTarefa,
-        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, salvarAssuntos, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >
       {children}

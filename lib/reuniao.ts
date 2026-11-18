@@ -5,8 +5,9 @@
 import { type PassoAberto, aberta, passosAbertosDe } from "./lembretes";
 import { acharPessoa, chavesDaPessoa, chaveNome } from "./pessoas";
 import { type RespostaInterpretada, mesmoTexto } from "./prompts";
+import { assuntosCom, idsDeAssuntos } from "./assuntos";
 import { paraTextoPlano } from "./texto-rico";
-import { type Dados, type Registro, type Tarefa, formatarData, hojeISO, normalizarRegistro, novoId, ordenarRegistros } from "./tipos";
+import { type AssuntoParaFalar, type Dados, type Registro, type Tarefa, formatarData, hojeISO, normalizarRegistro, novoId, ordenarRegistros } from "./tipos";
 
 export interface PassoNovo { id: string; texto: string; responsavel: string; prazo: string }
 
@@ -62,8 +63,8 @@ export const reuniaoTemConteudo = (r: Reuniao) =>
 export interface Pauta {
   /** Passos em aberto desta tarefa (dá para marcar como resolvidos na reunião). */
   passosDaTarefa: PassoAberto[];
-  /** Para cada participante: o que está com ele em OUTRAS tarefas e o que você espera dele. */
-  porPessoa: { nome: string; passos: PassoAberto[]; esperas: Tarefa[] }[];
+  /** Para cada participante: o que está com ele em OUTRAS tarefas, o que você espera dele e o que anotou para falar com ele. */
+  porPessoa: { nome: string; passos: PassoAberto[]; esperas: Tarefa[]; assuntos: AssuntoParaFalar[] }[];
   /** As últimas decisões registradas nesta tarefa. */
   decisoes: { data: string; titulo: string; texto: string }[];
   /** O último registro (para lembrar onde a conversa parou). */
@@ -90,6 +91,7 @@ export function montarPauta(dados: Dados, tarefa: Tarefa, participantes: string[
         nome,
         passos: todos.filter((x) => x.tarefa.id !== tarefa.id && ehEla(x.passo.responsavel)),
         esperas: dados.tarefas.filter((t) => t.id !== tarefa.id && aberta(t) && t.status === "aguardando" && ehEla(t.esperando?.quem)),
+        assuntos: assuntosCom(dados, nome),
       }];
     }),
     decisoes: recentes.filter((r) => r.decisoes.trim()).slice(0, 3).map((r) => ({ data: r.data, titulo: r.titulo, texto: r.decisoes })),
@@ -107,6 +109,7 @@ export function textoDaPauta(tarefa: Tarefa, pauta: Pauta): string {
   if (tarefa.esperando) L.push(`Aguardando ${[tarefa.esperando.quem, tarefa.esperando.oQue].filter(Boolean).join(": ")}`, "");
   if (pauta.decisoes.length) L.push("Últimas decisões:", ...pauta.decisoes.map((d) => `- ${formatarData(d.data)}: ${paraTextoPlano(d.texto).replace(/\n/g, "; ")}`), "");
   for (const p of pauta.porPessoa) {
+    if (p.assuntos.length) L.push(`Para falar com ${p.nome}:`, ...p.assuntos.map((a) => `- ${a.texto}`), "");
     if (!p.passos.length && !p.esperas.length) continue;
     L.push(`Com ${p.nome}, de outras frentes:`);
     L.push(...p.passos.map((x) => `${linhaDoPasso(x.passo.texto, null, x.passo.prazo)} [${x.tarefa.titulo}]`));
@@ -155,7 +158,7 @@ export function comReuniao(t: Tarefa, r: Reuniao, registro: Registro = registroD
 }
 
 /** Ata em texto simples, para mandar depois da reunião. Só o que foi registrado: nada é inventado. */
-export function textoDaAta(tarefa: Tarefa, r: Reuniao, fim = Date.now()): string {
+export function textoDaAta(tarefa: Tarefa, r: Reuniao, fim = Date.now(), assuntos: AssuntoParaFalar[] = []): string {
   const min = minutosDe(r, fim);
   const L = [`Ata: ${r.titulo.trim() || "Reunião"} (${formatarData(hojeISO())}${min ? `, ${min} min` : ""})`, `Assunto: ${tarefa.titulo}`];
   const gente = r.participantes.map((p) => p.trim()).filter(Boolean);
@@ -167,6 +170,9 @@ export function textoDaAta(tarefa: Tarefa, r: Reuniao, fim = Date.now()): string
   const marcados = new Set(r.resolvidos);
   const resolvidos = tarefa.registros.flatMap((reg) => reg.proximosPassos.filter((p) => marcados.has(`${reg.id}:${p.id}`)).map((p) => p.texto));
   if (resolvidos.length) L.push("", "Pendências resolvidas:", ...resolvidos.map((x) => `- ${x}`));
+  const tratados = new Set(idsDeAssuntos(r.resolvidos));
+  const assuntosTratados = assuntos.filter((a) => tratados.has(a.id));
+  if (assuntosTratados.length) L.push("", "Assuntos tratados:", ...assuntosTratados.map((a) => `- ${a.pessoa}: ${a.texto}`));
   if (r.impedimentos.trim()) L.push("", "Impedimentos:", r.impedimentos.trim());
   const notas = paraTextoPlano(r.notas);
   if (notas) L.push("", "Anotações:", notas);

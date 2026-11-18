@@ -17,6 +17,7 @@ import { Dica } from "@/components/ui/popover";
 import { Seletor } from "@/components/ui/select";
 import { aplicarStatus } from "@/lib/acoes";
 import { porUso, registroDosPassos } from "@/lib/modelos";
+import { comOcorrenciaAtendida, ocorrenciaDevida } from "@/lib/recorrencia";
 import {
   CORES, Modelo, Status, Tarefa, hojeISO, normalizarCategoria, normalizarRegistro,
   normalizarTarefa, novoId,
@@ -199,7 +200,13 @@ export function TarefaForm({
       const r = await criarTarefa(base);
       liberar();
       if (r) {
-        if (modelo) salvarModelos((items) => items.map((m) => (m.id === modelo.id ? { ...m, usos: (m.usos ?? 0) + 1 } : m)));
+        // criar do modelo atende a ocorrência que estava esperando (se ele se repete), para o lembrete sair
+        if (modelo)
+          salvarModelos((items) => items.map((m) => {
+            if (m.id !== modelo.id) return m;
+            const usado = { ...m, usos: (m.usos ?? 0) + 1 };
+            return comOcorrenciaAtendida(usado, ocorrenciaDevida(m.repetir, hojeISO()));
+          }));
         fechar();
         router.push(`/tarefas/${r.id}`);
       }

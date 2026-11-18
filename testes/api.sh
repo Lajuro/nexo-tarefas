@@ -227,6 +227,21 @@ curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"config"}],"revEsperad
 checa "jornada: dia removido vai para a lixeira" '1' "$(ls "$TMP/dados/_lixeira" | grep -c '^jornada-removidos-')"
 checa "jornada: a lixeira guarda o ponto do dia removido" '"entrada":"08:12"' "$(tr -d ' \n' < "$(ls "$TMP"/dados/_lixeira/jornada-removidos-*.json | head -1)")"
 
+# ---------- 3.6: falar com (assuntos), dependências e repetição de modelo ----------
+checa "assuntos: começa vazio" '"assuntos":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
+R=$(curl -s -X PUT $B/api/assuntos -H "$J" -d '{"items":[{"id":"as1","pessoa":"Fulano","texto":"Pedir a lista","tarefaId":"../../x","campoFuturo":1}],"revEsperada":0}')
+checa "assuntos: grava" '"rev":1' "$R"
+checa "assuntos: tarefaId inválido vira null" '"tarefaId":null' "$R"
+checa "assuntos: preserva campo desconhecido" '"campoFuturo":1' "$R"
+checa "assuntos: recusa id inválido" 'ID inválido' "$(curl -s -X PUT $B/api/assuntos -H "$J" -d '{"items":[{"id":"../x","pessoa":"a","texto":"b"}],"revEsperada":1}')"
+checa "assuntos: rev errada dá conflito" 'mudou em outro lugar' "$(curl -s -X PUT $B/api/assuntos -H "$J" -d '{"items":[],"revEsperada":0}')"
+R=$(curl -s -X PUT $B/api/tarefas/dep1 -H "$J" -d '{"tarefa":{"id":"dep1","titulo":"Depende","dependeDe":["t1","t1","dep1","../x"]},"revEsperada":null}')
+checa "dependeDe: só ids válidos, sem repetir e sem ela mesma" '"dependeDe":["t1"]' "$R"
+R=$(curl -s -X PUT $B/api/modelos -H "$J" -d "{\"items\":[{\"id\":\"mo1\",\"nome\":\"Mensal\",\"repetir\":{\"tipo\":\"mes\",\"diaDoMes\":5,\"desde\":\"2026-01-01\"}},{\"id\":\"mo2\",\"nome\":\"Torto\",\"repetir\":{\"tipo\":\"mes\",\"diaDoMes\":40,\"desde\":\"2026-01-01\"}}],\"revEsperada\":$(curl -s $B/api/dados | grep -o '"modelos":{"rev":[0-9]*' | grep -o '[0-9]*$')}")
+checa "modelo: repetição válida é gravada" '"repetir":{"tipo":"mes","diaDoMes":5,"desde":"2026-01-01","ultima":null}' "$R"
+checa "modelo: repetição torta vira null" '"nome":"Torto"' "$R"
+checa "modelo: repetição torta vira null (sem repetir)" '"repetir":null' "$R"
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

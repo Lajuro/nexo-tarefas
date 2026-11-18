@@ -28,6 +28,7 @@ import { aberta } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { promptPrepararReuniao } from "@/lib/prompts";
 import { apagarReuniao, gravarReuniao, lerReuniao } from "@/lib/rascunhos";
+import { chaveDoAssunto, comAssuntoResolvido, idsDeAssuntos } from "@/lib/assuntos";
 import { type Reuniao, comReuniao, montarPauta, registroDaReuniao, reuniaoNova, reuniaoTemConteudo, textoDaAta, textoDaPauta } from "@/lib/reuniao";
 import { paraTextoPlano } from "@/lib/texto-rico";
 import { formatarData, novoId } from "@/lib/tipos";
@@ -56,7 +57,7 @@ function Relogio({ inicio }: { inicio: number }) {
 export default function PaginaReuniao() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { dados, atualizarTarefa, toast, estado } = useNexo();
+  const { dados, atualizarTarefa, salvarAssuntos, toast, estado } = useNexo();
   const confirmar = useConfirmar();
   const somenteLeitura = !!estado?.somenteLeitura;
 
@@ -162,8 +163,12 @@ export default function PaginaReuniao() {
       passos: passo.trim() ? [...r.passos, { id: novoId("p"), texto: passo.trim(), responsavel: "", prazo: "" }] : r.passos,
     };
     const registro = registroDaReuniao(final);
-    const ata = textoDaAta(tarefa, final);
+    const assuntos = dados?.assuntos?.items ?? [];
+    const ata = textoDaAta(tarefa, final, Date.now(), assuntos);
     const ok = await atualizarTarefa(tarefa.id, (t) => comReuniao(t, final, registro));
+    // os assuntos marcados como tratados saem da lista de "falar com", apontando para esta reunião
+    const tratados = idsDeAssuntos(final.resolvidos);
+    if (ok && tratados.length) await salvarAssuntos((items) => comAssuntoResolvido(items, tratados, true, registro.id));
     setSalvando(false);
     if (!ok) return; // o Provider já avisou; o rascunho continua guardado
     salvo.current = true;
@@ -187,7 +192,7 @@ export default function PaginaReuniao() {
 
   const ultimo = pauta.ultimo;
   const trechoUltimo = ultimo ? paraTextoPlano(ultimo.resumoIA || ultimo.anotacoes || "").slice(0, 320) : "";
-  const pautaVazia = !pauta.passosDaTarefa.length && !tarefa.esperando && !pauta.decisoes.length && !ultimo && !pauta.porPessoa.some((p) => p.passos.length || p.esperas.length);
+  const pautaVazia = !pauta.passosDaTarefa.length && !tarefa.esperando && !pauta.decisoes.length && !ultimo && !pauta.porPessoa.some((p) => p.passos.length || p.esperas.length || p.assuntos.length);
 
   return (
     <>
@@ -276,6 +281,17 @@ export default function PaginaReuniao() {
                 {tarefa.esperando.oQue && <span className="text-muted-foreground">: {tarefa.esperando.oQue}</span>}
               </Painel>
             )}
+
+            {pauta.porPessoa.filter((p) => p.assuntos.length).map((p) => (
+              <Painel key={`assuntos:${p.nome}`} titulo={<span className="inline-flex items-center gap-1.5"><AvatarPessoa nome={p.nome} tamanho="sm" /> Para falar com {p.nome}</span>}
+                contagem={p.assuntos.length} corpoClassName="px-3.5 py-2">
+                {p.assuntos.map((a) => (
+                  <ItemPasso key={a.id} texto={a.texto} feito={r.resolvidos.includes(chaveDoAssunto(a.id))}
+                    aoAlternar={(f) => alternarResolvido(chaveDoAssunto(a.id), f)} />
+                ))}
+                <p className="mt-1 mb-0.5 text-[11px] leading-snug text-muted-foreground">Marque o que foi tratado. Só sai da lista ao salvar.</p>
+              </Painel>
+            ))}
 
             {pauta.porPessoa.filter((p) => p.passos.length || p.esperas.length).map((p) => (
               <Painel key={p.nome} titulo={<span className="inline-flex items-center gap-1.5"><AvatarPessoa nome={p.nome} tamanho="sm" /> {p.nome}, em outras frentes</span>}

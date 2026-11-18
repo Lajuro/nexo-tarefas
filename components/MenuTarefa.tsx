@@ -6,13 +6,14 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, MessagesSquare, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
 import { IconeStatus, copiarTexto } from "./comum";
 import { pedirEspera, useCobranca } from "@/components/Esperando";
 import { pedirModelo } from "@/components/Modelos";
+import { pedirAssunto } from "@/components/Assuntos";
 import { DURACOES, iniciarSessao } from "@/components/shell/SessaoFoco";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
@@ -199,6 +200,11 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       <k.Item onSelect={async () => (await copiarTexto(t.titulo)) && toast("Título copiado.", "info")}>
         <Copy /> Copiar título
       </k.Item>
+      {aberta(t) && (
+        <k.Item onSelect={() => pedirAssunto({ tarefaId: t.id })}>
+          <MessagesSquare /> Falar com alguém sobre isto...
+        </k.Item>
+      )}
       <k.Item onSelect={() => pedirModelo({ tarefaId: t.id })}>
         <LayoutTemplate /> Salvar como modelo...
       </k.Item>

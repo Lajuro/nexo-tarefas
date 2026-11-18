@@ -7,7 +7,7 @@
 // A janela fica montada uma vez no Shell. O painel de Configurações lista, usa, edita e exclui.
 
 import { useEffect, useMemo, useState } from "react";
-import { CopyPlus, LayoutTemplate, Pencil, Plus, Trash2 } from "lucide-react";
+import { CopyPlus, LayoutTemplate, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar, useFecharComCuidado } from "./Raiz";
 import { Campo, ChipsInput, LinhaCampos, Modal, Painel, PontoCor, SeletorPrioridade, Vazio } from "./comum";
@@ -15,8 +15,29 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
+import { SeletorData } from "@/components/ui/data";
+import { Seletor } from "@/components/ui/select";
 import { modeloDaTarefa, passosDoTexto, porUso } from "@/lib/modelos";
-import { Modelo, agoraISO, normalizarModelo, novoId } from "@/lib/tipos";
+import { comOcorrenciaAtendida, proximaOcorrencia, textoDaRepeticao } from "@/lib/recorrencia";
+import { Modelo, type RepeticaoDoModelo, agoraISO, formatarData, hojeISO, normalizarModelo, normalizarRepeticao, novoId } from "@/lib/tipos";
+
+const DIAS_DA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+/** "Criar agora" e "Pular esta vez" dos lembretes de repetição (sino e tela Hoje). */
+export function useRepeticoes() {
+  const { dados, salvarModelos, toast } = useNexo();
+  return {
+    criar: (modeloId: string) => {
+      const m = dados?.modelos?.items.find((x) => x.id === modeloId);
+      // o mesmo evento de abrirNovaTarefa (components/Shell.tsx), sem importar o Shell aqui
+      window.dispatchEvent(new CustomEvent("nexo:nova-tarefa", { detail: { categoriaId: m?.categoriaId ?? null, modeloId } }));
+    },
+    pular: async (modeloId: string, data: string) => {
+      if (await salvarModelos((items) => items.map((m) => (m.id === modeloId ? comOcorrenciaAtendida(m, data) : m))))
+        toast("Pulado desta vez. Lembro de novo na próxima.", "info");
+    },
+  };
+}
 
 type Pedido = { tarefaId?: string; modeloId?: string };
 const EVENTO = "nexo:modelo";
@@ -37,6 +58,7 @@ export function ModeloForm() {
   const [tags, setTags] = useState<string[]>([]);
   const [passos, setPassos] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [repetir, setRepetir] = useState<RepeticaoDoModelo | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -61,6 +83,7 @@ export function ModeloForm() {
     setTags(m.tags);
     setPassos(m.passos.join("\n"));
     setPrazo(m.prazoEmDias ? String(m.prazoEmDias) : "");
+    setRepetir(m.repetir ?? null);
     setSalvando(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedido]);
@@ -100,6 +123,7 @@ export function ModeloForm() {
       tags,
       passos: listaPassos,
       prazoEmDias: Number.isFinite(dias) && dias > 0 ? dias : null,
+      repetir: normalizarRepeticao(repetir),
       atualizadoEm: agora,
     });
     const ok = await salvarModelos((items) => (items.some((m) => m.id === novo.id) ? items.map((m) => (m.id === novo.id ? { ...m, ...novo } : m)) : [...items, novo]));
@@ -160,6 +184,8 @@ export function ModeloForm() {
           </Campo>
         </LinhaCampos>
 
+        <CampoRepetir valor={repetir} aoMudar={setRepetir} />
+
         <Campo rotulo={<>Prioridade: <span className="font-semibold text-foreground tabular-nums">{prioridade}</span></>} dica="1 = pode esperar · 10 = urgente">
           <SeletorPrioridade valor={prioridade} aoMudar={setPrioridade} />
         </Campo>
@@ -173,6 +199,64 @@ export function ModeloForm() {
         </Campo>
       </div>
     </Modal>
+  );
+}
+
+/** "Repetir": não se repete, toda semana num dia, todo mês num dia ou a cada N dias. */
+function CampoRepetir({ valor, aoMudar }: { valor: RepeticaoDoModelo | null; aoMudar: (r: RepeticaoDoModelo | null) => void }) {
+  const hoje = hojeISO();
+  const tipo = valor?.tipo ?? "";
+  const mudar = (parte: Partial<RepeticaoDoModelo>) => aoMudar({ ...(valor ?? { tipo: "semana", diaDaSemana: 1, desde: hoje }), ...parte } as RepeticaoDoModelo);
+  const valido = normalizarRepeticao(valor);
+  return (
+    <Campo rotulo={<span className="inline-flex items-center gap-1.5"><Repeat className="size-3.5" /> Repetir</span>}
+      dica={valido ? `${textoDaRepeticao(valido)}. Próxima: ${formatarData(proximaOcorrencia(valido, hoje))}. O Nexo lembra de criar a tarefa; nada nasce sozinho.` : "Para demandas com data certa: o Nexo lembra de criar a tarefa no dia (e dá para pular uma vez)."}>
+      <div data-slot="repetir-modelo" className="flex flex-wrap items-center gap-2">
+        <Seletor
+          valor={tipo || "nao"}
+          aria-label="Como o modelo se repete"
+          className="w-[180px]"
+          aoMudar={(v) => {
+            if (v === "nao") return aoMudar(null);
+            const desde = valor?.desde ?? hoje;
+            if (v === "semana") aoMudar({ tipo: "semana", diaDaSemana: valor?.diaDaSemana ?? new Date().getDay(), desde, ultima: valor?.ultima ?? null });
+            if (v === "mes") aoMudar({ tipo: "mes", diaDoMes: valor?.diaDoMes ?? new Date().getDate(), desde, ultima: valor?.ultima ?? null });
+            if (v === "dias") aoMudar({ tipo: "dias", cadaDias: valor?.cadaDias ?? 14, desde, ultima: valor?.ultima ?? null });
+          }}
+          opcoes={[
+            { valor: "nao", rotulo: "Não se repete" },
+            { valor: "semana", rotulo: "Toda semana" },
+            { valor: "mes", rotulo: "Todo mês" },
+            { valor: "dias", rotulo: "A cada N dias" },
+          ]}
+        />
+        {tipo === "semana" && (
+          <Seletor valor={String(valor?.diaDaSemana ?? 1)} aoMudar={(v) => mudar({ diaDaSemana: Number(v) })} aria-label="Dia da semana" className="w-[140px]"
+            opcoes={DIAS_DA_SEMANA.map((d, i) => ({ valor: String(i), rotulo: d }))} />
+        )}
+        {tipo === "mes" && (
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            no dia
+            <Input value={String(valor?.diaDoMes ?? "")} inputMode="numeric" aria-label="Dia do mês" className="w-16"
+              onChange={(e) => mudar({ diaDoMes: Math.min(31, Math.max(1, Number(e.target.value.replace(/\D/g, "").slice(0, 2)) || 1)) })} />
+          </span>
+        )}
+        {tipo === "dias" && (
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            a cada
+            <Input value={String(valor?.cadaDias ?? "")} inputMode="numeric" aria-label="De quantos em quantos dias" className="w-16"
+              onChange={(e) => mudar({ cadaDias: Math.min(365, Math.max(1, Number(e.target.value.replace(/\D/g, "").slice(0, 3)) || 1)) })} />
+            dias
+          </span>
+        )}
+        {tipo && (
+          <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            a partir de
+            <SeletorData valor={valor?.desde ?? hoje} limpavel={false} aoMudar={(v) => v && mudar({ desde: v })} aria-label="A partir de quando" className="w-36" />
+          </span>
+        )}
+      </div>
+    </Campo>
   );
 }
 
@@ -219,7 +303,10 @@ export function PainelModelos({ usar }: { usar: (modeloId: string) => void }) {
                   <p className="flex min-w-0 items-center gap-1.5 truncate text-[11px] text-muted-foreground">
                     {c && <span className="inline-flex shrink-0 items-center gap-1"><PontoCor cor={c.cor} />{c.nome}</span>}
                     <span className="truncate">
-                      {[m.quando, plural(m.passos.length, "passo", "passos"), m.usos ? `usado ${plural(m.usos, "vez", "vezes")}` : "ainda não usado"].filter(Boolean).join(" · ")}
+                      {[
+                        m.repetir ? `${textoDaRepeticao(m.repetir)} (próxima: ${formatarData(proximaOcorrencia(m.repetir, hojeISO()), false)})` : "",
+                        m.quando, plural(m.passos.length, "passo", "passos"), m.usos ? `usado ${plural(m.usos, "vez", "vezes")}` : "ainda não usado",
+                      ].filter(Boolean).join(" · ")}
                     </span>
                   </p>
                 </div>

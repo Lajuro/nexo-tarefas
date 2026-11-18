@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
 import { PainelCitacoes } from "@/components/Citacoes";
+import { PainelDependencias } from "./Dependencias";
 import { TextoRico } from "./Texto";
 
 function Bloco({ slot, children }: { slot: string; children: ReactNode }) {
@@ -294,6 +295,7 @@ export function Lateral({
   return (
     <motion.div data-slot="lateral" variants={lista} initial="escondido" animate="visivel" className={className}>
       <Bloco slot="pendencias-tarefa"><Pendencias tarefa={tarefa} aoIrPara={aoIrPara} /></Bloco>
+      <Bloco slot="dependencias"><PainelDependencias tarefa={tarefa} /></Bloco>
       <Bloco slot="links-tarefa"><Links links={links} aoAdicionar={aoAdicionarLink} /></Bloco>
       <Pessoas tarefa={tarefa} />
       <QuemAjuda tarefa={tarefa} />

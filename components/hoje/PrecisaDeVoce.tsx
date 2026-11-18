@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlarmClockOff, ArrowUpRight, BellRing, Check, ChevronRight, CircleCheck, Clock, Eye } from "lucide-react";
+import { AlarmClockOff, ArrowUpRight, BellRing, Check, ChevronRight, CircleCheck, Clock, Eye, Plus } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { useRepeticoes } from "@/components/Modelos";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import type { useLembretes } from "@/components/useLembretes";
 import { Contador, Secao } from "@/components/comum";
@@ -126,6 +127,8 @@ function LinhaLembrete({
   const tarefa = dados?.tarefas.find((t) => t.id === l.tarefaId);
   const Icone = ICONE_LEMBRETE[l.tipo];
   const href = `/tarefas/${l.tarefaId}`;
+  const repeticoes = useRepeticoes();
+  const repeticao = l.modeloId && l.data ? { modeloId: l.modeloId, data: l.data } : null;
 
   const concluirPasso = async () => {
     if (!l.registroId || !l.passoId) return;
@@ -141,16 +144,30 @@ function LinhaLembrete({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="shrink-0 text-[13px] font-medium">{l.titulo}</span>
-          <Link
-            href={href}
-            className="truncate rounded-sm text-[13px] text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline"
-          >
-            {l.tarefaTitulo}
-          </Link>
+          {repeticao ? (
+            <span className="truncate text-[13px] text-muted-foreground">{l.tarefaTitulo}</span>
+          ) : (
+            <Link
+              href={href}
+              className="truncate rounded-sm text-[13px] text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline"
+            >
+              {l.tarefaTitulo}
+            </Link>
+          )}
         </div>
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{l.detalhe}</p>
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
+        {repeticao && (
+          <>
+            <Button size="sm" className="mr-1" data-acao="criar-da-repeticao" onClick={() => repeticoes.criar(repeticao.modeloId)}>
+              <Plus /> Criar agora
+            </Button>
+            <Button variant="ghost" size="sm" className="mr-1" data-acao="pular-repeticao" onClick={() => repeticoes.pular(repeticao.modeloId, repeticao.data)}>
+              Pular esta vez
+            </Button>
+          </>
+        )}
         {l.passoId && (
           <Button variant="outline" size="sm" className="mr-1" onClick={concluirPasso} data-acao="concluir-passo">
             <Check /> Concluir
@@ -173,11 +190,13 @@ function LinhaLembrete({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Dica texto="Abrir a tarefa">
-          <Button asChild variant="ghost" size="icon-sm">
-            <Link href={href} aria-label={`Abrir a tarefa ${l.tarefaTitulo}`}><ArrowUpRight /></Link>
-          </Button>
-        </Dica>
+        {!repeticao && (
+          <Dica texto="Abrir a tarefa">
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link href={href} aria-label={`Abrir a tarefa ${l.tarefaTitulo}`}><ArrowUpRight /></Link>
+            </Button>
+          </Dica>
+        )}
       </div>
     </div>
   );

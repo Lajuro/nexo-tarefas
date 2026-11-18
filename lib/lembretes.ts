@@ -2,7 +2,8 @@
 // É função pura (sem estado, sem disco): a interface decide o que mostrar e o que adiar.
 // Nada aqui é gravado. "Adiar" um lembrete fica em localStorage (ver components/useLembretes.ts).
 
-import { type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO, semAcento } from "./tipos";
+import { type Modelo, type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO, semAcento } from "./tipos";
+import { recorrenciasDevidas, textoDaRepeticao } from "./recorrencia";
 
 /** Limites, em dias, que disparam cada tipo de lembrete. */
 export const LIMITES = {
@@ -29,7 +30,11 @@ export type TipoLembrete =
   | "aguardando"
   | "parada"
   | "passos_antigos"
-  | "sem_proximo_passo";
+  | "sem_proximo_passo"
+  /** Todas as tarefas de que ela dependia terminaram (3.6). */
+  | "destravou"
+  /** Um modelo que se repete chegou no dia (3.6). Não tem tarefa: tarefaId é "". */
+  | "recorrencia";
 
 export type Gravidade = "critico" | "atencao" | "info";
 
@@ -48,6 +53,9 @@ export interface Lembrete {
   passoId?: string;
   /** Número usado para ordenar dentro da mesma gravidade (quanto maior, mais antigo/urgente). */
   dias: number;
+  /** Lembrete de repetição: o modelo e a ocorrência (AAAA-MM-DD) que ele lembra. */
+  modeloId?: string;
+  data?: string;
 }
 
 export interface PassoAberto {
@@ -122,12 +130,28 @@ const dias = (n: number) => plural(n, "dia", "dias");
 
 const PESO: Record<Gravidade, number> = { critico: 0, atencao: 1, info: 2 };
 
-export function gerarLembretes(tarefas: Tarefa[]): Lembrete[] {
+/** Quantos dias o "destravou" continua aparecendo depois que a última dependência fechou. */
+const DIAS_DESTRAVOU = 7;
+
+export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[] } = {}): Lembrete[] {
   const out: Lembrete[] = [];
+  const porId = new Map(tarefas.map((x) => [x.id, x]));
+  const hoje = hojeISO();
   for (const t of tarefas) {
     if (!aberta(t)) continue;
     const base = { tarefaId: t.id, tarefaTitulo: t.titulo };
     const parado = diasSemAtividade(t);
+
+    // dependia de outras e todas fecharam: destravou (aparece por uns dias, ou enquanto ela segue parada esperando)
+    const deps = (t.dependeDe ?? []).map((id) => porId.get(id)).filter((x): x is Tarefa => !!x);
+    if (deps.length && deps.every((d) => !aberta(d))) {
+      const quando = deps.map((d) => dataLocal(d.concluidaEm || d.atualizadaEm)).sort().at(-1) ?? "";
+      const ha = quando ? Math.max(0, -(diasAte(quando) ?? 0)) : 0;
+      if (ha <= DIAS_DESTRAVOU || t.status === "bloqueada" || t.status === "aguardando")
+        out.push({ ...base, id: `destravou:${t.id}:${quando}`, tipo: "destravou", gravidade: "atencao", dias: ha,
+          titulo: deps.length === 1 ? `Destravou: “${deps[0].titulo}” terminou` : `Destravou: as ${deps.length} tarefas de que dependia terminaram`,
+          detalhe: t.status === "bloqueada" || t.status === "aguardando" ? "Ela pode andar agora. Vale tirar do status de espera." : "Ela pode andar agora." });
+    }
 
     if (t.prazo) {
       const d = diasAte(t.prazo)!;
@@ -192,6 +216,15 @@ export function gerarLembretes(tarefas: Tarefa[]): Lembrete[] {
     if (abertos === 0 && t.status === "em_andamento")
       out.push({ ...base, id: `sem-passo:${t.id}`, tipo: "sem_proximo_passo", gravidade: "info", dias: parado,
         titulo: "Em andamento sem próximo passo", detalhe: "Defina qual é a próxima ação para não travar." });
+  }
+  for (const { modelo, data } of recorrenciasDevidas(extras.modelos ?? [], hoje)) {
+    const d = Math.max(0, -(diasAte(data) ?? 0));
+    out.push({
+      id: `recorrencia:${modelo.id}:${data}`, tipo: "recorrencia", gravidade: "atencao", dias: d,
+      tarefaId: "", tarefaTitulo: modelo.nome, modeloId: modelo.id, data,
+      titulo: d === 0 ? "Hora de criar a tarefa de sempre" : `Tarefa de sempre esperando desde ${formatarData(data, false)}`,
+      detalhe: `${modelo.repetir ? textoDaRepeticao(modelo.repetir) : ""}: crie a tarefa do modelo ou pule esta vez.`,
+    });
   }
   return out.sort((a, b) => PESO[a.gravidade] - PESO[b.gravidade] || b.dias - a.dias);
 }

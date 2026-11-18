@@ -4,8 +4,10 @@
 // O cartão inteiro é um link para a tarefa; o botão direito e o "..." abrem o menu de ações.
 
 import Link from "next/link";
-import { AlarmClock, CalendarClock, ListChecks, Target, Users } from "lucide-react";
+import { AlarmClock, CalendarClock, ListChecks, Target, Users, Link2 } from "lucide-react";
 import { BotaoMenuTarefa, MenuContextoTarefa } from "./MenuTarefa";
+import { useNexo } from "./Provider";
+import { dependenciasDe } from "@/lib/dependencias";
 import { CatTag, IconeStatus, IconeTipo, PrazoTag, PrioBadge, StatusBadge } from "./comum";
 import { Dica } from "@/components/ui/popover";
 import { ehFocoHoje } from "@/lib/acoes";
@@ -40,10 +42,20 @@ function Contadores({ t, aberta, curto }: { t: Tarefa; aberta: boolean; curto?: 
   const reunioes = t.registros.filter((r) => r.tipo === "reuniao").length;
   const lembrar = aberta ? t.lembrarEm : null;
   const chegou = lembrar ? (diasAte(lembrar) ?? 1) <= 0 : false;
-  if (!curto && aberta && !reunioes && !pend && !lembrar)
+  const { dados } = useNexo();
+  const esperando = aberta && t.dependeDe?.length ? dependenciasDe(t, dados?.tarefas ?? []).abertas : [];
+  if (!curto && aberta && !reunioes && !pend && !lembrar && !esperando.length)
     return <span className="text-muted-foreground/70">Sem pendências em aberto</span>;
   return (
     <>
+      {esperando.length > 0 && (
+        <Dica texto={`Depende de: ${esperando.map((x) => x.titulo).join(", ")}`}>
+          <span data-slot="contador-dependencias" className="inline-flex shrink-0 items-center gap-1 font-medium text-alerta tabular-nums">
+            <Link2 className="size-3.5" />
+            {curto ? esperando.length : `espera ${esperando.length}`}
+          </span>
+        </Dica>
+      )}
       {reunioes > 0 && (
         <Dica texto={plural(reunioes, "reunião registrada", "reuniões registradas")}>
           <span data-slot="contador-reunioes" className="inline-flex shrink-0 items-center gap-1 tabular-nums">

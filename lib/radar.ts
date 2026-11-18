@@ -98,7 +98,7 @@ function movimentos(t: Tarefa, hoje: string): string[] {
   return out;
 }
 
-function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tarefa[], hoje: string): Frente {
+function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tarefa[], hoje: string, todas: Tarefa[] = tarefas): Frente {
   const abertas = tarefas.filter(aberta).sort((a, b) => b.prioridade - a.prioridade || a.titulo.localeCompare(b.titulo));
   const atrasadas = abertas.filter((t) => !!t.prazo && t.prazo < hoje);
   const bloqueadas = abertas.filter((t) => t.status === "bloqueada");
@@ -148,6 +148,19 @@ function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tar
     const d = desde ? diasEntre(desde, hoje) : 0;
     if (d >= LIMITES.aguardando) leves.push(`${t.esperando?.quem ? `Esperando ${t.esperando.quem}` : "Aguardando retorno"} há ${d} dias`);
   }
+  // o que está segurando a frente: tarefas que dependem de outras ainda abertas (de qualquer frente) e as que destravaram
+  const porId = new Map(todas.map((t) => [t.id, t]));
+  const presas = abertas.flatMap((t) => {
+    const seguram = (t.dependeDe ?? []).map((id) => porId.get(id)).filter((d): d is Tarefa => !!d && aberta(d));
+    return seguram.length ? [{ t, seguram }] : [];
+  });
+  if (presas.length === 1) leves.push(`“${presas[0].t.titulo}” espera “${presas[0].seguram[0].titulo}”${presas[0].seguram.length > 1 ? ` e mais ${presas[0].seguram.length - 1}` : ""}`);
+  else if (presas.length > 1) leves.push(`${presas.length} tarefas esperando outras terminarem`);
+  const destravadas = abertas.filter((t) => {
+    const deps = (t.dependeDe ?? []).map((id) => porId.get(id)).filter((d): d is Tarefa => !!d);
+    return deps.length > 0 && deps.every((d) => !aberta(d)) && (t.status === "bloqueada" || t.status === "aguardando");
+  });
+  if (destravadas.length) leves.push(destravadas.length === 1 ? `Destravou: “${destravadas[0].titulo}” pode andar` : `${destravadas.length} tarefas destravaram e podem andar`);
   const semProximo = abertas.filter((t) => t.status === "em_andamento" && !t.registros.some((r) => r.proximosPassos.some((p) => !p.feito))).length;
   if (semProximo) leves.push(plural(semProximo, "tarefa em andamento sem próximo passo", "tarefas em andamento sem próximo passo"));
 
@@ -181,10 +194,10 @@ export function montarRadar(dados: Dados, hoje = hojeISO()): Radar {
     const tarefas = porCat.get(c.id) ?? [];
     // categoria arquivada só aparece se ainda tiver tarefa aberta (aí é sinal de algo esquecido)
     if (c.arquivada && !tarefas.some(aberta)) continue;
-    frentes.push(montarFrente(c.id, c.nome, c.cor, tarefas, hoje));
+    frentes.push(montarFrente(c.id, c.nome, c.cor, tarefas, hoje, dados.tarefas));
   }
   const soltas = porCat.get(null) ?? [];
-  if (soltas.some(aberta)) frentes.push(montarFrente(null, "Sem categoria", "", soltas, hoje));
+  if (soltas.some(aberta)) frentes.push(montarFrente(null, "Sem categoria", "", soltas, hoje, dados.tarefas));
   frentes.sort((a, b) => ORDEM.indexOf(a.saude) - ORDEM.indexOf(b.saude) || b.abertas.length - a.abertas.length || a.nome.localeCompare(b.nome));
 
   // ---------- prazos ----------

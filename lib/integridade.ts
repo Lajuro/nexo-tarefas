@@ -45,7 +45,7 @@ export interface Verificacao {
 const ALGUNS = 8;
 const alguns = (itens: string[]) => (itens.length > ALGUNS ? [...itens.slice(0, ALGUNS), `e mais ${itens.length - ALGUNS}`] : itens);
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-const COLECOES_RAIZ = /^(categorias|links|pessoas|times|notas|modelos|paginas|jornada|nexo)[ ._(-].*\.json$/i;
+const COLECOES_RAIZ = /^(categorias|links|pessoas|times|notas|modelos|paginas|jornada|assuntos|nexo)[ ._(-].*\.json$/i;
 const IMAGEM = /!\[[^\]]*\]\((arquivos\/[^)\s]+)\)/g;
 
 /** Todos os textos em Markdown dos dados, com um nome de onde vieram. */
@@ -114,6 +114,7 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   conferir("notas", (dados.notas?.items ?? []).map((x) => x.id));
   conferir("modelos", (dados.modelos?.items ?? []).map((x) => x.id));
   conferir("jornada", (dados.jornada?.items ?? []).map((x) => x.id));
+  conferir("assuntos", (dados.assuntos?.items ?? []).map((x) => x.id));
   conferir("páginas", (dados.paginas?.items ?? []).map((x) => x.id));
   for (const t of dados.tarefas) conferir(`registros de "${t.titulo}"`, t.registros.map((r) => r.id));
   if (repetidos.length)
@@ -137,6 +138,7 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   for (const p of dados.pessoas?.items ?? []) if (p.categoriaIds.some((id) => !cats.has(id))) orfaos.push(`pessoa "${p.nome}": categoria que não existe`);
   for (const p of dados.paginas?.items ?? []) if (p.categoriaId && !cats.has(p.categoriaId)) orfaos.push(`página "${p.titulo || "sem título"}": a categoria não existe`);
   for (const p of dados.paginas?.items ?? []) if (p.paiId && !paginas.has(p.paiId)) orfaos.push(`página "${p.titulo || "sem título"}": a página em que ela estava não existe mais (aparece na raiz)`);
+  for (const a of dados.assuntos?.items ?? []) if (a.tarefaId && !tarefas.has(a.tarefaId)) orfaos.push(`assunto para falar com ${a.pessoa || "alguém"}: a tarefa ${naLixeira(a.tarefaId) ? "está na lixeira" : "não existe"}`);
   for (const m of dados.modelos?.items ?? []) if (m.categoriaId && !cats.has(m.categoriaId)) orfaos.push(`modelo "${m.nome}": a categoria não existe`);
   for (const d of dados.jornada?.items ?? []) {
     if (d.tipo !== "dia") continue;
@@ -145,6 +147,10 @@ export function verificarIntegridade(dados: Dados, inv: Inventario, hoje = hojeI
   }
   for (const n of dados.notas?.items ?? [])
     for (const g of n.gerou ?? []) if (!tarefas.has(g.tarefaId)) orfaos.push(`folha "${n.titulo || "sem título"}": gerou algo numa tarefa que ${naLixeira(g.tarefaId) ? "está na lixeira" : "não existe"}`);
+  for (const t of dados.tarefas) {
+    const n = (t.dependeDe ?? []).filter((id) => !tarefas.has(id));
+    if (n.length) orfaos.push(`tarefa "${t.titulo}": depende de ${plural(n.length, "tarefa que", "tarefas que")} ${n.every(naLixeira) ? (n.length === 1 ? "está na lixeira" : "estão na lixeira") : "não existe mais"}`);
+  }
   for (const t of dados.tarefas) for (const r of t.registros) if (r.notaId && !notas.has(r.notaId)) orfaos.push(`registro de ${r.data} em "${t.titulo}": a folha original não existe mais`);
   if (orfaos.length)
     por({ id: "referencia-orfa", gravidade: "info", titulo: plural(orfaos.length, "vínculo aponta para algo que não existe mais", "vínculos apontam para algo que não existe mais"), detalhe: "Não atrapalha o uso: o vínculo só não leva a lugar nenhum. Se a tarefa está na lixeira, restaurá-la conserta.", itens: orfaos });

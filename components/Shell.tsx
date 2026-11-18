@@ -32,6 +32,7 @@ import { MoverEJuntar } from "./MoverEJuntar";
 import { desfazerUltimo } from "./desfazer";
 import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
+import { JanelaAssunto, pedirAssunto } from "./Assuntos";
 import { ModeloForm } from "./Modelos";
 import { Celebracao } from "./jogo/Celebracao";
 import { AvisosDaJornada } from "./jornada/Ferramenta";
@@ -225,6 +226,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <FecharDia aberto={fechamento} fechar={() => setFechamento(false)} />
       <MoverEJuntar />
       <Esperando />
+      <JanelaAssunto />
       <ModeloForm />
       <Celebracao />
       <AvisosDaJornada />
@@ -239,6 +241,7 @@ export function Shell({ children }: { children: ReactNode }) {
           novaTarefa: () => setNova({ aberto: true }),
           planejarDia: () => setRitual(true),
           fecharDia: () => setFechamento(true),
+          falarCom: () => pedirAssunto({}),
           alternarLateral: () => setRecolhida((r) => !r),
           telaCheia,
           anotar: abrirAnotar,

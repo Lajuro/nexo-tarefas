@@ -30,6 +30,7 @@ import { paraTextoPlano } from "@/lib/texto-rico";
 import { type Categoria, type Pessoa, type Time, agoraISO, formatarData } from "@/lib/tipos";
 import { JuntarComo } from "./ListaPessoas";
 import { ListaPassos } from "./ListaPassos";
+import { PainelFalarCom } from "@/components/Assuntos";
 import { PessoaForm } from "./PessoaForm";
 import {
   BotaoMenu, EmblemaTime, type AcaoMenu, acoesDaPessoa, cargoArea, hrefPessoa, hrefTime, pessoasParecidas, porNome, useAcoesPessoa, useAcoesTime,
@@ -173,6 +174,8 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
         <aside className="flex min-w-0 flex-col gap-4">
           {p && <TimesDaPessoa p={p} entrada={entrada} />}
           {p && <CategoriasDaPessoa p={p} times={entrada.times} />}
+
+          <PainelFalarCom nome={p?.nome ?? nome} />
 
           <Painel
             titulo="Com ela"

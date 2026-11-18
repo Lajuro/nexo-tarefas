@@ -3,7 +3,7 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bookmark, CornerDownLeft, Crosshair, type LucideIcon, Maximize, Monitor, Moon, MoonStar, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
+  Bookmark, CornerDownLeft, Crosshair, type LucideIcon, Maximize, MessagesSquare, Monitor, Moon, MoonStar, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { type Tema, useTema } from "@/components/Raiz";
@@ -40,6 +40,7 @@ const ACOES: Comando[] = [
   { id: "acao:anotar", nome: "Anotar rápido", palavras: "anotar rapido nota folha capturar escrever bloco de notas", icone: PenLine, tecla: ["A"], tom: "bg-st-andamento/14 text-st-andamento" },
   { id: "acao:dia", nome: "Planejar o dia", palavras: "ritual foco planejar dia manhã", icone: Sunrise, tecla: ["D"], tom: "bg-alerta/15 text-alerta" },
   { id: "acao:fechar-dia", nome: "Fechar o dia", palavras: "ritual fechar encerrar dia daily fim do dia amanha", icone: MoonStar, tecla: ["Shift", "D"], tom: "bg-st-aguardando/14 text-st-aguardando" },
+  { id: "acao:falar", nome: "Falar com alguém", palavras: "falar com conversar lembrar assunto pessoa pauta proxima conversa", icone: MessagesSquare, tom: "bg-info/12 text-info" },
   { id: "acao:cheia", nome: "Tela cheia", palavras: "entrar sair tela cheia fullscreen maximizar", icone: Maximize, tecla: ["F11"], tom: "bg-info/12 text-info" },
   { id: "acao:lateral", nome: "Barra lateral", palavras: "recolher abrir barra lateral menu", icone: PanelLeft, tecla: ["Ctrl", "B"], tom: "bg-sucesso/12 text-sucesso" },
   { id: "acao:personalizar", nome: "Personalizar", palavras: "personalizar aparencia cor de destaque cores cantos letra fonte barra lateral superior animacao movimento", icone: SlidersHorizontal, tom: "bg-foreground/8 text-foreground" },
@@ -60,7 +61,7 @@ export function Paleta({
 }: {
   aberta: boolean;
   fechar: () => void;
-  acoes: { novaTarefa: () => void; planejarDia: () => void; fecharDia: () => void; alternarLateral: () => void; telaCheia: () => void; anotar: () => void; personalizar: () => void };
+  acoes: { novaTarefa: () => void; planejarDia: () => void; fecharDia: () => void; falarCom: () => void; alternarLateral: () => void; telaCheia: () => void; anotar: () => void; personalizar: () => void };
 }) {
   const { dados } = useNexo();
   const { tema, definirTema } = useTema();
@@ -141,6 +142,7 @@ export function Paleta({
     "acao:nova": () => fazer(acoes.novaTarefa),
     "acao:dia": () => fazer(acoes.planejarDia),
     "acao:fechar-dia": () => fazer(acoes.fecharDia),
+    "acao:falar": () => fazer(acoes.falarCom),
     "acao:cheia": () => fazer(acoes.telaCheia),
     "acao:lateral": () => fazer(acoes.alternarLateral),
     "acao:anotar": () => fazer(acoes.anotar),

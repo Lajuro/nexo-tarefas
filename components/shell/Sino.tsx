@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlarmClock, Bell, BellRing, CircleAlert, Clock3, Info, PartyPopper } from "lucide-react";
 import { useLembretes } from "@/components/useLembretes";
+import { useRepeticoes } from "@/components/Modelos";
 import { Button } from "@/components/ui/button";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/menu";
@@ -19,6 +20,19 @@ const VISUAL: Record<Gravidade, { icone: typeof Info; cor: string; fundo: string
 
 function Linha({ l, adiar, fechar }: { l: Lembrete; adiar: (l: Lembrete, dias: number) => void; fechar: () => void }) {
   const v = VISUAL[l.gravidade];
+  const repeticoes = useRepeticoes();
+  const conteudo = (
+    <>
+      <span className={cn("mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full", v.fundo, v.cor)}>
+        <v.icone className="size-3.5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] leading-snug font-medium">{l.titulo}</span>
+        <span className="block truncate text-xs text-muted-foreground">{l.tarefaTitulo}</span>
+      </span>
+    </>
+  );
+  const classe = "flex w-full gap-2.5 rounded-lg px-2 py-2 pr-9 text-left transition-colors outline-none hover:bg-accent focus-visible:bg-accent";
   return (
     <motion.li
       layout
@@ -29,16 +43,11 @@ function Linha({ l, adiar, fechar }: { l: Lembrete; adiar: (l: Lembrete, dias: n
       data-slot="lembrete"
       className="group/l relative overflow-hidden"
     >
-      <Link href={`/tarefas/${l.tarefaId}`} onClick={fechar}
-        className="flex gap-2.5 rounded-lg px-2 py-2 pr-9 transition-colors outline-none hover:bg-accent focus-visible:bg-accent">
-        <span className={cn("mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full", v.fundo, v.cor)}>
-          <v.icone className="size-3.5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] leading-snug font-medium">{l.titulo}</span>
-          <span className="block truncate text-xs text-muted-foreground">{l.tarefaTitulo}</span>
-        </span>
-      </Link>
+      {l.modeloId ? (
+        <button type="button" className={classe} onClick={() => { fechar(); repeticoes.criar(l.modeloId!); }}>{conteudo}</button>
+      ) : (
+        <Link href={`/tarefas/${l.tarefaId}`} onClick={fechar} className={classe}>{conteudo}</Link>
+      )}
       <DropdownMenu>
         <Dica texto="Adiar este lembrete" side="left">
           <DropdownMenuTrigger asChild>
@@ -52,6 +61,7 @@ function Linha({ l, adiar, fechar }: { l: Lembrete; adiar: (l: Lembrete, dias: n
           <DropdownMenuItem onSelect={() => adiar(l, 1)}>Lembrar amanhã</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => adiar(l, 3)}>Lembrar em 3 dias</DropdownMenuItem>
           <DropdownMenuItem onSelect={() => adiar(l, 7)}>Lembrar em 1 semana</DropdownMenuItem>
+          {l.modeloId && l.data && <DropdownMenuItem onSelect={() => repeticoes.pular(l.modeloId!, l.data!)}>Pular esta vez</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
     </motion.li>

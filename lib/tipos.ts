@@ -248,6 +248,26 @@ export interface Modelo {
 }
 
 /**
+ * Assunto para levar a uma pessoa na próxima conversa (assuntos.json, 3.6): "falar com Fulano sobre X".
+ * O nome fica como texto, como nos registros e passos; a ligação com o cadastro é feita na leitura.
+ */
+export interface AssuntoParaFalar {
+  id: string; // novoId("as")
+  /** Com quem falar (nome como o usuário escreveu). */
+  pessoa: string;
+  texto: string;
+  /** Tarefa de onde o assunto nasceu, se houver. */
+  tarefaId?: string | null;
+  /** Quando foi tratado (carimbo ISO). null = ainda em aberto. */
+  resolvidoEm?: string | null;
+  /** Onde foi tratado: o registro da reunião em que ele saiu da lista. */
+  registroId?: string | null;
+  criadoEm: string;
+  atualizadoEm: string;
+  [extra: string]: unknown;
+}
+
+/**
  * De quanto em quanto tempo um modelo vira tarefa. O app só LEMBRA (lembrete com "Criar agora" e "Pular esta vez"):
  * nunca cria tarefa sozinho, para não aparecer tarefa fantasma nas férias. As contas estão em lib/recorrencia.ts.
  */
@@ -449,6 +469,8 @@ export interface Dados {
   paginas: Colecao<Pagina>;
   /** Rotina do dia e ponto. Ausente em dados lidos por código antigo: trate como vazio. */
   jornada: Colecao<ItemDaJornada>;
+  /** Assuntos para falar com alguém (3.6). Ausente em dados lidos por código antigo: trate como vazio. */
+  assuntos?: Colecao<AssuntoParaFalar>;
   avisos: string[];
 }
 
@@ -750,6 +772,20 @@ export function normalizarRepeticao(r: unknown): RepeticaoDoModelo | null {
     return d == null ? null : { tipo: "dias", cadaDias: d, desde, ultima };
   }
   return null;
+}
+
+export function normalizarAssunto(a: Partial<AssuntoParaFalar>): AssuntoParaFalar {
+  return {
+    ...a,
+    id: str(a.id) || novoId("as"),
+    pessoa: str(a.pessoa).trim().slice(0, 120),
+    texto: str(a.texto).trim().slice(0, 1000),
+    tarefaId: typeof a.tarefaId === "string" && ID_VALIDO.test(a.tarefaId) ? a.tarefaId : null,
+    resolvidoEm: typeof a.resolvidoEm === "string" && a.resolvidoEm ? a.resolvidoEm.slice(0, 40) : null,
+    registroId: typeof a.registroId === "string" && ID_VALIDO.test(a.registroId) ? a.registroId : null,
+    criadoEm: str(a.criadoEm) || agoraISO(),
+    atualizadoEm: str(a.atualizadoEm) || agoraISO(),
+  };
 }
 
 export function normalizarCategoria(c: Partial<Categoria>): Categoria {
