@@ -9,8 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon,
-} from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.15";
+export const VERSAO_NOVIDADES = "3.16";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -34,6 +33,15 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.16", icone: Tags, titulo: "Criar sem sair de onde está, e um lugar para as tags", texto: "Onde se escolhe uma categoria agora dá para criar a que falta, digitando o nome ali mesmo (na tarefa, no link, na página, no modelo, na pessoa, no time e nas ações em lote). O mesmo vale para a tarefa nos seletores de tarefa. A setinha ao lado de Nova tarefa e a paleta criam categoria, página, folha, link, pessoa, time e modelo de qualquer tela. As tags ganharam uma tela (aba Tags, em Categorias) para ver todas, renomear, juntar as repetidas e tirar as que não servem mais, e todo campo de tag passou a sugerir as tags do app inteiro.", href: "/categorias?aba=tags", rotulo: "Abrir as tags",
+    pontos: [
+      "Categoria que ainda não existe: digite o nome onde você escolhe a categoria e clique em Criar. Vale na tarefa, no link, na página, no modelo, na pessoa, no time e nas ações em lote.",
+      "Tarefa que ainda não existe: o mesmo nos seletores de tarefa (mover um registro, \"Depende de\", o link, a página, a folha, \"falar com\" e o bloco da rotina).",
+      "A setinha ao lado de \"Nova tarefa\" cria categoria, página, folha, link, pessoa, time ou modelo por cima da tela em que você está. Na paleta (Ctrl K), é só digitar \"nova categoria\", \"novo link\"...",
+      "Tags têm lugar: em Categorias, a aba Tags mostra todas, com o que usa cada uma. Dá para renomear, juntar duas e tirar de tudo, sempre com Desfazer.",
+      "Tags escritas de dois jeitos (\"pipeline\" e \"pipelines\") aparecem como parecidas, com Juntar a um clique.",
+      "Na lista de tarefas, a barra de seleção ganhou Tags, e o botão direito de uma tarefa ganhou Categoria.",
+    ] },
   { versao: "3.15", icone: FileSearch, titulo: "Ver os arquivos por dentro do app", texto: "Clicar num arquivo anexado abre o conteúdo por cima da tela, sem baixar e sem sair de onde você está: PDF, planilha do Excel (com as abas), CSV, documento do Word e apresentação do PowerPoint (o texto), Markdown, arquivos de texto e de código, a lista de um ZIP, áudio e vídeo. Imagens já abriam assim. Esc fecha e você volta para o mesmo lugar.", href: "/links", rotulo: "Abrir Links e docs",
     pontos: [
       "Clique num arquivo (no texto, em Links e documentos da tarefa, na tela de Links): ele abre por cima do app. Esc fecha e você volta para onde estava.",
@@ -125,7 +133,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Agora dá para ver os arquivos por dentro do app: PDF, planilha, CSV, Word, PowerPoint, texto e mais. Clique num arquivo e ele abre por cima da tela.",
+          description: "Agora dá para criar categoria, tarefa, página e link sem sair de onde você está, e as tags ganharam uma tela para renomear e juntar.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

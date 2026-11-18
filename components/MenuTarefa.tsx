@@ -6,11 +6,11 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, FileText, MessagesSquare, Printer, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, FileText, MessagesSquare, Printer, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2, Folder } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
-import { IconeStatus, copiarTexto } from "./comum";
+import { IconeStatus, PontoCor, copiarTexto } from "./comum";
 import { pedirEspera, useCobranca } from "@/components/Esperando";
 import { pedirModelo } from "@/components/Modelos";
 import { pedirAssunto } from "@/components/Assuntos";
@@ -97,9 +97,17 @@ const KIT_CONTEXTO = {
 function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: boolean; aoExcluir?: () => void }) {
   const a = useAcoesTarefa();
   const cobranca = useCobranca();
-  const { toast, dados } = useNexo();
+  const { toast, dados, atualizarComVolta } = useNexo();
   const hoje = hojeISO();
   const foco = ehFocoHoje(t);
+  const categorias = (dados?.categorias.items ?? [])
+    .filter((c) => !c.arquivada || c.id === t.categoriaId)
+    .sort((x, y) => x.nome.localeCompare(y.nome, "pt-BR"));
+  const mudarCategoria = (id: string) => {
+    const novo = id || null;
+    if (novo === (t.categoriaId ?? null)) return;
+    void atualizarComVolta(t.id, (x) => ({ ...x, categoriaId: novo }), `Categoria: ${categorias.find((c) => c.id === novo)?.nome ?? "sem categoria"}.`);
+  };
   return (
     <>
       {!semAbrir && (
@@ -151,6 +159,17 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
                 <span className="text-muted-foreground">{p === 10 ? "urgente" : p === 1 ? "pode esperar" : ""}</span>
               </k.RadioItem>
             ))}
+          </k.RadioGroup>
+        </k.SubContent>
+      </k.Sub>
+      <k.Sub>
+        <k.SubTrigger><Folder /> Categoria</k.SubTrigger>
+        <k.SubContent className="max-h-80 min-w-48 overflow-y-auto">
+          <k.RadioGroup value={t.categoriaId ?? ""} onValueChange={mudarCategoria}>
+            {categorias.map((c) => (
+              <k.RadioItem key={c.id} value={c.id}><span className="inline-flex w-4 justify-center"><PontoCor cor={c.cor} /></span> <span className="truncate">{c.nome}</span></k.RadioItem>
+            ))}
+            <k.RadioItem value=""><span className="inline-flex w-4 justify-center"><PontoCor /></span> <span className="text-muted-foreground">Sem categoria</span></k.RadioItem>
           </k.RadioGroup>
         </k.SubContent>
       </k.Sub>

@@ -79,6 +79,24 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.16: criar sem sair de onde está, e um lugar para as tags
+
+Antes, para usar uma categoria que ainda não existia você tinha que largar o que estava fazendo, ir à tela de Categorias, criar e voltar. E as tags não tinham tela nenhuma: se a mesma ideia fosse escrita de dois jeitos, o jeito era abrir item por item.
+
+- **Categoria criada na hora.** Em qualquer lugar onde se escolhe uma categoria, digite o nome da que falta e clique em **Criar**: na tarefa (a categoria ao lado do status), no formulário de link, na página, no modelo de tarefa, no cadastro de pessoa e de time, no importador do Outlook e nas ações em lote. Ela nasce com a próxima cor da paleta; o aviso tem "Cor e descrição" para ajustar depois, sem sair da tela.
+- **Tarefa criada na hora.** O mesmo nos seletores de tarefa: mover um registro para uma tarefa que ainda não existe, "Depende de", as tarefas a que um link, uma página ou uma folha serve, "falar com alguém" e o bloco da rotina. A tarefa nasce só com o título (e a categoria de onde você está, quando faz sentido); o resto você preenche depois.
+- **Criar qualquer coisa de qualquer tela.** A setinha ao lado de **Nova tarefa**, na barra lateral, abre o menu **Criar**: categoria, página, folha no bloco de notas, link ou arquivo, pessoa, time e modelo de tarefa. O formulário abre por cima da tela em que você está e, ao salvar, você continua nela. Na paleta (`Ctrl K`) é só digitar "nova categoria", "novo link", "nova pessoa".
+- **Tags têm lugar.** Em **Categorias**, a aba **Tags** mostra todas as tags do app, da mais usada para a menos, com o que usa cada uma (tarefas, links, páginas, pessoas e modelos). Abra uma para ver os itens e:
+  - **Renomear**: muda em todos os itens de uma vez;
+  - **Juntar em outra tag**: tudo o que usa uma passa a usar a outra;
+  - **Tirar de tudo**: os itens ficam, só perdem a tag.
+  Toda troca tem **Desfazer** (no aviso ou com `Ctrl Z`).
+- **Tags parecidas.** Quando duas tags parecem a mesma (acento, plural ou hífen diferentes, como "pipeline" e "pipelines"), elas aparecem no topo da aba com **Juntar** a um clique, ou "São diferentes" para o app não perguntar de novo.
+- **Um vocabulário só.** Todo campo de tag sugere as tags do app inteiro. Antes a página só sugeria tags de páginas, o link só as de links, e por isso a mesma tag acabava escrita de dois jeitos.
+- **Na lista de tarefas**: a barra de seleção ganhou **Tags** (põe ou tira uma tag de várias tarefas de uma vez) e a **Categoria** dela também cria a que falta. O botão direito de uma tarefa ganhou **Categoria**.
+
+Nada mudou no formato dos dados: tag continua sendo um texto dentro de cada item, e renomear é regravar os itens que a usam.
+
 ## 3.15: ver os arquivos por dentro do app
 
 Clicar num arquivo anexado (no texto de um registro ou de uma página, em "Links e documentos" da tarefa, na tela de Links, na busca) abre o conteúdo **por cima da tela**, sem baixar e sem sair de onde você está. `Esc`, o X ou um clique fora fecham, e você volta para o mesmo lugar.

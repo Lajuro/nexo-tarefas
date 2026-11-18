@@ -2297,6 +2297,182 @@ async function main() {
     afirmar((await visor.count()) === 0, "planilha no formato antigo não abre o visor");
   });
 
+  await etapa("criar sem sair de onde está: categoria, tarefa e tags na hora, menu Criar, paleta e a tela de tags", async () => {
+    const d0 = await dados();
+    const abertas = d0.tarefas.filter((t) => !["concluida", "cancelada"].includes(t.status));
+    afirmar(abertas.length >= 2, "precisa de duas tarefas abertas");
+    const comRegistro = abertas.find((t) => t.registros.some((r) => r.tipo !== "marco"));
+    afirmar(comRegistro, "precisa de uma tarefa aberta com um registro");
+    const a = comRegistro;
+    const b = abertas.find((t) => t.id !== a.id);
+    const tarefa = (d, id) => d.tarefas.find((t) => t.id === id);
+    const cat = (d, nome) => d.categorias.find((c) => c.nome === nome);
+    const semBalao = () => pg.waitForFunction(() => !document.querySelector("[data-radix-popper-content-wrapper]"));
+    const aviso = (texto) => pg.locator("[data-sonner-toast]", { hasText: texto }).first();
+
+    // ---- categoria que ainda não existe, criada da faixa de propriedades da tarefa (antes: ir à tela de Categorias) ----
+    await pg.goto(`${B}/tarefas/${a.id}`);
+    await pg.locator("[data-slot=prop-categoria]").click();
+    await pg.keyboard.type("Fluxo sem sair");
+    await pg.locator("[data-slot=criar-categoria]").click();
+    await ateOsDados((d) => cat(d, "Fluxo sem sair") && tarefa(d, a.id).categoriaId === cat(d, "Fluxo sem sair").id, "a categoria criada no lugar não foi gravada na tarefa");
+    await aviso("Categoria “Fluxo sem sair” criada").waitFor();
+    afirmar(new URL(pg.url()).pathname === `/tarefas/${a.id}`, "criar a categoria tirou o usuário da tarefa");
+    await pg.locator("[data-slot=prop-categoria]", { hasText: "Fluxo sem sair" }).waitFor();
+    // digitar de novo o mesmo nome (com outra caixa) não duplica: a opção de criar nem aparece
+    await pg.locator("[data-slot=prop-categoria]").click();
+    await pg.keyboard.type("fluxo SEM sair");
+    await pg.locator("[data-slot=lista-de-categorias] [role=option]", { hasText: "Fluxo sem sair" }).waitFor();
+    afirmar((await pg.locator("[data-slot=criar-categoria]").count()) === 0, "ofereceu criar uma categoria que já existe");
+    await pg.keyboard.press("Escape");
+    await semBalao();
+
+    // ---- depender de uma tarefa que ainda não está no app: ela nasce no seletor, na mesma categoria, já ligada ----
+    await pg.getByRole("combobox", { name: "Ligar uma tarefa de que esta depende" }).click();
+    await pg.keyboard.type("Liberar o acesso de leitura");
+    await pg.getByRole("option", { name: /Criar .*Liberar o acesso de leitura/ }).click();
+    await ateOsDados((d) => {
+      const nova = d.tarefas.find((t) => t.titulo === "Liberar o acesso de leitura");
+      return nova && (tarefa(d, a.id).dependeDe || []).includes(nova.id) && nova.categoriaId === tarefa(d, a.id).categoriaId && nova.registros.some((r) => r.tipo === "marco");
+    }, "a tarefa criada no seletor de dependências não nasceu ligada (ou sem o marco de criação)");
+    await semBalao();
+
+    // ---- mover um registro para uma tarefa que ainda não existe ----
+    const registro = a.registros.find((r) => r.tipo !== "marco");
+    await pg.locator(`#reg-${registro.id} [data-slot=registro-menu]`).click();
+    await pg.getByRole("menuitem", { name: /Mover para outra tarefa/ }).click();
+    await dialogo().getByRole("combobox", { name: "Tarefa de destino" }).click();
+    await pg.keyboard.type("Demanda que faltava cadastrar");
+    await pg.getByRole("option", { name: /Criar .*Demanda que faltava cadastrar/ }).click();
+    await dialogo().getByRole("combobox", { name: "Tarefa de destino" }).filter({ hasText: "Demanda que faltava cadastrar" }).waitFor();
+    const antesDeMover = tarefa(await dados(), a.id).registros.length;
+    await dialogo().locator("[data-slot=confirmar-mover]").click();
+    await ateOsDados((d) => {
+      const nova = d.tarefas.find((t) => t.titulo === "Demanda que faltava cadastrar");
+      return nova && nova.registros.filter((r) => r.tipo !== "marco").length === 1 && tarefa(d, a.id).registros.length === antesDeMover - 1;
+    }, "o registro não foi para a tarefa criada no seletor");
+
+    // ---- menu "Criar" da barra lateral: categoria nova por cima da tela em que se está ----
+    await pg.goto(`${B}/pendencias`);
+    await pg.locator("[data-slot=criar-outra-coisa]").click();
+    await pg.locator("[data-slot=criar-categoria]").click();
+    await dialogo().locator("input").first().fill("Criada pelo menu");
+    await pg.keyboard.press("Control+Enter");
+    await ateOsDados((d) => !!cat(d, "Criada pelo menu"), "a categoria criada pelo menu da barra lateral não foi gravada");
+    await dialogo().waitFor({ state: "detached" });
+    afirmar(new URL(pg.url()).pathname === "/pendencias", "criar pelo menu tirou o usuário da tela");
+
+    // ---- link novo pelo menu, com categoria e tarefa criadas dentro do próprio formulário ----
+    await pg.locator("[data-slot=criar-outra-coisa]").click();
+    await pg.locator("[data-slot=criar-link]").click();
+    await dialogo().getByPlaceholder(/https/).first().fill("https://exemplo.local/padrao-de-acesso");
+    await dialogo().getByRole("combobox", { name: "Vincular à categoria" }).click();
+    await pg.keyboard.type("Acessos");
+    await pg.locator("[data-slot=criar-categoria]").click();
+    await dialogo().getByRole("combobox", { name: "Vincular à categoria" }).filter({ hasText: "Acessos" }).waitFor();
+    await dialogo().getByRole("combobox", { name: "Usar nas tarefas" }).click();
+    await pg.keyboard.type("Revisar o padrão de acesso");
+    await pg.getByRole("option", { name: /Criar .*Revisar o padrão de acesso/ }).click();
+    await ateOsDados((d) => d.tarefas.some((t) => t.titulo === "Revisar o padrão de acesso" && t.categoriaId === cat(d, "Acessos")?.id), "a tarefa criada no formulário de link não nasceu na categoria escolhida");
+    await pg.keyboard.press("Escape");
+    await semBalao();
+    await dialogo().getByPlaceholder("Como você vai reconhecer isso depois").fill("Padrão de acesso");
+    await pg.keyboard.press("Control+Enter");
+    await ateOsDados((d) => {
+      const l = d.links.find((x) => x.titulo === "Padrão de acesso");
+      const t = d.tarefas.find((x) => x.titulo === "Revisar o padrão de acesso");
+      return l && t && l.categoriaId === cat(d, "Acessos").id && (l.tarefaIds || []).join() === t.id;
+    }, "o link criado pelo menu não ficou com a categoria e a tarefa criadas no formulário");
+
+    // ---- paleta: criar página e chegar à tela de tags ----
+    const nPaginas = (await dados()).paginas.items.length;
+    await pg.keyboard.press("Control+k");
+    await pg.locator("[data-slot=paleta] input").first().fill("nova pagina");
+    await pg.locator('[data-paleta-item="criar:pagina"]').click();
+    await pg.waitForURL(/\/paginas(\?|$)/);
+    await ateOsDados((d) => d.paginas.items.length === nPaginas + 1, "a paleta não criou a página");
+    await pg.keyboard.press("Control+k");
+    await pg.locator("[data-slot=paleta] input").first().fill("gerenciar tags");
+    await pg.locator('[data-paleta-item="acao:tags"]').click();
+    await pg.waitForURL(/\/categorias\?aba=tags/);
+
+    // ---- ações em lote: tag e categoria novas em duas tarefas de uma vez ----
+    await pg.goto(`${B}/tarefas`);
+    await pg.locator("[data-slot=contador-tarefas]").waitFor();
+    await pg.getByRole("radio", { name: "Grade" }).click();
+    const itens = pg.locator("[data-slot=selecionavel]");
+    await itens.first().waitFor();
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("j");
+    await pg.keyboard.press("x");
+    await itens.nth(1).locator("a[href]").first().click({ modifiers: ["Control"] });
+    await pg.locator("[data-slot=contagem-lote]", { hasText: "2 tarefas" }).waitFor();
+    const ids = await itens.evaluateAll((els) => els.filter((e) => e.dataset.selecionada).map((e) => e.dataset.id));
+    await pg.locator("[data-slot=lote-tags]").click();
+    await pg.keyboard.type("Esteira");
+    await pg.locator("[data-slot=criar-tag]").click();
+    await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("Esteira")), "a tag em lote não foi gravada nas duas tarefas");
+    await pg.keyboard.press("Escape");
+    await semBalao();
+    await pg.locator("[data-slot=lote-categoria]").click();
+    await pg.keyboard.type("Lote novo");
+    await pg.locator("[data-slot=criar-categoria]").click();
+    await ateOsDados((d) => cat(d, "Lote novo") && ids.every((id) => tarefa(d, id).categoriaId === cat(d, "Lote novo").id), "a categoria criada na barra de lote não foi para as duas tarefas");
+    await aviso("2 tarefas em Lote novo").waitFor();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=barra-lote]").waitFor({ state: "detached" });
+    // e a categoria também muda pelo botão direito da tarefa
+    await itens.filter({ has: pg.locator(`a[href="/tarefas/${ids[0]}"]`) }).first().click({ button: "right" });
+    await pg.getByRole("menuitem", { name: "Categoria" }).click();
+    await pg.getByRole("menuitemradio", { name: "Criada pelo menu" }).click();
+    await ateOsDados((d) => tarefa(d, ids[0]).categoriaId === cat(d, "Criada pelo menu").id, "o submenu Categoria do menu da tarefa não gravou");
+
+    // ---- a tela de tags: parecidas, juntar, desfazer, renomear e tirar de tudo ----
+    // a segunda tarefa do lote ganha a mesma tag escrita no plural, pelo campo de tags da própria tarefa
+    await pg.goto(`${B}/tarefas/${ids[1]}`);
+    await pg.locator("[data-slot=prop-tags] button").first().click();
+    await pg.keyboard.type("esteiras,");
+    await ateOsDados((d) => tarefa(d, ids[1]).tags.includes("esteiras"), "a tag digitada na tarefa não foi gravada");
+    // o campo sugere as tags do app inteiro (a do link entra na lista da tarefa)
+    await pg.locator("[data-slot=gerenciar-tags]").click();
+    await pg.waitForURL(/\/categorias\?aba=tags/);
+    const grupo = pg.locator("[data-slot=tags-parecidas]", { hasText: "esteiras" });
+    await grupo.waitFor();
+    await grupo.locator("[data-slot=juntar-parecidas]", { hasText: "Esteira" }).click();
+    await dialogo().getByRole("button", { name: "Juntar" }).click();
+    await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("Esteira")) && !d.tarefas.some((t) => t.tags.includes("esteiras")), "juntar as tags parecidas não gravou");
+    afirmar(tarefa(await dados(), ids[1]).tags.filter((t) => t === "Esteira").length === 1, "juntar deixou a tag repetida no mesmo item");
+    await pg.locator("[data-slot=tag-aberta]", { hasText: "Esteira" }).waitFor();
+    // desfazer devolve a grafia que cada item tinha
+    await aviso("juntada em “Esteira”").waitFor();
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("Control+z");
+    await ateOsDados((d) => tarefa(d, ids[1]).tags.includes("esteiras") && tarefa(d, ids[1]).tags.includes("Esteira"), "Ctrl Z não devolveu a tag que tinha sido juntada");
+    // renomear para um nome que já existe avisa que vai juntar
+    await pg.locator("[data-slot=tag-do-inventario][data-tag=esteiras]").click();
+    await pg.locator("[data-slot=tag-aberta]", { hasText: "esteiras" }).waitFor();
+    await pg.locator("[data-slot=nome-da-tag]").fill("esteira");
+    await pg.locator("[data-slot=renomear-tag]", { hasText: "Juntar" }).click();
+    await dialogo().getByRole("button", { name: "Juntar" }).click();
+    await ateOsDados((d) => !d.tarefas.some((t) => t.tags.includes("esteiras")), "renomear para uma tag que já existe não juntou as duas");
+    // renomear de verdade: muda em todos os itens de uma vez, e o endereço acompanha
+    await pg.locator("[data-slot=tag-aberta]", { hasText: "Esteira" }).waitFor();
+    await pg.locator("[data-slot=nome-da-tag]").fill("  esteira de entrega, ");
+    await pg.locator("[data-slot=renomear-tag]", { hasText: "Renomear" }).click();
+    await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("esteira de entrega")) && !d.tarefas.some((t) => t.tags.includes("Esteira")), "renomear a tag não gravou em todos os itens");
+    await pg.waitForURL(/tag=esteira(%20|\+)de(%20|\+)entrega/);
+    afirmar((await pg.locator("[data-slot=itens-da-tag][data-onde=Tarefas] li").count()) === 2, "a tag aberta deveria listar as duas tarefas");
+    // tirar de tudo pede confirmação e tem volta pelo aviso
+    await pg.locator("[data-slot=tirar-tag]").click();
+    await dialogo().getByRole("button", { name: "Tirar a tag" }).click();
+    await ateOsDados((d) => !d.tarefas.some((t) => t.tags.includes("esteira de entrega")), "tirar a tag de tudo não gravou");
+    await aviso("Tag “esteira de entrega” tirada de 2 itens").getByRole("button", { name: "Desfazer" }).click();
+    await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("esteira de entrega")), "desfazer não devolveu a tag tirada");
+    // nada do que não tinha a tag foi tocado: as outras tags continuam onde estavam
+    const fim = await dados();
+    afirmar(tarefa(fim, a.id).categoriaId === cat(fim, "Fluxo sem sair").id || ids.includes(a.id), "a categoria da primeira tarefa mudou sem ninguém pedir");
+  });
+
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {
     const t = (await dados()).tarefas[0];
     await pg.goto(`${B}/tarefas/${t.id}`);

@@ -7,18 +7,23 @@
 
 import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlarmClock, CalendarClock, Folder, Gauge, Target, Trash2, X } from "lucide-react";
+import { AlarmClock, CalendarClock, Check, Folder, Gauge, Minus, Plus, Tag, Target, Trash2, X } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { oferecerDesfazer } from "@/components/desfazer";
-import { IconeStatus, PontoCor } from "@/components/comum";
+import { IconeStatus } from "@/components/comum";
+import { useCriarCategoria, useOpcoesDeCategoria } from "@/components/categorias/Escolher";
+import { useNomesDasTags } from "@/components/tags/useTags";
+import { ListaDeCategorias } from "@/components/tarefas/ComboCategoria";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/controles";
 import { SeletorData, somarDias } from "@/components/ui/data";
 import * as M from "@/components/ui/menu";
-import { Dica } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aplicarStatus, comFoco, comLembrete } from "@/lib/acoes";
-import { STATUS, type Categoria, type Status, type Tarefa, dataCurta, hojeISO, nomeStatus } from "@/lib/tipos";
+import { chaveDaTag, comTagTrocada, limparTag, temATag } from "@/lib/tags";
+import { STATUS, type Categoria, type Status, type Tarefa, dataCurta, hojeISO, nomeStatus, semAcento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** A seleção da tela: ids marcados. */
@@ -102,9 +107,57 @@ function useAplicarEmLote() {
 const plural = (n: number) => `${n} ${n === 1 ? "tarefa" : "tarefas"}`;
 
 /** Barra flutuante com as ações para as tarefas selecionadas. */
+/** As tags das tarefas escolhidas: marcada = todas têm, traço = só algumas. Escolher põe em todas (ou tira, se todas já têm). */
+function TagsDoLote({ escolhidas, aoAlternar }: { escolhidas: Tarefa[]; aoAlternar: (tag: string) => void }) {
+  const todas = useNomesDasTags();
+  const [busca, setBusca] = useState("");
+  const nome = limparTag(busca);
+  const termos = semAcento(nome).split(" ").filter(Boolean);
+  const visiveis = todas.filter((t) => termos.every((q) => semAcento(t).includes(q))).slice(0, 60);
+  const podeCriar = !!nome && !todas.some((t) => chaveDaTag(t) === chaveDaTag(nome));
+  const quantas = (t: string) => escolhidas.filter((x) => temATag(x.tags, t)).length;
+  // quem está em alguma das escolhidas vem primeiro
+  const ordenadas = [...visiveis].sort((a, b) => Number(quantas(b) > 0) - Number(quantas(a) > 0));
+  return (
+    <Command shouldFilter={false} data-slot="tags-do-lote">
+      <CommandInput placeholder="Buscar ou criar tag..." value={busca} onValueChange={setBusca} maxLength={60} />
+      <CommandList>
+        <CommandEmpty>{todas.length ? "Nenhuma tag com esse nome." : "Nenhuma tag ainda. Digite o nome para criar."}</CommandEmpty>
+        <CommandGroup>
+          {ordenadas.map((t) => {
+            const q = quantas(t);
+            const tudo = q === escolhidas.length;
+            return (
+              <CommandItem key={t} value={`tag:${t}`} onSelect={() => aoAlternar(t)}>
+                <span className={cn(
+                  "inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
+                  q > 0 ? "border-primary-solido bg-primary-solido text-primary-foreground" : "border-input bg-card",
+                )}>
+                  {tudo ? <Check className="size-3 !text-primary-foreground" strokeWidth={3} /> : q > 0 ? <Minus className="size-3 !text-primary-foreground" strokeWidth={3} /> : null}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{t}</span>
+                {q > 0 && !tudo && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{q} de {escolhidas.length}</span>}
+              </CommandItem>
+            );
+          })}
+          {podeCriar && (
+            <CommandItem value="__criar" data-slot="criar-tag" onSelect={() => { aoAlternar(nome); setBusca(""); }}>
+              <Plus className="!text-primary" />
+              <span className="min-w-0 truncate">Pôr a tag <strong className="font-semibold">“{nome}”</strong></span>
+            </CommandItem>
+          )}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+}
+
 export function BarraDeLote({ selecao, tarefas, categorias }: { selecao: Selecao; tarefas: Tarefa[]; categorias: Categoria[] }) {
-  const { excluirTarefa, restaurarTarefa, estado } = useNexo();
+  const { excluirTarefa, restaurarTarefa, estado, dadosAtuais } = useNexo();
   const confirmar = useConfirmar();
+  const opcoesCategoria = useOpcoesDeCategoria();
+  const criarCategoria = useCriarCategoria();
+  const [balao, setBalao] = useState<"categoria" | "tags" | null>(null);
   const aplicar = useAplicarEmLote();
   const escolhidas = tarefas.filter((t) => selecao.ids.includes(t.id));
   const n = escolhidas.length;
@@ -116,8 +169,21 @@ export function BarraDeLote({ selecao, tarefas, categorias }: { selecao: Selecao
     if (alvo.length) void aplicar(alvo, (x) => aplicarStatus(x, s, x), `${plural(alvo.length)} em ${nomeStatus(s)}.`);
   };
   const prioridade = (p: number) => void aplicar(escolhidas, (x) => ({ ...x, prioridade: p }), `Prioridade ${p} em ${plural(n)}.`);
-  const categoria = (id: string | null) =>
-    void aplicar(escolhidas, (x) => ({ ...x, categoriaId: id }), id ? `${plural(n)} em ${categorias.find((c) => c.id === id)?.nome ?? "outra categoria"}.` : `${plural(n)} sem categoria.`);
+  const categoria = (id: string | null) => {
+    const nome = id ? (dadosAtuais()?.categorias.items ?? categorias).find((c) => c.id === id)?.nome ?? "outra categoria" : "";
+    void aplicar(escolhidas, (x) => ({ ...x, categoriaId: id }), id ? `${plural(n)} em ${nome}.` : `${plural(n)} sem categoria.`);
+  };
+  /** Põe a tag em todas as escolhidas; se todas já têm, tira de todas. */
+  const tag = (nome: string) => {
+    const limpa = limparTag(nome);
+    if (!limpa) return;
+    const todasTem = escolhidas.every((t) => temATag(t.tags, limpa));
+    if (todasTem) void aplicar(escolhidas, (x) => ({ ...x, tags: comTagTrocada(x.tags, limpa, null) }), `Tag “${limpa}” tirada de ${plural(n)}.`);
+    else {
+      const alvo = escolhidas.filter((t) => !temATag(t.tags, limpa));
+      void aplicar(alvo, (x) => (temATag(x.tags, limpa) ? x : { ...x, tags: [...x.tags, limpa] }), `Tag “${limpa}” em ${plural(alvo.length)}.`);
+    }
+  };
   const prazo = (v: string | null) => void aplicar(escolhidas, (x) => ({ ...x, prazo: v || null }), v ? `Prazo ${dataCurta(v)} em ${plural(n)}.` : `Prazo removido de ${plural(n)}.`);
   const lembrar = (v: string | null) => void aplicar(escolhidas, (x) => comLembrete(x, v), v ? `Lembrete em ${dataCurta(v)} para ${plural(n)}.` : `Lembrete removido de ${plural(n)}.`);
   const foco = (ligar: boolean) => void aplicar(escolhidas, (x) => comFoco(x, ligar), ligar ? `${plural(n)} no foco de hoje.` : `${plural(n)} fora do foco.`);
@@ -176,18 +242,25 @@ export function BarraDeLote({ selecao, tarefas, categorias }: { selecao: Selecao
               </M.DropdownMenuContent>
             </M.DropdownMenu>
 
-            <M.DropdownMenu>
-              <M.DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" disabled={somenteLeitura}><Folder /> Categoria</Button>
-              </M.DropdownMenuTrigger>
-              <M.DropdownMenuContent align="center" side="top" className="max-h-72 min-w-48 overflow-y-auto">
-                {categorias.filter((c) => !c.arquivada).map((c) => (
-                  <M.DropdownMenuItem key={c.id} onSelect={() => categoria(c.id)}><PontoCor cor={c.cor} /> {c.nome}</M.DropdownMenuItem>
-                ))}
-                <M.DropdownMenuSeparator />
-                <M.DropdownMenuItem onSelect={() => categoria(null)}><PontoCor /> Sem categoria</M.DropdownMenuItem>
-              </M.DropdownMenuContent>
-            </M.DropdownMenu>
+            <Popover open={balao === "categoria"} onOpenChange={(a) => setBalao(a ? "categoria" : null)}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" disabled={somenteLeitura} data-slot="lote-categoria"><Folder /> Categoria</Button>
+              </PopoverTrigger>
+              <PopoverContent align="center" side="top" className="w-64 p-0">
+                <ListaDeCategorias valor="__nenhuma" opcoes={opcoesCategoria} dicaDeCriar={false}
+                  aoEscolher={(v) => { setBalao(null); categoria(v || null); }}
+                  aoCriar={(nome) => { setBalao(null); void criarCategoria(nome).then((id) => { if (id) categoria(id); }); }} />
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={balao === "tags"} onOpenChange={(a) => setBalao(a ? "tags" : null)}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" disabled={somenteLeitura} data-slot="lote-tags"><Tag /> Tags</Button>
+              </PopoverTrigger>
+              <PopoverContent align="center" side="top" className="w-64 p-0">
+                <TagsDoLote escolhidas={escolhidas} aoAlternar={tag} />
+              </PopoverContent>
+            </Popover>
 
             <M.DropdownMenu>
               <M.DropdownMenuTrigger asChild>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { ArrowRight, Copy, Plus, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { useCriarTarefa } from "@/components/tarefas/criar";
 import { useFecharComCuidado } from "@/components/Raiz";
 import { Campo, LinhaCampos, Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export function BlocoForm({
   pedido: PedidoDeBloco; fechar: () => void; aoSalvar: (b: BlocoDaJornada) => void; aoExcluir?: (id: string) => void; data?: string;
 }) {
   const { dados, toast } = useNexo();
+  const criarTarefa = useCriarTarefa();
   const { jornada } = useJornada();
   const original = pedido.bloco;
   const base = original ?? pedido.inicial ?? {};
@@ -150,7 +152,15 @@ export function BlocoForm({
 
         {tipo === "tarefa" && (
           <Campo rotulo="Tarefa">
-            <Combobox aria-label="Tarefa do bloco" valor={tarefaId} aoMudar={mudarTarefa} opcoes={opcoesTarefa} placeholder="Escolha a tarefa" buscaPlaceholder="Buscar tarefa..." vazio="Nenhuma tarefa aberta com esse nome." permitirLimpar={false} />
+            <Combobox aria-label="Tarefa do bloco" valor={tarefaId} aoMudar={mudarTarefa} opcoes={opcoesTarefa} placeholder="Escolha a tarefa"
+              buscaPlaceholder="Buscar tarefa ou digitar o nome de uma nova..." vazio="Nenhuma tarefa aberta com esse nome." permitirLimpar={false}
+              // reservar horário para uma tarefa que ainda não está no app: ela nasce aqui
+              criar={(nome) => void criarTarefa(nome).then((id) => {
+                if (!id) return;
+                const antes = tarefas.find((t) => t.id === tarefaId)?.titulo ?? "";
+                setTarefaId(id);
+                if (!titulo.trim() || titulo === antes) setTitulo(nome);
+              })} />
           </Campo>
         )}
 

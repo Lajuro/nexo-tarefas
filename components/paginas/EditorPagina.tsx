@@ -11,12 +11,13 @@ import Link from "next/link";
 import { PainelCitacoes } from "@/components/Citacoes";
 import { SeletorDeTarefas } from "@/components/links/SeletorDeTarefas";
 import { useNexo } from "@/components/Provider";
+import { SeletorCategoria } from "@/components/categorias/Escolher";
+import { useNomesDasTags } from "@/components/tags/useTags";
 import { ChipsInput, IconeStatus, PontoCor } from "@/components/comum";
 import { type ApiDoEditor, EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { useGravacao } from "@/components/useGravacao";
 import { Button } from "@/components/ui/button";
-import { Combobox } from "@/components/ui/command";
 import { Segmentado } from "@/components/ui/controles";
 import { Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
@@ -65,7 +66,7 @@ export function EditorPagina({
   const { anterior, proxima } = useMemo(() => vizinhas(ativas, id), [ativas, id]);
   const categorias = (dados?.categorias.items ?? []).filter((c) => !c.arquivada || c.id === pagina.categoriaId);
   const cat = categorias.find((c) => c.id === pagina.categoriaId);
-  const todasAsTags = useMemo(() => [...new Set(paginas.flatMap((p) => p.tags))].sort(), [paginas]);
+  const todasAsTags = useNomesDasTags();
   // tarefas a que esta página serve (3.14): aparecem aqui e a página aparece em "Links e documentos" de cada uma
   const tarefas = dados?.tarefas ?? [];
   const tarefasDaPagina = (pagina.tarefaIds ?? []).map((t) => tarefas.find((x) => x.id === t)).filter((x) => !!x);
@@ -221,12 +222,8 @@ export function EditorPagina({
                 <>
                   <Seletor size="sm" aria-label="Estado da página" className="h-7 w-[124px] text-xs" valor={pagina.estado ?? "rascunho"}
                     aoMudar={(e) => acoes.mudar(id, { estado: e as EstadoPagina })} opcoes={ESTADOS_PAGINA.map((e) => ({ valor: e.id, rotulo: e.nome }))} />
-                  <Combobox
-                    valor={pagina.categoriaId ?? ""}
-                    aoMudar={(v) => acoes.mudar(id, { categoriaId: v || null })}
-                    opcoes={categorias.map((c) => ({ valor: c.id, rotulo: c.nome, render: <><PontoCor cor={c.cor} /><span className="truncate">{c.nome}</span></> }))}
-                    placeholder="Sem categoria" rotuloLimpar="Sem categoria" aria-label="Categoria da página" className="h-7 w-44 text-xs"
-                  />
+                  <SeletorCategoria valor={pagina.categoriaId ?? ""} aoMudar={(v) => acoes.mudar(id, { categoriaId: v || null })}
+                    aria-label="Categoria da página" className="h-7 w-44 text-xs" />
                   <SeletorDeTarefas valor={pagina.tarefaIds ?? []} aoMudar={(tarefaIds) => acoes.mudar(id, { tarefaIds })} tarefas={tarefas}
                     aria-label="Tarefas a que esta página serve" className="max-w-52" />
                   <div className="min-w-44 flex-1 [&_[data-slot=campo-chips]>div]:min-h-7 [&_[data-slot=campo-chips]>div]:py-0.5">

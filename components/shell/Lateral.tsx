@@ -8,7 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronRight, PinOff, Plus, Search, SlidersHorizontal, Target } from "lucide-react";
+import { ChevronDown, ChevronRight, PinOff, Plus, Search, SlidersHorizontal, Target } from "lucide-react";
+import { ItensDeCriar } from "@/components/Criar";
 import { useNexo } from "@/components/Provider";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { NivelLateral } from "@/components/jogo/NivelLateral";
@@ -16,6 +17,7 @@ import { useHoje } from "@/components/useHoje";
 import { useLembretes } from "@/components/useLembretes";
 import { IconeStatus, PontoCor } from "@/components/comum";
 import { Kbd } from "@/components/ui/diversos";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { comFixada } from "@/lib/acoes";
 import { mola, suave } from "@/lib/animacoes";
@@ -347,12 +349,29 @@ export function Lateral({
           </>
         ) : (
           <>
-            <button type="button" onClick={novaTarefa} data-slot="nova-tarefa"
-              className="group/nova flex h-8 items-center gap-2 rounded-md bg-primary-solido px-2.5 text-[13px] font-medium text-primary-foreground shadow-xs transition-[background-color,transform,box-shadow] outline-none sem-selecao hover:bg-primary-solido/90 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]">
-              <Plus className="size-4 transition-transform duration-300 ease-out group-hover/nova:rotate-90" />
-              <span className="flex-1 truncate text-left">Nova tarefa</span>
-              <kbd className="rounded border border-white/25 bg-black/12 px-1 font-mono text-[11px]">N</kbd>
-            </button>
+            {/* Um botão em duas partes: a tarefa, que é o que mais se cria, e a setinha para criar o resto sem trocar de tela. */}
+            <div className="flex h-8 rounded-md bg-primary-solido text-primary-foreground shadow-xs dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]">
+              <button type="button" onClick={novaTarefa} data-slot="nova-tarefa"
+                className="group/nova flex min-w-0 flex-1 items-center gap-2 rounded-l-md px-2.5 text-[13px] font-medium transition-[background-color,transform] outline-none sem-selecao hover:bg-black/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98]">
+                <Plus className="size-4 transition-transform duration-300 ease-out group-hover/nova:rotate-90" />
+                <span className="flex-1 truncate text-left">Nova tarefa</span>
+                <kbd className="rounded border border-white/25 bg-black/12 px-1 font-mono text-[11px]">N</kbd>
+              </button>
+              <DropdownMenu>
+                <Dica texto="Criar outra coisa: categoria, página, link, pessoa..." side="right">
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" aria-label="Criar outra coisa" data-slot="criar-outra-coisa"
+                      className="inline-flex w-7 shrink-0 items-center justify-center rounded-r-md border-l border-white/20 transition-colors outline-none hover:bg-black/10 focus-visible:ring-[3px] focus-visible:ring-ring/40 data-[state=open]:bg-black/15">
+                      <ChevronDown className="size-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </Dica>
+                <DropdownMenuContent align="start" className="min-w-52">
+                  <DropdownMenuLabel>Criar</DropdownMenuLabel>
+                  <ItensDeCriar />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <button type="button" onClick={abrirPaleta} data-slot="abrir-busca"
               className={cn("flex h-8 items-center gap-2 rounded-md border border-sidebar-border bg-background/60 px-2.5 text-[13px] text-muted-foreground transition-colors sem-selecao hover:border-ring/40 hover:text-foreground", foco)}>
               <Search className="size-3.5" />

@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { Link2, LockOpen, X } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { IconeStatus, Painel } from "@/components/comum";
+import { useCriarTarefa } from "@/components/tarefas/criar";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
 import { Dica } from "@/components/ui/popover";
@@ -35,6 +36,7 @@ function LinhaTarefa({ t, aoTirar }: { t: Tarefa; aoTirar?: () => void }) {
 
 export function PainelDependencias({ tarefa }: { tarefa: Tarefa }) {
   const { dados, atualizarComVolta, toast } = useNexo();
+  const criarTarefa = useCriarTarefa();
   const tarefas = useMemo(() => dados?.tarefas ?? [], [dados?.tarefas]);
   const deps = dependenciasDe(tarefa, tarefas);
   const segura = quemDependeDe(tarefa.id, tarefas);
@@ -63,7 +65,11 @@ export function PainelDependencias({ tarefa }: { tarefa: Tarefa }) {
 
   const seletor = (classe: string, placeholder: string) => (
     <Combobox valor="" aoMudar={ligar} opcoes={opcoes} permitirLimpar={false} placeholder={placeholder}
-      buscaPlaceholder="Buscar tarefa..." vazio="Nenhuma tarefa com esse nome." aria-label="Ligar uma tarefa de que esta depende" className={classe} />
+      buscaPlaceholder="Buscar tarefa ou digitar o nome de uma nova..." vazio="Nenhuma tarefa com esse nome." aria-label="Ligar uma tarefa de que esta depende" className={classe}
+      // a tarefa de que esta depende ainda não está no app: nasce aqui, na mesma categoria, e já fica ligada
+      criar={(titulo) => void criarTarefa(titulo, { categoriaId: tarefa.categoriaId }).then((id) => {
+        if (id) void atualizarComVolta(tarefa.id, (x) => comDependencia(x, id, true), `Agora depende de “${titulo}”.`);
+      })} />
   );
 
   // Nada ligado, nada segurado: o painel é só o cabeçalho com o seletor, em vez de um bloco com uma frase.

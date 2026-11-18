@@ -8,6 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { TriangleAlert } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { useCriarCategoria } from "@/components/categorias/Escolher";
+import { useNomesDasTags } from "@/components/tags/useTags";
 import { AvatarPessoa, Campo, ChipsInput, LinhaCampos, Modal, PontoCor } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { CampoSugestoes } from "@/components/ui/chips";
@@ -15,7 +17,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/diversos";
 import { type Pessoa, agoraISO, normalizarPessoa, novoId } from "@/lib/tipos";
 import { chaveNome, chavesDaPessoa, montarDiretorio } from "@/lib/pessoas";
-import { hrefPessoa, porNome } from "./pecas";
+import { hrefPessoa, porNome, useAcoesTime } from "./pecas";
 import { SeletorMultiplo } from "./SeletorMultiplo";
 
 export function PessoaForm({
@@ -72,7 +74,9 @@ export function PessoaForm({
     () => [...new Set((dados?.pessoas.items ?? []).map((p) => p.area.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
     [dados],
   );
-  const todasTags = useMemo(() => [...new Set((dados?.pessoas.items ?? []).flatMap((p) => p.tags))], [dados]);
+  const todasTags = useNomesDasTags();
+  const criarCategoria = useCriarCategoria();
+  const acoesTime = useAcoesTime();
 
   const nomeLimpo = nome.replace(/\s+/g, " ").trim();
   // Nome ou apelido que já identifica outra pessoa: avisa e oferece abrir a existente.
@@ -242,7 +246,9 @@ export function PessoaForm({
               valor={timeIds}
               aoMudar={setTimeIds}
               placeholder="Escolher times"
-              buscaPlaceholder="Buscar time..."
+              buscaPlaceholder="Buscar ou criar time..."
+              // o time que ainda não existe nasce aqui, só com o nome; a pessoa entra nele ao salvar
+              criar={async (nome) => (await acoesTime.criarRapido(nome))?.id ?? null}
               vazio={times.length ? "Nenhum time com esse nome." : "Nenhum time cadastrado ainda."}
               opcoes={[...times]
                 .filter((t) => !t.arquivado || timeIds.includes(t.id))
@@ -257,8 +263,9 @@ export function PessoaForm({
               valor={categoriaIds}
               aoMudar={setCategoriaIds}
               placeholder="Ligar a categorias"
-              buscaPlaceholder="Buscar categoria..."
+              buscaPlaceholder="Buscar ou criar categoria..."
               vazio="Nenhuma categoria com esse nome."
+              criar={criarCategoria}
               opcoes={(dados?.categorias.items ?? [])
                 .filter((c) => !c.arquivada || categoriaIds.includes(c.id))
                 .map((c) => ({ valor: c.id, rotulo: c.nome, icone: <PontoCor cor={c.cor} /> }))}

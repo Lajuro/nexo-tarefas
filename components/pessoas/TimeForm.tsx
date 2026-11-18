@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNexo } from "@/components/Provider";
+import { useCriarCategoria } from "@/components/categorias/Escolher";
 import { AvatarPessoa, Campo, Modal, PontoCor } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -60,6 +61,7 @@ export function TimeForm({ aberto, fechar, time, aoSalvar }: { aberto: boolean; 
     setMembroIds((m) => [...m, ...v.filter((x) => !m.includes(x))]);
   };
   const criarPessoa = async (texto: string) => (await criarRapido(texto))?.id ?? null;
+  const criarCategoria = useCriarCategoria();
 
   async function salvar() {
     if (!nomeLimpo || salvando) return;
@@ -149,8 +151,9 @@ export function TimeForm({ aberto, fechar, time, aoSalvar }: { aberto: boolean; 
             valor={categoriaIds}
             aoMudar={setCategoriaIds}
             placeholder="Ligar a categorias"
-            buscaPlaceholder="Buscar categoria..."
+            buscaPlaceholder="Buscar ou criar categoria..."
             vazio="Nenhuma categoria com esse nome."
+            criar={criarCategoria}
             opcoes={(dados?.categorias.items ?? [])
               .filter((c) => !c.arquivada || categoriaIds.includes(c.id))
               .map((c) => ({ valor: c.id, rotulo: c.nome, icone: <PontoCor cor={c.cor} /> }))}

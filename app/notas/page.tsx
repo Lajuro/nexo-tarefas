@@ -52,6 +52,15 @@ function Conteudo() {
   // /notas?n=<id> (link "abrir a folha original" na timeline): abre a folha na aba certa e limpa o endereço.
   useEffect(() => {
     if (!pedida || !dados) return;
+    // "Nova folha" pedido de outra tela (menu Criar, paleta): começa uma folha em branco
+    if (pedida === "nova") {
+      const id = novoId("n");
+      setNova(id);
+      setSel(id);
+      setAba("abertas");
+      router.replace("/notas");
+      return;
+    }
     const n = notas.find((x) => x.id === pedida);
     if (n) {
       setAba(n.arquivadaEm ? "arquivadas" : "abertas");

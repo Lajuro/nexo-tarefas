@@ -3,8 +3,9 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bookmark, CornerDownLeft, Crosshair, type LucideIcon, Maximize, MessagesSquare, Monitor, Moon, MoonStar, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
+  Bookmark, CornerDownLeft, Crosshair, type LucideIcon, Maximize, MessagesSquare, Monitor, Moon, MoonStar, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise, Tags,
 } from "lucide-react";
+import { COISAS_PARA_CRIAR, pedirCriar } from "@/components/Criar";
 import { useNexo } from "@/components/Provider";
 import { type Tema, useTema } from "@/components/Raiz";
 import { AvatarPessoa, IconeStatus, PontoCor, PrioBadge } from "@/components/comum";
@@ -44,6 +45,12 @@ const ACOES: Comando[] = [
   { id: "acao:cheia", nome: "Tela cheia", palavras: "entrar sair tela cheia fullscreen maximizar", icone: Maximize, tecla: ["F11"] },
   { id: "acao:lateral", nome: "Barra lateral", palavras: "recolher abrir barra lateral menu", icone: PanelLeft, tecla: ["Ctrl", "B"] },
   { id: "acao:personalizar", nome: "Personalizar", palavras: "personalizar aparencia cor de destaque cores cantos letra fonte barra lateral superior animacao movimento", icone: SlidersHorizontal },
+];
+
+// Só aparecem quando se busca (em repouso a paleta mostra o que se usa todo dia): criar qualquer coisa de qualquer tela.
+const ACOES_DA_BUSCA: Comando[] = [
+  ...COISAS_PARA_CRIAR.map((c) => ({ id: `criar:${c.tipo}`, nome: c.nome, palavras: c.palavras, icone: c.icone })),
+  { id: "acao:tags", nome: "Gerenciar tags", palavras: "tags etiquetas renomear juntar tirar gerenciar organizar tag", icone: Tags },
 ];
 
 const TEMAS: { tema: Tema; nome: string; icone: LucideIcon; palavras: string }[] = [
@@ -110,7 +117,7 @@ export function Paleta({
 
   const telas = TODOS_NAV.map((n) => ({ id: `tela:${n.href}`, nav: n }));
   const casa = (texto: string) => filtroSemAcento(texto, termo) > 0;
-  const acoesVis = buscando ? ACOES.filter((a) => casa(`${a.nome} ${a.palavras}`)) : ACOES;
+  const acoesVis = buscando ? [...ACOES, ...ACOES_DA_BUSCA].filter((a) => casa(`${a.nome} ${a.palavras}`)) : ACOES;
   const temasVis = buscando ? TEMAS.filter((t) => casa(t.palavras)) : TEMAS;
   const telasVis = buscando ? telas.filter((t) => casa(`ir para ${t.nav.nome}`)) : telas;
   const catsVis = buscando ? cats.filter((c) => casa(`categoria ${c.nome}`)) : [];
@@ -147,6 +154,8 @@ export function Paleta({
     "acao:lateral": () => fazer(acoes.alternarLateral),
     "acao:anotar": () => fazer(acoes.anotar),
     "acao:personalizar": () => fazer(acoes.personalizar),
+    "acao:tags": () => ir("/categorias?aba=tags"),
+    ...Object.fromEntries(COISAS_PARA_CRIAR.map((c) => [`criar:${c.tipo}`, () => fazer(() => pedirCriar(c.tipo))])),
   };
 
   const ordem: string[] = [];

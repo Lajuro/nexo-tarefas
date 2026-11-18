@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Copy, MessagesSquare, Plus } from "lucide-react";
 import { useNexo } from "./Provider";
+import { useCriarTarefa } from "./tarefas/criar";
 import { useFecharComCuidado } from "./Raiz";
 import { oferecerDesfazer } from "./desfazer";
 import { Campo, ItemPasso, Modal, Painel, copiarTexto } from "./comum";
@@ -29,6 +30,7 @@ export const pedirAssunto = (p: Pedido = {}) => window.dispatchEvent(new CustomE
 
 export function JanelaAssunto() {
   const { dados, salvarAssuntos, toast } = useNexo();
+  const criarTarefa = useCriarTarefa();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [pessoa, setPessoa] = useState("");
   const [texto, setTexto] = useState("");
@@ -86,7 +88,9 @@ export function JanelaAssunto() {
             placeholder="Ex.: pedir a lista de squads que vão entrar no próximo ciclo" aria-label="Assunto" />
         </Campo>
         <Campo rotulo="Tarefa (opcional)">
-          <Combobox valor={tarefaId} aoMudar={setTarefaId} opcoes={opcoes} placeholder="Nenhuma" rotuloLimpar="Nenhuma" aria-label="Tarefa do assunto" buscaPlaceholder="Buscar tarefa..." />
+          <Combobox valor={tarefaId} aoMudar={setTarefaId} opcoes={opcoes} placeholder="Nenhuma" rotuloLimpar="Nenhuma" aria-label="Tarefa do assunto"
+            buscaPlaceholder="Buscar tarefa ou digitar o nome de uma nova..."
+            criar={(titulo) => void criarTarefa(titulo).then((id) => { if (id) setTarefaId(id); })} />
         </Campo>
       </div>
     </Modal>

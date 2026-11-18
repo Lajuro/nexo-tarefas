@@ -6,7 +6,10 @@ import { ExternalLink, FileText, FolderOpen, Globe, Link2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useFecharComCuidado } from "./Raiz";
 import { aoClicarEmArquivo } from "./VisorDeArquivo";
-import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, formatarTamanho } from "./comum";
+import { Campo, ChipsInput, LinhaCampos, Modal, formatarTamanho } from "./comum";
+import { SeletorCategoria } from "./categorias/Escolher";
+import { useNomesDasTags } from "./tags/useTags";
+import { useCriarTarefa } from "./tarefas/criar";
 import { IconeEstadoLink } from "./links/EstadoLink";
 import { IconeLink } from "./links/IconeLink";
 import { opcoesDeTarefa } from "./links/SeletorDeTarefas";
@@ -14,7 +17,6 @@ import { SeletorMultiplo } from "./pessoas/SeletorMultiplo";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Segmentado } from "@/components/ui/controles";
-import { Combobox } from "@/components/ui/command";
 import { AreaArquivo } from "@/components/ui/chips";
 import { Seletor } from "@/components/ui/select";
 import { comEstado, comTarefasNoLink, tarefasDoLink } from "@/lib/links";
@@ -101,25 +103,11 @@ export function LinkForm({
     }
   };
 
-  const tagsExist = useMemo(() => [...new Set((dados?.links.items ?? []).flatMap((l) => l.tags))].sort((a, b) => a.localeCompare(b, "pt-BR")), [dados]);
+  const tagsExist = useNomesDasTags();
+  const criarTarefa = useCriarTarefa();
 
   const opcoesTarefa = useMemo(() => opcoesDeTarefa(dados?.tarefas ?? []), [dados]);
 
-  const opcoesCategoria = useMemo(
-    () =>
-      (dados?.categorias.items ?? []).map((c) => ({
-        valor: c.id,
-        rotulo: c.nome,
-        detalhe: c.arquivada ? "arquivada" : undefined,
-        render: (
-          <>
-            <PontoCor cor={c.cor} />
-            <span className="truncate">{c.nome}</span>
-          </>
-        ),
-      })),
-    [dados],
-  );
 
   const ehRede = url.trim().startsWith("\\\\");
   const IconeEndereco = ehRede ? FolderOpen : Globe;
@@ -219,22 +207,14 @@ export function LinkForm({
             aoMudar={setTIds}
             opcoes={opcoesTarefa}
             placeholder="Nenhuma tarefa"
-            buscaPlaceholder="Buscar tarefa..."
+            buscaPlaceholder="Buscar tarefa ou digitar o nome de uma nova..."
             vazio="Nenhuma tarefa com esse nome."
+            criar={(titulo) => criarTarefa(titulo, { categoriaId: cId })}
           />
         </Campo>
         <LinhaCampos>
           <Campo rotulo="Vincular à categoria">
-            <Combobox
-              aria-label="Vincular à categoria"
-              valor={cId}
-              aoMudar={setCId}
-              opcoes={opcoesCategoria}
-              placeholder="Nenhuma"
-              rotuloLimpar="Nenhuma"
-              buscaPlaceholder="Buscar categoria..."
-              vazio="Nenhuma categoria com esse nome."
-            />
+            <SeletorCategoria aria-label="Vincular à categoria" valor={cId} aoMudar={setCId} placeholder="Nenhuma" rotuloVazio="Nenhuma" />
           </Campo>
           <Campo rotulo="Status" dica="Para acompanhar: uma leitura pendente ou um chamado que você abriu.">
             <Seletor

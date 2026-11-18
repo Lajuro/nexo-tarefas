@@ -12,6 +12,72 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { semAcento } from "@/lib/tipos";
 
+/**
+ * A lista de categorias com busca e "Criar": o miolo do seletor, para usar dentro de qualquer balão
+ * (o campo de formulário, a categoria da tarefa trocada no lugar, a barra de ações em lote).
+ */
+export function ListaDeCategorias({
+  valor, opcoes, aoEscolher, aoCriar, rotuloVazio = "Sem categoria", comVazio = true, dicaDeCriar = true,
+}: {
+  /** "" = sem categoria. */
+  valor: string;
+  opcoes: OpcaoCombo[];
+  aoEscolher: (v: string) => void;
+  /** Sem isto, a lista só escolhe. */
+  aoCriar?: (nome: string) => void;
+  rotuloVazio?: string;
+  comVazio?: boolean;
+  dicaDeCriar?: boolean;
+}) {
+  const [busca, setBusca] = useState("");
+  const nome = busca.trim().replace(/\s+/g, " ");
+
+  const { visiveis, mostraVazio, podeCriar } = useMemo(() => {
+    const termos = semAcento(nome).split(" ").filter(Boolean);
+    const bate = (texto: string) => termos.every((t) => semAcento(texto).includes(t));
+    return {
+      visiveis: opcoes.filter((o) => bate(o.rotulo)),
+      mostraVazio: comVazio && bate(rotuloVazio),
+      podeCriar: !!aoCriar && !!nome && !opcoes.some((o) => semAcento(o.rotulo) === semAcento(nome)),
+    };
+  }, [opcoes, nome, rotuloVazio, comVazio, aoCriar]);
+
+  return (
+    <Command shouldFilter={false} data-slot="lista-de-categorias">
+      <CommandInput placeholder={aoCriar ? "Buscar ou criar categoria..." : "Buscar categoria..."} value={busca} onValueChange={setBusca} maxLength={60} />
+      <CommandList>
+        <CommandEmpty>Nada encontrado.</CommandEmpty>
+        <CommandGroup>
+          {mostraVazio && (
+            <CommandItem value="__vazio" onSelect={() => aoEscolher("")}>
+              <span className="text-muted-foreground">{rotuloVazio}</span>
+              {!valor && <Check className="ml-auto size-3.5 !text-primary" />}
+            </CommandItem>
+          )}
+          {visiveis.map((o) => (
+            <CommandItem key={o.valor} value={o.valor} onSelect={() => aoEscolher(o.valor)}>
+              <span className="flex min-w-0 flex-1 items-center gap-2">{o.render ?? <span className="truncate">{o.rotulo}</span>}</span>
+              {o.detalhe && <span className="shrink-0 text-xs text-muted-foreground">{o.detalhe}</span>}
+              {o.valor === valor && <Check className="size-3.5 !text-primary" />}
+            </CommandItem>
+          ))}
+          {podeCriar && (
+            <CommandItem value="__criar" data-slot="criar-categoria" onSelect={() => aoCriar!(nome)}>
+              <Plus className="!text-primary" />
+              <span className="min-w-0 truncate">Criar <strong className="font-semibold">“{nome}”</strong></span>
+            </CommandItem>
+          )}
+        </CommandGroup>
+      </CommandList>
+      {aoCriar && dicaDeCriar && !nome && (
+        <p className="border-t px-3 py-2 text-xs text-muted-foreground sem-selecao">
+          Não achou? Digite o nome e crie a categoria na hora.
+        </p>
+      )}
+    </Command>
+  );
+}
+
 export function ComboCategoria({
   valor, aoMudar, opcoes, aoCriar, placeholder = "Sem categoria", rotuloVazio = "Sem categoria", className, id,
   "aria-label": ariaLabel,
@@ -29,27 +95,10 @@ export function ComboCategoria({
   "aria-label"?: string;
 }) {
   const [aberto, setAberto] = useState(false);
-  const [busca, setBusca] = useState("");
   const atual = opcoes.find((o) => o.valor === valor);
-  const nome = busca.trim().replace(/\s+/g, " ");
-
-  const { visiveis, mostraVazio, podeCriar } = useMemo(() => {
-    const termos = semAcento(nome).split(" ").filter(Boolean);
-    const bate = (texto: string) => termos.every((t) => semAcento(texto).includes(t));
-    return {
-      visiveis: opcoes.filter((o) => bate(o.rotulo)),
-      mostraVazio: bate(rotuloVazio),
-      podeCriar: !!nome && !opcoes.some((o) => semAcento(o.rotulo) === semAcento(nome)),
-    };
-  }, [opcoes, nome, rotuloVazio]);
-
-  const escolher = (v: string) => {
-    aoMudar(v);
-    setAberto(false);
-  };
 
   return (
-    <Popover open={aberto} onOpenChange={(a) => { setAberto(a); if (!a) setBusca(""); }}>
+    <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -66,37 +115,9 @@ export function ComboCategoria({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-max max-w-[min(30rem,calc(100vw-2rem))] min-w-[max(15rem,var(--radix-popover-trigger-width))] p-0">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="Buscar ou criar categoria..." value={busca} onValueChange={setBusca} maxLength={60} />
-          <CommandList>
-            <CommandEmpty>Nada encontrado.</CommandEmpty>
-            <CommandGroup>
-              {mostraVazio && (
-                <CommandItem value="__vazio" onSelect={() => escolher("")}>
-                  <span className="text-muted-foreground">{rotuloVazio}</span>
-                  {!valor && <Check className="ml-auto size-3.5 !text-primary" />}
-                </CommandItem>
-              )}
-              {visiveis.map((o) => (
-                <CommandItem key={o.valor} value={o.valor} onSelect={() => escolher(o.valor)}>
-                  <span className="flex min-w-0 flex-1 items-center gap-2">{o.render ?? <span className="truncate">{o.rotulo}</span>}</span>
-                  {o.valor === valor && <Check className="size-3.5 !text-primary" />}
-                </CommandItem>
-              ))}
-              {podeCriar && (
-                <CommandItem value="__criar" data-slot="criar-categoria" onSelect={() => { aoCriar(nome); setAberto(false); }}>
-                  <Plus className="!text-primary" />
-                  <span className="min-w-0 truncate">Criar <strong className="font-semibold">“{nome}”</strong></span>
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </CommandList>
-          {!nome && (
-            <p className="border-t px-3 py-2 text-xs text-muted-foreground sem-selecao">
-              Não achou? Digite o nome e crie a categoria na hora.
-            </p>
-          )}
-        </Command>
+        <ListaDeCategorias valor={valor} opcoes={opcoes} rotuloVazio={rotuloVazio}
+          aoEscolher={(v) => { aoMudar(v); setAberto(false); }}
+          aoCriar={(nome) => { aoCriar(nome); setAberto(false); }} />
       </PopoverContent>
     </Popover>
   );

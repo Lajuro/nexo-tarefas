@@ -6,12 +6,13 @@
 //     propriedades de uma página e o rodapé de uma folha. Cada marcação grava na hora.
 
 import * as React from "react";
-import { Check, ListTodo } from "lucide-react";
+import { Check, ListTodo, Plus } from "lucide-react";
 import { IconeStatus } from "@/components/comum";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { OpcaoMultipla } from "@/components/pessoas/SeletorMultiplo";
-import { STATUS_ABERTOS, type Tarefa, nomeStatus } from "@/lib/tipos";
+import { useCriarTarefa } from "@/components/tarefas/criar";
+import { STATUS_ABERTOS, type Tarefa, nomeStatus, semAcento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** As tarefas na ordem em que se procura: abertas primeiro, depois por nome. */
@@ -44,13 +45,17 @@ export function SeletorDeTarefas({
   "aria-label"?: string;
 }) {
   const [aberto, setAberto] = React.useState(false);
+  const [busca, setBusca] = React.useState("");
+  const criarTarefa = useCriarTarefa();
   const lista = React.useMemo(() => tarefasParaEscolher(tarefas), [tarefas]);
+  const titulo = busca.replace(/\s+/g, " ").trim();
+  const podeCriar = !!titulo && !tarefas.some((t) => semAcento(t.titulo.trim()) === semAcento(titulo));
   const existentes = valor.filter((id) => tarefas.some((t) => t.id === id));
   const alternar = (id: string) => aoMudar(valor.includes(id) ? valor.filter((x) => x !== id) : [...valor, id]);
   const nomes = existentes.map((id) => tarefas.find((t) => t.id === id)?.titulo).filter(Boolean).join(", ");
 
   return (
-    <Popover open={aberto} onOpenChange={setAberto}>
+    <Popover open={aberto} onOpenChange={(a) => { setAberto(a); if (!a) setBusca(""); }}>
       <Dica texto={existentes.length ? `Serve para: ${nomes}` : "Escolha as tarefas em que isto é útil: aparece em Links e documentos de cada uma"}>
         <PopoverTrigger asChild>
           <button type="button" role="combobox" aria-expanded={aberto} aria-label={ariaLabel} disabled={desabilitado}
@@ -70,9 +75,9 @@ export function SeletorDeTarefas({
       <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)] p-0"
         onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).querySelector("input")?.focus(); }}>
         <Command>
-          <CommandInput placeholder="Buscar tarefa..." />
+          <CommandInput placeholder="Buscar tarefa ou digitar o nome de uma nova..." value={busca} onValueChange={setBusca} maxLength={200} />
           <CommandList>
-            <CommandEmpty>Nenhuma tarefa com esse nome.</CommandEmpty>
+            {!podeCriar && <CommandEmpty>Nenhuma tarefa com esse nome.</CommandEmpty>}
             <CommandGroup>
               {lista.map((t) => {
                 const marcado = valor.includes(t.id);
@@ -91,6 +96,15 @@ export function SeletorDeTarefas({
                 );
               })}
             </CommandGroup>
+            {podeCriar && (
+              // grupo próprio e sempre montado: o cmdk esconde o grupo inteiro quando nenhum item dele casa com a busca
+              <CommandGroup forceMount>
+                <CommandItem value={`__criar ${titulo}`} forceMount data-slot="criar-tarefa"
+                  onSelect={() => { setBusca(""); void criarTarefa(titulo).then((id) => { if (id) aoMudar([...valor, id]); }); }}>
+                  <Plus className="!text-primary" /> <span className="min-w-0 truncate">Criar a tarefa <strong className="font-semibold">“{titulo}”</strong></span>
+                </CommandItem>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

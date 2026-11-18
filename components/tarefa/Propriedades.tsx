@@ -6,13 +6,15 @@
 // A data de criação mora no resumo da lateral, para a faixa caber numa linha em 1366px.
 
 import Link from "next/link";
-import { ReactNode, useMemo, useState } from "react";
-import { AlarmClock, ArrowUpRight, CalendarClock, Check, ChevronDown, Gauge, Tag } from "lucide-react";
+import { ReactNode, useState } from "react";
+import { AlarmClock, ArrowUpRight, CalendarClock, ChevronDown, Gauge, Tag } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useAcoesTarefa } from "@/components/MenuTarefa";
-import { CatTag, Etiqueta, PontoCor, PrioBadge, SeletorPrioridade, SeletorStatus, nivelPrioridade } from "@/components/comum";
+import { useCriarCategoria, useOpcoesDeCategoria } from "@/components/categorias/Escolher";
+import { useNomesDasTags } from "@/components/tags/useTags";
+import { ListaDeCategorias } from "@/components/tarefas/ComboCategoria";
+import { CatTag, Etiqueta, PrioBadge, SeletorPrioridade, SeletorStatus, nivelPrioridade } from "@/components/comum";
 import { CampoChips } from "@/components/ui/chips";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { SeletorData } from "@/components/ui/data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aberta } from "@/lib/lembretes";
@@ -54,22 +56,18 @@ function corDoPrazo(prazo: string | null, fechada: boolean): string | null {
 
 const NOME_NIVEL = { alta: "alta", media: "média", baixa: "baixa" } as const;
 
-/** Categoria: troca no lugar, com busca; a página da categoria continua a um clique. */
+/** Categoria: troca no lugar, com busca, e cria a que falta na hora; a página da categoria continua a um clique. */
 function CategoriaNoLugar({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria }) {
-  const { dados, atualizarComVolta } = useNexo();
+  const { dadosAtuais, atualizarComVolta } = useNexo();
   const [aberto, setAberto] = useState(false);
-  const opcoes = useMemo(
-    () => (dados?.categorias.items ?? [])
-      .filter((c) => !c.arquivada || c.id === tarefa.categoriaId)
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
-    [dados?.categorias.items, tarefa.categoriaId],
-  );
+  const opcoes = useOpcoesDeCategoria([tarefa.categoriaId]);
+  const criar = useCriarCategoria();
   const escolher = (id: string | null) => {
     setAberto(false);
-    if (id !== tarefa.categoriaId)
-      void atualizarComVolta(tarefa.id, (t) => ({ ...t, categoriaId: id }), `Categoria: ${opcoes.find((c) => c.id === id)?.nome ?? "sem categoria"}.`);
+    if (id === tarefa.categoriaId) return;
+    const nome = dadosAtuais()?.categorias.items.find((c) => c.id === id)?.nome ?? "sem categoria";
+    void atualizarComVolta(tarefa.id, (t) => ({ ...t, categoriaId: id }), `Categoria: ${nome}.`);
   };
-  const marca = (sim: boolean) => sim && <Check className="ml-auto size-3.5 !text-primary" />;
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
@@ -80,24 +78,9 @@ function CategoriaNoLugar({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria }) 
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64 p-0">
-        <Command>
-          <CommandInput placeholder="Buscar categoria..." />
-          <CommandList>
-            <CommandEmpty>Nenhuma categoria com esse nome.</CommandEmpty>
-            <CommandGroup>
-              <CommandItem value="sem categoria" onSelect={() => escolher(null)}>
-                <PontoCor /> <span className="text-muted-foreground">Sem categoria</span>
-                {marca(!tarefa.categoriaId)}
-              </CommandItem>
-              {opcoes.map((c) => (
-                <CommandItem key={c.id} value={`${c.nome} ${c.id}`} onSelect={() => escolher(c.id)}>
-                  <PontoCor cor={c.cor} /> <span className="truncate">{c.nome}</span>
-                  {marca(c.id === tarefa.categoriaId)}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+        <ListaDeCategorias valor={tarefa.categoriaId ?? ""} opcoes={opcoes} dicaDeCriar={!cat}
+          aoEscolher={(v) => escolher(v || null)}
+          aoCriar={(nome) => { setAberto(false); void criar(nome).then((id) => { if (id) escolher(id); }); }} />
         {cat && (
           <div className="border-t p-1">
             <Link href={`/categorias/${cat.id}`} onClick={() => setAberto(false)} data-slot="abrir-categoria"
@@ -113,8 +96,8 @@ function CategoriaNoLugar({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria }) 
 
 /** Tags: o mesmo campo de etiquetas do formulário, num balão. Cada mudança grava na hora. */
 function TagsNoLugar({ tarefa }: { tarefa: Tarefa }) {
-  const { dados, atualizarTarefa } = useNexo();
-  const sugestoes = useMemo(() => [...new Set((dados?.tarefas ?? []).flatMap((t) => t.tags))].sort(), [dados?.tarefas]);
+  const { atualizarTarefa } = useNexo();
+  const sugestoes = useNomesDasTags();
   return (
     <Prop slot="tags" rotulo="" icone={<Tag aria-hidden />}>
       <Popover>
@@ -127,12 +110,18 @@ function TagsNoLugar({ tarefa }: { tarefa: Tarefa }) {
             <Seta />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[19rem]">
-          <div className="mb-2 flex items-baseline justify-between gap-2 sem-selecao">
+        <PopoverContent align="start" className="w-[19rem]"
+          // o cursor vai para o campo de digitar, não para o "x" da primeira tag
+          onOpenAutoFocus={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).querySelector("input")?.focus(); }}>
+          {/* o atalho fica em cima: embaixo, a lista de sugestões do campo o cobriria */}
+          <div className="mb-2 flex items-center justify-between gap-2 sem-selecao">
             <span className="text-xs font-semibold">Tags</span>
-            <span className="text-xs text-muted-foreground">Enter ou vírgula para pôr</span>
+            <Link href="/categorias?aba=tags" data-slot="gerenciar-tags"
+              className="-mr-1 inline-flex h-6 items-center gap-1 rounded-md px-1 text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 [&_svg]:size-3.5">
+              Renomear ou juntar <ArrowUpRight />
+            </Link>
           </div>
-          <CampoChips valor={tarefa.tags} sugestoes={sugestoes} placeholder="Ex.: pipeline"
+          <CampoChips valor={tarefa.tags} sugestoes={sugestoes} placeholder="Digite e aperte Enter"
             aoMudar={(tags) => atualizarTarefa(tarefa.id, (t) => ({ ...t, tags }))} />
         </PopoverContent>
       </Popover>

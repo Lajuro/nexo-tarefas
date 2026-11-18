@@ -1,21 +1,37 @@
 "use client";
 
+// Categorias e Tags: os dois jeitos de organizar.
+//   /categorias                    os cartões das categorias
+//   /categorias?aba=tags           todas as tags do app (renomear, juntar, tirar)
+//   /categorias?aba=tags&tag=<nome> uma tag aberta, com tudo o que tem ela
+
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArchiveRestore, ArrowRight, FolderPlus, Plus, Tag } from "lucide-react";
+import { ArchiveRestore, ArrowRight, FolderPlus, Folders, Plus, Tag, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { CategoriaForm } from "@/components/CategoriaForm";
 import { CartaoCategoria } from "@/components/categorias/CartaoCategoria";
-import { Pagina, Vazio } from "@/components/comum";
+import { Contador, Pagina, Vazio } from "@/components/comum";
+import { GerenciarTags } from "@/components/tags/GerenciarTags";
+import { useInventarioDeTags } from "@/components/tags/useTags";
 import { Button } from "@/components/ui/button";
-import { CampoSwitch } from "@/components/ui/controles";
+import { CampoSwitch, Segmentado } from "@/components/ui/controles";
 import { lista } from "@/lib/animacoes";
 import { usePref } from "@/lib/preferencias";
 import { Categoria, Tarefa } from "@/lib/tipos";
 
 export default function Categorias() {
+  return <Suspense><Conteudo /></Suspense>;
+}
+
+function Conteudo() {
   const { dados } = useNexo();
+  const router = useRouter();
+  const params = useSearchParams();
+  const aba = params.get("aba") === "tags" ? "tags" : "categorias";
+  const tags = useInventarioDeTags();
   const [form, setForm] = useState<{ aberto: boolean; cat?: Categoria }>({ aberto: false });
   const [verArquivadas, setVerArquivadas, carregado] = usePref("mostrarArquivadas", false);
 
@@ -39,12 +55,36 @@ export default function Categorias() {
   const nova = () => setForm({ aberto: true });
   const ativas = todas.length - arquivadas;
 
+  const abas = (
+    <Segmentado
+      aria-label="Categorias ou tags"
+      valor={aba}
+      aoMudar={(v) => router.replace(v === "tags" ? "/categorias?aba=tags" : "/categorias", { scroll: false })}
+      opcoes={[
+        { valor: "categorias", icone: <Folders />, rotulo: <>Categorias <Contador n={ativas} className="bg-background/70" /></> },
+        { valor: "tags", icone: <Tags />, rotulo: <>Tags <Contador n={tags.length} className="bg-background/70" /></> },
+      ]}
+    />
+  );
+
+  if (aba === "tags")
+    return (
+      <Pagina
+        titulo="Tags"
+        descricao="As etiquetas livres de tarefas, links, páginas, pessoas e modelos. Renomeie, junte as repetidas ou tire as que não usa mais."
+        acoes={abas}
+      >
+        {dados && <GerenciarTags aberta={params.get("tag")} />}
+      </Pagina>
+    );
+
   return (
     <Pagina
       titulo="Categorias"
       descricao="De onde nascem as tarefas. Abra uma para ver tudo o que saiu dela."
       acoes={
         <>
+          {abas}
           <CampoSwitch marcado={verArquivadas} aoMudar={setVerArquivadas} className="mr-1">
             Mostrar arquivadas
             {arquivadas > 0 && <span className="ml-1 tabular-nums opacity-70">({arquivadas})</span>}

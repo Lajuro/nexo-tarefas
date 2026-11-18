@@ -46,6 +46,8 @@ export function SeletorMultiplo({
   const escolhidos = valor.map((v) => porValor.get(v)).filter((o): o is OpcaoMultipla => !!o);
   const existe = opcoes.some((o) => semAcento(o.rotulo) === semAcento(busca.trim()));
 
+  const podeCriar = !!criar && !!busca.trim() && !existe;
+
   const alternar = (v: string) => aoMudar(valor.includes(v) ? valor.filter((x) => x !== v) : [...valor, v]);
 
   return (
@@ -111,7 +113,7 @@ export function SeletorMultiplo({
         <Command>
           <CommandInput placeholder={buscaPlaceholder} value={busca} onValueChange={setBusca} />
           <CommandList>
-            <CommandEmpty>{vazio}</CommandEmpty>
+            {!podeCriar && <CommandEmpty>{vazio}</CommandEmpty>}
             <CommandGroup>
               {opcoes.map((o) => {
                 const marcado = valor.includes(o.valor);
@@ -130,21 +132,26 @@ export function SeletorMultiplo({
                   </CommandItem>
                 );
               })}
-              {criar && busca.trim() && !existe && (
+            </CommandGroup>
+            {podeCriar && (
+              // Grupo próprio e sempre montado: o cmdk esconde o grupo inteiro quando nenhum item dele casa com a
+              // busca, que é justamente quando "Criar" faz falta (o nome digitado não existe).
+              <CommandGroup forceMount>
                 <CommandItem
                   value={`__criar ${busca}`}
                   forceMount
+                  data-slot="criar-no-seletor"
                   onSelect={async () => {
-                    const novo = await criar(busca.trim());
+                    const novo = await criar!(busca.trim());
                     if (novo) aoMudar([...valor, novo]);
                     setBusca("");
                   }}
                 >
-                  <Plus />
-                  <span>{rotuloCriar} <strong>“{busca.trim()}”</strong></span>
+                  <Plus className="!text-primary" />
+                  <span className="min-w-0 truncate">{rotuloCriar} <strong className="font-semibold">“{busca.trim()}”</strong></span>
                 </CommandItem>
-              )}
-            </CommandGroup>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

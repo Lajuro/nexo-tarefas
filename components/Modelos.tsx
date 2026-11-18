@@ -9,10 +9,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { CopyPlus, LayoutTemplate, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
+import { SeletorCategoria } from "./categorias/Escolher";
+import { useNomesDasTags } from "./tags/useTags";
 import { useConfirmar, useFecharComCuidado } from "./Raiz";
 import { Campo, ChipsInput, LinhaCampos, Modal, Painel, PontoCor, SeletorPrioridade, Vazio } from "./comum";
 import { Button } from "@/components/ui/button";
-import { Combobox } from "@/components/ui/command";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { SeletorData } from "@/components/ui/data";
@@ -97,14 +98,7 @@ export function ModeloForm() {
   );
   const tentarFechar = useFecharComCuidado(sujo, fechar);
 
-  const categorias = useMemo(
-    () =>
-      (dados?.categorias.items ?? [])
-        .filter((c) => !c.arquivada || c.id === categoriaId)
-        .map((c) => ({ valor: c.id, rotulo: c.nome, render: <><PontoCor cor={c.cor} /><span className="truncate">{c.nome}</span></> })),
-    [dados?.categorias.items, categoriaId],
-  );
-  const todasTags = useMemo(() => [...new Set((dados?.tarefas ?? []).flatMap((t) => t.tags))].sort(), [dados?.tarefas]);
+  const todasTags = useNomesDasTags();
   const listaPassos = passosDoTexto(passos);
 
   async function salvar() {
@@ -177,7 +171,7 @@ export function ModeloForm() {
 
         <LinhaCampos>
           <Campo rotulo="Categoria">
-            <Combobox valor={categoriaId} aoMudar={setCategoriaId} opcoes={categorias} placeholder="Sem categoria" rotuloLimpar="Sem categoria" aria-label="Categoria do modelo" />
+            <SeletorCategoria valor={categoriaId} aoMudar={setCategoriaId} aria-label="Categoria do modelo" />
           </Campo>
           <Campo rotulo="Prazo sugerido" dica="Em dias a partir do dia em que a tarefa nasce. Vazio = sem prazo.">
             <Input value={prazo} onChange={(e) => setPrazo(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" placeholder="Ex.: 30" aria-label="Prazo sugerido em dias" />

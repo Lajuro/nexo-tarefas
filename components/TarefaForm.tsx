@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LayoutTemplate } from "lucide-react";
 import { useNexo } from "./Provider";
+import { useNomesDasTags } from "./tags/useTags";
 import { useFecharComCuidado } from "./Raiz";
 import { ComboCategoria } from "./tarefas/ComboCategoria";
 import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, SeletorPrioridade, opcoesStatus } from "./comum";
@@ -169,10 +170,7 @@ export function TarefaForm({
     return ops;
   }, [todasCategorias, categoriaId, novaCat, corNova]);
 
-  const todasTags = useMemo(
-    () => [...new Set((dados?.tarefas ?? []).flatMap((t) => t.tags))].sort(),
-    [dados?.tarefas],
-  );
+  const todasTags = useNomesDasTags();
 
   async function salvar() {
     if (!titulo.trim() || gravando.current) return;

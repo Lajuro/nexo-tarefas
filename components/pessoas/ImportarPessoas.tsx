@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { AvatarPessoa, Modal } from "@/components/comum";
+import { SeletorCategoria } from "@/components/categorias/Escolher";
 import { Button } from "@/components/ui/button";
 import { Textarea, Input } from "@/components/ui/input";
 import { Checkbox, Segmentado } from "@/components/ui/controles";
@@ -206,18 +207,6 @@ export function ImportarPessoas({ aberto, fechar }: { aberto: boolean; fechar: (
     { valor: NOVO_TIME, rotulo: "Criar um time novo" },
     ...times.filter((t) => !t.arquivado).map((t) => ({ valor: t.id, rotulo: t.nome, detalhe: plural(t.membroIds.length, "pessoa", "pessoas") })),
   ];
-  const opcoesCategoria: OpcaoCombo[] = categorias
-    .filter((c) => !c.arquivada)
-    .map((c) => ({
-      valor: c.id,
-      rotulo: c.nome,
-      render: (
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="size-2 shrink-0 rounded-full" style={{ background: c.cor }} />
-          <span className="truncate">{c.nome}</span>
-        </span>
-      ),
-    }));
 
   async function importar() {
     if (gravando || !selecionadas.length) return;
@@ -566,15 +555,8 @@ export function ImportarPessoas({ aberto, fechar }: { aberto: boolean; fechar: (
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="flex items-center gap-1.5 text-xs font-medium"><Tag className="size-3.5 text-muted-foreground" /> Ligar a uma categoria</span>
-                    <Combobox
-                      aria-label="Categoria"
-                      valor={categoriaSel}
-                      aoMudar={setCategoriaSel}
-                      opcoes={opcoesCategoria}
-                      placeholder="Nenhuma categoria"
-                      buscaPlaceholder="Buscar categoria"
-                      rotuloLimpar="Nenhuma categoria"
-                    />
+                    <SeletorCategoria aria-label="Categoria" valor={categoriaSel} aoMudar={setCategoriaSel}
+                      placeholder="Nenhuma categoria" rotuloVazio="Nenhuma categoria" />
                   </div>
                 </div>
 

@@ -14,6 +14,7 @@ import { ArrowRightLeft, Merge } from "lucide-react";
 import { useNexo } from "./Provider";
 import { oferecerDesfazer } from "./desfazer";
 import { Campo, Modal } from "./comum";
+import { useCriarTarefa } from "./tarefas/criar";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
 import { comRegistroRecebido, comTarefaJuntada, semRegistroMovido } from "@/lib/acoes";
@@ -30,6 +31,7 @@ export const pedirJuntarTarefa = (tarefaId: string) => pedir({ tipo: "juntar", t
 
 export function MoverEJuntar() {
   const { dados, dadosAtuais, atualizarTarefa, excluirTarefa, salvarLinks, salvarNotas, salvarPaginas, toast } = useNexo();
+  const criarTarefa = useCriarTarefa();
   const router = useRouter();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [destinoId, setDestinoId] = useState("");
@@ -133,8 +135,10 @@ export function MoverEJuntar() {
         opcoes={opcoes}
         permitirLimpar={false}
         placeholder="Escolha a tarefa..."
-        buscaPlaceholder="Buscar tarefa..."
+        buscaPlaceholder={pedido?.tipo === "mover" ? "Buscar tarefa ou digitar o nome de uma nova..." : "Buscar tarefa..."}
         vazio="Nenhuma tarefa com esse nome."
+        // mover um registro para uma tarefa que ainda não existe: ela nasce aqui, na mesma categoria da origem
+        criar={pedido?.tipo === "mover" ? (titulo) => void criarTarefa(titulo, { categoriaId: origem?.categoriaId }).then((id) => { if (id) setDestinoId(id); }) : undefined}
       />
     </Campo>
   );
