@@ -60,7 +60,11 @@ export function abrirPaleta() {
   window.dispatchEvent(new CustomEvent("nexo:paleta"));
 }
 
-const temAlgoAberto = () => !!document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-slot="popover"]');
+/** Há janela, menu ou lista aberta? O que está saindo (animação de fechar, data-state="closed") não conta. */
+const temAlgoAberto = () =>
+  !!document.querySelector(
+    ['[role="dialog"]', '[role="alertdialog"]', '[role="menu"]', '[role="listbox"]', '[data-slot="popover"]'].map((s) => `${s}:not([data-state="closed"])`).join(","),
+  );
 
 export function Shell({ children }: { children: ReactNode }) {
   const { estado, dados, erro, recarregar, toast } = useNexo();

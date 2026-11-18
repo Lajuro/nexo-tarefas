@@ -195,7 +195,7 @@ function Tarefas() {
     const tecla = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName) || alvo.isContentEditable) return;
-      if (document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]')) return;
+      if (document.querySelector('[role="dialog"]:not([data-state="closed"]),[role="alertdialog"]:not([data-state="closed"]),[role="menu"]:not([data-state="closed"]),[role="listbox"]:not([data-state="closed"])')) return;
       const itens = [...document.querySelectorAll<HTMLElement>("[data-slot=selecionavel]")];
       const atual = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-slot=selecionavel]") ?? null;
       const i = atual ? itens.indexOf(atual) : -1;
