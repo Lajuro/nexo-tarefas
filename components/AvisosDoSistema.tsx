@@ -1,6 +1,6 @@
 "use client";
 
-// Lembretes críticos novos pelo Windows (3.6). Montado uma vez no Shell. Só manda aviso de um lembrete que
+// Lembretes críticos novos pelo Windows (3.7). Montado uma vez no Shell. Só manda aviso de um lembrete que
 // apareceu enquanto o Nexo estava em segundo plano: o que estava na tela quando a janela tinha foco já foi
 // visto (sino e tela Hoje), então não vira notificação. Cada lembrete avisa uma vez por dia
 // ("nexo:notificados", lido como lista de textos). Também atende o clique numa notificação ("nexo:ir").

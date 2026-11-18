@@ -3,7 +3,7 @@ import { caminhoArquivo, lerTudo } from "@/lib/armazenamento";
 import { tratar } from "@/lib/resposta";
 export const dynamic = "force-dynamic";
 
-// As transcrições das páginas de vídeo (3.6), para a busca global e o Perguntar. Só leitura.
+// As transcrições das páginas de vídeo (3.7), para a busca global e o Perguntar. Só leitura.
 // Elas não vêm em /api/dados de propósito (pesariam a leitura de tudo): a tela pede esta rota quando precisa.
 // O caminho de cada arquivo vem da página gravada (normalizarVideo já confere o formato "AAAA/nome") e passa
 // por caminhoArquivo(), que recusa qualquer coisa fora de arquivos/.

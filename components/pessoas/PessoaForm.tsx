@@ -135,17 +135,17 @@ export function PessoaForm({
       titulo={pessoa ? "Editar pessoa" : nomeInicial ? "Cadastrar pessoa" : "Nova pessoa"}
       descricao={
         pessoa
-          ? "Quem é, com o que pode ajudar e de quais times e assuntos faz parte."
+          ? "Quem é, com o que pode ajudar e de quais times e categorias faz parte."
           : nomeInicial
-            ? <>“{nomeInicial}” aparece nos seus registros. Com o cadastro, dá para anotar com o que ajuda e ligar a times e assuntos.</>
-            : "Quem é, com o que pode ajudar e de quais times e assuntos faz parte."
+            ? <>“{nomeInicial}” aparece nos seus registros. Com o cadastro, dá para anotar com o que ajuda e ligar a times e categorias.</>
+            : "Quem é, com o que pode ajudar e de quais times e categorias faz parte."
       }
       aberto={aberto}
       fechar={fechar}
       largo
       rodape={
         <>
-          <span className="mr-auto hidden items-center gap-1 text-[11px] text-muted-foreground sm:inline-flex sem-selecao">
+          <span className="mr-auto hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex sem-selecao">
             <Kbd>Ctrl</Kbd><Kbd>Enter</Kbd> salva
           </span>
           <Button variant="outline" onClick={fechar}>Cancelar</Button>
@@ -251,7 +251,7 @@ export function PessoaForm({
             />
           </Campo>
 
-          <Campo rotulo="Categorias" dica="Assuntos em que ela costuma estar envolvida.">
+          <Campo rotulo="Categorias" dica="Em quais ela costuma estar envolvida.">
             <SeletorMultiplo
               aria-label="Categorias"
               valor={categoriaIds}

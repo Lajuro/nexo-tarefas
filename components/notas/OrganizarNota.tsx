@@ -234,7 +234,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
           <PassoCopilot n={1} titulo="Copiar o prompt com a folha e as tarefas abertas" feito={jaCopiou}>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <Button onClick={copiar}><IconeCopiar copiado={copiado} /> Copiar prompt</Button>
-              <span className="text-[11px] text-muted-foreground tabular-nums">
+              <span className="text-xs text-muted-foreground tabular-nums">
                 {abertas.length} {abertas.length === 1 ? "tarefa aberta" : "tarefas abertas"} · {prompt.length.toLocaleString("pt-BR")} caracteres
               </span>
             </div>
@@ -247,7 +247,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
           <PassoCopilot n={3} titulo="Ler a resposta e conferir a prévia" feito={!!leitura?.ok} ultimo>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <Button variant="outline" disabled={!temResposta} onClick={ler}><ScanText /> Ler resposta</Button>
-              <span className="text-[11px] text-muted-foreground">Nada é gravado antes de você aplicar.</span>
+              <span className="text-xs text-muted-foreground">Nada é gravado antes de você aplicar.</span>
             </div>
           </PassoCopilot>
         </BlocoCopilot>
@@ -280,11 +280,11 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                         <>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             {sobra ? <Badge variant="alerta">Não coube em nenhum item</Badge> : <TipoBadge tipo={p.registro.tipo} />}
-                            {p.registro.referencia && <Badge variant="default">Referência do assunto</Badge>}
+                            {p.registro.referencia && <Badge variant="default">Referência da categoria</Badge>}
                             {!sobra && <span className="min-w-0 text-[13px] font-medium">{p.registro.titulo || "Sem título"}</span>}
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                            <span className="text-[11px] text-muted-foreground sem-selecao">{sobra ? "Guardar como nota em" : "Entra em"}</span>
+                            <span className="text-xs text-muted-foreground sem-selecao">{sobra ? "Guardar como nota em" : "Entra em"}</span>
                             <Combobox
                               aria-label={sobra ? "Tarefa que guarda estas anotações" : "Tarefa que recebe este registro"}
                               valor={destinos[p.chave] ?? ""}
@@ -299,16 +299,16 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                             />
                             {!sobra && (
                               <>
-                                <span className="text-[11px] text-muted-foreground sem-selecao">em</span>
+                                <span className="text-xs text-muted-foreground sem-selecao">em</span>
                                 <SeletorData compacto limpavel={false} valor={datas[p.chave] ?? p.registro.data}
                                   aoMudar={(v) => v && setDatas((d) => ({ ...d, [p.chave]: v }))}
                                   aria-label="Data em que aconteceu" className={cn("h-7 text-xs", p.semData && "text-alerta")} />
                               </>
                             )}
                           </div>
-                          {p.semData && !sobra && <p className="mt-1.5 text-[11px] leading-snug text-alerta">As notas não dizem quando foi. Coloquei hoje: ajuste a data se aconteceu antes.</p>}
-                          {p.duvida && <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-snug text-alerta"><TriangleAlert className="mt-px size-3 shrink-0" /> {p.duvida}</p>}
-                          {sobra && <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">Se deixar desmarcado, isto fica anotado na folha arquivada, em destaque.</p>}
+                          {p.semData && !sobra && <p className="mt-1.5 text-xs leading-snug text-alerta">As notas não dizem quando foi. Coloquei hoje: ajuste a data se aconteceu antes.</p>}
+                          {p.duvida && <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-snug text-alerta"><TriangleAlert className="mt-px size-3 shrink-0" /> {p.duvida}</p>}
+                          {sobra && <p className="mt-1.5 text-xs leading-snug text-muted-foreground">Se deixar desmarcado, isto fica anotado na folha arquivada, em destaque.</p>}
                           {p.registro.participantes.length > 0 && <p className="mt-1.5 text-xs text-muted-foreground">Com {p.registro.participantes.join(", ")}</p>}
                           {p.registro.resumoIA && <p className="mt-1.5 text-[13px] leading-snug texto-pre">{p.registro.resumoIA}</p>}
                           {sobra && <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground texto-pre">{p.trecho}</p>}
@@ -328,7 +328,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                             <PrioBadge p={p.prioridade} />
                             <PrazoTag prazo={p.prazo} />
                           </div>
-                          {p.categoriaCitada && <p className="mt-1.5 text-[11px] text-alerta">A IA sugeriu a categoria “{p.categoriaCitada}”, que não existe. A tarefa entra sem categoria.</p>}
+                          {p.categoriaCitada && <p className="mt-1.5 text-xs text-alerta">A IA sugeriu a categoria “{p.categoriaCitada}”, que não existe. A tarefa entra sem categoria.</p>}
                           {p.descricao && <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground texto-pre">{p.descricao}</p>}
                           <ListaPassos passos={p.passos} />
                         </>
@@ -347,7 +347,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                 );
               })}
               {leitura.avisos.length > 0 && (
-                <ul data-slot="avisos-leitura" className="flex flex-col gap-0.5 text-[11px] leading-snug text-muted-foreground">
+                <ul data-slot="avisos-leitura" className="flex flex-col gap-0.5 text-xs leading-snug text-muted-foreground">
                   {leitura.avisos.map((a, i) => <li key={i} className="flex gap-1.5"><TriangleAlert className="mt-px size-3 shrink-0 text-alerta" /> {a}</li>)}
                 </ul>
               )}

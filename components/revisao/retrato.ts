@@ -63,7 +63,7 @@ export function mudancasDesde(antes: Retrato, agora: Tarefa | undefined): Mudanc
     );
   }
   const lembrar = agora.lembrarEm ?? null;
-  if (lembrar !== antes.lembrarEm) itens.push(lembrar ? `Follow-up marcado para ${formatarData(lembrar)}` : "Follow-up removido");
+  if (lembrar !== antes.lembrarEm) itens.push(lembrar ? `Lembrete de voltar marcado para ${formatarData(lembrar)}` : "Lembrete de voltar removido");
   const foco = ehFocoHoje(agora);
   if (foco !== antes.foco) itens.push(foco ? "Entrou no foco de hoje" : "Saiu do foco de hoje");
 

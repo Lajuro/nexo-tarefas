@@ -47,7 +47,7 @@ function Comparacao({ antes, depois }: { antes: { titulo: string; texto: string 
         <pre className="overflow-x-auto rounded-lg border bg-background/60 py-1 font-mono text-[12px] leading-relaxed">
           {mostradas.map((l, i) =>
             l.tipo === "recolhido" ? (
-              <div key={i} className="px-3 py-0.5 text-[11px] text-muted-foreground/80 italic sem-selecao">… {l.quantas} {l.quantas === 1 ? "linha igual" : "linhas iguais"}</div>
+              <div key={i} className="px-3 py-0.5 text-xs text-muted-foreground italic sem-selecao">… {l.quantas} {l.quantas === 1 ? "linha igual" : "linhas iguais"}</div>
             ) : (
               <div key={i} data-slot={`linha-${l.tipo}`} className={cn("flex gap-2 px-3 whitespace-pre-wrap [overflow-wrap:anywhere]", TOM[l.tipo])}>
                 <span aria-hidden className="w-3 shrink-0 select-none opacity-70">{l.tipo === "saiu" ? "−" : l.tipo === "entrou" ? "+" : " "}</span>
@@ -131,7 +131,7 @@ export function Historico({
                 <button type="button" data-slot="versao" data-ativa={v.versao === escolhida || undefined} onClick={() => setEscolhida(v.versao)}
                   className={cn("w-full rounded-lg px-2.5 py-2 text-left transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/40", v.versao === escolhida && "bg-accent")}>
                   <span className="block text-[13px] font-medium tabular-nums">{formatarDataHora(v.guardadaEm)}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{v.palavras} {v.palavras === 1 ? "palavra" : "palavras"}{v.titulo ? ` · ${v.titulo}` : ""}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{v.palavras} {v.palavras === 1 ? "palavra" : "palavras"}{v.titulo ? ` · ${v.titulo}` : ""}</span>
                 </button>
               </li>
             ))}

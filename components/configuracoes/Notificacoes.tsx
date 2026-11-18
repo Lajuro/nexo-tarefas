@@ -50,7 +50,7 @@ export function PainelNotificacoes() {
               O navegador está bloqueando as notificações deste endereço. Clique no cadeado ao lado do endereço (127.0.0.1:3210), em Permissões, e libere Notificações. Depois ligue de novo aqui.
             </p>
           )}
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             Funciona com o Nexo aberto (mesmo minimizado ou atrás de outra janela). Com o app fechado não há aviso: nada roda fora dele. Nenhum dado sai do computador.
           </p>
           {pref.ligado && permissao === "granted" && (

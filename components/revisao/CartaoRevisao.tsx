@@ -41,7 +41,7 @@ function DistanciaData({ data, atrasoEhRuim }: { data: string | null | undefined
   const d = diasAte(data) ?? 0;
   const tom = d < 0 ? (atrasoEhRuim ? "text-destructive" : "text-alerta") : d <= (atrasoEhRuim ? LIMITES.prazoProximo : 0) ? "text-alerta" : "text-muted-foreground";
   const txt = d < 0 && atrasoEhRuim ? `${-d}d de atraso` : dataRelativa(data);
-  return <span className={cn("text-[11px] font-medium tabular-nums", tom)}>{txt}</span>;
+  return <span className={cn("text-xs font-medium tabular-nums", tom)}>{txt}</span>;
 }
 
 export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa; antes: Retrato; categoria?: Categoria }) {
@@ -72,7 +72,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
           <Dica texto={parado === 0 ? "Teve atividade hoje" : `Último sinal de vida há ${parado} ${parado === 1 ? "dia" : "dias"} (registro, passo concluído ou criação)`}>
             <div data-slot="dias-parada" className={cn("flex w-[72px] shrink-0 flex-col items-center rounded-xl px-1 py-2 text-center ring-1 ring-inset sem-selecao", tomParado)}>
               <span className="text-2xl leading-none font-semibold tracking-tight tabular-nums">{parado}</span>
-              <span className="mt-1 text-[10px] leading-tight font-medium">{parado === 1 ? "dia" : "dias"} sem atividade</span>
+              <span className="mt-1 text-[11px] leading-tight font-medium">{parado === 1 ? "dia" : "dias"} sem atividade</span>
             </div>
           </Dica>
           <div className="min-w-0 flex-1">
@@ -190,15 +190,15 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
                 if (ok && s === "aguardando" && t.status !== "aguardando" && !t.esperando) pedirEspera(t.id);
               }} /></div>
             </Campo>
-            <Campo rotulo="Prioridade" className="flex-none" lado={<span className="text-[11px] text-muted-foreground tabular-nums">{t.prioridade} de 10</span>}>
+            <Campo rotulo="Prioridade" className="flex-none" lado={<span className="text-xs text-muted-foreground tabular-nums">{t.prioridade} de 10</span>}>
               <SeletorPrioridade valor={t.prioridade} aoMudar={(p) => p !== t.prioridade && atualizarTarefa(t.id, (x) => ({ ...x, prioridade: p }))} />
             </Campo>
             <Campo rotulo="Prazo" className="flex-none" lado={estaAberta && <DistanciaData data={t.prazo} atrasoEhRuim />}>
               <SeletorData aria-label="Prazo" valor={t.prazo ?? ""} placeholder="Sem prazo" aoMudar={(v) => atualizarTarefa(t.id, (x) => ({ ...x, prazo: v || null }))} />
             </Campo>
-            <Campo rotulo="Follow-up" className="flex-none" lado={estaAberta && <DistanciaData data={t.lembrarEm} />}>
+            <Campo rotulo="Lembrar de voltar em" className="flex-none" lado={estaAberta && <DistanciaData data={t.lembrarEm} />}>
               <SeletorData
-                aria-label="Follow-up"
+                aria-label="Lembrar de voltar em"
                 valor={t.lembrarEm ?? ""}
                 placeholder="Me lembre de voltar em..."
                 disabled={!estaAberta}

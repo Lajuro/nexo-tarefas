@@ -56,7 +56,7 @@ export function Opcao({ id, domId, selecionada, aoApontar, aoEscolher, className
 
 export function TituloSecao({ children, extra }: { children: ReactNode; extra?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-1 pb-1.5 text-[11px] font-medium text-muted-foreground sem-selecao" role="presentation">
+    <div className="flex items-center justify-between px-1 pb-1.5 text-xs font-medium text-muted-foreground sem-selecao" role="presentation">
       <span>{children}</span>
       {extra}
     </div>

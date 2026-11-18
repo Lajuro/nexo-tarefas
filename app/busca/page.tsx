@@ -205,7 +205,7 @@ function Conteudo() {
     return { tarefas, registros, links, cadastro, times, paginas };
   }, [dados, n, termo]);
 
-  // transcrições dos vídeos (3.6): pedidas à parte; cada trecho de fala que tem todas as palavras é um resultado
+  // transcrições dos vídeos (3.7): pedidas à parte; cada trecho de fala que tem todas as palavras é um resultado
   const transcricoes = useTranscricoes();
   const videos = useMemo(() => {
     if (!n || !transcricoes?.length) return [] as AchadoVideo[];
@@ -254,7 +254,7 @@ function Conteudo() {
   const rotuloAba = (nome: string, qtd: number): ReactNode => (
     <>
       {nome}
-      <span className={cn("text-[11px] tabular-nums", qtd ? "text-muted-foreground" : "text-muted-foreground/50")}>{qtd}</span>
+      <span className={cn("text-xs tabular-nums", qtd ? "text-muted-foreground" : "text-muted-foreground/80")}>{qtd}</span>
     </>
   );
 
@@ -534,8 +534,8 @@ function Conteudo() {
                         <h3 className="truncate text-sm leading-snug font-medium"><Destaque texto={l.titulo} termo={termo} /></h3>
                         <p className="mt-0.5 truncate text-[13px] text-muted-foreground [&_mark]:text-foreground">
                           {l.descricao && <Destaque texto={l.descricao} termo={termo} />}
-                          {l.descricao && enderecoCurto(l) && <span className="text-muted-foreground/60"> · </span>}
-                          <span className={l.descricao ? "text-muted-foreground/70" : undefined}><Destaque texto={enderecoCurto(l)} termo={termo} /></span>
+                          {l.descricao && enderecoCurto(l) && <span className="text-muted-foreground/80"> · </span>}
+                          <span className={l.descricao ? "text-muted-foreground" : undefined}><Destaque texto={enderecoCurto(l)} termo={termo} /></span>
                         </p>
                         {l.tags.length > 0 && (
                           <div className="mt-1.5 flex flex-wrap gap-1">
@@ -543,7 +543,7 @@ function Conteudo() {
                           </div>
                         )}
                       </div>
-                      <ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground/50 transition-colors group-hover/resultado:text-foreground" />
+                      <ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground/80 transition-colors group-hover/resultado:text-foreground" />
                     </a>
                   </Resultado>
                 ))}
@@ -577,11 +577,11 @@ function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | 
 }
 
 function RotuloCampo({ children }: { children: ReactNode }) {
-  return <span className="mr-1.5 rounded bg-muted px-1 py-px text-[11px] font-medium text-muted-foreground">{children}</span>;
+  return <span className="mr-1.5 rounded bg-muted px-1 py-px text-xs font-medium text-muted-foreground">{children}</span>;
 }
 
 function Seta() {
-  return <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground/50 transition-[color,transform] duration-150 group-hover/resultado:translate-x-0.5 group-hover/resultado:text-foreground" />;
+  return <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground/80 transition-[color,transform] duration-150 group-hover/resultado:translate-x-0.5 group-hover/resultado:text-foreground" />;
 }
 
 const COBERTURA = [
@@ -625,9 +625,9 @@ function Convite({ sugestoes, aoEscolher }: { sugestoes: string[]; aoEscolher: (
 
       <motion.p variants={itemLista} className="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground sem-selecao">
         <Kbd>/</Kbd> busca de qualquer tela
-        <span className="mx-1 text-muted-foreground/40">·</span>
+        <span className="mx-1 text-muted-foreground/80">·</span>
         <Kbd>↓</Kbd><Kbd>↑</Kbd> percorrem os resultados
-        <span className="mx-1 text-muted-foreground/40">·</span>
+        <span className="mx-1 text-muted-foreground/80">·</span>
         <Kbd>Enter</Kbd> abre
       </motion.p>
     </motion.div>

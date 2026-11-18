@@ -112,7 +112,7 @@ export function JanelaAtalhos({ aberto, fechar }: { aberto: boolean; fechar: () 
             <span className="flex shrink-0 items-center gap-1">
               {a.teclas.map((t, i) => (
                 <span key={t + i} className="flex items-center gap-1">
-                  {i > 0 && a.teclas[0] === "G" && <span className="text-[11px] text-muted-foreground">depois</span>}
+                  {i > 0 && a.teclas[0] === "G" && <span className="text-xs text-muted-foreground">depois</span>}
                   <Kbd>{t}</Kbd>
                 </span>
               ))}

@@ -72,7 +72,7 @@ function Indicador({ passo }: { passo: Passo }) {
           <li key={p.n} className="flex items-center gap-2" aria-current={ativo ? "step" : undefined}>
             <span
               className={cn(
-                "inline-flex size-5 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors",
+                "inline-flex size-5 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-colors",
                 feito || ativo ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
               )}
             >
@@ -518,13 +518,13 @@ export function ImportarPessoas({ aberto, fechar }: { aberto: boolean; fechar: (
                             {c.situacao === "jaExiste" && (
                               <div className="flex flex-col gap-0.5">
                                 <Badge variant="secondary" className="w-fit">Já existe</Badge>
-                                {c.pessoa && <span className="text-[11px] text-muted-foreground">com {c.pessoa.nome}</span>}
+                                {c.pessoa && <span className="text-xs text-muted-foreground">com {c.pessoa.nome}</span>}
                               </div>
                             )}
                             {c.situacao === "completa" && (
                               <div className="flex flex-col gap-0.5">
                                 <Badge variant="info" className="w-fit">Completa o cadastro</Badge>
-                                <span className="text-[11px] text-muted-foreground">
+                                <span className="text-xs text-muted-foreground">
                                   Preenche {c.camposNovos.map((k) => ROTULO_CAMPO[k]).join(", ")} de {c.pessoa?.nome}
                                 </span>
                               </div>

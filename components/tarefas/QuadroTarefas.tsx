@@ -88,7 +88,7 @@ function Coluna({
         <Contador n={tarefas.length} className="bg-background/80" />
         {status === "concluida" && (
           <Dica texto={`Só as concluídas nos últimos ${DIAS_CONCLUIDAS_NO_QUADRO} dias`}>
-            <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">{DIAS_CONCLUIDAS_NO_QUADRO} dias</span>
+            <span className="ml-auto shrink-0 text-xs text-muted-foreground">{DIAS_CONCLUIDAS_NO_QUADRO} dias</span>
           </Dica>
         )}
       </header>
@@ -113,7 +113,7 @@ function Coluna({
           <div
             className={cn(
               "flex min-h-16 flex-1 items-center justify-center rounded-lg border border-dashed px-3 py-4 text-center text-xs transition-colors duration-150",
-              alvo ? "border-primary/50 text-primary" : "border-foreground/10 text-muted-foreground/70",
+              alvo ? "border-primary/50 text-primary" : "border-foreground/10 text-muted-foreground",
             )}
           >
             {alvo ? "Solte aqui" : possivel ? "Arraste para cá" : VAZIA[status]}
@@ -124,7 +124,7 @@ function Coluna({
           <button
             type="button"
             onClick={aoVerAntigas}
-            className="mt-auto inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md text-[11px] font-medium text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35"
+            className="mt-auto inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md text-xs font-medium text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35"
           >
             {antigas === 1 ? "Ver mais 1 concluída antes disso" : `Ver mais ${antigas} concluídas antes disso`}
             <ArrowRight className="size-3" />

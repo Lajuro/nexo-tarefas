@@ -76,7 +76,7 @@ function TranscricaoCrua({
         </div>
         {busca ? (
           <>
-            <span data-slot="contagem-da-transcricao" className="shrink-0 px-1 text-[11px] text-muted-foreground tabular-nums sem-selecao">{achadas.length ? `${atual + 1} de ${achadas.length}` : "nada"}</span>
+            <span data-slot="contagem-da-transcricao" className="shrink-0 px-1 text-xs text-muted-foreground tabular-nums sem-selecao">{achadas.length ? `${atual + 1} de ${achadas.length}` : "nada"}</span>
             <Dica texto="Anterior" atalho="Shift Enter"><Button variant="ghost" size="icon-sm" aria-label="Resultado anterior" disabled={!achadas.length} onClick={() => irParaResultado(atual - 1)}><ChevronUp /></Button></Dica>
             <Dica texto="Próximo" atalho="Enter"><Button variant="ghost" size="icon-sm" aria-label="Próximo resultado" disabled={!achadas.length} onClick={() => irParaResultado(atual + 1)}><ChevronDown /></Button></Dica>
           </>
@@ -90,7 +90,7 @@ function TranscricaoCrua({
       </div>
 
       {!comTempo && (
-        <p className="mx-3 mb-2 rounded-lg border border-alerta/30 bg-alerta/10 px-2.5 py-1.5 text-[11px] leading-snug">
+        <p className="mx-3 mb-2 rounded-lg border border-alerta/30 bg-alerta/10 px-2.5 py-1.5 text-xs leading-snug">
           Esta transcrição não tem tempos, então não acompanha o vídeo. Dá para ler e buscar. Para sincronizar, envie um arquivo VTT ou SRT, ou um texto com o tempo no começo de cada fala.
         </p>
       )}
@@ -103,7 +103,7 @@ function TranscricaoCrua({
           return (
             <div key={t.de} data-slot="trecho" data-ativo={temAtiva || undefined}
               className={cn("group/trecho relative rounded-lg px-2 py-1.5 transition-colors", temAtiva ? "bg-primary/[0.06]" : "hover:bg-accent/40")}>
-              <div className="flex items-center gap-1.5 text-[11px] sem-selecao">
+              <div className="flex items-center gap-1.5 text-xs sem-selecao">
                 {t.inicio >= 0 && (
                   <button type="button" data-slot="tempo-do-trecho" onClick={() => aoIrPara(t.inicio)}
                     className={cn("rounded px-1 font-medium tabular-nums outline-none hover:bg-primary/12 focus-visible:ring-2 focus-visible:ring-ring/40", temAtiva ? "text-primary" : "text-muted-foreground hover:text-primary")}>

@@ -107,7 +107,7 @@ function Calendario({
         </span>
         <div className="flex items-center gap-0.5">
           <button type="button" onClick={() => { const d = new Date(); setDir(0); setMes({ a: d.getFullYear(), m: d.getMonth() }); }}
-            className="h-6 rounded-md px-1.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
+            className="h-6 rounded-md px-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
             Hoje
           </button>
           <button type="button" aria-label="Mês anterior" onClick={() => mover(-1)}
@@ -120,7 +120,7 @@ function Calendario({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 text-center text-[10px] font-medium text-muted-foreground uppercase">
+      <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted-foreground uppercase">
         {DIAS.map((d, i) => <span key={i} className="py-1">{d}</span>)}
       </div>
       <div className="overflow-hidden">
@@ -152,7 +152,7 @@ function Calendario({
                   onKeyDown={(e) => teclas(e, iso)}
                   className={cn(
                     "relative mx-auto inline-flex size-8 items-center justify-center rounded-md text-[13px] tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-                    fora && "text-muted-foreground/45",
+                    fora && "text-muted-foreground/80",
                     !sel && "hover:bg-accent",
                     sel && "bg-primary font-semibold text-primary-foreground shadow-xs",
                     eHoje && !sel && "font-semibold text-primary",
@@ -221,7 +221,7 @@ function SeletorData({
             compacto
               ? "inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35"
               : cn(campoBase, "flex h-8 items-center gap-2 px-2.5 text-left sem-selecao"),
-            !valor && !compacto && "text-muted-foreground/70",
+            !valor && !compacto && "text-muted-foreground",
             className,
           )}
         >
@@ -254,7 +254,7 @@ function SeletorData({
           className={cn(campoBase, "mb-2 h-7 px-2 text-xs")}
         />
         {texto && (
-          <p className="mb-2 px-1 text-[11px] text-muted-foreground">
+          <p className="mb-2 px-1 text-xs text-muted-foreground">
             {digitado ? <>Enter para escolher <strong className="text-foreground">{dataPorExtenso(digitado)}</strong></> : "Não entendi essa data."}
           </p>
         )}
@@ -262,13 +262,13 @@ function SeletorData({
         <div className="mt-2 flex flex-wrap gap-1 border-t pt-2">
           {atalhos.map(([nome, iso]) => (
             <button key={nome} type="button" onClick={() => escolher(iso)}
-              className="h-6 rounded-md bg-muted px-2 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
+              className="h-6 rounded-md bg-muted px-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
               {nome}
             </button>
           ))}
           {limpavel && valor && (
             <button type="button" onClick={() => escolher("")}
-              className="ml-auto h-6 rounded-md px-2 text-[11px] font-medium text-destructive hover:bg-destructive/10">
+              className="ml-auto h-6 rounded-md px-2 text-xs font-medium text-destructive hover:bg-destructive/10">
               Limpar
             </button>
           )}
@@ -312,7 +312,7 @@ function SeletorHora({
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
         <button type="button" id={id} data-slot="seletor-hora" data-valor={valor}
-          className={cn(campoBase, "flex h-8 items-center gap-2 px-2.5 text-left sem-selecao", !valor && "text-muted-foreground/70", className)}>
+          className={cn(campoBase, "flex h-8 items-center gap-2 px-2.5 text-left sem-selecao", !valor && "text-muted-foreground", className)}>
           <Clock className="size-3.5 shrink-0 opacity-60" />
           <span className="flex-1 tabular-nums">{valor || placeholder}</span>
           {valor && (

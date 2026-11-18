@@ -44,14 +44,14 @@ export default function Conquistas() {
 
   return (
     <Pagina titulo="Conquistas" descricao="O que você já construiu usando o Nexo. Tudo vem dos seus registros: nada é inventado.">
-      <div className="mx-auto w-full max-w-[1360px] px-6 py-5">
+      <div className="w-full max-w-[1360px]">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <section data-slot="cartao-nivel" className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-xs">
             <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-56 rounded-full bg-primary/10 blur-3xl" />
             <div className="relative flex items-center gap-5">
               <Anel parte={nivel.parte} tamanho={104} espessura={8} completo={false}>
                 <span className="flex flex-col items-center leading-none">
-                  <span className="text-[10px] font-medium tracking-wider text-muted-foreground uppercase">Nível</span>
+                  <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">Nível</span>
                   <span data-slot="nivel" className="mt-0.5 text-4xl font-semibold tracking-tight tabular-nums">{nivel.n}</span>
                 </span>
               </Anel>
@@ -64,7 +64,7 @@ export default function Conquistas() {
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
                   <div className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out" style={{ width: `${Math.max(2, nivel.parte * 100)}%` }} />
                 </div>
-                <div className="mt-1 flex justify-between text-[10px] text-muted-foreground tabular-nums">
+                <div className="mt-1 flex justify-between text-[11px] text-muted-foreground tabular-nums">
                   <span>{nivel.xpInicio} XP</span>
                   <span>{nivel.xpProximo} XP</span>
                 </div>
@@ -78,7 +78,7 @@ export default function Conquistas() {
                     <div className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                       <div className={cn("w-full rounded-t-[3px] transition-[height] duration-500 ease-out", d.xp ? (i === ultimosDias.length - 1 ? "bg-primary" : "bg-primary/45") : "bg-muted")}
                         style={{ height: `${d.xp ? Math.max(8, (d.xp / maiorXp) * 100) : 4}%` }} />
-                      <span className={cn("text-[9px] leading-none text-muted-foreground", i === ultimosDias.length - 1 && "font-semibold text-foreground")}>{diaDaSemana(d.data)}</span>
+                      <span className={cn("text-[11px] leading-none text-muted-foreground", i === ultimosDias.length - 1 && "font-semibold text-foreground")}>{diaDaSemana(d.data)}</span>
                     </div>
                   </Dica>
                 ))}
@@ -127,7 +127,7 @@ export default function Conquistas() {
                 <div className="mb-2.5 flex items-center gap-2">
                   <h2 className="text-[13px] font-semibold tracking-tight">{NOME_DO_GRUPO[g]}</h2>
                   <Contador n={doGrupo.filter((c) => c.feita).length} />
-                  <span className="text-[11px] text-muted-foreground">de {doGrupo.length}</span>
+                  <span className="text-xs text-muted-foreground">de {doGrupo.length}</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {doGrupo.map((c) => <CartaoConquista key={c.id} c={c} />)}

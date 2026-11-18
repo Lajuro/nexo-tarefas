@@ -281,10 +281,10 @@ export function Paleta({
             }}
             onKeyDown={teclas}
             placeholder="Buscar tarefa, pessoa, tela ou ação..."
-            className="h-13 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+            className="h-13 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {buscando && (
-            <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums sem-selecao">
+            <span className="shrink-0 text-xs text-muted-foreground tabular-nums sem-selecao">
               {ordem.length - 1} {ordem.length - 1 === 1 ? "resultado" : "resultados"}
             </span>
           )}
@@ -341,7 +341,7 @@ export function Paleta({
             <div className="flex flex-col gap-4">
               {vazio && (
                 <div className="flex flex-col items-center gap-1.5 py-8 text-center sem-selecao">
-                  <SearchX className="size-6 text-muted-foreground/60" />
+                  <SearchX className="size-6 text-muted-foreground/80" />
                   <p className="text-[13px] font-medium">Nada com esse nome</p>
                   <p className="text-xs text-muted-foreground">Nenhuma tela, tarefa, categoria ou pessoa. Dá para procurar dentro dos registros.</p>
                 </div>
@@ -412,7 +412,7 @@ export function Paleta({
                       <Opcao key={t.id} {...props(`time:${t.id}`)} className="h-8 rounded-full border bg-card px-3 text-[13px] transition-colors aria-selected:border-primary/40">
                         <PontoCor cor={t.cor} className="mr-2" />
                         <span className="max-w-48 truncate">{t.nome}</span>
-                        <span className="ml-2 text-[11px] text-muted-foreground">time</span>
+                        <span className="ml-2 text-xs text-muted-foreground">time</span>
                       </Opcao>
                     ))}
                     {pessoasVis.map((e, i) => {
@@ -421,7 +421,7 @@ export function Paleta({
                         <Opcao key={e.chave} {...props(`pessoa:${i}`)} className="h-8 rounded-full border bg-card pr-3 pl-1.5 text-[13px] transition-colors aria-selected:border-primary/40">
                           <AvatarPessoa nome={e.nome} tamanho="sm" className="mr-2" />
                           <span className="max-w-48 truncate">{e.nome}</span>
-                          {detalhe && <span className="ml-2 max-w-44 truncate text-[11px] text-muted-foreground">{detalhe}</span>}
+                          {detalhe && <span className="ml-2 max-w-44 truncate text-xs text-muted-foreground">{detalhe}</span>}
                         </Opcao>
                       );
                     })}
@@ -444,7 +444,7 @@ export function Paleta({
           )}
         </div>
 
-        <div className="flex items-center gap-3 border-t bg-muted/40 px-4 py-1.5 text-[11px] text-muted-foreground sem-selecao">
+        <div className="flex items-center gap-3 border-t bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground sem-selecao">
           <span className="flex items-center gap-1"><Kbd>↑</Kbd><Kbd>↓</Kbd><Kbd>←</Kbd><Kbd>→</Kbd> navegar</span>
           <span className="flex items-center gap-1"><Kbd>Enter</Kbd> abrir</span>
           <span className="flex items-center gap-1"><Kbd>Esc</Kbd> fechar</span>
@@ -508,17 +508,17 @@ function LinhaTarefa({ t, cat, foco, ...p }: PropsItem & { t: Tarefa; cat?: Cate
       <IconeStatus status={t.status} className="mr-2.5" />
       <span className="min-w-0 flex-1 truncate">{t.titulo}</span>
       {foco && (
-        <span className="mr-2 ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+        <span className="mr-2 ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
           <Crosshair className="size-3" /> Foco
         </span>
       )}
       {cat && (
-        <span className="mr-3 ml-2 hidden max-w-44 shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground sm:flex">
+        <span className="mr-3 ml-2 hidden max-w-44 shrink-0 items-center gap-1.5 text-xs text-muted-foreground sm:flex">
           <PontoCor cor={cat.cor} />
           <span className="truncate">{cat.nome}</span>
         </span>
       )}
-      <PrioBadge p={t.prioridade} semDica className="size-5 text-[11px]" />
+      <PrioBadge p={t.prioridade} semDica className="size-5 text-xs" />
     </Opcao>
   );
 }

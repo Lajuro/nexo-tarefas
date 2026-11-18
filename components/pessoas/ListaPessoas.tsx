@@ -199,7 +199,7 @@ export function ListaPessoas({ diretorio, totalTimes }: { diretorio: EntradaPess
               </Vazio>
             ) : (
               <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-                <div className={`${COLUNAS} h-8 border-b bg-muted/50 text-[11px] font-medium tracking-wide text-muted-foreground uppercase sem-selecao`}>
+                <div className={`${COLUNAS} h-8 border-b bg-muted/50 text-xs font-medium tracking-wide text-muted-foreground uppercase sem-selecao`}>
                   <span>Pessoa</span>
                   <span>Times e categorias</span>
                   <span>Com ela</span>
@@ -230,7 +230,7 @@ export function ListaPessoas({ diretorio, totalTimes }: { diretorio: EntradaPess
                 titulo="Nomes sem cadastro"
                 contagem={soltosVisiveis.length}
                 icone={<Users />}
-                acoes={<span className="text-[11px] text-muted-foreground">Apareceram nos registros, mas ainda não têm cadastro</span>}
+                acoes={<span className="text-xs text-muted-foreground">Apareceram nos registros, mas ainda não têm cadastro</span>}
               >
                 <motion.div
                   data-slot="nomes-soltos"
@@ -305,7 +305,7 @@ function LinhaPessoa({
               {p.arquivada && <Badge variant="outline">Arquivada</Badge>}
             </div>
             <div className="truncate text-xs text-muted-foreground">
-              {sub ? <Destaque texto={sub} termo={termo} /> : <span className="text-muted-foreground/60">Sem cargo nem área</span>}
+              {sub ? <Destaque texto={sub} termo={termo} /> : <span className="text-muted-foreground/80">Sem cargo nem área</span>}
             </div>
             {ajuda && (
               <div data-slot="ajuda" className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-foreground/80">
@@ -320,23 +320,23 @@ function LinhaPessoa({
           {timesOrdenados.length > 0 && (
             <div className="flex min-w-0 flex-wrap gap-1">
               {timesOrdenados.slice(0, 3).map((t) => <EtiquetaTime key={t.id} time={t} responsavel={responsavel.has(t.id)} comLink />)}
-              {timesOrdenados.length > 3 && <span className="self-center text-[11px] text-muted-foreground">+{timesOrdenados.length - 3}</span>}
+              {timesOrdenados.length > 3 && <span className="self-center text-xs text-muted-foreground">+{timesOrdenados.length - 3}</span>}
             </div>
           )}
           {cats.length > 0 && (
             <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-0.5">
-              {cats.slice(0, 3).map((c) => <CatTag key={c.id} cat={c} className="max-w-full text-[11px] font-normal" />)}
-              {cats.length > 3 && <span className="text-[11px] text-muted-foreground">+{cats.length - 3}</span>}
+              {cats.slice(0, 3).map((c) => <CatTag key={c.id} cat={c} className="max-w-full text-xs font-normal" />)}
+              {cats.length > 3 && <span className="text-xs text-muted-foreground">+{cats.length - 3}</span>}
             </div>
           )}
-          {!timesOrdenados.length && !cats.length && <span className="text-[11px] text-muted-foreground/60">Sem time nem categoria</span>}
+          {!timesOrdenados.length && !cats.length && <span className="text-xs text-muted-foreground/80">Sem time nem categoria</span>}
         </div>
 
         <span>
           {abertos > 0 ? (
             <Badge variant="alerta"><Hourglass /> {plural(abertos, "passo", "passos")}</Badge>
           ) : (
-            <span className="text-[11px] text-muted-foreground/70">Nada pendente</span>
+            <span className="text-xs text-muted-foreground">Nada pendente</span>
           )}
         </span>
 
@@ -354,10 +354,10 @@ function UltimoContato({ data }: { data: string | null }) {
       {data ? (
         <>
           <span className="block text-[13px]">{dataRelativa(data)}</span>
-          <span className="block text-[11px] text-muted-foreground tabular-nums">{formatarData(data)}</span>
+          <span className="block text-xs text-muted-foreground tabular-nums">{formatarData(data)}</span>
         </>
       ) : (
-        <span className="text-[11px] text-muted-foreground/70">Sem registro</span>
+        <span className="text-xs text-muted-foreground">Sem registro</span>
       )}
     </span>
   );
@@ -390,7 +390,7 @@ function LinhaSolta({
           >
             <Destaque texto={e.nome} termo={termo} />
           </Link>
-          <span className="block truncate text-[11px] text-muted-foreground tabular-nums">
+          <span className="block truncate text-xs text-muted-foreground tabular-nums">
             {e.registros.length
               ? `${plural(e.registros.length, "registro", "registros")} em ${plural(new Set(e.registros.map((x) => x.tarefa.id)).size, "tarefa", "tarefas")}`
               : "Só como responsável por passos"}
@@ -400,7 +400,7 @@ function LinhaSolta({
       <span>
         {abertos > 0
           ? <Badge variant="alerta"><Hourglass /> {plural(abertos, "passo", "passos")}</Badge>
-          : <span className="text-[11px] text-muted-foreground/70">Nada pendente</span>}
+          : <span className="text-xs text-muted-foreground">Nada pendente</span>}
       </span>
       <UltimoContato data={e.ultimoContato} />
       <div className="relative z-10 flex items-center justify-end gap-1">
@@ -433,7 +433,7 @@ export function JuntarComo({
     <CommandItem key={p.id} value={`${p.nome} ${p.id}`} keywords={[...p.apelidos, p.area]} onSelect={async () => { setAberto(false); await juntar(p); }}>
       <AvatarPessoa nome={p.nome} tamanho="sm" />
       <span className="min-w-0 flex-1 truncate">{p.nome}</span>
-      {cargoArea(p) && <span className="max-w-[45%] truncate text-[11px] text-muted-foreground">{cargoArea(p)}</span>}
+      {cargoArea(p) && <span className="max-w-[45%] truncate text-xs text-muted-foreground">{cargoArea(p)}</span>}
     </CommandItem>
   );
   return (
@@ -448,7 +448,7 @@ export function JuntarComo({
         </PopoverTrigger>
       </Dica>
       <PopoverContent align="end" className="w-80 p-0">
-        <div className="border-b px-3 py-2 text-[11px] leading-snug text-muted-foreground">
+        <div className="border-b px-3 py-2 text-xs leading-snug text-muted-foreground">
           “{nome}” vira apelido da pessoa escolhida e os registros com esse nome passam a contar para ela.
         </div>
         <Command>

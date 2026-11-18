@@ -95,7 +95,7 @@ export function SeletorMultiplo({
             aria-expanded={aberto}
             aria-label={ariaLabel}
             onClick={() => setAberto((a) => !a)}
-            className="inline-flex h-6 min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 text-left text-[13px] text-muted-foreground/80 outline-none sem-selecao hover:text-foreground focus-visible:bg-accent"
+            className="inline-flex h-6 min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 text-left text-[13px] text-muted-foreground outline-none sem-selecao hover:text-foreground focus-visible:bg-accent"
           >
             <Plus className="size-3.5 shrink-0" />
             <span className="truncate">{escolhidos.length ? "Adicionar" : placeholder}</span>
@@ -126,7 +126,7 @@ export function SeletorMultiplo({
                     </span>
                     {o.icone}
                     <span className="min-w-0 flex-1 truncate">{o.rotulo}</span>
-                    {o.detalhe && <span className="max-w-[45%] shrink-0 truncate text-[11px] text-muted-foreground">{o.detalhe}</span>}
+                    {o.detalhe && <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{o.detalhe}</span>}
                   </CommandItem>
                 );
               })}

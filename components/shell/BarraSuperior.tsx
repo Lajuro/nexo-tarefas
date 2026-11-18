@@ -50,7 +50,7 @@ function Migalhas() {
         const ultima = i === partes.length - 1;
         return (
           <Fragment key={i}>
-            {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />}
+            {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/80" />}
             {p.href && !ultima ? (
               // A primeira migalha (a tela) nunca encolhe; as do meio cedem espaço antes de invadir as ferramentas.
               <Link href={p.href} className={cn("rounded px-1 py-0.5 text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40", i === 0 ? "shrink-0" : "min-w-0 shrink-[2] truncate")}>
@@ -117,7 +117,7 @@ export function BarraSuperior({
           <AnimatePresence>
             {!moldura.barraStatus && gravando > 0 && (
               <motion.span key="gravando" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={suave}
-                className="mr-1 flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground sem-selecao">
+                className="mr-1 flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground sem-selecao">
                 <Loader2 className="size-3 animate-spin" /> Salvando...
               </motion.span>
             )}

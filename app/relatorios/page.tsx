@@ -226,7 +226,7 @@ export default function Relatorios() {
                 </motion.span>
               </AnimatePresence>
               {copiado ? "Copiado" : "Copiar prompt"}
-              <span className="rounded-full bg-white/20 px-1.5 text-[11px] leading-[18px] font-semibold tabular-nums">
+              <span className="rounded-full bg-white/20 px-1.5 text-xs leading-[18px] font-semibold tabular-nums">
                 {plural(itens.length, "registro", "registros")}
               </span>
             </Button>
@@ -340,7 +340,7 @@ function LinhaRegistro({ item: { t, r }, modo, cat }: { item: Item; modo: Agrupa
       )}
     >
       {modo === "tarefa" && (
-        <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums first-letter:uppercase">
+        <span className="text-[11px] whitespace-nowrap text-muted-foreground tabular-nums first-letter:uppercase">
           {dataPorExtenso(r.data)}
         </span>
       )}
@@ -357,7 +357,7 @@ function LinhaRegistro({ item: { t, r }, modo, cat }: { item: Item; modo: Agrupa
                 <AvatarPessoa key={nome} nome={nome} tamanho="sm" className="ring-2 ring-card" />
               ))}
               {r.participantes.length > 3 && (
-                <span className="pl-2.5 text-[11px] text-muted-foreground tabular-nums">+{r.participantes.length - 3}</span>
+                <span className="pl-2.5 text-xs text-muted-foreground tabular-nums">+{r.participantes.length - 3}</span>
               )}
             </span>
           </Dica>

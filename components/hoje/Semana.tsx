@@ -47,7 +47,7 @@ export function Semana({ hoje, tarefas, categorias }: { hoje: string; tarefas: T
       icone={<CalendarDays />}
       contagem={total || undefined}
       acoes={
-        <span className="text-[11px] text-muted-foreground tabular-nums">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {formatarData(hoje, false)} a {formatarData(dias[6].data, false)}
         </span>
       }
@@ -74,7 +74,7 @@ export function Semana({ hoje, tarefas, categorias }: { hoje: string; tarefas: T
                   <span
                     className={cn(
                       "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums",
-                      ehHoje ? "bg-primary text-primary-foreground" : itens.length ? "text-foreground" : "text-muted-foreground/70",
+                      ehHoje ? "bg-primary text-primary-foreground" : itens.length ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
                     {d.getDate()}
@@ -84,7 +84,7 @@ export function Semana({ hoje, tarefas, categorias }: { hoje: string; tarefas: T
                   <ItemSemana key={it.chave} item={it} cor={cor(it.tarefa)} />
                 ))}
                 {itens.length > mostrados.length && (
-                  <span className="px-1.5 text-[11px] text-muted-foreground">mais {itens.length - mostrados.length}</span>
+                  <span className="px-1.5 text-xs text-muted-foreground">mais {itens.length - mostrados.length}</span>
                 )}
                 {itens.length === 0 && <span aria-hidden className="mx-1.5 mt-1.5 h-px w-3 rounded-full bg-border" />}
               </div>
@@ -121,7 +121,7 @@ function ItemSemana({ item: { tarefa, passo }, cor }: { item: ItemDoDia; cor?: s
             data-slot="semana-item"
             data-tipo={passo ? "passo" : "tarefa"}
             className={cn(
-              "flex items-start gap-1.5 rounded-md px-1.5 py-1 text-[11px] leading-snug transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35",
+              "flex items-start gap-1.5 rounded-md px-1.5 py-1 text-xs leading-snug transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35",
               passo ? "text-muted-foreground hover:text-foreground" : "bg-background font-medium ring-1 ring-border ring-inset dark:bg-muted/60",
             )}
           >

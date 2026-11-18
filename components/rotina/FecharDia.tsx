@@ -186,7 +186,7 @@ function Conteudo({ fechar }: { fechar: () => void }) {
             className="max-h-56 overflow-auto rounded-lg border bg-muted/40 p-3 font-sans text-[12.5px] leading-relaxed whitespace-pre-wrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25">
             {daily}
           </pre>
-          <p className="text-[11px] text-muted-foreground">Montada só com o que está registrado. Amanhã cedo dá para copiar de novo pela tela Hoje.</p>
+          <p className="text-xs text-muted-foreground">Montada só com o que está registrado. Amanhã cedo dá para copiar de novo pela tela Hoje.</p>
         </Bloco>
       </DialogBody>
 

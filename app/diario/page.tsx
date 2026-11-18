@@ -54,7 +54,7 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
     <div data-slot="mapa-atividade" className="overflow-x-auto pb-1">
       <div className="inline-flex flex-col gap-1">
         {/* meses: o rótulo aparece na primeira semana de cada mês */}
-        <div className="ml-7 flex gap-[3px] text-[10px] leading-none text-muted-foreground sem-selecao" aria-hidden>
+        <div className="ml-7 flex gap-[3px] text-[11px] leading-none text-muted-foreground sem-selecao" aria-hidden>
           {semanas.map((s, i) => {
             const primeiro = s[0] ?? "";
             const mudou = i === 0 || (semanas[i - 1][0] ?? "").slice(5, 7) !== primeiro.slice(5, 7);
@@ -62,7 +62,7 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
           })}
         </div>
         <div className="flex gap-1">
-          <div className="grid w-6 grid-rows-7 gap-[3px] text-[9px] leading-[14px] text-muted-foreground sem-selecao" aria-hidden>
+          <div className="grid w-6 grid-rows-7 gap-[3px] text-[11px] leading-[14px] text-muted-foreground sem-selecao" aria-hidden>
             {["seg", "", "qua", "", "sex", "", ""].map((d, i) => <span key={i}>{d}</span>)}
           </div>
           <div role="group" aria-label="Atividade por dia. Clique num dia para ver só ele." className="flex gap-[3px]">
@@ -90,7 +90,7 @@ function Mapa({ atividade, hoje, dia, escolher }: { atividade: Map<string, numbe
             ))}
           </div>
         </div>
-        <div className="mt-1 ml-7 flex items-center gap-1.5 text-[10px] text-muted-foreground sem-selecao">
+        <div className="mt-1 ml-7 flex items-center gap-1.5 text-[11px] text-muted-foreground sem-selecao">
           menos
           {COR_NIVEL.map((c) => <span key={c} className={cn("size-3.5 rounded-[3px]", c)} />)}
           mais
@@ -106,7 +106,7 @@ function Evento({ e, cat }: { e: EventoDiario; cat?: Categoria }) {
   const tarefa = (
     <MenuContextoTarefa tarefa={e.tarefa}>
       <Link href={`/tarefas/${e.tarefa.id}`}
-        className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-sm text-[11px] text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
+        className="inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-sm text-xs text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
         {cat && <PontoCor cor={cat.cor} />}
         <span className="truncate">{e.tarefa.titulo}</span>
       </Link>
@@ -134,13 +134,13 @@ function Evento({ e, cat }: { e: EventoDiario; cat?: Categoria }) {
             className={cn("min-w-0 truncate rounded-sm text-[13px] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50", marco ? "text-muted-foreground" : "font-medium")}>
             {r.titulo || "Sem título"}
           </Link>
-          {r.hora && <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{r.hora}</span>}
-          {!!r.duracaoMin && <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{r.duracaoMin} min</span>}
+          {r.hora && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{r.hora}</span>}
+          {!!r.duracaoMin && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{r.duracaoMin} min</span>}
         </p>
         {tarefa}
         {!marco && texto && <p className="mt-1 line-clamp-2 max-w-[90ch] text-[13px] leading-snug text-muted-foreground">{texto}</p>}
         {r.participantes.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {r.participantes.slice(0, 6).map((p) => (
               <span key={p} className="inline-flex items-center gap-1"><AvatarPessoa nome={p} tamanho="sm" />{p}</span>
             ))}
@@ -160,7 +160,7 @@ function Dia({ dia, cats, aoCopiar }: { dia: DiaDoDiario; cats: Map<string, Cate
       data-slot="dia-diario" data-data={dia.data} className="group/dia">
       <header className="flex items-center gap-2 pb-1.5">
         <h2 className="text-[13px] font-semibold tracking-tight first-letter:uppercase">{tituloDoDia(dia.data)}</h2>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {dataRelativa(dia.data)}
           {registros > 0 && ` · ${plural(registros, "registro", "registros")}`}
           {passos > 0 && ` · ${plural(passos, "passo feito", "passos feitos")}`}
@@ -242,10 +242,10 @@ export default function Diario() {
         </>
       }
     >
-      <div className="mx-auto w-full max-w-[1360px] px-6 py-5">
+      <div className="w-full max-w-[1360px]">
         <div className="flex flex-wrap items-stretch gap-4">
           <Painel titulo="Atividade" icone={<CalendarDays />} className="min-w-0 flex-1 basis-[520px]"
-            acoes={<span className="text-[11px] text-muted-foreground sem-selecao">últimas {SEMANAS} semanas{cat ? ` · ${cats.get(cat)?.nome}` : ""}</span>}
+            acoes={<span className="text-xs text-muted-foreground sem-selecao">últimas {SEMANAS} semanas{cat ? ` · ${cats.get(cat)?.nome}` : ""}</span>}
             corpoClassName="px-3.5 py-3">
             <Mapa atividade={atividade} hoje={hoje} dia={dia} escolher={(d) => { setDia(d); setMostrar(DIAS_POR_VEZ); }} />
           </Painel>

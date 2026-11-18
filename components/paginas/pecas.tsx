@@ -81,7 +81,7 @@ export const nomeDoEstado = (e: EstadoPagina) => ESTADOS_PAGINA.find((x) => x.id
 
 export function SeloEstado({ estado, className }: { estado: EstadoPagina; className?: string }) {
   return (
-    <span data-slot="estado-pagina" data-estado={estado} className={cn("inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[11px] font-medium sem-selecao", TOM_DO_ESTADO[estado], className)}>
+    <span data-slot="estado-pagina" data-estado={estado} className={cn("inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-xs font-medium sem-selecao", TOM_DO_ESTADO[estado], className)}>
       {nomeDoEstado(estado)}
     </span>
   );

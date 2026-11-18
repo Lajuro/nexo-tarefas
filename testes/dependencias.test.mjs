@@ -1,4 +1,4 @@
-// Testes das novidades de organização da 3.6: dependências entre tarefas (lib/dependencias.ts), tarefas que se
+// Testes das novidades de organização da 3.7: dependências entre tarefas (lib/dependencias.ts), tarefas que se
 // repetem (lib/recorrencia.ts), "falar com Fulano" (lib/assuntos.ts) e os lembretes que nascem delas (lib/lembretes.ts).
 // Uso: node testes/dependencias.test.mjs   (Node 22.18+ importa .ts direto)
 
@@ -166,6 +166,15 @@ teste("lembrete de repetição: sem tarefa, com o modelo e a data", () => {
   assert.equal(l.tarefaId, "");
   assert.equal(l.id, `recorrencia:mo1:${hoje}`);
   assert.ok(!L.gerarLembretes([], { modelos: [Rc.comOcorrenciaAtendida(m, hoje)] }).some((x) => x.tipo === "recorrencia"), "depois de criar ou pular, sai");
+});
+
+teste("agrupar por tarefa: cada modelo que se repete é um grupo próprio, com o modelo e a data", () => {
+  const m1 = T.normalizarModelo({ id: "mo1", nome: "Relatório", repetir: { tipo: "dias", cadaDias: 1, desde: dia(-3) } });
+  const m2 = T.normalizarModelo({ id: "mo2", nome: "Backup", repetir: { tipo: "dias", cadaDias: 1, desde: dia(-3) } });
+  const grupos = L.agruparLembretes(L.gerarLembretes([], { modelos: [m1, m2] }));
+  assert.equal(grupos.length, 2, "os dois modelos não podem cair no mesmo grupo de tarefa vazia");
+  assert.deepEqual(grupos.map((g) => g.modeloId).sort(), ["mo1", "mo2"]);
+  assert.ok(grupos.every((g) => g.data === dia(0)));
 });
 
 // ---------- falar com ----------

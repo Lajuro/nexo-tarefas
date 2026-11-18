@@ -1,4 +1,4 @@
-// Comparação de duas versões de um texto (3.6): o que saiu, o que entrou e o que ficou igual, linha a linha,
+// Comparação de duas versões de um texto (3.7): o que saiu, o que entrou e o que ficou igual, linha a linha,
 // com as palavras que mudaram destacadas dentro das linhas alteradas. Feito em casa (maior subsequência comum),
 // sem biblioteca. Função pura: a tela está em components/paginas/Historico.tsx.
 

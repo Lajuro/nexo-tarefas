@@ -21,7 +21,7 @@ function SelectTrigger({
       data-slot="select-trigger"
       className={cn(
         campoBase,
-        "flex items-center justify-between gap-2 px-2.5 text-left sem-selecao data-[placeholder]:text-muted-foreground/70 [&>span]:line-clamp-1 [&>span]:flex [&>span]:items-center [&>span]:gap-2",
+        "flex items-center justify-between gap-2 px-2.5 text-left sem-selecao data-[placeholder]:text-muted-foreground [&>span]:line-clamp-1 [&>span]:flex [&>span]:items-center [&>span]:gap-2",
         size === "sm" ? "h-7 text-xs" : "h-8",
         className,
       )}
@@ -55,7 +55,7 @@ function SelectContent({ className, children, position = "popper", ...props }: R
 }
 
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
-  return <SelectPrimitive.Label className={cn("px-2 py-1.5 text-[11px] font-medium text-muted-foreground", className)} {...props} />;
+  return <SelectPrimitive.Label className={cn("px-2 py-1.5 text-xs font-medium text-muted-foreground", className)} {...props} />;
 }
 
 function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {

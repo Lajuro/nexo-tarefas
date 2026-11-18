@@ -12,7 +12,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
   L.push(`- **Status:** ${nomeStatus(t.status)}`);
   L.push(`- **Prioridade:** ${t.prioridade}`);
   if (t.prazo) L.push(`- **Prazo:** ${formatarData(t.prazo)}`);
-  if (t.lembrarEm) L.push(`- **Lembrar em:** ${formatarData(t.lembrarEm)}`);
+  if (t.lembrarEm) L.push(`- **Lembrar de voltar em:** ${formatarData(t.lembrarEm)}`);
   if (t.esperando)
     L.push(`- **Esperando:** ${[t.esperando.quem, t.esperando.oQue].filter(Boolean).join(": ")} (desde ${formatarData(t.esperando.desde)}${t.esperando.cobradoEm ? `, cobrado em ${formatarData(t.esperando.cobradoEm)}` : ""})`);
   if (t.tags.length) L.push(`- **Tags:** ${t.tags.join(", ")}`);

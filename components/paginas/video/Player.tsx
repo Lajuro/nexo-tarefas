@@ -355,7 +355,7 @@ export function Player({
             <span aria-hidden className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow transition-opacity group-hover/barra:opacity-100 group-focus-visible/barra:opacity-100" style={{ left: total ? `${Math.min(100, (tempo / total) * 100)}%` : 0 }} />
           </div>
           {sobre && total > 0 && (
-            <div aria-hidden className="pointer-events-none absolute bottom-5 z-30 flex max-w-64 -translate-x-1/2 flex-col items-center gap-0.5 rounded-md bg-black/85 px-2 py-1 text-center text-[11px] leading-snug backdrop-blur-sm" style={{ left: sobre.x }}>
+            <div aria-hidden className="pointer-events-none absolute bottom-5 z-30 flex max-w-64 -translate-x-1/2 flex-col items-center gap-0.5 rounded-md bg-black/85 px-2 py-1 text-center text-xs leading-snug backdrop-blur-sm" style={{ left: sobre.x }}>
               <span className="font-semibold tabular-nums">{formatarTempo(sobre.t)}</span>
               {[...capitulos].reverse().find((c) => c.t <= sobre.t)?.titulo && <span className="text-white/80">{[...capitulos].reverse().find((c) => c.t <= sobre.t)?.titulo}</span>}
               {legendaEm?.(sobre.t) && <span className="line-clamp-2 text-white/65">{legendaEm(sobre.t)}</span>}

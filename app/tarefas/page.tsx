@@ -418,7 +418,7 @@ function Tarefas() {
       </div>
       {temChips && (
         <div data-slot="filtros-ativos" className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="mr-0.5 text-[11px] text-muted-foreground sem-selecao">Mostrando só:</span>
+          <span className="mr-0.5 text-xs text-muted-foreground sem-selecao">Mostrando só:</span>
           {chips}
         </div>
       )}
@@ -521,7 +521,7 @@ function Tarefas() {
           </motion.div>
           <BarraDeLote selecao={selecao} tarefas={lista} categorias={cats} />
           {!selecao.ativa && lista.length > 0 && (
-            <p className="mt-4 text-center text-[11px] text-muted-foreground sem-selecao">
+            <p className="mt-4 text-center text-xs text-muted-foreground sem-selecao">
               <Kbd>J</Kbd> <Kbd>K</Kbd> andam · <Kbd>Enter</Kbd> abre · <Kbd>X</Kbd> seleciona (ou Ctrl + clique) · <Kbd>F</Kbd> foco de hoje · <Kbd>M</Kbd> ações
             </p>
           )}

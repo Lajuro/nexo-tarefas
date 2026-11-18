@@ -48,7 +48,7 @@ export function PassoDaTarefa({
               aoMudar={(v) => atualizarTarefa(tarefaId, (t) => comPrazoDoPasso(t, registro.id, passo.id, v || null))}
               placeholder="Prazo"
               aria-label={passo.prazo ? `Prazo do passo: ${formatarData(passo.prazo)}. Clique para mudar.` : "Definir prazo do passo"}
-              className={cn("-mx-1 h-5 gap-1 px-1 text-[11px] [&_svg]:size-3", passo.prazo ? tomPrazo : "text-muted-foreground/70")}
+              className={cn("-mx-1 h-5 gap-1 px-1 text-xs [&_svg]:size-3", passo.prazo ? tomPrazo : "text-muted-foreground")}
             />
           )}
           {d !== null && d < 0 && <span className="text-destructive">{-d === 1 ? "1 dia de atraso" : `${-d} dias de atraso`}</span>}

@@ -1,4 +1,4 @@
-// Testes das peças de apoio da 3.6: comparação de versões das páginas (lib/diff.ts), transcrição dos vídeos
+// Testes das peças de apoio da 3.7: comparação de versões das páginas (lib/diff.ts), transcrição dos vídeos
 // como fonte do Perguntar (lib/perguntar.ts) e os normalizadores das preferências novas, que leem o
 // localStorage (entrada não confiável): visões salvas da lista de tarefas e avisos do Windows.
 // Uso: node testes/versoes.test.mjs   (Node 22.18+ importa .ts direto)

@@ -73,12 +73,12 @@ export function PainelDependencias({ tarefa }: { tarefa: Tarefa }) {
       ) : (
         <p className="text-xs text-muted-foreground">Nada segura esta tarefa. Se ela só anda depois de outra, ligue aqui.</p>
       )}
-      {deps.sumidas.length > 0 && <p className="text-[11px] text-muted-foreground">{deps.sumidas.length === 1 ? "Uma tarefa ligada foi para a lixeira." : `${deps.sumidas.length} tarefas ligadas foram para a lixeira.`}</p>}
+      {deps.sumidas.length > 0 && <p className="text-xs text-muted-foreground">{deps.sumidas.length === 1 ? "Uma tarefa ligada foi para a lixeira." : `${deps.sumidas.length} tarefas ligadas foram para a lixeira.`}</p>}
       <Combobox valor="" aoMudar={ligar} opcoes={opcoes} permitirLimpar={false} placeholder="Depende de outra tarefa..."
         buscaPlaceholder="Buscar tarefa..." vazio="Nenhuma tarefa com esse nome." aria-label="Ligar uma tarefa de que esta depende" className="w-full" />
       {segura.length > 0 && (
         <div data-slot="segura" className="mt-1 border-t pt-2">
-          <p className="mb-0.5 text-[11px] font-medium text-muted-foreground">Esta tarefa segura</p>
+          <p className="mb-0.5 text-xs font-medium text-muted-foreground">Esta tarefa segura</p>
           <ul className="flex flex-col">{segura.map((t) => <LinhaTarefa key={t.id} t={t} />)}</ul>
         </div>
       )}

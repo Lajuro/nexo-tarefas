@@ -55,7 +55,7 @@ export function ListaPassos({ passos }: { passos: PassoComTarefa[] }) {
                   <span className="truncate">{x.tarefa.titulo}</span>
                 </Link>
                 <span className="whitespace-nowrap tabular-nums">desde {formatarData(x.registro.data, false)} ({dataRelativa(x.registro.data)})</span>
-                {x.passo.prazo && <PrazoTag prazo={x.passo.prazo} concluida={feito} className="text-[11px] [&_svg]:size-3" />}
+                {x.passo.prazo && <PrazoTag prazo={x.passo.prazo} concluida={feito} className="text-xs [&_svg]:size-3" />}
               </>
             }
           />

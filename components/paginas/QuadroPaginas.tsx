@@ -17,13 +17,13 @@ function Cartao({ p, paginas, cat, flutuando }: { p: Pagina; paginas: Pagina[]; 
   const resumo = paraTextoPlano(p.texto).replace(/\n+/g, " ").slice(0, 140);
   return (
     <div className={cn("rounded-lg border bg-card px-3 py-2.5 shadow-xs transition-[border-color,box-shadow]", flutuando ? "rotate-[1.5deg] border-primary/50 shadow-lg ring-[3px] ring-primary/15" : "hover:border-ring/40 hover:shadow-sm")}>
-      {caminho && <div className="mb-0.5 truncate text-[11px] text-muted-foreground">{caminho}</div>}
+      {caminho && <div className="mb-0.5 truncate text-xs text-muted-foreground">{caminho}</div>}
       <div className="flex items-start gap-1.5">
         <IconePagina pagina={p} className="mt-0.5 text-muted-foreground" />
         <span className="min-w-0 flex-1 text-[13px] leading-snug font-medium">{nomeDaPagina(p)}</span>
       </div>
       {resumo && <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">{resumo}</p>}
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         {cat && <span className="inline-flex min-w-0 items-center gap-1"><PontoCor cor={cat.cor} /><span className="truncate">{cat.nome}</span></span>}
         {p.tags.slice(0, 3).map((t) => <span key={t} className="rounded bg-muted px-1 font-medium">#{t}</span>)}
         <span className="ml-auto shrink-0">{dataRelativa(p.atualizadaEm)}</span>

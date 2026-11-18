@@ -149,7 +149,7 @@ export function TranscricaoDaReuniao({
                   <div className="flex items-center gap-2">
                     <BotaoCopiarParte texto={prompts[i]} rotulo={copiadas.includes(i) ? "Copiar de novo" : "Copiar prompt"}
                       aoCopiar={() => setCopiadas((c) => [...new Set([...c, i])])} />
-                    <span className="ml-auto font-mono text-[11px] text-muted-foreground tabular-nums">{prompts[i].length.toLocaleString("pt-BR")} caracteres</span>
+                    <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{prompts[i].length.toLocaleString("pt-BR")} caracteres</span>
                   </div>
                   <Textarea data-slot="resposta-transcricao" rows={4} className="max-h-[28vh] min-h-24"
                     value={respostas[i] ?? ""} aria-label={`Resposta do Copilot, parte ${i + 1}`}
@@ -161,7 +161,7 @@ export function TranscricaoDaReuniao({
           </BlocoCopilot>
         )}
 
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           O texto original da transcrição fica guardado como anexo, com o link nas anotações. Decisões, passos e participantes novos entram no fim do que já foi capturado, sem apagar nada.
         </p>
       </div>

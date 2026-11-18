@@ -1,6 +1,6 @@
 "use client";
 
-// Imprimir ou salvar em PDF (3.6): uma folha limpa da tarefa ou da categoria, para mandar ao gestor sem
+// Imprimir ou salvar em PDF (3.7): uma folha limpa da tarefa ou da categoria, para mandar ao gestor sem
 // depender de nada além do navegador ("Salvar como PDF" é o destino de impressão do próprio Edge/Chrome).
 // pedirImpressao() de qualquer lugar; o componente <Impressao/> fica montado no Shell, põe a folha direto no
 // <body> só durante a impressão e o CSS de app/globals.css (@media print) esconde todo o resto.
@@ -42,7 +42,7 @@ function FolhaDaTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
       <h1 className="text-2xl font-semibold">{t.titulo}</h1>
       <table className="mt-3 text-[13px]">
         <tbody>
-          <Linha rotulo="Assunto">{cat?.nome ?? "Sem categoria"}</Linha>
+          <Linha rotulo="Categoria">{cat?.nome ?? "Sem categoria"}</Linha>
           <Linha rotulo="Status">{nomeStatus(t.status)}</Linha>
           <Linha rotulo="Prioridade">{t.prioridade} de 10</Linha>
           {t.prazo && <Linha rotulo="Prazo">{formatarData(t.prazo)}</Linha>}
@@ -181,7 +181,7 @@ export function Impressao() {
   return createPortal(
     <div data-impressao className="folha-de-impressao">
       {folha}
-      <p className="mt-6 text-[10px]">Gerado pelo Nexo em {formatarData(hojeISO())}.</p>
+      <p className="mt-6 text-xs">Gerado pelo Nexo em {formatarData(hojeISO())}.</p>
     </div>,
     document.body,
   );

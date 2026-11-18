@@ -505,7 +505,7 @@ export function EditorRico({
             <Dica texto="Linguagem do bloco de código (dá as cores na leitura)">
               <DropdownMenuTrigger asChild>
                 <button type="button" aria-label="Linguagem do bloco de código" data-slot="linguagem-do-codigo" onMouseDown={(e) => e.preventDefault()}
-                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-accent px-2 text-[11px] font-medium text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                  className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-accent px-2 text-xs font-medium text-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35">
                   {estado.linguagem ? NOMES_DE_LINGUAGEM[estado.linguagem.toLowerCase()] ?? estado.linguagem : "sem linguagem"}
                 </button>
               </DropdownMenuTrigger>
@@ -547,8 +547,8 @@ export function EditorRico({
           <BotaoBarra dica="Tabela" aoClicar={() => c().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}><Table2 /></BotaoBarra>
         )}
         {pagina && (
-          <span className="ml-auto hidden pr-1.5 text-[11px] text-muted-foreground/80 lg:inline">
-            digite <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">/</kbd> para blocos
+          <span className="ml-auto hidden pr-1.5 text-xs text-muted-foreground lg:inline">
+            digite <kbd className="rounded border bg-muted px-1 font-mono text-[11px]">/</kbd> para blocos
           </span>
         )}
       </div>
@@ -593,7 +593,7 @@ export function EditorRico({
                   <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground"><Icone className="size-3.5" /></span>
                   <span className="min-w-0">
                     <span className="block truncate text-[13px] font-medium">{i.nome}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">{i.dica}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{i.dica}</span>
                   </span>
                 </button>
               );

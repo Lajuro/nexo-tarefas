@@ -5,12 +5,12 @@
 
 import { useMemo } from "react";
 import { motion } from "motion/react";
-import { Ban, CalendarX2, ClipboardCopy, Hourglass, ListChecks, ListTodo, MoonStar, Plus, Sunrise, Target } from "lucide-react";
+import { Ban, ClipboardCopy, Hourglass, MoonStar, Plus, Sunrise } from "lucide-react";
 import { CartaoDaRotina } from "@/components/jornada/Ferramenta";
 import { useNexo } from "@/components/Provider";
 import { abrirFecharDia, abrirNovaTarefa, abrirPlanejarDia } from "@/components/Shell";
 import { useLembretes } from "@/components/useLembretes";
-import { Estatistica, Pagina, Vazio, copiarTexto } from "@/components/comum";
+import { Pagina, Vazio, copiarTexto } from "@/components/comum";
 import { Dica } from "@/components/ui/popover";
 import { dailyDaManha } from "@/lib/fechamento";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { PrecisaDeVoce } from "@/components/hoje/PrecisaDeVoce";
 import { Semana } from "@/components/hoje/Semana";
 import { dataLonga, useAgora } from "@/components/hoje/apoio";
 import { itemLista, lista } from "@/lib/animacoes";
-import { passosAbertosDe, resumoDoDia, saudacao } from "@/lib/lembretes";
+import { resumoDoDia, saudacao } from "@/lib/lembretes";
 import { hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -37,19 +37,20 @@ export default function Hoje() {
   // `hoje` entra nas dependências para a tela se refazer sozinha quando vira o dia com o app aberto.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const resumo = useMemo(() => resumoDoDia(tarefas), [tarefas, hoje]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const pendencias = useMemo(() => passosAbertosDe(tarefas).length, [tarefas, hoje]);
 
-  const pedemAtencao = lembretesDoDia.lembretes.filter((l) => l.gravidade !== "info").length;
+  // Conta por tarefa (uma tarefa atrasada, com passo vencido e sem retorno é uma coisa só): é o mesmo
+  // número do sino e do menu.
+  const { pedemAtencao } = lembretesDoDia;
   const temCritico = lembretesDoDia.criticos > 0;
   const fraseDoDia =
-    pedemAtencao === 0 ? "Tudo em dia" : pedemAtencao === 1 ? "1 coisa pede sua atenção hoje" : `${pedemAtencao} coisas pedem sua atenção hoje`;
+    pedemAtencao === 0 ? "Tudo em dia" : pedemAtencao === 1 ? "1 tarefa pede sua atenção hoje" : `${pedemAtencao} tarefas pedem sua atenção hoje`;
 
   const copiarDaily = async () => {
     if (await copiarTexto(dailyDaManha({ tarefas }, hoje))) toast("Daily copiada: o que você fez no último dia, o que vai fazer hoje e os impedimentos.");
     else toast("Não consegui copiar automaticamente.", "erro");
   };
 
+  // "Nova tarefa" já está na barra lateral, no atalho N e no campo de captura logo abaixo: aqui ficam os rituais do dia.
   const acoes = (
     <>
       {tarefas.length > 0 && (
@@ -62,9 +63,6 @@ export default function Hoje() {
           <Button variant="ghost" size="icon" aria-label="Fechar o dia" data-acao="fechar-o-dia" onClick={() => abrirFecharDia()}><MoonStar /></Button>
         </Dica>
       )}
-      <Button variant="outline" onClick={() => abrirNovaTarefa()}>
-        <Plus /> Nova tarefa <Kbd>N</Kbd>
-      </Button>
       <Button onClick={() => abrirPlanejarDia()} data-acao="planejar-o-dia">
         <Sunrise /> Planejar o dia <Kbd className="border-white/20 bg-white/15 text-white">D</Kbd>
       </Button>
@@ -94,7 +92,7 @@ export default function Hoje() {
       descricao={
         <span className="inline-flex max-w-full items-center gap-2">
           <span className="truncate">{dataLonga(hoje)}</span>
-          <span aria-hidden className="text-muted-foreground/50">·</span>
+          <span aria-hidden className="text-muted-foreground/80">·</span>
           <span data-slot="frase-do-dia" className={cn("inline-flex shrink-0 items-center gap-1.5 font-medium", pedemAtencao ? "text-foreground" : "text-sucesso")}>
             <span
               aria-hidden
@@ -107,30 +105,18 @@ export default function Hoje() {
       acoes={acoes}
     >
       <motion.div data-slot="hoje" variants={lista} initial="escondido" animate="visivel" className="@container flex flex-col gap-4">
-        <motion.div variants={itemLista} className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
-          <Estatistica rotulo="Tarefas abertas" valor={resumo.totalAbertas} icone={<ListTodo />} href="/tarefas" />
-          <Estatistica rotulo="Atrasadas" valor={resumo.atrasadas.length} icone={<CalendarX2 />} tom="perigo" href="/tarefas?f=atrasadas" />
-          <Estatistica rotulo="Pendências" valor={pendencias} icone={<ListChecks />} tom="primario" href="/pendencias" />
-          <Estatistica
-            rotulo="Em foco hoje"
-            valor={resumo.focos.length}
-            icone={<Target />}
-            tom="primario"
-            aoClicar={() => document.getElementById("foco-hoje")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-          />
-        </motion.div>
-
         <motion.div variants={itemLista}>
           <CapturaRapida />
         </motion.div>
 
-        <div className="mt-3 grid gap-x-6 gap-y-8 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="mt-2 grid gap-x-6 gap-y-8 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+          {/* O que está estourando vem antes do que foi escolhido: com tudo em dia, o foco sobe. */}
           <div className="flex min-w-0 flex-col gap-8">
-            <motion.div variants={itemLista}>
-              <FocoHoje focos={resumo.focos} tarefas={tarefas} categorias={categorias} />
-            </motion.div>
-            <motion.div variants={itemLista}>
+            <motion.div variants={itemLista} className={pedemAtencao ? "order-1" : "order-2"}>
               <PrecisaDeVoce {...lembretesDoDia} />
+            </motion.div>
+            <motion.div variants={itemLista} className={pedemAtencao ? "order-2" : "order-1"}>
+              <FocoHoje focos={resumo.focos} tarefas={tarefas} categorias={categorias} />
             </motion.div>
           </div>
 

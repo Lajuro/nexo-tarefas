@@ -191,14 +191,14 @@ function Conteudo() {
                         className={cn("flex items-start gap-2.5 px-3.5 py-2.5 transition-opacity", !dentro && "opacity-50")}>
                         <Checkbox checked={dentro} className="mt-0.5" aria-label={dentro ? `Tirar ${f.rotulo} do prompt` : `Pôr ${f.rotulo} no prompt`}
                           onCheckedChange={(v) => mudar({ fora: v === true ? c.fora.filter((k) => k !== f.chave) : [...c.fora, f.chave] })} />
-                        <span className="mt-px inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1 text-[11px] font-semibold tabular-nums text-primary sem-selecao">{f.rotulo}</span>
+                        <span className="mt-px inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1 text-xs font-semibold tabular-nums text-primary sem-selecao">{f.rotulo}</span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 text-[13px] leading-snug font-medium">
                             <Icone className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{f.titulo}</span>
-                            {f.data && <span className="shrink-0 text-[11px] font-normal text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
+                            {f.data && <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
                           </div>
-                          {f.contexto && <div className="truncate text-[11px] text-muted-foreground">{f.contexto}</div>}
+                          {f.contexto && <div className="truncate text-xs text-muted-foreground">{f.contexto}</div>}
                           <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground texto-pre">{f.trecho.replace(/\n+/g, " · ")}</p>
                         </div>
                         <Dica texto="Abrir a fonte">
@@ -210,7 +210,7 @@ function Conteudo() {
                     );
                   })}
                 </ul>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3.5 py-2 text-[11px] text-muted-foreground sem-selecao">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-3.5 py-2 text-xs text-muted-foreground sem-selecao">
                   <span data-slot="resumo-fontes">
                     {escolhidas.length} de {resultado.fontes.length} no prompt · cerca de {Math.max(1, Math.round(prompt.length / 1000))} mil caracteres
                   </span>
@@ -220,7 +220,7 @@ function Conteudo() {
                       <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground" disabled={!prompt}><ChevronDown /> Ver o prompt</Button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <pre data-slot="prompt-pergunta" className="mt-1 max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground">{prompt}</pre>
+                      <pre data-slot="prompt-pergunta" className="mt-1 max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap text-foreground">{prompt}</pre>
                     </CollapsibleContent>
                   </Collapsible>
                 </div>
@@ -265,11 +265,11 @@ function Conteudo() {
                         const Icone = ICONE[f.tipo];
                         const dentro = (
                           <>
-                            <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1 text-[11px] font-semibold tabular-nums text-primary">{f.rotulo}</span>
+                            <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1 text-xs font-semibold tabular-nums text-primary">{f.rotulo}</span>
                             <Icone className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{f.titulo}</span>
-                            {f.data && <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
-                            {f.contexto && <span className="hidden min-w-0 truncate text-[11px] text-muted-foreground sm:inline">{f.contexto}</span>}
+                            {f.data && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
+                            {f.contexto && <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">{f.contexto}</span>}
                           </>
                         );
                         return (
@@ -277,7 +277,7 @@ function Conteudo() {
                             {f.rota ? (
                               <Link href={f.rota} className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 text-[13px] transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/40">{dentro}</Link>
                             ) : (
-                              <div className="flex items-center gap-2 py-1 text-[13px] text-muted-foreground">{dentro}<span className="shrink-0 text-[11px]">(não existe mais)</span></div>
+                              <div className="flex items-center gap-2 py-1 text-[13px] text-muted-foreground">{dentro}<span className="shrink-0 text-xs">(não existe mais)</span></div>
                             )}
                           </li>
                         );

@@ -63,11 +63,11 @@ export function PainelJogo() {
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-medium sem-selecao">Meta do dia: <span className="font-semibold text-foreground tabular-nums">{pref.meta}</span> {pref.meta === 1 ? "avanço" : "avanços"}</span>
             <Slider aria-label="Meta do dia" min={1} max={META_MAXIMA} step={1} value={[pref.meta]} onValueChange={([v]) => mudar({ meta: v })} className="max-w-64" />
-            <p className="text-[11px] leading-snug text-muted-foreground">Conta como avanço: concluir um passo, registrar algo na linha do tempo ou concluir uma tarefa.</p>
+            <p className="text-xs leading-snug text-muted-foreground">Conta como avanço: concluir um passo, registrar algo na linha do tempo ou concluir uma tarefa.</p>
           </div>
           <CampoSwitch marcado={pref.celebrar} aoMudar={(v) => mudar({ celebrar: v })}>Comemorar com aviso e confete quando eu alcançar algo</CampoSwitch>
         </div>
-        <p className="border-t pt-3 text-[11px] leading-snug text-muted-foreground">
+        <p className="border-t pt-3 text-xs leading-snug text-muted-foreground">
           O placar é calculado dos seus registros, na hora. Desligar só esconde: nada é apagado e nada extra é gravado.
         </p>
       </div>
@@ -80,7 +80,7 @@ export function PainelJogo() {
 const REGRAS: { gravidade: "critico" | "atencao" | "info"; texto: ReactNode }[] = [
   { gravidade: "critico", texto: "Prazo de tarefa ou de passo que vence hoje ou já venceu" },
   { gravidade: "atencao", texto: <>Prazo da tarefa chegando: faltam <N>{LIMITES.prazoProximo} dias</N> ou menos</> },
-  { gravidade: "atencao", texto: "Follow-up no dia que você marcou para voltar na tarefa" },
+  { gravidade: "atencao", texto: "Lembrete de voltar, no dia que você marcou para retomar a tarefa" },
   { gravidade: "atencao", texto: <>Tarefa bloqueada sem novidade há <N>{LIMITES.bloqueada} dias</N></> },
   { gravidade: "atencao", texto: <>Aguardando terceiros sem retorno há <N>{LIMITES.aguardando} dias</N>: hora de cobrar</> },
   { gravidade: "info", texto: <>Tarefa sem movimento há <N>{LIMITES.parada} dias</N></> },
@@ -111,7 +111,7 @@ export function PainelQuemSouEu() {
       <div data-slot="meus-nomes" className="mt-3 max-w-md">
         <ChipsInput valor={Array.isArray(nomes) ? nomes : []} mudar={setNomes} placeholder="Seu nome e apelidos. Enter para adicionar." />
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">Fica guardado só neste navegador.</p>
+      <p className="mt-2 text-xs text-muted-foreground">Fica guardado só neste navegador.</p>
     </Painel>
   );
 }
@@ -180,7 +180,7 @@ export function PainelRotina() {
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t pt-3 text-[11px] text-muted-foreground sem-selecao">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t pt-3 text-xs text-muted-foreground sem-selecao">
         <Legenda cor="bg-destructive">crítico</Legenda>
         <Legenda cor="bg-alerta">atenção</Legenda>
         <Legenda cor="bg-info">aviso</Legenda>
@@ -234,7 +234,7 @@ export function PainelAtalhos() {
               <span className="flex shrink-0 items-center gap-1">
                 {a.teclas.map((t, i) => (
                   <span key={t} className="flex items-center gap-1">
-                    {i > 0 && emSequencia && <span className="text-[11px] text-muted-foreground">depois</span>}
+                    {i > 0 && emSequencia && <span className="text-xs text-muted-foreground">depois</span>}
                     <Kbd>{t}</Kbd>
                   </span>
                 ))}

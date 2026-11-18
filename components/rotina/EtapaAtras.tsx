@@ -110,7 +110,7 @@ export function EtapaAtras({
         </motion.span>
         <strong className="text-[15px] font-semibold tracking-tight">Nada atrasado</strong>
         <p className="max-w-sm text-[13px] text-muted-foreground">
-          Nenhum prazo vencido, follow-up pendente ou passo atrasado. Pode seguir direto para escolher os focos de hoje.
+          Nenhum prazo vencido, lembrete de voltar ou passo atrasado. Pode seguir direto para escolher os focos de hoje.
         </p>
       </div>
     );
@@ -160,7 +160,7 @@ function CartaoPendencias({
       <article data-slot="pendencia" data-tarefa={t.id} className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <div className="flex items-start gap-2 py-3 pr-2.5 pl-3.5">
           <div className="min-w-0 flex-1">
-            <CatTag cat={categoria} className="text-[11px]" />
+            <CatTag cat={categoria} className="text-xs" />
             <div className="mt-0.5 text-sm leading-snug font-semibold tracking-tight">{t.titulo}</div>
           </div>
           <SeletorStatus status={t.status} aoMudar={(s) => acoes.mudarStatus(t, s)} className="mt-0.5" />
@@ -207,10 +207,10 @@ function CartaoPendencias({
               icone={<AlarmClock />}
               tom="bg-alerta/16 text-alerta"
               titulo={
-                !okLembrete ? (t.lembrarEm === hoje ? "Follow-up marcado para hoje" : `Follow-up pendente ${dataRelativa(t.lembrarEm)}`)
+                !okLembrete ? (t.lembrarEm === hoje ? "Lembrete de voltar: é hoje" : `Lembrete de voltar: era ${dataRelativa(t.lembrarEm)}`)
                 : fechada ? `Tarefa ${nomeStatus(t.status).toLowerCase()}`
                 : t.lembrarEm ? `Volto a lembrar ${dataRelativa(t.lembrarEm)}`
-                : "Follow-up encerrado"
+                : "Lembrete de voltar encerrado"
               }
               detalhe="Você pediu para ser lembrado de voltar nesta tarefa"
             >
@@ -226,7 +226,7 @@ function CartaoPendencias({
                     valor={okLembrete ? (t.lembrarEm ?? "") : ""}
                     aoMudar={(v) => atualizarTarefa(t.id, (x) => comLembrete(x, v || null))}
                     placeholder={okLembrete ? "Lembrar de novo" : "Lembrar depois"}
-                    aria-label="Nova data do follow-up"
+                    aria-label="Nova data do lembrete de voltar"
                     className={SELETOR}
                   />
                 </>
@@ -254,7 +254,7 @@ function CartaoPendencias({
                   <div className={cn("text-[13px] leading-snug transition-colors duration-300", p.feito && "text-muted-foreground line-through decoration-muted-foreground/50")}>
                     {p.texto}
                   </div>
-                  <div className={cn("mt-0.5 text-[11px]", ok ? "text-sucesso" : "text-muted-foreground")}>
+                  <div className={cn("mt-0.5 text-xs", ok ? "text-sucesso" : "text-muted-foreground")}>
                     {p.feito ? "Passo concluído"
                       : fechada ? `Tarefa ${nomeStatus(t.status).toLowerCase()}`
                       : !p.prazo ? `${dono}ficou sem prazo`
@@ -304,7 +304,7 @@ function LinhaDecisao({
       </span>
       <div className="min-w-0 flex-1">
         <div className={cn("truncate text-[13px] leading-snug font-medium", resolvido && "text-sucesso")}>{titulo}</div>
-        <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{detalhe}</div>
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">{detalhe}</div>
       </div>
       <div className="flex shrink-0 items-center gap-1">{children}</div>
     </div>

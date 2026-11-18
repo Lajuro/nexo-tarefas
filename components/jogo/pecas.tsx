@@ -49,21 +49,21 @@ export function CartaoConquista({ c }: { c: Conquista }) {
       )}>
       <span className={cn(
         "inline-flex size-10 shrink-0 items-center justify-center rounded-full",
-        c.feita ? "bg-primary/12 text-primary ring-1 ring-primary/25" : "bg-muted text-muted-foreground/60",
+        c.feita ? "bg-primary/12 text-primary ring-1 ring-primary/25" : "bg-muted text-muted-foreground/80",
       )}>
         <Icone className="size-[18px]" />
       </span>
       <div className="min-w-0 flex-1">
         <p className={cn("truncate text-[13px] font-semibold tracking-tight", !c.feita && "text-muted-foreground")}>{c.nome}</p>
-        <p className="text-[11px] leading-snug text-muted-foreground">{c.descricao}</p>
+        <p className="text-xs leading-snug text-muted-foreground">{c.descricao}</p>
         {c.feita ? (
-          <p className="mt-1.5 text-[11px] font-medium text-sucesso">{c.em ? `Alcançada em ${formatarData(c.em)}` : "Alcançada"}</p>
+          <p className="mt-1.5 text-xs font-medium text-sucesso">{c.em ? `Alcançada em ${formatarData(c.em)}` : "Alcançada"}</p>
         ) : (
           <div className="mt-2 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary/70 transition-[width] duration-500 ease-out" style={{ width: `${(c.atual / c.alvo) * 100}%` }} />
             </div>
-            <span className="text-[11px] text-muted-foreground tabular-nums">{c.atual} de {c.alvo}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{c.atual} de {c.alvo}</span>
           </div>
         )}
       </div>

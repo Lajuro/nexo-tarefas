@@ -28,13 +28,13 @@ import { ItemNav, NAV, NAV_CONFIG, rotaAtiva } from "./navegacao";
 import { Logo } from "./Logo";
 
 const foco = "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35";
-const rotulo = "text-[10px] font-semibold tracking-wider text-muted-foreground/80 uppercase sem-selecao";
+const rotulo = "text-[11px] font-semibold tracking-wider text-muted-foreground uppercase sem-selecao";
 
 /** Número que troca com um pequeno deslize, para a mudança ser notada sem chamar atenção demais. */
 function Contagem({ n, tom }: { n: number; tom?: "perigo" | "alerta" }) {
   return (
     <span className={cn(
-      "relative z-10 inline-flex h-[18px] min-w-[18px] items-center justify-center overflow-hidden rounded-full px-1.5 text-[10px] font-semibold tabular-nums",
+      "relative z-10 inline-flex h-[18px] min-w-[18px] items-center justify-center overflow-hidden rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
       tom === "perigo" ? "bg-destructive/14 text-destructive" : tom === "alerta" ? "bg-alerta/18 text-alerta" : "bg-foreground/8 text-muted-foreground",
     )}>
       <AnimatePresence mode="popLayout" initial={false}>
@@ -146,7 +146,7 @@ export function Lateral({
 }) {
   const pathname = usePathname();
   const { dados, atualizarTarefa } = useNexo();
-  const { lembretes, criticos } = useLembretes();
+  const { pedemAtencao: urgentes, criticos } = useLembretes();
   const { rotina, carregado } = useRotina();
   const { moldura, mudarMoldura } = useMoldura();
   const recentesIds = useRecentes();
@@ -165,7 +165,6 @@ export function Lateral({
     const notas = (dados?.notas?.items ?? []).filter((n) => !n.arquivadaEm && (n.texto.trim() || n.titulo.trim())).length;
     return { abertas: tarefas.filter(aberta).length, pendencias: passosAbertosDe(tarefas).length, notas };
   }, [dados?.tarefas, dados?.notas]);
-  const urgentes = lembretes.filter((l) => l.gravidade !== "info").length;
   const revisaoAtrasada = carregado && numeros.abertas > 0 && (!rotina.ultimaRevisao || (diasAte(rotina.ultimaRevisao) ?? 0) <= -7);
 
   const extra = (href: string): { contador?: number; tom?: "perigo" | "alerta"; ponto?: boolean } => {
@@ -268,7 +267,7 @@ export function Lateral({
                   </span>
                   <span className="min-w-0 flex-1 leading-tight">
                     <span className="block truncate font-medium">{t.titulo}</span>
-                    {proximo && <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{proximo}</span>}
+                    {proximo && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{proximo}</span>}
                   </span>
                 </Link>
               </MenuContextoTarefa>
@@ -289,7 +288,7 @@ export function Lateral({
               <Link key={c.id} href={`/categorias/${c.id}`} className={cn(classeTarefa(ativo), "h-7")}>
                 <span className="inline-flex w-4 justify-center transition-transform duration-200 group-hover/t:scale-125"><PontoCor cor={c.cor} /></span>
                 <span className="flex-1 truncate">{c.nome}</span>
-                {abertas > 0 && moldura.contadores && <span className="text-[11px] text-muted-foreground tabular-nums">{abertas}</span>}
+                {abertas > 0 && moldura.contadores && <span className="text-xs text-muted-foreground tabular-nums">{abertas}</span>}
               </Link>
             );
           }),
@@ -315,7 +314,7 @@ export function Lateral({
           {!recolhida && (
             <span className="flex flex-col leading-none sem-selecao">
               <strong className="text-sm font-semibold tracking-tight text-foreground">Nexo</strong>
-              <span className="mt-0.5 text-[10px] text-muted-foreground">cérebro de tarefas</span>
+              <span className="mt-0.5 text-[11px] text-muted-foreground">cérebro de tarefas</span>
             </span>
           )}
         </Link>
@@ -343,7 +342,7 @@ export function Lateral({
               className="group/nova flex h-8 items-center gap-2 rounded-md bg-primary px-2.5 text-[13px] font-medium text-primary-foreground shadow-xs transition-[background-color,transform,box-shadow] outline-none sem-selecao hover:bg-primary/90 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]">
               <Plus className="size-4 transition-transform duration-300 ease-out group-hover/nova:rotate-90" />
               <span className="flex-1 truncate text-left">Nova tarefa</span>
-              <kbd className="rounded border border-white/25 bg-white/15 px-1 font-mono text-[10px]">N</kbd>
+              <kbd className="rounded border border-white/25 bg-white/15 px-1 font-mono text-[11px]">N</kbd>
             </button>
             <button type="button" onClick={abrirPaleta} data-slot="abrir-busca"
               className={cn("flex h-8 items-center gap-2 rounded-md border border-sidebar-border bg-background/60 px-2.5 text-[13px] text-muted-foreground transition-colors sem-selecao hover:border-ring/40 hover:text-foreground", foco)}>

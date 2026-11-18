@@ -40,7 +40,7 @@ function LinhaDoBloco({ rotulo, bloco, detalhe, parte }: { rotulo: string; bloco
   const v = VISUAL_DO_BLOCO[bloco.tipo];
   return (
     <div className="rounded-lg border bg-card px-2.5 py-2">
-      <p className="text-[11px] text-muted-foreground">{rotulo}</p>
+      <p className="text-xs text-muted-foreground">{rotulo}</p>
       <p className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium">
         <v.icone className={cn("size-3.5 shrink-0", v.texto)} />
         <span className="min-w-0 flex-1 truncate">{bloco.titulo || v.nome}</span>

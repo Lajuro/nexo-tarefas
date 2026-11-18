@@ -170,7 +170,7 @@ export function ModeloForm() {
           <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Onboarding do squad ... na Ferramenta X" aria-label="Título sugerido" maxLength={300} />
         </Campo>
 
-        <Campo rotulo="Passos de sempre" dica="Um por linha. Entram na tarefa nova como próximos passos em aberto." lado={<span className="text-[11px] text-muted-foreground tabular-nums">{plural(listaPassos.length, "passo", "passos")}</span>}>
+        <Campo rotulo="Passos de sempre" dica="Um por linha. Entram na tarefa nova como próximos passos em aberto." lado={<span className="text-xs text-muted-foreground tabular-nums">{plural(listaPassos.length, "passo", "passos")}</span>}>
           <Textarea rows={6} value={passos} onChange={(e) => setPassos(e.target.value)} aria-label="Passos de sempre"
             placeholder={"Agendar a conversa de abertura\nPedir os acessos\nRodar a primeira análise"} />
         </Campo>
@@ -300,7 +300,7 @@ export function PainelModelos({ usar }: { usar: (modeloId: string) => void }) {
                 <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><LayoutTemplate className="size-4" /></span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{m.nome}</p>
-                  <p className="flex min-w-0 items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+                  <p className="flex min-w-0 items-center gap-1.5 truncate text-xs text-muted-foreground">
                     {c && <span className="inline-flex shrink-0 items-center gap-1"><PontoCor cor={c.cor} />{c.nome}</span>}
                     <span className="truncate">
                       {[

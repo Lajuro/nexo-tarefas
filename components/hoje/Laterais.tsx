@@ -42,7 +42,7 @@ export function ProgressoDoDia({ resumo }: { resumo: ResumoDia }) {
     <Painel titulo="Progresso de hoje" icone={<TrendingUp />} className="[&_h3]:truncate"
       acoes={jogo && (
         <Link href="/conquistas" data-slot="nivel-hoje"
-          className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35">
+          className="rounded-md px-1.5 py-0.5 text-xs font-medium text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35">
           Nível {jogo.nivel.n} · {jogo.xp} XP
         </Link>
       )}>
@@ -64,13 +64,13 @@ export function ProgressoDoDia({ resumo }: { resumo: ResumoDia }) {
           <p className="text-[13px] leading-snug text-muted-foreground">{frase(total)}</p>
         )}
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <Marcador icone={<ListChecks />} valor={passos} rotulo={passos === 1 ? "passo feito" : "passos feitos"} />
+          <Marcador icone={<ListChecks />} valor={passos} rotulo={passos === 1 ? "passo" : "passos"} />
           <Marcador icone={<NotebookPen />} valor={registros} rotulo={registros === 1 ? "registro" : "registros"} />
           <Marcador icone={<CircleCheck />} valor={concluidas} rotulo={concluidas === 1 ? "concluída" : "concluídas"} />
         </div>
         {totalNosFocos > 0 && (
           <div className="mt-3.5">
-            <div className="mb-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
               <span>Seus passos nos focos</span>
               <span className="font-medium tabular-nums">
                 {feitosNosFocos} de {totalNosFocos}
@@ -88,10 +88,10 @@ function Marcador({ icone, valor, rotulo }: { icone: ReactNode; valor: number; r
   return (
     <div className="rounded-lg bg-muted/60 px-2.5 py-2">
       <div className="flex items-center justify-between">
-        <NumeroAnimado valor={valor} className={cn("text-lg leading-none font-semibold tracking-tight", valor ? "text-sucesso" : "text-muted-foreground/60")} />
-        <span className={cn("[&_svg]:size-3.5", valor ? "text-sucesso/80" : "text-muted-foreground/50")}>{icone}</span>
+        <NumeroAnimado valor={valor} className={cn("text-lg leading-none font-semibold tracking-tight", valor ? "text-sucesso" : "text-muted-foreground/80")} />
+        <span className={cn("[&_svg]:size-3.5", valor ? "text-sucesso/80" : "text-muted-foreground/80")}>{icone}</span>
       </div>
-      <div className="mt-1 truncate text-[11px] text-muted-foreground">{rotulo}</div>
+      <div className="mt-1 truncate text-xs text-muted-foreground">{rotulo}</div>
     </div>
   );
 }
@@ -116,14 +116,14 @@ function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) 
             <IconeStatus status={t.status} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
-              <span className="block truncate text-[11px] text-muted-foreground">
+              <span className="block truncate text-xs text-muted-foreground">
                 <span className="font-medium text-foreground/80">{t.esperando?.quem || "Esperando"}</span>
                 {t.esperando?.oQue ? `${t.esperando.quem ? ": " : " "}${t.esperando.oQue}` : ""}
               </span>
             </span>
             <span
               className={cn(
-                "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums transition-opacity group-focus-within/esp:opacity-0 group-hover/esp:opacity-0",
+                "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-xs font-semibold tabular-nums transition-opacity group-focus-within/esp:opacity-0 group-hover/esp:opacity-0",
                 passou ? "bg-alerta/16 text-alerta" : "bg-muted text-muted-foreground",
               )}
             >
@@ -151,14 +151,14 @@ function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) 
         <IconeStatus status={t.status} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
-          <span className="block truncate text-[11px] text-muted-foreground">
+          <span className="block truncate text-xs text-muted-foreground">
             {dias === 0 ? "Teve novidade hoje" : dias === 1 ? "Sem novidade desde ontem" : `Sem novidade há ${dias} dias`}
             {t.prazo ? ` · prazo ${formatarData(t.prazo, false)}` : ""}
           </span>
         </span>
         <span
           className={cn(
-            "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-[11px] font-semibold tabular-nums",
+            "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-xs font-semibold tabular-nums",
             passou ? (t.status === "bloqueada" ? "bg-destructive/12 text-destructive" : "bg-alerta/16 text-alerta") : "bg-muted text-muted-foreground",
           )}
         >

@@ -12,7 +12,7 @@ const conteudo =
 const item =
   "relative flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none sem-selecao data-[disabled]:pointer-events-none data-[disabled]:opacity-45 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_svg:not([class*='size-'])]:size-3.5 [&_svg:not([class*='text-'])]:text-muted-foreground";
 const itemPerigo = "text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive [&_svg]:!text-destructive";
-const rotulo = "px-2 py-1.5 text-[11px] font-medium text-muted-foreground";
+const rotulo = "px-2 py-1.5 text-xs font-medium text-muted-foreground";
 const separador = "-mx-1 my-1 h-px bg-border";
 
 // ---------- DropdownMenu ----------
@@ -140,7 +140,7 @@ function ContextMenuSubContent({ className, ...props }: React.ComponentProps<typ
 
 // Atalho de teclado mostrado à direita de um item de menu.
 function MenuAtalho({ className, ...props }: React.ComponentProps<"span">) {
-  return <span className={cn("ml-auto pl-4 font-mono text-[10px] tracking-wide text-muted-foreground", className)} {...props} />;
+  return <span className={cn("ml-auto pl-4 font-mono text-[11px] tracking-wide text-muted-foreground", className)} {...props} />;
 }
 
 export {

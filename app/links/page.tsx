@@ -196,7 +196,7 @@ function LinhaLink({
                   {l.descricao ? (
                     <>
                       {l.descricao}
-                      {endereco && <span className="text-muted-foreground/60"> · {endereco}</span>}
+                      {endereco && <span className="text-muted-foreground/80"> · {endereco}</span>}
                     </>
                   ) : (
                     endereco
@@ -219,7 +219,7 @@ function LinhaLink({
                   <CatTag cat={categoria} className="max-w-full font-normal" />
                 </Link>
               )}
-              {!tarefa && !categoria && <span className="text-[11px] text-muted-foreground/60">Sem vínculo</span>}
+              {!tarefa && !categoria && <span className="text-xs text-muted-foreground/80">Sem vínculo</span>}
             </div>
           </Td>
           <Td>

@@ -127,7 +127,7 @@ function Conteudo() {
         <span data-slot="dia-da-rotina" className="ml-1 truncate text-[13px] text-muted-foreground">{porExtenso(data)}</span>
         {doPadrao && (
           <Dica texto={`Este dia ainda segue o dia padrão de ${nomeDoDia}. Qualquer mudança que você fizer vale só para ele.`}>
-            <span data-slot="selo-dia-padrao" className="inline-flex h-5 items-center gap-1 rounded-full border border-dashed px-2 text-[11px] font-medium text-muted-foreground sem-selecao"><Repeat className="size-3" /> dia padrão</span>
+            <span data-slot="selo-dia-padrao" className="inline-flex h-5 items-center gap-1 rounded-full border border-dashed px-2 text-xs font-medium text-muted-foreground sem-selecao"><Repeat className="size-3" /> dia padrão</span>
           </Dica>
         )}
         <DropdownMenu>

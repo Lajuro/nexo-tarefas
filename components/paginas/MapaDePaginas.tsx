@@ -144,7 +144,7 @@ export function MapaDePaginas({ dados, aoAbrir }: { dados: Dados; aoAbrir: (id: 
         </g>
       </svg>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1.5 text-[11px] text-muted-foreground sem-selecao">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1.5 text-xs text-muted-foreground sem-selecao">
         <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-primary" /> página (a cor é a da categoria)</span>
         {comTarefas && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-[3px] bg-alerta" /> tarefa</span>}
         {comPessoas && <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-sucesso" /> pessoa</span>}

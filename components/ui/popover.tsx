@@ -68,7 +68,7 @@ function Dica({
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipContent side={side} align={align}>
         {texto}
-        {atalho && <kbd className="rounded bg-background/20 px-1 font-mono text-[10px]">{atalho}</kbd>}
+        {atalho && <kbd className="rounded bg-background/20 px-1 font-mono text-[11px]">{atalho}</kbd>}
       </TooltipContent>
     </TooltipPrimitive.Root>
   );

@@ -131,7 +131,7 @@ export function LinhaDoDia({
         {/* as horas */}
         <div className="relative w-14 shrink-0 sem-selecao" aria-hidden>
           {horas.map((h) => (
-            <span key={h} className="absolute right-2 -translate-y-1/2 text-[11px] text-muted-foreground tabular-nums" style={{ top: y(h) }}>{emHora(h === 1440 ? 0 : h)}</span>
+            <span key={h} className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums" style={{ top: y(h) }}>{emHora(h === 1440 ? 0 : h)}</span>
           ))}
         </div>
 
@@ -161,7 +161,7 @@ export function LinhaDoDia({
           )}
           {!semJornada && fimDoExpediente != null && fimDoExpediente <= ate && (
             <div data-slot="fim-do-expediente" className="pointer-events-none absolute inset-x-0 z-[25] border-t-2 border-dashed border-alerta/70" style={{ top: y(fimDoExpediente) }}>
-              <span className="absolute right-1 -top-[19px] rounded-md bg-card px-1.5 text-[11px] font-medium text-alerta tabular-nums sem-selecao">
+              <span className="absolute right-1 -top-[19px] rounded-md bg-card px-1.5 text-xs font-medium text-alerta tabular-nums sem-selecao">
                 Fim do expediente · {emHora(fimDoExpediente)}
               </span>
             </div>
@@ -213,7 +213,7 @@ export function LinhaDoDia({
                 <div className="flex min-w-0 items-center gap-1.5">
                   <v.icone className={cn("size-3 shrink-0", v.texto)} />
                   <span className={cn("min-w-0 flex-1 truncate text-[13px] leading-tight font-medium", b.feito && "line-through decoration-foreground/40")}>{b.titulo || v.nome}</span>
-                  {extra && <span data-slot="selo-extra" className="shrink-0 rounded bg-alerta/15 px-1 text-[10px] font-semibold text-alerta">extra</span>}
+                  {extra && <span data-slot="selo-extra" className="shrink-0 rounded bg-alerta/15 px-1 text-[11px] font-semibold text-alerta">extra</span>}
                   <span
                     role="checkbox"
                     aria-checked={!!b.feito}
@@ -234,12 +234,12 @@ export function LinhaDoDia({
                   </span>
                 </div>
                 {altura >= 36 && (
-                  <span className="mt-0.5 truncate text-[11px] text-muted-foreground tabular-nums">
+                  <span className="mt-0.5 truncate text-xs text-muted-foreground tabular-nums">
                     {emHora(ini)} a {emHora(fim)} · {duracao(fim - ini)}
                     {tarefa && b.titulo !== tarefa.titulo ? ` · ${tarefa.titulo}` : ""}
                   </span>
                 )}
-                {altura >= 58 && b.nota && <span className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">{b.nota}</span>}
+                {altura >= 58 && b.nota && <span className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">{b.nota}</span>}
                 <span
                   aria-hidden
                   data-slot="alca-do-bloco"

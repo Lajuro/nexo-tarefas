@@ -253,7 +253,7 @@ export default function PaginaReuniao() {
 
             {pautaVazia && (
               <p className="rounded-xl border border-dashed px-3.5 py-4 text-xs leading-relaxed text-muted-foreground">
-                Esta tarefa ainda não tem pendências nem decisões registradas. Informe os participantes para ver o que está com cada um em outras frentes.
+                Esta tarefa ainda não tem pendências nem decisões registradas. Informe os participantes para ver o que está com cada um em outras tarefas.
               </p>
             )}
 
@@ -271,7 +271,7 @@ export default function PaginaReuniao() {
                     />
                   );
                 })}
-                <p className="mt-1 mb-0.5 text-[11px] leading-snug text-muted-foreground">Marque o que for resolvido na conversa. Só vale ao salvar.</p>
+                <p className="mt-1 mb-0.5 text-xs leading-snug text-muted-foreground">Marque o que for resolvido na conversa. Só vale ao salvar.</p>
               </Painel>
             )}
 
@@ -289,23 +289,23 @@ export default function PaginaReuniao() {
                   <ItemPasso key={a.id} texto={a.texto} feito={r.resolvidos.includes(chaveDoAssunto(a.id))}
                     aoAlternar={(f) => alternarResolvido(chaveDoAssunto(a.id), f)} />
                 ))}
-                <p className="mt-1 mb-0.5 text-[11px] leading-snug text-muted-foreground">Marque o que foi tratado. Só sai da lista ao salvar.</p>
+                <p className="mt-1 mb-0.5 text-xs leading-snug text-muted-foreground">Marque o que foi tratado. Só sai da lista ao salvar.</p>
               </Painel>
             ))}
 
             {pauta.porPessoa.filter((p) => p.passos.length || p.esperas.length).map((p) => (
-              <Painel key={p.nome} titulo={<span className="inline-flex items-center gap-1.5"><AvatarPessoa nome={p.nome} tamanho="sm" /> {p.nome}, em outras frentes</span>}
+              <Painel key={p.nome} titulo={<span className="inline-flex items-center gap-1.5"><AvatarPessoa nome={p.nome} tamanho="sm" /> {p.nome}, em outras tarefas</span>}
                 corpoClassName="flex flex-col gap-1.5 px-3.5 py-2.5">
                 {p.passos.map((x) => (
                   <Link key={`${x.registro.id}:${x.passo.id}`} href={`/tarefas/${x.tarefa.id}`} className="group text-[13px] leading-snug">
                     <span className="group-hover:underline">{x.passo.texto}</span>
-                    <span className="block text-[11px] text-muted-foreground">{x.tarefa.titulo}{x.passo.prazo ? ` · até ${formatarData(x.passo.prazo)}` : ""}</span>
+                    <span className="block text-xs text-muted-foreground">{x.tarefa.titulo}{x.passo.prazo ? ` · até ${formatarData(x.passo.prazo)}` : ""}</span>
                   </Link>
                 ))}
                 {p.esperas.map((t) => (
                   <Link key={t.id} href={`/tarefas/${t.id}`} className="group text-[13px] leading-snug">
                     <span className="group-hover:underline">Retorno pendente: {t.esperando?.oQue || t.titulo}</span>
-                    <span className="block text-[11px] text-muted-foreground">{t.titulo}</span>
+                    <span className="block text-xs text-muted-foreground">{t.titulo}</span>
                   </Link>
                 ))}
               </Painel>
@@ -315,7 +315,7 @@ export default function PaginaReuniao() {
               <Painel titulo="Últimas decisões" icone={<Gavel />} corpoClassName="flex flex-col gap-2.5 px-3.5 py-2.5">
                 {pauta.decisoes.map((d, i) => (
                   <div key={i}>
-                    <div className="text-[11px] text-muted-foreground">{formatarData(d.data)}{d.titulo ? ` · ${d.titulo}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">{formatarData(d.data)}{d.titulo ? ` · ${d.titulo}` : ""}</div>
                     <TextoRico texto={d.texto} className="text-[13px]" />
                   </div>
                 ))}
@@ -324,7 +324,7 @@ export default function PaginaReuniao() {
 
             {ultimo && trechoUltimo && (
               <Painel titulo="Onde a conversa parou" corpoClassName="px-3.5 py-2.5">
-                <div className="text-[11px] text-muted-foreground">{formatarData(ultimo.data)}{ultimo.titulo ? ` · ${ultimo.titulo}` : ""}</div>
+                <div className="text-xs text-muted-foreground">{formatarData(ultimo.data)}{ultimo.titulo ? ` · ${ultimo.titulo}` : ""}</div>
                 <p className="mt-0.5 text-[13px] leading-snug texto-pre">{trechoUltimo}{trechoUltimo.length >= 320 ? "..." : ""}</p>
               </Painel>
             )}
@@ -351,7 +351,7 @@ export default function PaginaReuniao() {
               className="min-h-72 rounded-md border border-input bg-card shadow-xs @5xl:min-h-0 @5xl:flex-1 dark:bg-input/20"
               classeConteudo="px-4 py-3.5 leading-relaxed"
             />
-            <p data-slot="reuniao-situacao" role="status" className={cn("text-[11px] sem-selecao", semRascunho ? "text-alerta" : "text-muted-foreground")}>
+            <p data-slot="reuniao-situacao" role="status" className={cn("text-xs sem-selecao", semRascunho ? "text-alerta" : "text-muted-foreground")}>
               {semRascunho
                 ? "O navegador não deixou guardar o rascunho. Não feche esta tela antes de salvar."
                 : temConteudo

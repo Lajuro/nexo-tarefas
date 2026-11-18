@@ -117,7 +117,7 @@ function Contagem({ rotulo, n }: { rotulo: string; n: number }) {
   return (
     <div data-slot="contagem" className="min-w-0 px-3 py-2">
       <NumeroAnimado valor={n} className="block text-base leading-tight font-semibold tracking-tight" />
-      <span className="block truncate text-[11px] text-muted-foreground">{rotulo}</span>
+      <span className="block truncate text-xs text-muted-foreground">{rotulo}</span>
     </div>
   );
 }
@@ -370,7 +370,7 @@ export function PainelProtecao({
                 );
               })}
             </ul>
-            {backups.length > 60 && <p className="mt-1.5 px-1.5 text-[11px] text-muted-foreground">Mostrando os 60 mais recentes.</p>}
+            {backups.length > 60 && <p className="mt-1.5 px-1.5 text-xs text-muted-foreground">Mostrando os 60 mais recentes.</p>}
           </CollapsibleContent>
         </Collapsible>
       )}
@@ -440,10 +440,10 @@ export function PainelSaude() {
                   <li key={a.id} data-slot="achado" data-gravidade={a.gravidade} data-achado={a.id} className="flex gap-2.5">
                     <span className={cn("mt-0.5 shrink-0 [&_svg]:size-4", vis.classe)}>{vis.icone}</span>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium">{a.titulo} <span className={cn("ml-1 text-[11px] font-normal", vis.classe)}>{vis.rotulo}</span></p>
+                      <p className="text-[13px] font-medium">{a.titulo} <span className={cn("ml-1 text-xs font-normal", vis.classe)}>{vis.rotulo}</span></p>
                       <p className="text-xs leading-relaxed text-muted-foreground">{a.detalhe}</p>
                       {a.itens && a.itens.length > 0 && (
-                        <ul className="mt-1 list-disc pl-4 text-[11px] leading-relaxed text-muted-foreground">
+                        <ul className="mt-1 list-disc pl-4 text-xs leading-relaxed text-muted-foreground">
                           {a.itens.map((i, n) => <li key={n} className="break-words">{i}</li>)}
                         </ul>
                       )}
@@ -513,7 +513,7 @@ export function PainelLixeira({
                         Restaurar
                       </Button>
                     ) : (
-                      <span className="text-[11px] text-muted-foreground">guardado para consulta</span>
+                      <span className="text-xs text-muted-foreground">guardado para consulta</span>
                     )}
                   </Td>
                 </Tr>

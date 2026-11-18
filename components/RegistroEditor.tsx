@@ -53,7 +53,7 @@ function Realce({ ativo, children, className }: { ativo: boolean; children: Reac
 
 /** "antes: X" ao lado do rótulo quando o valor vai mudar na tarefa. */
 function Antes({ children }: { children: ReactNode }) {
-  return <span className="truncate text-[11px] text-primary dark:text-foreground/80">antes: {children}</span>;
+  return <span className="truncate text-xs text-primary dark:text-foreground/80">antes: {children}</span>;
 }
 
 const retrato = (r: Registro, colado: string, status: Status, prioridade: number, prazo: string, concluir: string[]) =>
@@ -325,7 +325,7 @@ export function RegistroEditor({
 
   return (
     <Modal
-      titulo={registro ? "Editar registro" : "Novo registro na timeline"}
+      titulo={registro ? "Editar registro" : "Novo registro na linha do tempo"}
       descricao={tarefa.titulo}
       aberto={aberto}
       fechar={tentarFechar}
@@ -333,7 +333,7 @@ export function RegistroEditor({
       className="[&>[data-slot=dialog-body]]:flex [&>[data-slot=dialog-body]]:flex-col [&>[data-slot=dialog-body]]:p-0 lg:[&>[data-slot=dialog-body]]:overflow-hidden"
       rodape={
         <>
-          <span className="mr-auto hidden items-center gap-1.5 text-[11px] text-muted-foreground sem-selecao sm:flex">
+          <span className="mr-auto hidden items-center gap-1.5 text-xs text-muted-foreground sem-selecao sm:flex">
             <Kbd>Ctrl</Kbd><Kbd>Enter</Kbd> salva
             {mudou && (
               <span data-slot="rascunho-estado" className={cn("ml-2", !rascunhoOk && "text-alerta")}>
@@ -424,7 +424,7 @@ export function RegistroEditor({
                 </Button>
                 {jaCopiou && (
                   <motion.span data-slot="retorno-copia" role="status" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}
-                    className="text-[11px] text-sucesso">
+                    className="text-xs text-sucesso">
                     Prompt copiado. Cole no Copilot e traga a resposta pra cá.
                   </motion.span>
                 )}
@@ -449,11 +449,11 @@ export function RegistroEditor({
                 </Button>
                 {preenchido ? (
                   <motion.span data-slot="retorno-preenchimento" role="status" initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}
-                    className={cn("min-w-0 flex-1 basis-48 text-[11px] leading-snug", preenchido.ok ? "text-sucesso" : "text-alerta")}>
+                    className={cn("min-w-0 flex-1 basis-48 text-xs leading-snug", preenchido.ok ? "text-sucesso" : "text-alerta")}>
                     {preenchido.texto}
                   </motion.span>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {temResposta ? "Você revisa tudo antes de salvar." : <><ClipboardPaste className="mr-1 inline size-3 align-[-2px]" />Cole a resposta no passo 2 para liberar.</>}
                   </span>
                 )}
@@ -468,7 +468,7 @@ export function RegistroEditor({
             <ListChecks className="size-4 text-muted-foreground" />
             <div className="min-w-0">
               <h3 className="text-[13px] leading-tight font-semibold tracking-tight">Como vai para a linha do tempo</h3>
-              <p className="text-[11px] leading-snug text-muted-foreground">Preencha à mão ou deixe o Copilot organizar por você.</p>
+              <p className="text-xs leading-snug text-muted-foreground">Preencha à mão ou deixe o Copilot organizar por você.</p>
             </div>
           </div>
 
@@ -487,7 +487,7 @@ export function RegistroEditor({
             <div className="flex items-center justify-between gap-2">
               <Label>Próximos passos</Label>
               {r.proximosPassos.length > 0 && (
-                <span className="text-[11px] text-muted-foreground tabular-nums">
+                <span className="text-xs text-muted-foreground tabular-nums">
                   {r.proximosPassos.filter((p) => p.feito).length} de {r.proximosPassos.length} feitos
                 </span>
               )}
@@ -532,7 +532,7 @@ export function RegistroEditor({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Button variant="outline" size="sm" onClick={() => novoPasso()}>+ Passo</Button>
                 {r.proximosPassos.length === 0 && (
-                  <span className="text-[11px] text-muted-foreground">O que ficou combinado de fazer, com quem e até quando.</span>
+                  <span className="text-xs text-muted-foreground">O que ficou combinado de fazer, com quem e até quando.</span>
                 )}
               </div>
             </div>
@@ -549,7 +549,7 @@ export function RegistroEditor({
               <div className="flex items-center justify-between gap-2">
                 <Label>Passos anteriores resolvidos aqui?</Label>
                 {concluir.length > 0 && (
-                  <span className="text-[11px] text-sucesso tabular-nums">
+                  <span className="text-xs text-sucesso tabular-nums">
                     {concluir.length === 1 ? "1 será concluído ao salvar" : `${concluir.length} serão concluídos ao salvar`}
                   </span>
                 )}
@@ -569,7 +569,7 @@ export function RegistroEditor({
                           <span className={cn("min-w-0 flex-1 transition-colors texto-pre", marcado && "text-muted-foreground line-through decoration-muted-foreground/50")}>
                             {passo.texto}
                           </span>
-                          <span className="shrink-0 pt-px text-[11px] whitespace-nowrap text-muted-foreground tabular-nums">
+                          <span className="shrink-0 pt-px text-xs whitespace-nowrap text-muted-foreground tabular-nums">
                             {passo.responsavel ? `${passo.responsavel} · ` : ""}{formatarData(origem.data, false)}
                           </span>
                         </label>
@@ -585,7 +585,7 @@ export function RegistroEditor({
             <header className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-0.5 sem-selecao">
               <RefreshCw className="size-3.5 text-muted-foreground" />
               <h3 className="text-[13px] font-semibold tracking-tight">Atualizar a tarefa junto</h3>
-              <span className="ml-auto text-[11px] text-muted-foreground">Mudar o status cria um marco</span>
+              <span className="ml-auto text-xs text-muted-foreground">Mudar o status cria um marco</span>
             </header>
             <div className="flex flex-col gap-3">
               <LinhaCampos>

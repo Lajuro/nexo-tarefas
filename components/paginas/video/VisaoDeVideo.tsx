@@ -50,12 +50,12 @@ function FonteDoVideo({ aoEscolher }: { aoEscolher: (v: Partial<VideoDaPagina>) 
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
         <div className="flex flex-col gap-2 rounded-lg border p-3">
           <p className="flex items-center gap-1.5 text-[13px] font-medium"><Upload className="size-3.5 text-muted-foreground" /> Enviar o arquivo</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">Uma cópia fica na pasta de dados, junto com o resto (e vai com ela para o OneDrive). Até 4 GB.</p>
+          <p className="text-xs leading-snug text-muted-foreground">Uma cópia fica na pasta de dados, junto com o resto (e vai com ela para o OneDrive). Até 4 GB.</p>
           {enviando ? (
             <div role="status" data-slot="enviando-video" className="mt-auto">
               <p className="mb-1 truncate text-xs">{enviando.nome}</p>
               <Progress valor={enviando.parte * 100} />
-              <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">{Math.round(enviando.parte * 100)}% enviado</p>
+              <p className="mt-1 text-xs text-muted-foreground tabular-nums">{Math.round(enviando.parte * 100)}% enviado</p>
             </div>
           ) : (
             <AreaArquivo arquivo={null} aoMudar={enviar} className="mt-auto" />
@@ -63,7 +63,7 @@ function FonteDoVideo({ aoEscolher }: { aoEscolher: (v: Partial<VideoDaPagina>) 
         </div>
         <div className="flex flex-col gap-2 rounded-lg border p-3">
           <p className="flex items-center gap-1.5 text-[13px] font-medium"><FolderOpen className="size-3.5 text-muted-foreground" /> Usar um arquivo deste computador</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">Não copia nada: o vídeo toca de onde está. Bom para gravações grandes. Só funciona neste computador.</p>
+          <p className="text-xs leading-snug text-muted-foreground">Não copia nada: o vídeo toca de onde está. Bom para gravações grandes. Só funciona neste computador.</p>
           <form className="mt-auto flex gap-1.5" onSubmit={(e) => { e.preventDefault(); if (caminho.trim()) aoEscolher({ caminho: caminho.trim().replace(/^["']|["']$/g, ""), arquivo: undefined, url: undefined }); }}>
             <Input data-slot="caminho-do-video" value={caminho} onChange={(e) => setCaminho(e.target.value)} placeholder="C:\Videos\reuniao.mp4" aria-label="Caminho do arquivo de vídeo" className="font-mono text-xs" />
             <Button type="submit" variant="outline" disabled={!caminho.trim()}>Usar</Button>
@@ -71,7 +71,7 @@ function FonteDoVideo({ aoEscolher }: { aoEscolher: (v: Partial<VideoDaPagina>) 
         </div>
         <div className="flex flex-col gap-2 rounded-lg border p-3">
           <p className="flex items-center gap-1.5 text-[13px] font-medium"><Link2 className="size-3.5 text-muted-foreground" /> Só guardar o link</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">Para vídeo que mora em outro lugar. O Nexo não toca vídeo de fora: guarda o link, a transcrição e as anotações.</p>
+          <p className="text-xs leading-snug text-muted-foreground">Para vídeo que mora em outro lugar. O Nexo não toca vídeo de fora: guarda o link, a transcrição e as anotações.</p>
           <form className="mt-auto flex gap-1.5" onSubmit={(e) => { e.preventDefault(); if (/^https?:\/\/\S+$/i.test(url.trim())) aoEscolher({ url: url.trim(), arquivo: undefined, caminho: undefined }); }}>
             <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." aria-label="Link do vídeo" className="text-xs" />
             <Button type="submit" variant="outline" disabled={!/^https?:\/\/\S+$/i.test(url.trim())}>Guardar</Button>
@@ -99,7 +99,7 @@ function AnexarTranscricao({ aoAnexar }: { aoAnexar: (f: File) => Promise<void> 
         Aceita <strong>VTT</strong> e <strong>SRT</strong> (o Teams exporta VTT) ou texto com o tempo no começo de cada fala.
       </p>
       <AreaArquivo arquivo={null} aoMudar={anexar} />
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground sem-selecao"><span className="h-px flex-1 bg-border" />ou cole o texto<span className="h-px flex-1 bg-border" /></div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground sem-selecao"><span className="h-px flex-1 bg-border" />ou cole o texto<span className="h-px flex-1 bg-border" /></div>
       <Textarea data-slot="colar-transcricao" value={texto} onChange={(e) => setTexto(e.target.value)} rows={6} maxLength={3000000} aria-label="Colar a transcrição"
         placeholder={"[00:05] Marina: Vamos começar pelo scan.\n[00:20] Bruno: Três achados são críticos."} className="font-mono text-xs" />
       <Button data-slot="usar-transcricao-colada" disabled={!texto.trim() || enviando} onClick={() => anexar(new File([texto], "transcricao.txt", { type: "text/plain" }))}>
@@ -269,7 +269,7 @@ export function VisaoDeVideo({
                 <Dica texto="Marca um capítulo aqui. Os capítulos aparecem na barra do vídeo.">
                   <Button size="sm" variant="outline" data-slot="marcar-capitulo" onClick={marcarCapitulo}><BookmarkPlus /> Capítulo aqui</Button>
                 </Dica>
-                <span className="ml-auto hidden min-w-0 truncate text-[11px] text-muted-foreground tabular-nums sem-selecao xl:inline">
+                <span className="ml-auto hidden min-w-0 truncate text-xs text-muted-foreground tabular-nums sem-selecao xl:inline">
                   {video.nomeArquivo ?? (video.caminho ? video.caminho.split(/[\\/]/).pop() : "")}{video.tamanho ? ` · ${formatarTamanho(video.tamanho)}` : ""}{video.duracao ? ` · ${formatarTempo(video.duracao)}` : ""}
                 </span>
                 <DropdownMenu>
@@ -296,7 +296,7 @@ export function VisaoDeVideo({
           <Tabs value={aba} onValueChange={(v) => setAba(v as typeof aba)} className="flex min-h-0 flex-1 flex-col">
             <TabsList className="w-full shrink-0 px-3">
               <TabsTrigger value="transcricao"><ScrollText /> Transcrição</TabsTrigger>
-              <TabsTrigger value="capitulos"><ListVideo /> Capítulos{capitulos.length > 0 && <span className="text-[11px] font-normal text-muted-foreground tabular-nums">{capitulos.length}</span>}</TabsTrigger>
+              <TabsTrigger value="capitulos"><ListVideo /> Capítulos{capitulos.length > 0 && <span className="text-xs font-normal text-muted-foreground tabular-nums">{capitulos.length}</span>}</TabsTrigger>
               <TabsTrigger value="pagina"><FileText /> Página</TabsTrigger>
             </TabsList>
 
@@ -313,7 +313,7 @@ export function VisaoDeVideo({
               ) : (
                 <>
                   <div className="flex shrink-0 items-center gap-1 border-b px-3 py-1.5">
-                    <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground sem-selecao">{falas.length} {falas.length === 1 ? "fala" : "falas"} · {video.nomeTranscricao ?? "transcrição"}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground sem-selecao">{falas.length} {falas.length === 1 ? "fala" : "falas"} · {video.nomeTranscricao ?? "transcrição"}</span>
                     {partes.length <= 1 ? (
                       <Dica texto="Copia um prompt com a transcrição, para o Copilot resumir com os tempos">
                         <Button variant="ghost" size="sm" data-slot="prompt-do-video" onClick={() => copiarPrompt(0)}><Sparkles className="text-primary" /> Resumir</Button>

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.6";
+export const VERSAO_NOVIDADES = "3.7";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -27,7 +27,8 @@ const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: strin
   { icone: ListChecks, titulo: "Várias tarefas de uma vez", texto: "Selecione com Ctrl + clique ou X e mude status, prioridade, categoria, prazo ou foco de todas juntas. Visões salvas guardam seus filtros, e J/K andam pela lista.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: FileAudio, titulo: "Transcrição do Teams na reunião", texto: "Cole a transcrição no modo reunião: o Copilot organiza e decisões, passos e impedimentos já entram na captura. O texto original fica anexado.", href: "/tarefas", rotulo: "Abrir uma tarefa" },
   { icone: Link2, titulo: "Dependências, repetição e falar com", texto: "Ligue uma tarefa a outra e saiba quando ela destravou. Modelos que se repetem lembram de criar a tarefa. E anote o que levar para a próxima conversa com cada pessoa.", href: "/pessoas", rotulo: "Abrir Pessoas" },
-  { icone: Printer, titulo: "Imprimir, comparar e avisar", texto: "Tarefa e assunto em PDF para o gestor, comparação entre versões de uma página, busca dentro das transcrições e avisos do Windows (ligue em Configurações).", href: "/configuracoes", rotulo: "Abrir Configurações" },
+  { icone: Printer, titulo: "Imprimir, comparar e avisar", texto: "Tarefa e categoria em PDF para o gestor, comparação entre versões de uma página, busca dentro das transcrições e avisos do Windows (ligue em Configurações).", href: "/configuracoes", rotulo: "Abrir Configurações" },
+  { icone: Sparkles, titulo: "Hoje mais direto e letras maiores", texto: "A tela Hoje abre com o que precisa de você, uma linha por tarefa com os motivos dentro, e o sino conta tarefas, não avisos. As letras miúdas cresceram, os prazos ficaram mais legíveis e cada coisa passou a ter um nome só: categoria, passo, lembrete de voltar.", href: "/", rotulo: "Abrir a tela Hoje" },
   { icone: CalendarClock, titulo: "Rotina: o dia em blocos e a hora de sair", texto: "Reserve horários para tarefas, chamados e pausas, e o app avisa o que é para fazer agora. Registre a entrada e ele diz a que horas você sai, com banco de horas da semana e do mês.", href: "/rotina", rotulo: "Abrir a Rotina" },
   { icone: BookText, titulo: "Documentação de verdade", texto: "Páginas dentro de páginas, numa árvore que você arrasta. Abas, modo leitura com sumário, modelos (processo, guia, runbook) e [[ para ligar uma página à outra.", href: "/paginas", rotulo: "Abrir Páginas" },
   { icone: Component, titulo: "Componentes no texto", texto: "Destaques coloridos, blocos que abrem e fecham, código com cores e botão copiar, índice automático, arquivos anexados e cartões vivos de tarefa.", href: "/paginas", rotulo: "Digite / numa página" },
@@ -35,7 +36,7 @@ const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: strin
   { icone: Waypoints, titulo: "Mapa e histórico", texto: "O mapa mostra quais páginas se citam e quais ficaram soltas. E cada página guarda como estava antes de cada edição, para você poder voltar.", href: "/paginas", rotulo: "Ver o mapa" },
   { icone: Presentation, titulo: "Modo reunião", texto: "Pauta montada sozinha, anotações, decisões e próximos passos numa tela, e a ata pronta para copiar. Fica no cabeçalho de cada tarefa.", href: "/tarefas", rotulo: "Ir para Tarefas" },
   { icone: MessageCircleQuestion, titulo: "Perguntar ao Nexo", texto: "Escreva uma pergunta: o app acha os trechos do seu histórico que têm a ver e monta o prompt para o Copilot responder citando as fontes.", href: "/perguntar", rotulo: "Perguntar" },
-  { icone: Radar, titulo: "Radar das frentes", texto: "A saúde de cada assunto (em risco, parado, pede atenção, em dia), os prazos das próximas semanas e um status em texto para o gestor.", href: "/radar", rotulo: "Abrir o radar" },
+  { icone: Radar, titulo: "Radar", texto: "A saúde de cada categoria (em risco, parado, pede atenção, em dia), os prazos das próximas semanas e um status em texto para o gestor.", href: "/radar", rotulo: "Abrir o radar" },
   { icone: ShieldCheck, titulo: "Restaurar backup e saúde dos dados", texto: "Volte os dados a qualquer backup pelo app, com prévia do que muda e volta garantida. E um botão que confere se está tudo inteiro na pasta.", href: "/configuracoes", rotulo: "Abrir Configurações" },
 ];
 

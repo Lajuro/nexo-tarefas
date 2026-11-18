@@ -137,15 +137,15 @@ function CartaoFoco({ tarefa: t, categoria }: { tarefa: Tarefa; categoria: Categ
             <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1">
               <SeletorStatus status={t.status} aoMudar={(s) => acoes.mudarStatus(t, s)} />
               <PrazoTag prazo={t.prazo} />
-              <span className="text-[11px] text-muted-foreground">Última novidade {dataRelativa(ultimaAtividade(t))}</span>
+              <span className="text-xs text-muted-foreground">Última novidade {dataRelativa(ultimaAtividade(t))}</span>
             </div>
           </div>
 
           <div className="min-w-0 border-t bg-muted/35 px-4 py-3 @2xl/foco:border-t-0 @2xl/foco:border-l dark:bg-muted/25">
-            <div className="mb-1 flex items-center gap-2 text-[11px] font-medium text-muted-foreground sem-selecao">
-              <span>Próximos passos</span>
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground sem-selecao">
+              <span>Passos em aberto</span>
               {feitosHoje > 0 && <span className="text-sucesso">{feitosHoje === 1 ? "1 feito hoje" : `${feitosHoje} feitos hoje`}</span>}
-              {abertos > 0 && <span className="ml-auto tabular-nums">{abertos === 1 ? "1 em aberto" : `${abertos} em aberto`}</span>}
+              {abertos > 0 && <span className="ml-auto tabular-nums">{abertos}</span>}
             </div>
             {mostrados.length === 0 ? (
               <p className="py-1.5 text-[13px] leading-snug text-muted-foreground">
@@ -166,7 +166,7 @@ function CartaoFoco({ tarefa: t, categoria }: { tarefa: Tarefa; categoria: Categ
                       !passo.feito && (!passoEhMeu(passo) || passo.prazo) ? (
                         <>
                           {!passoEhMeu(passo) && <span>com {passo.responsavel}</span>}
-                          <PrazoTag prazo={passo.prazo} className="text-[11px] [&_svg]:size-3" />
+                          <PrazoTag prazo={passo.prazo} className="text-xs [&_svg]:size-3" />
                         </>
                       ) : undefined
                     }
@@ -200,10 +200,10 @@ function AdicionarFoco({ sugestoes, focar }: { sugestoes: SugestaoFoco[]; focar:
         <DropdownMenuLabel>Sugestões para hoje</DropdownMenuLabel>
         {sugestoes.map(({ tarefa, motivos }) => (
           <DropdownMenuItem key={tarefa.id} onSelect={() => focar(tarefa)} className="items-start gap-2.5">
-            <PrioBadge p={tarefa.prioridade} semDica className="mt-px size-5 text-[11px]" />
+            <PrioBadge p={tarefa.prioridade} semDica className="mt-px size-5 text-xs" />
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">{tarefa.titulo}</span>
-              {motivos.length > 0 && <span className="block truncate text-[11px] text-muted-foreground">{motivos.join(" · ")}</span>}
+              {motivos.length > 0 && <span className="block truncate text-xs text-muted-foreground">{motivos.join(" · ")}</span>}
             </span>
           </DropdownMenuItem>
         ))}
@@ -252,7 +252,7 @@ function SemFoco({
 
       {sugestoes.length > 0 && (
         <div className="mt-4">
-          <p className="mb-2 text-[11px] font-medium text-muted-foreground sem-selecao">Ou comece por uma destas</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground sem-selecao">Ou comece por uma destas</p>
           <div className="flex flex-col gap-1.5">
             {sugestoes.map(({ tarefa: t, motivos }) => (
               <MenuContextoTarefa key={t.id} tarefa={t}>
@@ -263,7 +263,7 @@ function SemFoco({
                       {t.titulo}
                     </Link>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <CatTag cat={cat(t.categoriaId)} className="text-[11px]" />
+                      <CatTag cat={cat(t.categoriaId)} className="text-xs" />
                       <EtiquetasMotivo motivos={motivos} />
                     </div>
                   </div>

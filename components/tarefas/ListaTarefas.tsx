@@ -120,19 +120,19 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
         <span className="flex justify-center"><PrioBadge p={t.prioridade} /></span>
 
         <span className="flex min-w-0">
-          {t.prazo ? <PrazoTag prazo={t.prazo} concluida={!ab} /> : <span className="text-xs text-muted-foreground/55">Sem prazo</span>}
+          {t.prazo ? <PrazoTag prazo={t.prazo} concluida={!ab} /> : <span className="text-xs text-muted-foreground/80">Sem prazo</span>}
         </span>
 
         <span className={cn(SO_MEDIA, "items-center")}>
           {pend > 0 ? (
-            <Dica texto={plural(pend, "próximo passo em aberto", "próximos passos em aberto")}>
+            <Dica texto={plural(pend, "passo em aberto", "passos em aberto")}>
               <span className="inline-flex items-center gap-1 text-xs font-medium tabular-nums">
                 <ListChecks className="size-3.5 text-muted-foreground" />
                 {pend}
               </span>
             </Dica>
           ) : (
-            <span className="pl-1 text-xs text-muted-foreground/45">0</span>
+            <span className="pl-1 text-xs text-muted-foreground/80">0</span>
           )}
         </span>
 
@@ -143,7 +143,7 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
                 {pessoas.slice(0, 3).map((n, i) => (
                   <AvatarPessoa key={n} nome={n} tamanho="sm" className={cn("ring-2 ring-card", i > 0 && "-ml-1.5")} />
                 ))}
-                {pessoas.length > 3 && <span className="ml-1 text-[11px] text-muted-foreground tabular-nums">+{pessoas.length - 3}</span>}
+                {pessoas.length > 3 && <span className="ml-1 text-xs text-muted-foreground tabular-nums">+{pessoas.length - 3}</span>}
               </span>
             </Dica>
           )}
@@ -155,7 +155,7 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
               </span>
             </Dica>
           )}
-          {pessoas.length === 0 && reunioes === 0 && <span className="text-xs text-muted-foreground/45">Ninguém ainda</span>}
+          {pessoas.length === 0 && reunioes === 0 && <span className="text-xs text-muted-foreground/80">Ninguém ainda</span>}
         </span>
 
         <span className="truncate text-xs text-muted-foreground">{dataRelativa(ult)}</span>

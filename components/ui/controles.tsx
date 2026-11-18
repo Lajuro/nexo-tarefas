@@ -22,7 +22,7 @@ function Checkbox({
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer inline-flex size-[18px] shrink-0 items-center justify-center border border-input bg-card shadow-xs transition-[background-color,border-color,box-shadow,transform] duration-150 outline-none hover:border-primary/70 focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-90 disabled:pointer-events-none disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=unchecked]:bg-input/20",
+        "peer relative inline-flex size-[18px] shrink-0 items-center after:absolute after:-inset-1 after:content-[''] justify-center border border-input bg-card shadow-xs transition-[background-color,border-color,box-shadow,transform] duration-150 outline-none hover:border-primary/70 focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-90 disabled:pointer-events-none disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=unchecked]:bg-input/20",
         redondo ? "rounded-full" : "rounded-[5px]",
         className,
       )}

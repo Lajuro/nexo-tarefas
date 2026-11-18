@@ -97,7 +97,7 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
             <span className="truncate">{sub || "Sem cargo nem área"}</span>
             {p.email && (
               <>
-                <span aria-hidden className="text-muted-foreground/50">·</span>
+                <span aria-hidden className="text-muted-foreground/80">·</span>
                 <a href={`mailto:${p.email}`} data-slot="email" className="inline-flex min-w-0 items-center gap-1 rounded-sm hover:text-foreground hover:underline">
                   <Mail className="size-3 shrink-0" />
                   <span className="truncate">{p.email}</span>
@@ -142,9 +142,9 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
         <div data-slot="estatistica" className="rounded-xl border bg-card px-3.5 py-3 shadow-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-xs text-muted-foreground">Último contato</span>
-            {entrada.ultimoContato && <span className="text-[11px] text-muted-foreground tabular-nums">{formatarData(entrada.ultimoContato)}</span>}
+            {entrada.ultimoContato && <span className="text-xs text-muted-foreground tabular-nums">{formatarData(entrada.ultimoContato)}</span>}
           </div>
-          <span className={`mt-1 block truncate text-2xl leading-none font-semibold tracking-tight ${entrada.ultimoContato ? "" : "text-muted-foreground/60"}`}>
+          <span className={`mt-1 block truncate text-2xl leading-none font-semibold tracking-tight ${entrada.ultimoContato ? "" : "text-muted-foreground/80"}`}>
             {entrada.ultimoContato ? dataRelativa(entrada.ultimoContato) : "sem registro"}
           </span>
         </div>
@@ -225,8 +225,8 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
                       <IconeStatus status={t.status} className="mt-[3px]" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
-                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
-                          <CatTag cat={categoria(t.categoriaId)} className="text-[11px] font-normal" />
+                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                          <CatTag cat={categoria(t.categoriaId)} className="text-xs font-normal" />
                           <span className="shrink-0 tabular-nums">{juntos ? plural(juntos, "registro", "registros") : "só passos"}</span>
                         </span>
                       </span>
@@ -321,7 +321,7 @@ function TimesDaPessoa({ p, entrada }: { p: Pessoa; entrada: EntradaPessoa }) {
                 </Link>
                 {resp
                   ? <Badge variant="alerta"><Crown /> Responsável</Badge>
-                  : <span className="text-[11px] text-muted-foreground">Membro</span>}
+                  : <span className="text-xs text-muted-foreground">Membro</span>}
                 <BotaoMenu
                   rotulo={`Papel em ${t.nome}`}
                   className="opacity-60 group-hover/linha:opacity-100 data-[state=open]:opacity-100"
@@ -395,7 +395,7 @@ function CategoriasDaPessoa({ p, times }: { p: Pessoa; times: Time[] }) {
               <Link href={`/categorias/${cat.id}`} className="min-w-0 flex-1 rounded-sm outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/35">
                 <CatTag cat={cat} className="text-[13px] font-normal" />
               </Link>
-              <span className="max-w-[50%] shrink-0 truncate text-[11px] text-muted-foreground">pelo time {ts.join(", ")}</span>
+              <span className="max-w-[50%] shrink-0 truncate text-xs text-muted-foreground">pelo time {ts.join(", ")}</span>
             </div>
           ))}
         </div>
@@ -473,7 +473,7 @@ function Historico({ entrada }: { entrada: EntradaPessoa }) {
                     )}
                     {outros.length > 0 && (
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[11px] text-muted-foreground">Também com</span>
+                        <span className="text-xs text-muted-foreground">Também com</span>
                         {outros.map((n) => <ChipPessoa key={n} nome={n.trim()} href={hrefPessoa(n.trim())} />)}
                       </div>
                     )}

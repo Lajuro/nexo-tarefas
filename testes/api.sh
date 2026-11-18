@@ -227,7 +227,7 @@ curl -s -X PUT $B/api/jornada -H "$J" -d '{"items":[{"id":"config"}],"revEsperad
 checa "jornada: dia removido vai para a lixeira" '1' "$(ls "$TMP/dados/_lixeira" | grep -c '^jornada-removidos-')"
 checa "jornada: a lixeira guarda o ponto do dia removido" '"entrada":"08:12"' "$(tr -d ' \n' < "$(ls "$TMP"/dados/_lixeira/jornada-removidos-*.json | head -1)")"
 
-# ---------- 3.6: falar com (assuntos), dependências e repetição de modelo ----------
+# ---------- 3.7: falar com (assuntos), dependências e repetição de modelo ----------
 checa "assuntos: começa vazio" '"assuntos":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
 R=$(curl -s -X PUT $B/api/assuntos -H "$J" -d '{"items":[{"id":"as1","pessoa":"Fulano","texto":"Pedir a lista","tarefaId":"../../x","campoFuturo":1}],"revEsperada":0}')
 checa "assuntos: grava" '"rev":1' "$R"

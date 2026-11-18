@@ -111,7 +111,7 @@ export function PainelFalarCom({ nome }: { nome: string }) {
   };
   const marcar = async (id: string, feito: boolean) => {
     if (!(await salvarAssuntos((items) => comAssuntoResolvido(items, [id], feito)))) return;
-    if (feito) oferecerDesfazer("Assunto tratado.", () => salvarAssuntos((items) => comAssuntoResolvido(items, [id], false)), { tipo: "info" });
+    if (feito) oferecerDesfazer("Marcado como tratado.", () => salvarAssuntos((items) => comAssuntoResolvido(items, [id], false)), { tipo: "info" });
   };
   const copiar = async () => {
     const txt = [`Para falar com ${nome}:`, ...abertos.map((a) => `- ${a.texto}${tarefa(a.tarefaId) ? ` [${tarefa(a.tarefaId)!.titulo}]` : ""}`)].join("\n");
@@ -142,7 +142,7 @@ export function PainelFalarCom({ nome }: { nome: string }) {
         <Button variant="outline" size="icon-sm" aria-label="Anotar assunto" disabled={!novo.trim()} onClick={() => void anotar()}><Plus /></Button>
       </div>
       {tratados.length > 0 && (
-        <button type="button" className="mt-1 self-start text-[11px] text-muted-foreground hover:underline" onClick={() => setVerTratados((v) => !v)}>
+        <button type="button" className="mt-1 self-start text-xs text-muted-foreground hover:underline" onClick={() => setVerTratados((v) => !v)}>
           {verTratados ? "Esconder os tratados" : `Ver os ${tratados.length} tratados por último`}
         </button>
       )}

@@ -85,7 +85,7 @@ function CampoChips({
           value={txt}
           autoComplete="off"
           placeholder={valor.length ? "" : placeholder}
-          className="h-[22px] min-w-24 flex-1 bg-transparent px-1 text-[13px] outline-none placeholder:text-muted-foreground/70"
+          className="h-[22px] min-w-24 flex-1 bg-transparent px-1 text-[13px] outline-none placeholder:text-muted-foreground"
           onFocus={() => setFoco(true)}
           onBlur={() => { setFoco(false); if (txt.trim()) add(txt); }}
           onChange={(e) => {

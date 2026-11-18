@@ -28,7 +28,7 @@ export const corDoSaldo = (min: number | null) => (min == null || min === 0 ? "t
 function Numero({ rotulo, valor, tom, slot }: { rotulo: string; valor: string; tom?: string; slot?: string }) {
   return (
     <div className="min-w-0">
-      <p className="truncate text-[11px] text-muted-foreground">{rotulo}</p>
+      <p className="truncate text-xs text-muted-foreground">{rotulo}</p>
       <p data-slot={slot} className={cn("truncate text-[15px] font-semibold tracking-tight tabular-nums", tom)}>{valor}</p>
     </div>
   );
@@ -121,7 +121,7 @@ export function PainelDoPonto({
                 {conta.pausas > 0 && ` · pausa ${duracao(conta.pausas)}${conta.pausaDescontada ? " (não registrada, descontada)" : ""}`}
               </p>
               {conta.estado === "aberto" && conta.saidaPrevista != null && (
-                <p data-slot="conta-da-saida" className="mt-0.5 text-[11px] text-muted-foreground/80 tabular-nums">
+                <p data-slot="conta-da-saida" className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                   {p.entrada} + {duracao(conta.esperado)} de trabalho + {duracao(conta.pausaNaPrevisao)} de pausa{p.pausas.length ? " (registrada)" : " (planejada)"}
                 </p>
               )}
@@ -201,7 +201,7 @@ export function PainelDoPlano({
 
         {semHorario.length > 0 && (
           <div data-slot="focos-sem-horario">
-            <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">Foco de hoje ainda sem horário</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Foco de hoje ainda sem horário</p>
             <ul className="flex flex-col gap-1">
               {semHorario.map((t) => (
                 <li key={t.id} className="flex items-center gap-2 rounded-md border bg-card px-2 py-1">
@@ -239,7 +239,7 @@ export function PainelDaSemana({ jornada, data, hoje, agora, aoIrPara }: { jorna
                   {l.esperado > 0 && <span aria-hidden className="absolute inset-x-0 border-t border-dashed border-foreground/30" style={{ bottom: `${(l.esperado / maior) * 100}%` }} />}
                   <span className={cn("w-full rounded-sm", l.estado === "sem-saida" ? "bg-alerta/60" : l.saldo != null && l.saldo < 0 ? "bg-destructive/55" : "bg-sucesso/70")} style={{ height: `${(l.trabalhado / maior) * 100}%` }} />
                 </span>
-                <span className={cn("text-[10px] capitalize tabular-nums", l.data === hoje ? "font-semibold text-primary" : "text-muted-foreground")}>{DIA_CURTO[l.diaSemana]}</span>
+                <span className={cn("text-[11px] capitalize tabular-nums", l.data === hoje ? "font-semibold text-primary" : "text-muted-foreground")}>{DIA_CURTO[l.diaSemana]}</span>
               </button>
             </Dica>
           ))}
@@ -276,7 +276,7 @@ function Cartao({ rotulo, valor, detalhe, tom, icone, slot }: { rotulo: string; 
         <span className="opacity-70 [&_svg]:size-3.5">{icone}</span>
       </div>
       <p data-slot={slot} className={cn("mt-1 text-2xl font-semibold tracking-tight tabular-nums", tom)}>{valor}</p>
-      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{detalhe}</p>
+      <p className="mt-0.5 truncate text-xs text-muted-foreground">{detalhe}</p>
     </motion.div>
   );
 }
@@ -328,7 +328,7 @@ export function BancoDeHoras({ jornada, data, hoje, agora, aoMudarData, aoAbrirD
                   <button type="button" onClick={() => aoAbrirDia(l.data)} className="rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40">
                     <span className="tabular-nums">{l.data.slice(8)}/{l.data.slice(5, 7)}</span> <span className="capitalize text-muted-foreground">{DIA_CURTO[l.diaSemana]}</span>
                   </button>
-                  {l.obs && <span className="ml-2 text-[11px] text-muted-foreground">{l.obs}</span>}
+                  {l.obs && <span className="ml-2 text-xs text-muted-foreground">{l.obs}</span>}
                 </Td>
                 <Td className="tabular-nums">{l.entrada ?? ""}</Td>
                 <Td className="tabular-nums">{l.saida ?? (l.estado === "sem-saida" ? <span className="text-alerta">falta</span> : "")}</Td>
@@ -336,7 +336,7 @@ export function BancoDeHoras({ jornada, data, hoje, agora, aoMudarData, aoAbrirD
                 <Td className="tabular-nums">{l.entrada && l.estado !== "sem-saida" ? duracao(l.trabalhado) : ""}</Td>
                 <Td className="tabular-nums text-muted-foreground">{l.esperado > 0 ? duracao(l.esperado) : ""}</Td>
                 <Td className={cn("text-right font-medium tabular-nums", corDoSaldo(l.saldo))}>
-                  {l.saldo != null ? saldoEmTexto(l.saldo) : <span className={cn("text-[11px] font-normal", l.estado === "sem-saida" ? "text-alerta" : "text-muted-foreground")}>{l.data > hoje && l.estado === "sem-registro" ? "" : ROTULO_ESTADO[l.estado]}</span>}
+                  {l.saldo != null ? saldoEmTexto(l.saldo) : <span className={cn("text-xs font-normal", l.estado === "sem-saida" ? "text-alerta" : "text-muted-foreground")}>{l.data > hoje && l.estado === "sem-registro" ? "" : ROTULO_ESTADO[l.estado]}</span>}
                 </Td>
                 <Td>
                   <Dica texto="Ajustar os horários deste dia">
