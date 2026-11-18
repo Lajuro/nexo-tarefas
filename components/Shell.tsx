@@ -11,6 +11,7 @@ import { Check, HardDrive, Loader2, Lock, TriangleAlert, X } from "lucide-react"
 import { useNexo } from "./Provider";
 import { TarefaForm } from "./TarefaForm";
 import { PlanejarDia } from "./rotina/PlanejarDia";
+import { FecharDia } from "./rotina/FecharDia";
 import { NumeroAnimado, copiarTexto } from "./comum";
 import { BarraSuperior } from "./shell/BarraSuperior";
 import { abrirAnotar } from "./shell/Ferramentas";
@@ -28,6 +29,7 @@ import { abrirPersonalizar, registrarRecente, useMoldura } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
 import { useHoje } from "./useHoje";
 import { MoverEJuntar } from "./MoverEJuntar";
+import { desfazerUltimo } from "./desfazer";
 import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
 import { ModeloForm } from "./Modelos";
@@ -47,6 +49,9 @@ export function abrirPlanejarDia() {
   window.dispatchEvent(new CustomEvent("nexo:planejar-dia"));
 }
 
+/** Abre o ritual "Fechar o dia" (o que saiu, o que fica para amanhã e a daily) de qualquer lugar. */
+export { abrirFecharDia } from "./rotina/FecharDia";
+
 /** Abre a paleta de comandos (Ctrl+K) de qualquer lugar. */
 export function abrirPaleta() {
   window.dispatchEvent(new CustomEvent("nexo:paleta"));
@@ -55,11 +60,12 @@ export function abrirPaleta() {
 const temAlgoAberto = () => !!document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-slot="popover"]');
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { estado, dados, erro, recarregar } = useNexo();
+  const { estado, dados, erro, recarregar, toast } = useNexo();
   const pathname = usePathname();
   const router = useRouter();
   const [nova, setNova] = useState<{ aberto: boolean; cat?: string | null; modelo?: string | null }>({ aberto: false });
   const [ritual, setRitual] = useState(false);
+  const [fechamento, setFechamento] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [atalhos, setAtalhos] = useState(false);
   const [recolhida, setRecolhida] = usePref("lateralRecolhida", false);
@@ -91,6 +97,7 @@ export function Shell({ children }: { children: ReactNode }) {
   useEffect(() => {
     const abrirNova = (e: Event) => setNova({ aberto: true, cat: (e as CustomEvent).detail?.categoriaId, modelo: (e as CustomEvent).detail?.modeloId });
     const abrirRitual = () => setRitual(true);
+    const abrirFechamento = () => setFechamento(true);
     const abrirPal = () => setPaleta(true);
     const teclas = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
@@ -107,6 +114,12 @@ export function Shell({ children }: { children: ReactNode }) {
         return;
       }
       const digitando = ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName) || alvo.isContentEditable;
+      // Ctrl Z fora de campos de texto: desfaz a última ação (mudar status, mover, excluir...)
+      if ((e.ctrlKey || e.metaKey) && k === "z" && !e.shiftKey && !e.altKey && !digitando && !temAlgoAberto()) {
+        e.preventDefault();
+        if (!desfazerUltimo()) toast("Nada para desfazer.", "info");
+        return;
+      }
       if (digitando || e.ctrlKey || e.metaKey || e.altKey || temAlgoAberto()) return;
 
       if (Date.now() - ultimoG.current < 1200) {
@@ -125,6 +138,9 @@ export function Shell({ children }: { children: ReactNode }) {
       } else if (k === "n") {
         e.preventDefault();
         setNova({ aberto: true });
+      } else if (k === "d" && e.shiftKey) {
+        e.preventDefault();
+        setFechamento(true);
       } else if (k === "d") {
         e.preventDefault();
         setRitual(true);
@@ -138,15 +154,17 @@ export function Shell({ children }: { children: ReactNode }) {
     };
     window.addEventListener("nexo:nova-tarefa", abrirNova);
     window.addEventListener("nexo:planejar-dia", abrirRitual);
+    window.addEventListener("nexo:fechar-dia", abrirFechamento);
     window.addEventListener("nexo:paleta", abrirPal);
     window.addEventListener("keydown", teclas);
     return () => {
       window.removeEventListener("nexo:nova-tarefa", abrirNova);
       window.removeEventListener("nexo:planejar-dia", abrirRitual);
+      window.removeEventListener("nexo:fechar-dia", abrirFechamento);
       window.removeEventListener("nexo:paleta", abrirPal);
       window.removeEventListener("keydown", teclas);
     };
-  }, [router, setRecolhida]);
+  }, [router, setRecolhida, toast]);
 
   // Primeira visita do dia: oferece o ritual de planejar o dia (uma vez por dia, mesmo com o app aberto direto).
   const temAbertas = !!dados?.tarefas.some(aberta);
@@ -204,6 +222,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <TarefaForm aberto={nova.aberto} categoriaInicial={nova.cat} modeloInicial={nova.modelo} fechar={() => setNova({ aberto: false })} />
       <PlanejarDia aberto={ritual} fechar={() => setRitual(false)} />
+      <FecharDia aberto={fechamento} fechar={() => setFechamento(false)} />
       <MoverEJuntar />
       <Esperando />
       <ModeloForm />
@@ -219,6 +238,7 @@ export function Shell({ children }: { children: ReactNode }) {
         acoes={{
           novaTarefa: () => setNova({ aberto: true }),
           planejarDia: () => setRitual(true),
+          fecharDia: () => setFechamento(true),
           alternarLateral: () => setRecolhida((r) => !r),
           telaCheia,
           anotar: abrirAnotar,

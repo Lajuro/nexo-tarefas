@@ -18,6 +18,7 @@ import { gravarPref, lerPref, usePref } from "@/lib/preferencias";
 import type { BlocoDaJornada } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { VISUAL_DO_BLOCO, horaDeAgora, useJornada, useMinuto, usePonto } from "./pecas";
+import { useEncerrarDia } from "@/components/rotina/FecharDia";
 
 const ficha =
   "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-muted/40 px-2 text-xs text-muted-foreground transition-[border-color,color,background-color,transform] duration-150 outline-none sem-selecao hover:border-ring/40 hover:bg-muted/70 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:scale-[0.97] data-[state=open]:border-ring/50 data-[state=open]:text-foreground";
@@ -53,6 +54,7 @@ function LinhaDoBloco({ rotulo, bloco, detalhe, parte }: { rotulo: string; bloco
 function AcoesDoPonto({ compacto }: { compacto?: boolean }) {
   const { hoje, conta, dia } = useRotinaDeHoje();
   const ponto = usePonto(hoje);
+  const encerrar = useEncerrarDia(hoje);
   const tamanho = compacto ? "sm" : "default";
   if (conta.estado === "sem-registro") return <Button size={tamanho} data-slot="rapido-entrada" onClick={() => ponto.entrar()}><LogIn /> Entrei agora ({horaDeAgora()})</Button>;
   if (conta.estado !== "aberto") return null;
@@ -64,7 +66,7 @@ function AcoesDoPonto({ compacto }: { compacto?: boolean }) {
       ) : (
         <Button size={tamanho} variant="outline" data-slot="rapido-pausa" onClick={() => ponto.pausar()}><Coffee /> Pausa</Button>
       )}
-      <Button size={tamanho} variant={conta.falta === 0 && !emPausa ? "default" : "outline"} data-slot="rapido-saida" onClick={() => ponto.sair()}><LogOut /> Encerrar o dia</Button>
+      <Button size={tamanho} variant={conta.falta === 0 && !emPausa ? "default" : "outline"} data-slot="rapido-saida" onClick={() => void encerrar()}><LogOut /> Encerrar o dia</Button>
     </>
   );
 }

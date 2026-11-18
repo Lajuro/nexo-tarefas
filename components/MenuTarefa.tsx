@@ -6,7 +6,7 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
@@ -19,38 +19,42 @@ import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
 import { aplicarStatus, comFixada, comFoco, comLembrete, ehFocoHoje } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
-import { STATUS, Status, Tarefa, formatarData, hojeISO } from "@/lib/tipos";
+import { STATUS, Status, Tarefa, formatarData, hojeISO, nomeStatus } from "@/lib/tipos";
+import { toast as sonner } from "sonner";
 
 /** Ações de tarefa prontas para usar em botões fora do menu também. */
 export function useAcoesTarefa() {
-  const { atualizarTarefa, excluirTarefa, toast } = useNexo();
+  const { atualizarComVolta, excluirTarefa } = useNexo();
   const confirmar = useConfirmar();
   const router = useRouter();
   return {
     abrir: (t: Tarefa) => router.push(`/tarefas/${t.id}`),
     abrirReuniao: (t: Tarefa) => router.push(`/tarefas/${t.id}/reuniao`),
     mudarStatus: async (t: Tarefa, s: Status) => {
-      const ok = await atualizarTarefa(t.id, (x) => aplicarStatus(x, s, x));
+      if (t.status === s) return null;
+      const ok = await atualizarComVolta(t.id, (x) => aplicarStatus(x, s, x), `“${encurtar(t.titulo)}” foi para ${nomeStatus(s)}.`);
       // Foi para "aguardando" sem dizer de quem: é a hora em que isso está fresco na cabeça.
       if (ok && s === "aguardando" && t.status !== "aguardando" && !t.esperando) pedirEspera(t.id);
       return ok;
     },
-    mudarPrioridade: (t: Tarefa, p: number) => atualizarTarefa(t.id, (x) => ({ ...x, prioridade: p })),
+    mudarPrioridade: (t: Tarefa, p: number) =>
+      t.prioridade === p ? Promise.resolve(null) : atualizarComVolta(t.id, (x) => ({ ...x, prioridade: p }), `Prioridade de “${encurtar(t.titulo)}”: ${p}.`),
+    mudarPrazo: (t: Tarefa, data: string | null) =>
+      (data || null) === t.prazo ? Promise.resolve(null) : atualizarComVolta(t.id, (x) => ({ ...x, prazo: data || null }), data ? `Prazo de “${encurtar(t.titulo)}”: ${formatarData(data)}.` : "Prazo removido."),
     alternarFoco: async (t: Tarefa) => {
       const ligar = !ehFocoHoje(t);
-      if (await atualizarTarefa(t.id, (x) => comFoco(x, ligar))) toast(ligar ? "Entrou no foco de hoje." : "Saiu do foco de hoje.", "info");
+      await atualizarComVolta(t.id, (x) => comFoco(x, ligar), ligar ? "Entrou no foco de hoje." : "Saiu do foco de hoje.");
     },
     comecarSessao: (t: Tarefa, minutos: number) => {
-      if (iniciarSessao(t.id, minutos)) toast(`Sessão de foco de ${minutos} min começou. O cronômetro fica na barra superior.`, "info");
-      else toast("Já existe uma sessão de foco em andamento. Encerre ou registre a atual primeiro.", "erro");
+      if (iniciarSessao(t.id, minutos)) toastInfo(`Sessão de foco de ${minutos} min começou. O cronômetro fica na barra superior.`);
+      else toastErro("Já existe uma sessão de foco em andamento. Encerre ou registre a atual primeiro.");
     },
     alternarFixada: async (t: Tarefa) => {
       const ligar = !t.fixada;
-      if (await atualizarTarefa(t.id, (x) => comFixada(x, ligar))) toast(ligar ? "Fixada na barra lateral." : "Saiu das fixadas.", "info");
+      await atualizarComVolta(t.id, (x) => comFixada(x, ligar), ligar ? "Fixada na barra lateral." : "Saiu das fixadas.");
     },
     lembrarEm: async (t: Tarefa, data: string | null) => {
-      if (await atualizarTarefa(t.id, (x) => comLembrete(x, data)))
-        toast(data ? `Vou te lembrar em ${formatarData(data)}.` : "Lembrete removido.", "info");
+      await atualizarComVolta(t.id, (x) => comLembrete(x, data), data ? `Vou te lembrar em ${formatarData(data)}.` : "Lembrete removido.");
     },
     excluir: async (t: Tarefa, depois?: () => void) => {
       const ok = await confirmar({
@@ -63,6 +67,11 @@ export function useAcoesTarefa() {
     },
   };
 }
+
+/** Título curto para caber no aviso. */
+const encurtar = (s: string, max = 48) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);
+const toastInfo = (texto: string) => sonner(texto, { duration: 3200 });
+const toastErro = (texto: string) => sonner.error(texto, { duration: 7000 });
 
 type Kit = {
   Item: typeof M.DropdownMenuItem;
@@ -143,6 +152,23 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
           </k.RadioGroup>
         </k.SubContent>
       </k.Sub>
+      {aberta(t) && (
+        <k.Sub>
+          <k.SubTrigger><CalendarClock /> Prazo{t.prazo ? ` (${formatarData(t.prazo, false)})` : ""}</k.SubTrigger>
+          <k.SubContent>
+            <k.Item onSelect={() => a.mudarPrazo(t, hoje)}>Hoje</k.Item>
+            <k.Item onSelect={() => a.mudarPrazo(t, somarDias(hoje, 1))}>Amanhã</k.Item>
+            <k.Item onSelect={() => a.mudarPrazo(t, somarDias(hoje, 7))}>Em 1 semana</k.Item>
+            <k.Item onSelect={() => a.mudarPrazo(t, somarDias(hoje, 15))}>Em 15 dias</k.Item>
+            {t.prazo && (
+              <>
+                <k.Separator />
+                <k.Item onSelect={() => a.mudarPrazo(t, null)}><CalendarX /> Tirar o prazo</k.Item>
+              </>
+            )}
+          </k.SubContent>
+        </k.Sub>
+      )}
       {t.status === "aguardando" && (
         <>
           <k.Item onSelect={() => pedirEspera(t.id)}>

@@ -16,6 +16,6 @@ export const PUT = (req: Request, ctx: Ctx) =>
 export const DELETE = (_req: Request, ctx: Ctx) =>
   tratar(async () => {
     const { id } = await ctx.params;
-    await moverTarefaParaLixeira(id);
-    return { ok: true };
+    const arquivo = await moverTarefaParaLixeira(id);
+    return { ok: true, arquivo };
   });

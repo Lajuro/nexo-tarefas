@@ -4,6 +4,7 @@
 
 import { type PassoAberto, aberta, passosAbertosDe } from "./lembretes";
 import { acharPessoa, chavesDaPessoa, chaveNome } from "./pessoas";
+import { type RespostaInterpretada, mesmoTexto } from "./prompts";
 import { paraTextoPlano } from "./texto-rico";
 import { type Dados, type Registro, type Tarefa, formatarData, hojeISO, normalizarRegistro, novoId, ordenarRegistros } from "./tipos";
 
@@ -173,3 +174,60 @@ export function textoDaAta(tarefa: Tarefa, r: Reuniao, fim = Date.now()): string
 }
 
 export const duracaoDaReuniao = minutosDe;
+
+// ---------- transcrição da reunião (Teams, VTT, SRT) organizada pelo Copilot ----------
+
+/**
+ * Junta na reunião em andamento o que o Copilot tirou da transcrição (uma resposta por parte).
+ * Nada é sobrescrito: decisões, passos e participantes novos entram no fim (sem repetir o que já estava),
+ * o resumo e os impedimentos são acrescentados ao que foi escrito, e os passos antigos que a conversa
+ * resolveu são marcados na pauta (o usuário ainda pode desmarcar antes de salvar).
+ * `anexo` é o caminho da transcrição guardada em arquivos/, para o texto original nunca se perder.
+ */
+export function comRespostaDaTranscricao(
+  r: Reuniao, respostas: RespostaInterpretada[], passosDaTarefa: PassoAberto[],
+  anexo?: { arquivo: string; nome: string } | null,
+): Reuniao {
+  const jaTem = (lista: string[], texto: string) => lista.some((x) => mesmoTexto(x, texto));
+  const decisoes = [...r.decisoes];
+  const passos = [...r.passos];
+  const participantes = [...r.participantes];
+  const resolvidos = new Set(r.resolvidos);
+  const resumos: string[] = [];
+  const impedimentos: string[] = [];
+  for (const resp of respostas) {
+    if (resp.resumo.trim()) resumos.push(resp.resumo.trim());
+    for (const d of resp.decisoes.split("\n").map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim()).filter(Boolean)) {
+      if (!jaTem(decisoes, d) && decisoes.length < 60) decisoes.push(d.slice(0, 500));
+    }
+    for (const p of resp.passos) {
+      if (!p.texto.trim() || jaTem(passos.map((x) => x.texto), p.texto) || passos.length >= 60) continue;
+      passos.push({ id: novoId("p"), texto: p.texto.trim().slice(0, 500), responsavel: p.responsavel.trim().slice(0, 120), prazo: "" });
+    }
+    for (const nome of resp.participantes) {
+      const n = nome.trim().slice(0, 120);
+      if (n && !participantes.some((x) => chaveNome(x) === chaveNome(n)) && participantes.length < 40) participantes.push(n);
+    }
+    if (resp.impedimentos.trim()) impedimentos.push(resp.impedimentos.trim());
+    for (const feito of resp.concluidos) {
+      const x = passosDaTarefa.find((a) => mesmoTexto(a.passo.texto, feito));
+      if (x) resolvidos.add(`${x.registro.id}:${x.passo.id}`);
+    }
+  }
+  const blocoResumo = resumos.length || anexo
+    ? [
+        "## Resumo da transcrição",
+        ...resumos,
+        anexo ? `Transcrição completa: [${anexo.nome.replace(/[[\]]/g, "")}](${anexo.arquivo})` : "",
+      ].filter(Boolean).join("\n\n")
+    : "";
+  return {
+    ...r,
+    notas: [r.notas.trim(), blocoResumo].filter(Boolean).join("\n\n"),
+    decisoes,
+    passos,
+    participantes,
+    impedimentos: [r.impedimentos.trim(), ...impedimentos].filter(Boolean).join("\n"),
+    resolvidos: [...resolvidos],
+  };
+}

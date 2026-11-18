@@ -21,6 +21,7 @@ import { aberta } from "@/lib/lembretes";
 import type { BlocoDaJornada, DiaDaJornada, Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { CampoHora, horaDeAgora, usePonto } from "./pecas";
+import { useEncerrarDia } from "@/components/rotina/FecharDia";
 
 export const corDoSaldo = (min: number | null) => (min == null || min === 0 ? "text-muted-foreground" : min > 0 ? "text-sucesso" : "text-destructive");
 
@@ -43,6 +44,7 @@ export function PainelDoPonto({
   data: string; dia: DiaDaJornada; conta: ContaDoPonto; ehHoje: boolean; agora: number; aoAjustar: () => void;
 }) {
   const ponto = usePonto(data);
+  const encerrar = useEncerrarDia(data);
   const [hora, setHora] = useState("");
   const p = dia.ponto;
   const pausaAberta = p.pausas.find((q) => !q.fim);
@@ -139,7 +141,7 @@ export function PainelDoPonto({
                 ) : (
                   <Button variant="outline" data-slot="sair-para-pausa" onClick={() => ponto.pausar()}><Coffee /> Sair para a pausa</Button>
                 )}
-                <Button variant={conta.falta === 0 && !pausaAberta ? "default" : "outline"} data-slot="encerrar-o-dia" onClick={() => ponto.sair()}><LogOut /> Encerrar o dia</Button>
+                <Button variant={conta.falta === 0 && !pausaAberta ? "default" : "outline"} data-slot="encerrar-o-dia" onClick={() => void encerrar()}><LogOut /> Encerrar o dia</Button>
               </div>
             )}
             {conta.estado === "fechado" && ehHoje && (

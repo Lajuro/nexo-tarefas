@@ -109,6 +109,8 @@ export interface Tarefa {
   fixada?: boolean;
   /** Quem ficou de responder e o quê. Limpo quando a tarefa sai de "aguardando" (vira observação do marco). */
   esperando?: Espera | null;
+  /** Ids das tarefas de que esta depende (3.6). As contas (quem segura quem, o que destravou) estão em lib/dependencias.ts. */
+  dependeDe?: string[];
   [extra: string]: unknown;
 }
 
@@ -238,9 +240,30 @@ export interface Modelo {
   prazoEmDias?: number | null;
   /** Quantas tarefas já nasceram dele. */
   usos?: number;
+  /** Demanda que se repete (3.6): de quanto em quanto tempo o app lembra de criar uma tarefa dele. */
+  repetir?: RepeticaoDoModelo | null;
   criadoEm: string;
   atualizadoEm: string;
   [extra: string]: unknown;
+}
+
+/**
+ * De quanto em quanto tempo um modelo vira tarefa. O app só LEMBRA (lembrete com "Criar agora" e "Pular esta vez"):
+ * nunca cria tarefa sozinho, para não aparecer tarefa fantasma nas férias. As contas estão em lib/recorrencia.ts.
+ */
+export interface RepeticaoDoModelo {
+  /** "semana": num dia da semana; "mes": num dia do mês; "dias": a cada N dias contados de `desde`. */
+  tipo: "semana" | "mes" | "dias";
+  /** 0 = domingo ... 6 = sábado (tipo "semana"). */
+  diaDaSemana?: number;
+  /** 1 a 31 (tipo "mes"). Mês mais curto: o último dia dele. */
+  diaDoMes?: number;
+  /** 1 a 365 (tipo "dias"). */
+  cadaDias?: number;
+  /** A partir de quando vale (AAAA-MM-DD). */
+  desde: string;
+  /** A última ocorrência já atendida, criada ou pulada (AAAA-MM-DD). */
+  ultima?: string | null;
 }
 
 /**
@@ -525,6 +548,7 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     focoEm: typeof t.focoEm === "string" && t.focoEm ? t.focoEm : null,
     fixada: t.fixada === true,
     esperando: normalizarEspera(t.esperando),
+    dependeDe: normalizarDependencias(t.dependeDe, typeof t.id === "string" ? t.id : undefined),
   };
 }
 
@@ -695,9 +719,37 @@ export function normalizarModelo(m: Partial<Modelo>): Modelo {
     passos: arrStr(m.passos).map((p) => p.trim()).filter(Boolean),
     prazoEmDias: m.prazoEmDias != null && Number.isFinite(dias) && dias > 0 ? Math.min(3650, Math.round(dias)) : null,
     usos: Number.isFinite(Number(m.usos)) ? Math.max(0, Math.round(Number(m.usos))) : 0,
+    repetir: normalizarRepeticao(m.repetir),
     criadoEm: str(m.criadoEm) || agoraISO(),
     atualizadoEm: str(m.atualizadoEm) || agoraISO(),
   };
+}
+
+const inteiroEntre = (v: unknown, min: number, max: number) => {
+  const n = Number(v);
+  return v != null && v !== "" && Number.isInteger(n) && n >= min && n <= max ? n : null;
+};
+
+/** Repetição sem forma válida vira null (o modelo continua existindo, só não lembra mais). */
+export function normalizarRepeticao(r: unknown): RepeticaoDoModelo | null {
+  if (!r || typeof r !== "object" || Array.isArray(r)) return null;
+  const x = r as Partial<Record<keyof RepeticaoDoModelo, unknown>>;
+  const desde = dataReal(x.desde) ? (x.desde as string) : null;
+  if (!desde) return null;
+  const ultima = dataReal(x.ultima) ? (x.ultima as string) : null;
+  if (x.tipo === "semana") {
+    const d = inteiroEntre(x.diaDaSemana, 0, 6);
+    return d == null ? null : { tipo: "semana", diaDaSemana: d, desde, ultima };
+  }
+  if (x.tipo === "mes") {
+    const d = inteiroEntre(x.diaDoMes, 1, 31);
+    return d == null ? null : { tipo: "mes", diaDoMes: d, desde, ultima };
+  }
+  if (x.tipo === "dias") {
+    const d = inteiroEntre(x.cadaDias, 1, 365);
+    return d == null ? null : { tipo: "dias", cadaDias: d, desde, ultima };
+  }
+  return null;
 }
 
 export function normalizarCategoria(c: Partial<Categoria>): Categoria {
@@ -800,6 +852,20 @@ export function normalizarNota(n: Partial<Nota>): Nota {
 }
 
 export const ID_VALIDO = /^[a-zA-Z0-9_-]{1,80}$/;
+
+export const MAX_DEPENDENCIAS = 50;
+
+/** Lê tarefa.dependeDe do arquivo: só ids válidos, sem repetir, sem a própria tarefa. */
+export function normalizarDependencias(v: unknown, proprioId?: string): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const x of v) {
+    if (typeof x !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(x) || x === proprioId || out.includes(x)) continue;
+    out.push(x);
+    if (out.length >= MAX_DEPENDENCIAS) break;
+  }
+  return out;
+}
 
 export function nomeStatus(s: Status) {
   return STATUS.find((x) => x.id === s)?.nome ?? s;

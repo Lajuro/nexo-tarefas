@@ -16,6 +16,7 @@ import { aberta, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { cn } from "@/lib/utils";
 import { Categoria, Tarefa, diasAte, formatarData, nomeStatus, ordenarRegistros, passosAbertos } from "@/lib/tipos";
 import type { Ordem } from "./filtros";
+import { type Selecao, Selecionavel } from "./Lote";
 
 // Colunas: tarefa | categoria | prioridade | prazo | pendências | pessoas | atividade | menu
 const GRADE = cn(
@@ -64,7 +65,7 @@ function pessoasDe(t: Tarefa) {
   return nomes;
 }
 
-function Linha({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
+function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; selecionando?: boolean }) {
   const ab = aberta(t);
   const foco = ab && ehFocoHoje(t);
   const pend = ab ? passosAbertos(t).length : 0;
@@ -87,7 +88,7 @@ function Linha({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
       >
         <span className="flex min-w-0 items-center gap-2.5">
           <Dica texto={nomeStatus(t.status)}>
-            <span className="inline-flex shrink-0"><IconeStatus status={t.status} className="size-4" /></span>
+            <span className={cn("inline-flex shrink-0 transition-opacity group-hover/sel:opacity-0", selecionando && "opacity-0")}><IconeStatus status={t.status} className="size-4" /></span>
           </Dica>
           <span
             className={cn(
@@ -169,9 +170,9 @@ function Linha({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
 }
 
 export function ListaTarefas({
-  tarefas, categorias, ordem, aoOrdenar,
+  tarefas, categorias, ordem, aoOrdenar, selecao,
 }: {
-  tarefas: Tarefa[]; categorias: Map<string, Categoria>; ordem: Ordem; aoOrdenar: (o: Ordem) => void;
+  tarefas: Tarefa[]; categorias: Map<string, Categoria>; ordem: Ordem; aoOrdenar: (o: Ordem) => void; selecao?: Selecao;
 }) {
   // Cascata só na primeira vez; depois, linhas que entram por causa de um filtro aparecem na hora.
   const primeira = useRef(true);
@@ -212,7 +213,13 @@ export function ListaTarefas({
               transition={{ ...suave, delay: primeira.current ? Math.min(i, 16) * 0.02 : 0, layout: mola }}
               className="border-b bg-card last:border-b-0"
             >
-              <Linha t={t} cat={t.categoriaId ? categorias.get(t.categoriaId) : null} />
+              {selecao ? (
+                <Selecionavel id={t.id} selecao={selecao} canto="linha">
+                  <Linha t={t} cat={t.categoriaId ? categorias.get(t.categoriaId) : null} selecionando={selecao.ativa || selecao.tem(t.id)} />
+                </Selecionavel>
+              ) : (
+                <Linha t={t} cat={t.categoriaId ? categorias.get(t.categoriaId) : null} />
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

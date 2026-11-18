@@ -5,12 +5,14 @@
 
 import { useMemo } from "react";
 import { motion } from "motion/react";
-import { Ban, CalendarX2, Hourglass, ListChecks, ListTodo, Plus, Sunrise, Target } from "lucide-react";
+import { Ban, CalendarX2, ClipboardCopy, Hourglass, ListChecks, ListTodo, MoonStar, Plus, Sunrise, Target } from "lucide-react";
 import { CartaoDaRotina } from "@/components/jornada/Ferramenta";
 import { useNexo } from "@/components/Provider";
-import { abrirNovaTarefa, abrirPlanejarDia } from "@/components/Shell";
+import { abrirFecharDia, abrirNovaTarefa, abrirPlanejarDia } from "@/components/Shell";
 import { useLembretes } from "@/components/useLembretes";
-import { Estatistica, Pagina, Vazio } from "@/components/comum";
+import { Estatistica, Pagina, Vazio, copiarTexto } from "@/components/comum";
+import { Dica } from "@/components/ui/popover";
+import { dailyDaManha } from "@/lib/fechamento";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/diversos";
 import { CapturaRapida } from "@/components/hoje/CapturaRapida";
@@ -25,7 +27,7 @@ import { hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export default function Hoje() {
-  const { dados } = useNexo();
+  const { dados, toast } = useNexo();
   const agora = useAgora();
   const hoje = hojeISO();
   const lembretesDoDia = useLembretes();
@@ -43,8 +45,23 @@ export default function Hoje() {
   const fraseDoDia =
     pedemAtencao === 0 ? "Tudo em dia" : pedemAtencao === 1 ? "1 coisa pede sua atenção hoje" : `${pedemAtencao} coisas pedem sua atenção hoje`;
 
+  const copiarDaily = async () => {
+    if (await copiarTexto(dailyDaManha({ tarefas }, hoje))) toast("Daily copiada: o que você fez no último dia, o que vai fazer hoje e os impedimentos.");
+    else toast("Não consegui copiar automaticamente.", "erro");
+  };
+
   const acoes = (
     <>
+      {tarefas.length > 0 && (
+        <Dica texto="Copia a daily: o que você fez no último dia de trabalho, o que vai fazer hoje e os impedimentos">
+          <Button variant="ghost" size="icon" aria-label="Copiar daily" data-acao="copiar-daily" onClick={copiarDaily}><ClipboardCopy /></Button>
+        </Dica>
+      )}
+      {tarefas.length > 0 && (
+        <Dica texto="Fechar o dia: o que saiu, o que fica para amanhã e a daily (Shift D)">
+          <Button variant="ghost" size="icon" aria-label="Fechar o dia" data-acao="fechar-o-dia" onClick={() => abrirFecharDia()}><MoonStar /></Button>
+        </Dica>
+      )}
       <Button variant="outline" onClick={() => abrirNovaTarefa()}>
         <Plus /> Nova tarefa <Kbd>N</Kbd>
       </Button>

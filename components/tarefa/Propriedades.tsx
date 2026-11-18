@@ -43,7 +43,7 @@ function avisoPrazo(prazo: string | null, fechada: boolean): { texto: string; to
 const NOME_NIVEL = { alta: "alta", media: "média", baixa: "baixa" } as const;
 
 export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria }) {
-  const { atualizarTarefa } = useNexo();
+  const { atualizarComVolta } = useNexo();
   const acoes = useAcoesTarefa();
   const ehAberta = aberta(tarefa);
   const aviso = avisoPrazo(tarefa.prazo, !ehAberta);
@@ -86,7 +86,7 @@ export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria 
         <SeletorData
           compacto
           valor={tarefa.prazo ?? ""}
-          aoMudar={(v) => atualizarTarefa(tarefa.id, (t) => ({ ...t, prazo: v || null }))}
+          aoMudar={(v) => (v || null) !== tarefa.prazo && atualizarComVolta(tarefa.id, (t) => ({ ...t, prazo: v || null }), v ? `Prazo: ${formatarData(v)}.` : "Prazo removido.")}
           placeholder="Sem prazo"
           aria-label="Prazo da tarefa"
           className={cn("px-1.5 [&>svg]:hidden", tarefa.prazo && (aviso ? aviso.gatilho : "text-foreground"))}

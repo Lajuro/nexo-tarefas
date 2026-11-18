@@ -12,13 +12,16 @@ import {
   LayoutGrid, ListChecks, ListTodo, Plus, Rows3, Search, SearchX, Target, X,
 } from "lucide-react";
 import { CardTarefa } from "@/components/CardTarefa";
+import { useAcoesTarefa } from "@/components/MenuTarefa";
 import { useNexo } from "@/components/Provider";
+import { BarraDeLote, type Selecao, Selecionavel, useSelecao } from "@/components/tarefas/Lote";
+import { MenuVisoes, useVisoesSalvas } from "@/components/tarefas/Visoes";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { Estatistica, IconeStatus, Pagina, PontoCor, Vazio, opcoesStatus } from "@/components/comum";
 import { ListaTarefas } from "@/components/tarefas/ListaTarefas";
 import { QuadroTarefas } from "@/components/tarefas/QuadroTarefas";
 import {
-  type Especial, type FiltroStatus, type Filtros, NOME_ESPECIAL, ORDENS, type Ordem, SEM_CATEGORIA, type Visao,
+  type Especial, type FiltroStatus, type Filtros, NOME_ESPECIAL, ORDENS, type Ordem, SEM_CATEGORIA, type Visao, type VisaoSalva,
   ehEspecial, ehFiltroStatus, ehOrdem, ehVisao, filtrar, filtrarParaQuadro, numerosDoTopo, ordenar,
 } from "@/components/tarefas/filtros";
 import { Button } from "@/components/ui/button";
@@ -89,7 +92,7 @@ function IconeNumero({ children }: { children: ReactNode }) {
   return <span className="hidden @4xl:inline-flex">{children}</span>;
 }
 
-function GradeTarefas({ tarefas, categorias }: { tarefas: Tarefa[]; categorias: Map<string, Categoria> }) {
+function GradeTarefas({ tarefas, categorias, selecao }: { tarefas: Tarefa[]; categorias: Map<string, Categoria>; selecao: Selecao }) {
   // Cascata só na primeira vez; depois, o que entra por causa de um filtro aparece na hora.
   const primeira = useRef(true);
   useEffect(() => {
@@ -108,7 +111,9 @@ function GradeTarefas({ tarefas, categorias }: { tarefas: Tarefa[]; categorias: 
             transition={{ ...suave, delay: primeira.current ? Math.min(i, 14) * 0.03 : 0, layout: mola }}
             className="flex min-w-0"
           >
-            <CardTarefa t={t} cat={t.categoriaId ? categorias.get(t.categoriaId) : null} className="w-full" />
+            <Selecionavel id={t.id} selecao={selecao} className="flex w-full">
+              <CardTarefa t={t} cat={t.categoriaId ? categorias.get(t.categoriaId) : null} className="w-full" />
+            </Selecionavel>
           </motion.div>
         ))}
       </AnimatePresence>
@@ -144,11 +149,94 @@ function Tarefas() {
   const status = statusDaUrl ?? statusGravado;
 
   const filtros: Filtros = useMemo(() => ({ texto, categoria, status, especial }), [texto, categoria, status, especial]);
+  const selecao = useSelecao();
+  const acoesTarefa = useAcoesTarefa();
+  const { visoes } = useVisoesSalvas();
   const numeros = useMemo(() => numerosDoTopo(tarefas), [tarefas]);
   const lista = useMemo(() => ordenar(filtrar(tarefas, filtros), ordem), [tarefas, filtros, ordem]);
   const quadro = useMemo(() => filtrarParaQuadro(tarefas, filtros), [tarefas, filtros]);
 
   const noQuadro = visao === "quadro";
+
+  // Seleção só vale para o que está na tela: sai da seleção o que um filtro escondeu.
+  const visiveisIds = useMemo(() => new Set(lista.map((t) => t.id)), [lista]);
+  const { ids: selecionadas, definir: definirSelecao } = selecao;
+  useEffect(() => {
+    if (noQuadro && selecionadas.length) definirSelecao([]);
+    else if (selecionadas.some((id) => !visiveisIds.has(id))) definirSelecao(selecionadas.filter((id) => visiveisIds.has(id)));
+  }, [visiveisIds, selecionadas, definirSelecao, noQuadro]);
+
+  /** Abre uma visão salva: filtros na URL e nas preferências, como se o usuário tivesse escolhido um por um. */
+  const aplicarVisao = (v: VisaoSalva) => {
+    setTexto(v.texto);
+    setOrdem(v.ordem);
+    setVisao(v.visao);
+    setStatusPref(v.status);
+    mudarUrl({ status: null, cat: v.categoria || null, f: v.especial || null, v: null });
+  };
+  // /tarefas?v=<id> (vindo da paleta) abre a visão
+  const pV = parametros.get("v");
+  const aplicada = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pV || !pronto || aplicada.current === pV) return;
+    aplicada.current = pV;
+    const v = visoes.find((x) => x.id === pV);
+    if (v) aplicarVisao(v);
+    else mudarUrl({ v: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pV, pronto, visoes]);
+
+  // Teclado na grade e na lista: J/K (ou setas) andam, Enter abre, X seleciona, F foca hoje, M ou S abre as ações,
+  // Ctrl A seleciona tudo o que está na tela e Esc limpa a seleção.
+  const listaRef = useRef(lista);
+  listaRef.current = lista;
+  useEffect(() => {
+    if (noQuadro) return;
+    const tecla = (e: KeyboardEvent) => {
+      const alvo = e.target as HTMLElement;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName) || alvo.isContentEditable) return;
+      if (document.querySelector('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]')) return;
+      const itens = [...document.querySelectorAll<HTMLElement>("[data-slot=selecionavel]")];
+      const atual = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-slot=selecionavel]") ?? null;
+      const i = atual ? itens.indexOf(atual) : -1;
+      const id = atual?.dataset.id;
+      const k = e.key.toLowerCase();
+      const focar = (el?: HTMLElement) => {
+        const link = el?.querySelector<HTMLElement>("a[href]");
+        if (!link) return;
+        link.focus();
+        link.scrollIntoView({ block: "nearest" });
+      };
+      if ((e.ctrlKey || e.metaKey) && k === "a") {
+        e.preventDefault();
+        selecao.definir(listaRef.current.map((t) => t.id));
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (k === "escape" && selecao.ativa) { e.preventDefault(); selecao.limpar(); return; }
+      if (k === "j" || e.key === "ArrowDown" || (e.key === "ArrowRight" && visao === "grade")) {
+        if (!itens.length) return;
+        e.preventDefault();
+        focar(itens[Math.min(itens.length - 1, i + 1)]);
+      } else if (k === "k" || e.key === "ArrowUp" || (e.key === "ArrowLeft" && visao === "grade")) {
+        if (!itens.length) return;
+        e.preventDefault();
+        focar(itens[Math.max(0, i < 0 ? 0 : i - 1)]);
+      } else if (id && k === "x") {
+        e.preventDefault();
+        selecao.alternar(id);
+      } else if (id && k === "f" && !e.shiftKey) {
+        const t = listaRef.current.find((x) => x.id === id);
+        if (t && aberta(t)) { e.preventDefault(); void acoesTarefa.alternarFoco(t); }
+      } else if (atual && (k === "m" || k === "s")) {
+        e.preventDefault();
+        const caixa = (atual.querySelector("a[href]") ?? atual).getBoundingClientRect();
+        (atual.querySelector("a[href]") ?? atual).dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: caixa.left + 24, clientY: caixa.top + Math.min(caixa.height, 40) }));
+      }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [noQuadro, visao, selecao, acoesTarefa]);
   const mostradas = noQuadro ? quadro.visiveis.length : lista.length;
   const temFiltro = !!texto.trim() || !!categoria || !!especial || status !== "abertas";
 
@@ -298,6 +386,8 @@ function Tarefas() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <MenuVisoes atual={{ texto, categoria, status, especial, ordem, visao }} aoAplicar={aplicarVisao} />
+
       <div className="ml-auto flex items-center gap-2">
         <span data-slot="contador-tarefas" aria-live="polite" className="px-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums sem-selecao">
           <strong className="font-semibold text-foreground">{mostradas}</strong> de {tarefas.length} {tarefas.length === 1 ? "tarefa" : "tarefas"}
@@ -388,8 +478,8 @@ function Tarefas() {
   if (!pronto) conteudo = null;
   else if (tarefas.length === 0) conteudo = semNenhuma;
   else if (mostradas === 0) conteudo = nadaComFiltro;
-  else if (visao === "grade") conteudo = <GradeTarefas tarefas={lista} categorias={categorias} />;
-  else if (visao === "lista") conteudo = <ListaTarefas tarefas={lista} categorias={categorias} ordem={ordem} aoOrdenar={setOrdem} />;
+  else if (visao === "grade") conteudo = <GradeTarefas tarefas={lista} categorias={categorias} selecao={selecao} />;
+  else if (visao === "lista") conteudo = <ListaTarefas tarefas={lista} categorias={categorias} ordem={ordem} aoOrdenar={setOrdem} selecao={selecao} />;
   else
     conteudo = (
       <QuadroTarefas
@@ -429,6 +519,12 @@ function Tarefas() {
           <motion.div key={visao} data-visao={visao} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={suave} className="mt-5">
             {conteudo}
           </motion.div>
+          <BarraDeLote selecao={selecao} tarefas={lista} categorias={cats} />
+          {!selecao.ativa && lista.length > 0 && (
+            <p className="mt-4 text-center text-[11px] text-muted-foreground sem-selecao">
+              <Kbd>J</Kbd> <Kbd>K</Kbd> andam · <Kbd>Enter</Kbd> abre · <Kbd>X</Kbd> seleciona (ou Ctrl + clique) · <Kbd>F</Kbd> foco de hoje · <Kbd>M</Kbd> ações
+            </p>
+          )}
         </>
       )}
     </Pagina>

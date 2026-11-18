@@ -118,6 +118,11 @@ export function comFoco(t: Tarefa, ligado: boolean): Tarefa {
 
 export const ehFocoHoje = (t: Tarefa) => t.focoEm === hojeISO();
 
+/** Deixa a tarefa como foco de um dia que ainda vai chegar (o fechamento do dia "leva para amanhã"). null solta. */
+export function comFocoEm(t: Tarefa, data: string | null): Tarefa {
+  return { ...t, focoEm: data || null };
+}
+
 /** Prende (ou solta) a tarefa na barra lateral. */
 export function comFixada(t: Tarefa, ligado: boolean): Tarefa {
   return { ...t, fixada: ligado };

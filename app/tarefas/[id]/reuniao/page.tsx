@@ -9,11 +9,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowLeft, Check, ClipboardList, Copy, Gavel, Hourglass, ListChecks, OctagonAlert, Play, SearchX, Timer, Trash2, Users, WandSparkles, X,
+  ArrowLeft, Check, ClipboardList, Copy, FileAudio, Gavel, Hourglass, ListChecks, OctagonAlert, Play, SearchX, Timer, Trash2, Users, WandSparkles, X,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { PromptModal } from "@/components/PromptModal";
+import { TranscricaoDaReuniao } from "@/components/reuniao/TranscricaoDaReuniao";
 import { AvatarPessoa, Campo, ChipsInput, ItemPasso, Pagina, Painel, Vazio, copiarTexto } from "@/components/comum";
 import { EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
@@ -66,6 +67,7 @@ export default function PaginaReuniao() {
   /** Depois de salvar: a ata pronta e o registro que nasceu. */
   const [depois, setDepois] = useState<{ ata: string; registroId: string } | null>(null);
   const [prompt, setPrompt] = useState(false);
+  const [transcricao, setTranscricao] = useState(false);
   const [decisao, setDecisao] = useState("");
   const [passo, setPasso] = useState("");
   const campoDecisao = useRef<HTMLInputElement>(null);
@@ -203,6 +205,9 @@ export default function PaginaReuniao() {
                 <Button variant="outline" data-slot="comecar-reuniao" onClick={() => mudar({ inicio: Date.now() })}><Play /> Começar</Button>
               </Dica>
             )}
+            <Dica texto="Colar a transcrição do Teams e trazer decisões e passos com o Copilot">
+              <Button variant="outline" data-slot="abrir-transcricao" onClick={() => setTranscricao(true)}><FileAudio /> Transcrição</Button>
+            </Dica>
             {temConteudo && (
               <Dica texto="Descartar o que foi capturado">
                 <Button variant="ghost" size="icon" aria-label="Descartar reunião" onClick={descartar}><Trash2 /></Button>
@@ -396,6 +401,15 @@ export default function PaginaReuniao() {
         titulo="Preparar a pauta com o Copilot"
         explicacao="Gera uma sugestão de pauta com base no histórico e nas pendências. Use a resposta para guiar a conversa."
         prompt={promptPrepararReuniao(tarefa, cat)}
+      />
+      <TranscricaoDaReuniao
+        aberto={transcricao}
+        fechar={() => setTranscricao(false)}
+        tarefa={tarefa}
+        categoria={cat}
+        reuniao={r}
+        passosDaTarefa={pauta.passosDaTarefa}
+        aoAplicar={(fn) => setR((x) => fn(x))}
       />
     </>
   );

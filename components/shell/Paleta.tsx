@@ -3,7 +3,7 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CornerDownLeft, Crosshair, type LucideIcon, Maximize, Monitor, Moon, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
+  Bookmark, CornerDownLeft, Crosshair, type LucideIcon, Maximize, Monitor, Moon, MoonStar, PanelLeft, PenLine, Plus, Search, SearchX, SlidersHorizontal, Sun, Sunrise,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { type Tema, useTema } from "@/components/Raiz";
@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Kbd } from "@/components/ui/diversos";
 import { aberta } from "@/lib/lembretes";
 import { montarDiretorio } from "@/lib/pessoas";
+import { lerPref } from "@/lib/preferencias";
+import { normalizarVisoes } from "@/components/tarefas/filtros";
 import { type Categoria, hojeISO, type Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { TODOS_NAV } from "./navegacao";
@@ -37,6 +39,7 @@ const ACOES: Comando[] = [
   { id: "acao:nova", nome: "Nova tarefa", palavras: "criar adicionar nova tarefa", icone: Plus, tecla: ["N"], tom: "bg-primary/12 text-primary" },
   { id: "acao:anotar", nome: "Anotar rápido", palavras: "anotar rapido nota folha capturar escrever bloco de notas", icone: PenLine, tecla: ["A"], tom: "bg-st-andamento/14 text-st-andamento" },
   { id: "acao:dia", nome: "Planejar o dia", palavras: "ritual foco planejar dia manhã", icone: Sunrise, tecla: ["D"], tom: "bg-alerta/15 text-alerta" },
+  { id: "acao:fechar-dia", nome: "Fechar o dia", palavras: "ritual fechar encerrar dia daily fim do dia amanha", icone: MoonStar, tecla: ["Shift", "D"], tom: "bg-st-aguardando/14 text-st-aguardando" },
   { id: "acao:cheia", nome: "Tela cheia", palavras: "entrar sair tela cheia fullscreen maximizar", icone: Maximize, tecla: ["F11"], tom: "bg-info/12 text-info" },
   { id: "acao:lateral", nome: "Barra lateral", palavras: "recolher abrir barra lateral menu", icone: PanelLeft, tecla: ["Ctrl", "B"], tom: "bg-sucesso/12 text-sucesso" },
   { id: "acao:personalizar", nome: "Personalizar", palavras: "personalizar aparencia cor de destaque cores cantos letra fonte barra lateral superior animacao movimento", icone: SlidersHorizontal, tom: "bg-foreground/8 text-foreground" },
@@ -57,7 +60,7 @@ export function Paleta({
 }: {
   aberta: boolean;
   fechar: () => void;
-  acoes: { novaTarefa: () => void; planejarDia: () => void; alternarLateral: () => void; telaCheia: () => void; anotar: () => void; personalizar: () => void };
+  acoes: { novaTarefa: () => void; planejarDia: () => void; fecharDia: () => void; alternarLateral: () => void; telaCheia: () => void; anotar: () => void; personalizar: () => void };
 }) {
   const { dados } = useNexo();
   const { tema, definirTema } = useTema();
@@ -110,6 +113,7 @@ export function Paleta({
   const temasVis = buscando ? TEMAS.filter((t) => casa(t.palavras)) : TEMAS;
   const telasVis = buscando ? telas.filter((t) => casa(`ir para ${t.nav.nome}`)) : telas;
   const catsVis = buscando ? cats.filter((c) => casa(`categoria ${c.nome}`)) : [];
+  const visoesVis = buscando ? normalizarVisoes(lerPref("visoesTarefas", [])).filter((v) => casa(`visao filtro tarefas ${v.nome}`)).slice(0, 8) : [];
   const paginasVis = buscando ? (dados?.paginas?.items ?? []).filter((p) => !p.arquivadaEm && casa(`pagina ${p.titulo}`)).slice(0, 8) : [];
   const pessoasVis = buscando
     ? diretorio
@@ -136,6 +140,7 @@ export function Paleta({
   const execAcao: Record<string, () => void> = {
     "acao:nova": () => fazer(acoes.novaTarefa),
     "acao:dia": () => fazer(acoes.planejarDia),
+    "acao:fechar-dia": () => fazer(acoes.fecharDia),
     "acao:cheia": () => fazer(acoes.telaCheia),
     "acao:lateral": () => fazer(acoes.alternarLateral),
     "acao:anotar": () => fazer(acoes.anotar),
@@ -163,6 +168,7 @@ export function Paleta({
     regTemas();
     regTelas();
     catsVis.forEach((c) => pos(`cat:${c.id}`, () => ir(`/categorias/${c.id}`)));
+    visoesVis.forEach((v) => pos(`visao:${v.id}`, () => ir(`/tarefas?v=${encodeURIComponent(v.id)}`)));
     paginasVis.forEach((p) => pos(`pagina:${p.id}`, () => ir(`/paginas?p=${p.id}`)));
     timesVis.forEach((t) => pos(`time:${t.id}`, () => ir(`/pessoas?time=${encodeURIComponent(t.id)}`)));
     pessoasVis.forEach((p, i) => pos(`pessoa:${i}`, () => ir(`/pessoas?p=${encodeURIComponent(p.nome)}`)));
@@ -355,6 +361,19 @@ export function Paleta({
                       <AzulejoTela key={t.tema} nome={`Tema ${t.nome.toLowerCase()}`} icone={t.icone} ativo={tema === t.tema} {...props(`tema:${t.tema}`)} />
                     ))}
                     {telasVis.map((t) => <AzulejoTela key={t.id} nome={t.nav.nome} icone={t.nav.icone} tecla={t.nav.tecla} {...props(t.id)} />)}
+                  </div>
+                </Bloco>
+              )}
+
+              {visoesVis.length > 0 && (
+                <Bloco titulo="Visões salvas de tarefas">
+                  <div className="flex flex-wrap gap-1.5">
+                    {visoesVis.map((v) => (
+                      <Opcao key={v.id} {...props(`visao:${v.id}`)} className="h-8 rounded-full border bg-card px-3 text-[13px] transition-colors aria-selected:border-primary/40">
+                        <Bookmark className="mr-1.5 size-3.5 text-muted-foreground" />
+                        <span className="max-w-56 truncate">{v.nome}</span>
+                      </Opcao>
+                    ))}
                   </div>
                 </Bloco>
               )}

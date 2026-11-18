@@ -347,12 +347,14 @@ export async function moverTarefaParaLixeira(id: string) {
   const dir = await paraEscrita();
   if (!ID_VALIDO.test(id)) throw new Error("ID inválido.");
   const origem = path.join(dir, "tarefas", `${id}.json`);
-  if (!existsSync(origem)) return;
+  if (!existsSync(origem)) return null;
   const destino = path.join(dir, "_lixeira", `tarefa-${id}-${carimbo()}.json`);
   await fs.mkdir(path.dirname(destino), { recursive: true });
   await fs.copyFile(origem, destino);
   await fs.unlink(origem);
   await removerMarkdown(dir, id).catch(() => {});
+  /** O nome na lixeira: é o que "Desfazer" manda de volta para restaurar. */
+  return path.basename(destino);
 }
 
 export async function listarLixeira() {

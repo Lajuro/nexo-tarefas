@@ -231,6 +231,53 @@ ${blocos.join("\n\n")}
 ${REGRAS}`;
 }
 
+/**
+ * Transcrição de uma reunião (Teams, VTT, SRT...) para o Copilot organizar no mesmo formato do registro.
+ * Transcrição longa vai em partes: cada parte pede só o que está nela, e o app junta as respostas.
+ */
+export function promptTranscricao(
+  t: Tarefa, cat: Categoria | undefined, transcricao: string,
+  opcoes: { titulo?: string; participantes?: string[]; numero?: number; total?: number } = {},
+) {
+  const numero = opcoes.numero ?? 1;
+  const total = opcoes.total ?? 1;
+  const partes = total > 1 ? ` (parte ${numero} de ${total})` : "";
+  return `Você é meu assistente de organização de trabalho. Abaixo está a transcrição${partes} de uma reunião sobre uma tarefa minha. Organize o que foi falado no formato pedido.
+${quemSouEu()}
+=== CONTEXTO DA TAREFA ===
+${cabecalhoTarefa(t, cat)}
+
+=== PASSOS QUE ESTAVAM EM ABERTO ===
+${listaAbertos(t)}
+
+=== REUNIÃO${opcoes.titulo?.trim() ? `: ${opcoes.titulo.trim()}` : ""} ===
+Participantes informados: ${opcoes.participantes?.filter(Boolean).join(", ") || "não informados"}
+${total > 1 ? `Esta é a parte ${numero} de ${total} da transcrição. Organize só o que está nesta parte.\n` : ""}
+Transcrição:
+${transcricao.trim()}
+
+=== FORMATO DA RESPOSTA ===
+## ${SECOES.resumo}
+(o que foi discutido, em tópicos curtos; não deixe de fora nenhum assunto que tenha sido tratado)
+
+## ${SECOES.decisoes}
+- (uma decisão por linha, só o que foi decidido de fato)
+
+## ${SECOES.passos}
+- (uma ação por linha; se alguém assumiu, termine com "(responsável: Nome)"; quando for eu, "(responsável: Eu)")
+
+## ${SECOES.impedimentos}
+- (bloqueios, riscos ou dependências citados)
+
+## ${SECOES.participantes}
+- (quem falou ou foi citado como presente, um por linha)
+
+## ${SECOES.concluidos}
+- (copie EXATAMENTE o texto dos "passos que estavam em aberto" que a conversa indica como resolvidos)
+
+${REGRAS}`;
+}
+
 // ---------- leitura da resposta colada ----------
 
 export interface RespostaInterpretada {

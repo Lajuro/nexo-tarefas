@@ -13,7 +13,7 @@ import {
 import type { ConfigDaJornada, DiaDaJornada, TipoDeBloco } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
-const minutoDeAgora = () => {
+export const minutoDeAgora = () => {
   const d = new Date();
   return d.getHours() * 60 + d.getMinutes();
 };
@@ -93,9 +93,11 @@ export function usePonto(data: string) {
       const entrada = diaDe(jornada, data).ponto.entrada;
       if (entrada && hora <= entrada) {
         toast("A saída tem que ser depois da entrada. Ajuste os horários do dia.", "erro");
-        return;
+        return false;
       }
-      if (await salvarDia(data, (dia) => comSaida(dia, hora))) toast(`Dia encerrado às ${hora}.`);
+      const ok = await salvarDia(data, (dia) => comSaida(dia, hora));
+      if (ok) toast(`Dia encerrado às ${hora}.`);
+      return ok;
     },
     [data, jornada, salvarDia, toast],
   );

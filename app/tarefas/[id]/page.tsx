@@ -71,7 +71,7 @@ function Conteudo() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const registroPedido = useSearchParams().get("r");
-  const { dados, atualizarTarefa, toast } = useNexo();
+  const { dados, atualizarTarefa, atualizarComVolta, toast } = useNexo();
   const acoes = useAcoesTarefa();
   const confirmar = useConfirmar();
 
@@ -165,7 +165,7 @@ function Conteudo() {
       confirmar: "Remover",
       perigo: true,
     });
-    if (ok && (await atualizarTarefa(tarefa.id, (t) => semRegistro(t, r.id)))) toast("Registro removido da linha do tempo.", "info");
+    if (ok) await atualizarComVolta(tarefa.id, (t) => semRegistro(t, r.id), "Registro removido da linha do tempo.");
   };
 
   return (

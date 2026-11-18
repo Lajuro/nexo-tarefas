@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRightLeft, Merge } from "lucide-react";
 import { useNexo } from "./Provider";
+import { oferecerDesfazer } from "./desfazer";
 import { Campo, Modal } from "./comum";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
@@ -27,7 +28,7 @@ export const pedirMoverRegistro = (tarefaId: string, registroId: string) => pedi
 export const pedirJuntarTarefa = (tarefaId: string) => pedir({ tipo: "juntar", tarefaId });
 
 export function MoverEJuntar() {
-  const { dados, atualizarTarefa, excluirTarefa, salvarLinks, salvarNotas, toast } = useNexo();
+  const { dados, dadosAtuais, atualizarTarefa, excluirTarefa, salvarLinks, salvarNotas, toast } = useNexo();
   const router = useRouter();
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [destinoId, setDestinoId] = useState("");
@@ -71,7 +72,16 @@ export function MoverEJuntar() {
         await salvarNotas((items) =>
           items.map((n) => ({ ...n, gerou: n.gerou?.map((f) => (f.registroId === registro.id ? { ...f, tarefaId: destino.id } : f)) })),
         );
-      toast(`Registro movido para “${destino.titulo}”.`);
+      const de = origem, para = destino, reg = registro;
+      const notasApontavam = !!dados?.notas?.items.some((n) => n.gerou?.some((f) => f.registroId === reg.id));
+      oferecerDesfazer(`Registro movido para “${para.titulo}”.`, async () => {
+        // a volta segue a mesma ordem segura: a origem recebe de novo, depois o destino perde
+        if (!(await atualizarTarefa(de.id, (t) => comRegistroRecebido(t, reg)))) return false;
+        await atualizarTarefa(para.id, (t) => semRegistroMovido(t, reg.id));
+        if (notasApontavam)
+          await salvarNotas((items) => items.map((n) => ({ ...n, gerou: n.gerou?.map((f) => (f.registroId === reg.id ? { ...f, tarefaId: de.id } : f)) })));
+        return true;
+      });
       fechar();
       router.push(`/tarefas/${destino.id}`);
     }
@@ -81,6 +91,8 @@ export function MoverEJuntar() {
   async function juntar() {
     if (!origem || !destino || fazendo) return;
     setFazendo(true);
+    const destinoAntes = structuredClone(destino);
+    const linksMovidos = (dados?.links.items ?? []).filter((l) => l.tarefaId === origem.id).map((l) => l.id);
     const recebeu = await atualizarTarefa(destino.id, (t) => comTarefaJuntada(t, origem));
     if (recebeu) {
       if (dados?.links.items.some((l) => l.tarefaId === origem.id))
@@ -89,7 +101,15 @@ export function MoverEJuntar() {
         await salvarNotas((items) =>
           items.map((n) => ({ ...n, gerou: n.gerou?.map((f) => (f.tarefaId === origem.id ? { ...f, tarefaId: destino.id } : f)) })),
         );
-      if (await excluirTarefa(origem.id)) {
+      const de = origem;
+      const desfazerJunto = async () => {
+        // o destino volta a ser como era, se ninguém mexeu nele depois; os links voltam para a origem
+        const atual = dadosAtuais()?.tarefas.find((t) => t.id === destinoAntes.id);
+        if (atual && atual.rev === recebeu.rev) await atualizarTarefa(destinoAntes.id, (x) => ({ ...destinoAntes, rev: x.rev }));
+        else toast("A tarefa de destino mudou depois da junção: os registros copiados para ela ficaram lá.", "info");
+        if (linksMovidos.length) await salvarLinks((items) => items.map((l) => (linksMovidos.includes(l.id) ? { ...l, tarefaId: de.id } : l)));
+      };
+      if (await excluirTarefa(origem.id, { texto: `“${origem.titulo}” foi juntada em “${destino.titulo}”.`, aoDesfazer: desfazerJunto })) {
         fechar();
         router.push(`/tarefas/${destino.id}`);
       }

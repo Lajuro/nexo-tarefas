@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { toast as sonner } from "sonner";
 import { useHoje } from "./useHoje";
+import { oferecerDesfazer } from "./desfazer";
 import { definirMeusNomes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { Categoria, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
@@ -16,7 +17,20 @@ interface Ctx {
   recarregar: () => Promise<void>;
   criarTarefa: (t: Tarefa) => Promise<Tarefa | null>;
   atualizarTarefa: (id: string, fn: (t: Tarefa) => Tarefa) => Promise<Tarefa | null>;
-  excluirTarefa: (id: string) => Promise<boolean>;
+  /**
+   * Igual a atualizarTarefa, mas avisa com "Desfazer" (e Ctrl Z): a volta devolve a tarefa como estava,
+   * desde que ninguém tenha mexido nela depois. Use nas ações rápidas (status, prioridade, foco, mover).
+   */
+  atualizarComVolta: (id: string, fn: (t: Tarefa) => Tarefa, texto: string) => Promise<Tarefa | null>;
+  /** Os dados mais recentes, sem esperar o próximo render (para conferências dentro de um desfazer). */
+  dadosAtuais: () => Dados | null;
+  /**
+   * Manda a tarefa para a lixeira e oferece "Desfazer". `extra.texto` troca o aviso e `extra.aoDesfazer`
+   * roda depois de a tarefa voltar (ex.: juntar duas tarefas desfaz também o que foi para a outra).
+   */
+  excluirTarefa: (id: string, extra?: { texto?: string; aoDesfazer?: () => Promise<unknown>; semAviso?: boolean }) => Promise<string | boolean>;
+  /** Traz de volta da lixeira uma tarefa excluída (o nome do arquivo vem de excluirTarefa). */
+  restaurarTarefa: (arquivo: string) => Promise<Tarefa | null>;
   salvarCategorias: (fn: (items: Categoria[]) => Categoria[]) => Promise<boolean>;
   salvarLinks: (fn: (items: LinkDoc[]) => LinkDoc[]) => Promise<boolean>;
   salvarPessoas: (fn: (items: Pessoa[]) => Pessoa[]) => Promise<boolean>;
@@ -184,11 +198,67 @@ export function Provider({ children }: { children: ReactNode }) {
     [enfileirar, falha, gravarTarefa],
   );
 
-  const excluirTarefa = useCallback(
-    async (id: string) => {
+  const atualizarComVolta = useCallback(
+    async (id: string, fn: (t: Tarefa) => Tarefa, texto: string) => {
+      const antes = ref.current?.tarefas.find((x) => x.id === id);
+      if (!antes) return null;
+      const copia = structuredClone(antes);
+      const depois = await atualizarTarefa(id, fn);
+      if (!depois) return null;
+      oferecerDesfazer(texto, async () => {
+        const atual = ref.current?.tarefas.find((x) => x.id === id);
+        if (!atual) {
+          toast("Essa tarefa não está mais aqui (foi para a lixeira?).", "erro");
+          return false;
+        }
+        if (atual.rev !== depois.rev) {
+          toast("A tarefa mudou depois disso. Desfaça à mão para não perder a mudança mais nova.", "erro");
+          return false;
+        }
+        return !!(await atualizarTarefa(id, (x) => ({ ...copia, rev: x.rev })));
+      }, { tipo: "info" });
+      return depois;
+    },
+    [atualizarTarefa, toast],
+  );
+
+  const dadosAtuais = useCallback(() => ref.current, []);
+
+  const restaurarTarefa = useCallback(
+    async (arquivo: string) => {
       try {
-        await req(`/api/tarefas/${id}`, { method: "DELETE" });
+        const volta = await req<Tarefa>("/api/lixeira", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ arquivo }),
+        });
+        setDados((d) => (d ? { ...d, tarefas: [...d.tarefas.filter((t) => t.id !== volta.id), volta] } : d));
+        if (ref.current) ref.current = { ...ref.current, tarefas: [...ref.current.tarefas.filter((t) => t.id !== volta.id), volta] };
+        return volta;
+      } catch (e) {
+        await falha(e);
+        return null;
+      }
+    },
+    [falha],
+  );
+
+  const excluirTarefa = useCallback(
+    async (id: string, extra?: { texto?: string; aoDesfazer?: () => Promise<unknown>; semAviso?: boolean }) => {
+      try {
+        const r = await req<{ arquivo?: string | null }>(`/api/tarefas/${id}`, { method: "DELETE" });
         setDados((d) => (d ? { ...d, tarefas: d.tarefas.filter((t) => t.id !== id) } : d));
+        if (ref.current) ref.current = { ...ref.current, tarefas: ref.current.tarefas.filter((t) => t.id !== id) };
+        if (extra?.semAviso) return r.arquivo || true;
+        if (r.arquivo) {
+          const arquivo = r.arquivo;
+          oferecerDesfazer(extra?.texto ?? "Tarefa movida para a lixeira.", async () => {
+            if (!(await restaurarTarefa(arquivo))) return false;
+            await extra?.aoDesfazer?.();
+            return true;
+          });
+          return arquivo;
+        }
         toast("Tarefa movida para a lixeira (dá pra restaurar em Configurações).");
         return true;
       } catch (e) {
@@ -196,7 +266,7 @@ export function Provider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [falha, toast],
+    [falha, toast, restaurarTarefa],
   );
 
   const salvarColecao = useCallback(
@@ -325,7 +395,7 @@ export function Provider({ children }: { children: ReactNode }) {
   return (
     <Contexto.Provider
       value={{
-        estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, excluirTarefa,
+        estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, atualizarComVolta, dadosAtuais, excluirTarefa, restaurarTarefa,
         salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
       }}
     >

@@ -833,6 +833,28 @@ async function main() {
     afirmar((await pg.locator("[data-slot=reuniao-aviso]").count()) === 0, "o aviso de reunião não salva continuou depois de salvar");
   });
 
+  await etapa("modo reunião: transcrição do Teams organizada pelo Copilot entra na captura", async () => {
+    await pg.goto(`${B}/tarefas/${idDoModelo}/reuniao`);
+    await pg.locator("[data-slot=reuniao]").waitFor();
+    await pg.locator("[data-slot=abrir-transcricao]").click();
+    await pg.locator("[data-slot=transcricao-colada]").fill("Marina  0:12\nBom dia, vamos falar do pipeline.\n\nBruno  0:40\nFicou decidido ligar o gate em dezembro.\n");
+    afirmar((await pg.locator("[data-slot=resumo-transcricao]").innerText()).includes("Falaram: Marina, Bruno"), "a transcrição não foi lida (quem falou)");
+    await pg.locator("[data-slot=copiar-parte]").click();
+    const prompt = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(prompt.includes("## PASSOS CONCLUÍDOS") && prompt.includes("Marina: Bom dia"), "o prompt da transcrição não tem o formato ou a fala");
+    await pg.locator("[data-slot=resposta-transcricao]").fill("## RESUMO\n- Pipeline discutido.\n## DECISÕES\n- Ligar o gate em dezembro\n## PRÓXIMOS PASSOS\n- Configurar o scan noturno (responsável: Bruno)\n## IMPEDIMENTOS\nNenhum\n## PARTICIPANTES\n- Marina\n- Bruno\n## PASSOS CONCLUÍDOS\nNenhum");
+    await pg.locator("[data-slot=trazer-transcricao]").click();
+    await pg.locator("[data-slot=decisao-capturada]", { hasText: "Ligar o gate em dezembro" }).waitFor();
+    await pg.locator("[data-slot=passo-capturado]", { hasText: "Configurar o scan noturno" }).waitFor();
+    const notas = await pg.locator("[data-slot=notas-da-reuniao]").innerText();
+    afirmar(notas.includes("Resumo da transcrição") && notas.includes("Transcrição completa"), "o resumo e o link da transcrição não entraram nas anotações");
+    afirmar((await dados()).tarefas.find((t) => t.id === idDoModelo).registros.every((r) => !r.decisoes.includes("Ligar o gate")), "a transcrição gravou na tarefa antes de encerrar a reunião");
+    // descarta: nada disso era para ficar
+    await pg.getByRole("button", { name: "Descartar reunião" }).click();
+    await pg.getByRole("button", { name: "Descartar", exact: true }).click();
+    await pg.locator("[data-slot=propriedades]").waitFor();
+  });
+
   await etapa("diário mostra o que aconteceu hoje", async () => {
     await pg.locator("[data-slot=pagina] h1").first().click();
     await pg.keyboard.press("g");
@@ -1370,6 +1392,13 @@ async function main() {
       await r.clock.setFixedTime(as(17, 27));
       await r.evaluate(() => window.dispatchEvent(new Event("focus")));
       await r.locator("[data-slot=encerrar-o-dia]").click();
+      // encerrar o dia de hoje abre o "Fechar o dia" com a daily pronta
+      const fechar = r.locator("[data-ritual=fechar-dia]");
+      await fechar.waitFor();
+      afirmar((await fechar.locator("[data-slot=texto-daily]").innerText()).includes("O que vou fazer:"), "o fechamento do dia não mostrou a daily");
+      afirmar((await fechar.locator("[data-slot=fechar-o-dia]").innerText()).includes("Pronto"), "com a saída já batida, o botão do fechamento deveria ser só \"Pronto\"");
+      await fechar.locator("[data-slot=fechar-o-dia]").click();
+      await fechar.waitFor({ state: "detached" });
       await r.locator("[data-slot=painel-do-ponto][data-estado=fechado]").waitFor();
       await r.locator("[data-slot=saldo-do-dia]", { hasText: "+0h30" }).waitFor();
       const fechado = await diaR();
@@ -1636,6 +1665,49 @@ async function main() {
     await pg.locator("[data-slot=ferramenta-agenda]").waitFor();
     await painel.getByRole("button", { name: "Pronto" }).click();
     await painel.waitFor({ state: "detached" });
+  });
+
+  await etapa("tarefas: seleção em lote, desfazer com Ctrl Z, visão salva e teclado", async () => {
+    await pg.goto(`${B}/tarefas`);
+    await pg.locator("[data-slot=contador-tarefas]").waitFor();
+    await pg.getByRole("radio", { name: "Grade" }).click();
+    await pg.locator("[data-slot=selecionavel]").first().waitFor();
+    const itens = pg.locator("[data-slot=selecionavel]");
+    const n = await itens.count();
+    afirmar(n >= 2, "deveria haver pelo menos duas tarefas abertas na lista");
+    // teclado: J foca a primeira, X seleciona; Ctrl + clique seleciona outra sem abrir
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("j");
+    await pg.keyboard.press("x");
+    await itens.nth(1).locator("a[href]").first().click({ modifiers: ["Control"] });
+    afirmar(new URL(pg.url()).pathname === "/tarefas", "Ctrl + clique abriu a tarefa em vez de selecionar");
+    await pg.locator("[data-slot=contagem-lote]", { hasText: "2 tarefas" }).waitFor();
+    const ids = await itens.evaluateAll((els) => els.filter((e) => e.dataset.selecionada).map((e) => e.dataset.id));
+    const antes = Object.fromEntries((await dados()).tarefas.filter((t) => ids.includes(t.id)).map((t) => [t.id, t.prioridade]));
+    await pg.locator("[data-slot=barra-lote]").getByRole("button", { name: "Prioridade" }).click();
+    await pg.getByRole("menuitem", { name: "1", exact: true }).click();
+    await ateOsDados((d) => ids.every((id) => d.tarefas.find((t) => t.id === id).prioridade === 1), "a prioridade em lote não foi gravada");
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("Control+z");
+    await ateOsDados((d) => ids.every((id) => d.tarefas.find((t) => t.id === id).prioridade === antes[id]), "Ctrl Z não desfez a prioridade em lote");
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=barra-lote]").waitFor({ state: "detached" });
+    // visão salva: ordenar por prazo, salvar, mudar e voltar pela paleta
+    await pg.locator("[data-slot=ordenacao]").click();
+    await pg.getByRole("menuitemradio", { name: "Prazo" }).click();
+    await pg.locator("[data-slot=visoes-salvas]").click();
+    await pg.locator("[data-slot=salvar-visao]").click();
+    await pg.getByLabel("Nome da visão").fill("Abertas por prazo");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=visoes-salvas]", { hasText: "Abertas por prazo" }).waitFor();
+    await pg.locator("[data-slot=ordenacao]").click();
+    await pg.getByRole("menuitemradio", { name: "A-Z" }).click();
+    await pg.locator("[data-slot=visoes-salvas]", { hasText: "Visões" }).waitFor();
+    await pg.keyboard.press("Control+k");
+    await pg.keyboard.type("abertas por prazo");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=ordenacao][data-valor=prazo]").waitFor();
+    await pg.locator("[data-slot=visoes-salvas]", { hasText: "Abertas por prazo" }).waitFor();
   });
 
   // ---------- tema ----------

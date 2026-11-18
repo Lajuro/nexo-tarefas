@@ -75,6 +75,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },
   { teclas: ["G", "Q"], descricao: "Ir para Conquistas (nível, meta do dia)" },
   { teclas: ["D"], descricao: "Planejar o dia" },
+  { teclas: ["Shift", "D"], descricao: "Fechar o dia (o que saiu, o que fica para amanhã e a daily)" },
   { teclas: ["A"], descricao: "Anotar rápido: tarefa ou nota, de qualquer tela" },
   { teclas: ["Ctrl", "B"], descricao: "Recolher ou abrir a barra lateral" },
   { teclas: ["Ctrl", "Enter"], descricao: "Salvar o formulário aberto" },

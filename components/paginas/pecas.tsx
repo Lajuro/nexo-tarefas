@@ -10,6 +10,7 @@ import {
   Star, Target, Trash2, Users, Workflow, Wrench, Zap,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { oferecerDesfazer } from "@/components/desfazer";
 import { useConfirmar } from "@/components/Raiz";
 import { copiarTexto } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -119,11 +120,16 @@ export function useAcoesDePagina() {
     /** Arquivar leva junto o que está dentro da página; desarquivar traz só ela. */
     arquivar: async (p: Pagina, sim: boolean) => {
       const agora = agoraISO();
+      let mexidas: string[] = [];
       const ok = await salvarPaginas((items) => {
         const junto = sim ? descendentes(items.filter((x) => !x.arquivadaEm), p.id) : new Set<string>();
+        mexidas = items.filter((x) => x.id === p.id || junto.has(x.id)).map((x) => x.id);
         return items.map((x) => (x.id === p.id || junto.has(x.id) ? { ...x, arquivadaEm: sim ? agora : null, atualizadaEm: agora } : x));
       });
-      if (ok) toast(sim ? "Página arquivada (com o que estava dentro dela). Os links continuam funcionando." : "Página de volta às ativas.", "info");
+      if (ok)
+        oferecerDesfazer(sim ? "Página arquivada (com o que estava dentro dela). Os links continuam funcionando." : "Página de volta às ativas.",
+          () => salvarPaginas((items) => items.map((x) => (mexidas.includes(x.id) ? { ...x, arquivadaEm: sim ? null : agora, atualizadaEm: agoraISO() } : x))),
+          { tipo: "info" });
       return ok;
     },
     excluir: async (p: Pagina, depois?: () => void) => {
@@ -133,9 +139,23 @@ export function useAcoesDePagina() {
         confirmar: "Excluir",
         perigo: true,
       });
-      if (!ok || !(await salvarPaginas((items) => semPagina(items, p.id)))) return false;
+      let antes: Pagina | null = null;
+      let filhas: string[] = [];
+      if (!ok || !(await salvarPaginas((items) => {
+        antes = items.find((x) => x.id === p.id) ?? null;
+        filhas = items.filter((x) => x.paiId === p.id).map((x) => x.id);
+        return semPagina(items, p.id);
+      }))) return false;
       apagarNotaPendente(p.id);
-      toast("Página excluída (foi para a lixeira da pasta de dados).", "info");
+      const copia = antes as Pagina | null;
+      oferecerDesfazer("Página excluída (foi para a lixeira da pasta de dados).", () =>
+        copia
+          ? salvarPaginas((items) => [
+              ...items.filter((x) => x.id !== copia.id).map((x) => (filhas.includes(x.id) ? { ...x, paiId: copia.id } : x)),
+              copia,
+            ])
+          : false,
+        { tipo: "info" });
       depois?.();
       return true;
     },

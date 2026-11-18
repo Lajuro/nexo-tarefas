@@ -121,3 +121,44 @@ export function ordenar(tarefas: Tarefa[], ordem: Ordem) {
     return a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base" });
   });
 }
+
+// ---------- visões salvas (preferência do navegador: "nexo:visoesTarefas") ----------
+
+/** Uma combinação de filtros guardada com nome, para abrir de novo com um clique (ou pela paleta). */
+export interface VisaoSalva {
+  id: string;
+  nome: string;
+  texto: string;
+  categoria: string;
+  status: FiltroStatus;
+  especial: Especial;
+  ordem: Ordem;
+  visao: Visao;
+}
+
+export const MAX_VISOES = 20;
+
+/** Lê a lista do localStorage: tudo é conferido (listas fechadas, tamanhos), o que não bate vira padrão ou cai fora. */
+export function normalizarVisoes(x: unknown): VisaoSalva[] {
+  if (!Array.isArray(x)) return [];
+  const out: VisaoSalva[] = [];
+  for (const v of x) {
+    if (!v || typeof v !== "object") continue;
+    const o = v as Partial<Record<keyof VisaoSalva, unknown>>;
+    const id = typeof o.id === "string" && /^[a-zA-Z0-9_-]{1,40}$/.test(o.id) ? o.id : "";
+    const nome = typeof o.nome === "string" ? o.nome.trim().slice(0, 60) : "";
+    if (!id || !nome || out.some((x) => x.id === id)) continue;
+    out.push({
+      id,
+      nome,
+      texto: typeof o.texto === "string" ? o.texto.slice(0, 200) : "",
+      categoria: typeof o.categoria === "string" && /^[a-zA-Z0-9_-]{0,80}$/.test(o.categoria) ? o.categoria : "",
+      status: ehFiltroStatus(o.status) ? o.status : "abertas",
+      especial: ehEspecial(o.especial) ? o.especial : "",
+      ordem: ehOrdem(o.ordem) ? o.ordem : "prioridade",
+      visao: ehVisao(o.visao) ? o.visao : "grade",
+    });
+    if (out.length >= MAX_VISOES) break;
+  }
+  return out;
+}
