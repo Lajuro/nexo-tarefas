@@ -7,13 +7,13 @@
 import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRightLeft, BookMarked, Check, ChevronRight, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, BookMarked, Check, ChevronRight, Ellipsis, Gavel, ListChecks, NotebookPen, OctagonAlert, Pencil, Plus, Trash2 } from "lucide-react";
 import { pedirMoverRegistro } from "@/components/MoverEJuntar";
 import { useNexo } from "@/components/Provider";
 import { ChipPessoa, IconeTipo, STATUS_VISUAL, StatusBadge, TipoBadge } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { comReferencia } from "@/lib/acoes";
 import { itemLista, lista, suave } from "@/lib/animacoes";
@@ -40,42 +40,44 @@ function Rotulo({ icone, children, className }: { icone?: ReactNode; children: R
   );
 }
 
+/**
+ * Ações de um registro. O "..." fica sempre à vista (e no Tab) e leva a todas as ações;
+ * o lápis de editar, o atalho mais usado, aparece ao passar o mouse ou quando o foco do teclado entra no card.
+ * `discreto` (marcos de uma linha): o "..." também só aparece no hover ou no foco, para a linha do tempo não encher de botões.
+ */
 function AcoesRegistro({
-  aoEditar, aoRemover, aoMover, referencia, aoAlternarReferencia, className,
+  aoEditar, aoRemover, aoMover, referencia, aoAlternarReferencia, discreto, className,
 }: {
   aoEditar: () => void; aoRemover: () => void; aoMover?: () => void;
-  referencia?: boolean; aoAlternarReferencia?: () => void; className?: string;
+  referencia?: boolean; aoAlternarReferencia?: () => void; discreto?: boolean; className?: string;
 }) {
+  const aparece = "opacity-0 transition-opacity duration-150 group-focus-within/reg:opacity-100 group-hover/reg:opacity-100 focus-visible:opacity-100";
   return (
-    <div
-      data-slot="registro-acoes"
-      className={cn(
-        "flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-focus-within/reg:opacity-100 group-hover/reg:opacity-100",
-        className,
-      )}
-    >
+    <div data-slot="registro-acoes" className={cn("flex shrink-0 items-center gap-0.5", className)}>
       <Dica texto="Editar registro">
-        <Button variant="ghost" size="icon-sm" aria-label="Editar registro" onClick={aoEditar}><Pencil /></Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Editar registro" onClick={aoEditar} className={aparece}><Pencil /></Button>
       </Dica>
-      {aoAlternarReferencia && (
-        <Dica texto={referencia ? "Tirar da referência da categoria" : "Guardar como referência da categoria (vale para todas as tarefas dela)"}>
-          <Button variant="ghost" size="icon-sm" aria-pressed={!!referencia} onClick={aoAlternarReferencia}
-            aria-label={referencia ? "Tirar da referência da categoria" : "Guardar como referência da categoria"} className={referencia ? "text-primary" : undefined}>
-            <BookMarked />
-          </Button>
+      <DropdownMenu>
+        <Dica texto="Ações do registro">
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" data-slot="registro-menu" aria-label="Ações do registro"
+              className={cn("aria-expanded:bg-accent aria-expanded:text-foreground aria-expanded:opacity-100", discreto && aparece)}>
+              <Ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
         </Dica>
-      )}
-      {aoMover && (
-        <Dica texto="Mover para outra tarefa">
-          <Button variant="ghost" size="icon-sm" aria-label="Mover registro para outra tarefa" onClick={aoMover}><ArrowRightLeft /></Button>
-        </Dica>
-      )}
-      <Dica texto="Remover da linha do tempo">
-        <Button variant="ghost" size="icon-sm" aria-label="Remover registro" onClick={aoRemover}
-          className="hover:bg-destructive/10 hover:text-destructive">
-          <Trash2 />
-        </Button>
-      </Dica>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onSelect={aoEditar}><Pencil /> Editar registro</DropdownMenuItem>
+          {aoAlternarReferencia && (
+            <DropdownMenuItem onSelect={aoAlternarReferencia}>
+              <BookMarked /> {referencia ? "Tirar da referência da categoria" : "Guardar como referência da categoria"}
+            </DropdownMenuItem>
+          )}
+          {aoMover && <DropdownMenuItem onSelect={aoMover}><ArrowRightLeft /> Mover para outra tarefa</DropdownMenuItem>}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem perigo onSelect={aoRemover}><Trash2 /> Remover da linha do tempo</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -257,7 +259,7 @@ function LinhaMarco({ r, destacado, aoEditar, aoRemover }: { r: Registro; destac
             <span data-slot="marco-troca" className="text-xs text-muted-foreground">{de} → {para}</span>
           )}
         </div>
-        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} className="-mr-1" />
+        <AcoesRegistro aoEditar={aoEditar} aoRemover={aoRemover} discreto className="-mr-1" />
       </div>
       {r.anotacoes && <p className="line-clamp-2 pb-1.5 text-xs leading-relaxed text-muted-foreground texto-pre">{r.anotacoes}</p>}
     </div>

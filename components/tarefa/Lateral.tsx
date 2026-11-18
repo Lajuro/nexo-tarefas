@@ -103,7 +103,7 @@ function Links({ links, aoAdicionar }: { links: LinkDoc[]; aoAdicionar: () => vo
                 </div>
                 <Dica texto="Desvincular desta tarefa">
                   <Button variant="ghost" size="icon-sm" aria-label={`Desvincular ${l.titulo}`} onClick={() => desvincular(l)}
-                    className="shrink-0 opacity-0 group-hover/link:opacity-100 focus-visible:opacity-100">
+                    className="shrink-0 opacity-0 group-focus-within/link:opacity-100 group-hover/link:opacity-100 focus-visible:opacity-100">
                     <Unlink />
                   </Button>
                 </Dica>
@@ -255,27 +255,34 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
   const valor = "truncate text-base leading-tight font-semibold tracking-tight tabular-nums";
   const rotulo = "text-xs leading-snug text-muted-foreground";
   return (
-    <section data-slot="resumo-tarefa" className="flex divide-x rounded-xl border bg-card shadow-xs">
-      <div className={celula}>
-        <span className={valor}>{dias}</span>
-        <span className={rotulo}>{dias === 1 ? "dia" : "dias"} {ehAberta ? "em aberto" : "até fechar"}</span>
-      </div>
-      <div className={celula}>
-        <span className={valor}>{reunioes}</span>
-        <span className={rotulo}>{reunioes === 1 ? "reunião" : "reuniões"}</span>
-      </div>
-      <div className={celula}>
-        <Dica texto={`Último registro ou passo concluído: ${formatarData(ultima)}`}>
-          <span className={valor}>{dataRelativa(ultima)}</span>
-        </Dica>
-        <span className={rotulo}>última atividade</span>
-      </div>
-      {emFoco > 0 && (
-        <div className={celula} data-slot="tempo-em-foco">
-          <span className={valor}>{formatarMinutos(emFoco)}</span>
-          <span className={rotulo}>em sessões de foco</span>
+    <section data-slot="resumo-tarefa" className="rounded-xl border bg-card shadow-xs">
+      <div className="flex divide-x">
+        <div className={celula}>
+          <span className={valor}>{dias}</span>
+          <span className={rotulo}>{dias === 1 ? "dia" : "dias"} {ehAberta ? "em aberto" : "até fechar"}</span>
         </div>
-      )}
+        <div className={celula}>
+          <span className={valor}>{reunioes}</span>
+          <span className={rotulo}>{reunioes === 1 ? "reunião" : "reuniões"}</span>
+        </div>
+        <div className={celula}>
+          <Dica texto={`Último registro ou passo concluído: ${formatarData(ultima)}`}>
+            <span className={valor}>{dataRelativa(ultima)}</span>
+          </Dica>
+          <span className={rotulo}>última atividade</span>
+        </div>
+        {emFoco > 0 && (
+          <div className={celula} data-slot="tempo-em-foco">
+            <span className={valor}>{formatarMinutos(emFoco)}</span>
+            <span className={rotulo}>em sessões de foco</span>
+          </div>
+        )}
+      </div>
+      {/* saiu da faixa de propriedades (3.7) para ela caber numa linha */}
+      <p data-slot="prop-criada" className="border-t px-3.5 py-2 text-xs text-muted-foreground tabular-nums">
+        Criada em {formatarData(criada)}
+        {fim && ` · ${tarefa.status === "cancelada" ? "cancelada" : "concluída"} em ${formatarData(fim)}`}
+      </p>
     </section>
   );
 }

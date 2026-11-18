@@ -87,7 +87,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
                   className="group/titulo rounded-sm outline-none hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/35"
                 >
                   {t.titulo}
-                  <ArrowUpRight className="ml-1 inline size-4 -translate-y-px text-muted-foreground opacity-60 transition-opacity group-hover/titulo:text-primary group-hover/titulo:opacity-100" />
+                  <ArrowUpRight className="ml-1 inline size-4 -translate-y-px text-muted-foreground opacity-60 transition-opacity group-hover/titulo:text-primary group-hover/titulo:opacity-100 group-focus-visible/titulo:text-primary group-focus-visible/titulo:opacity-100" />
                 </a>
               </Dica>
             </h2>
