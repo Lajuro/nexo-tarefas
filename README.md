@@ -54,7 +54,7 @@ Em **Notas** você escreve solto, sem escolher tarefa nem campo, e pode misturar
 
 Se a folha é sobre uma demanda que ainda não está no app, o Copilot propõe a tarefa nova e já coloca a reunião dentro dela. Na prévia você pode trocar a tarefa de destino, criar uma tarefa digitando o nome e acertar a data em que a coisa aconteceu. O que a IA não conseguir encaixar aparece como "não coube em nenhum item": dá para guardar como nota numa tarefa ou deixar anotado na folha. Cada registro criado tem um link para a folha original, e o seu texto inteiro fica guardado junto.
 
-Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
+Atalhos: `N` nova tarefa · `Ctrl K` ou `/` paleta de comandos · `D` planejar o dia · `Shift D` fechar o dia · `Ctrl Z` desfazer · `G` depois `H`, `T` ou `P` (Hoje, Tarefas, Pendências) · `Ctrl B` barra lateral · `Ctrl Enter` salvar · `?` todos os atalhos.
 
 ### Fluxo com o Copilot
 
@@ -76,6 +76,21 @@ O Nexo lembra você do que fazer:
 - **Sino de lembretes**: tudo o que merece atenção, com a opção de adiar qualquer item até uma data.
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
+
+## Novidades da 3.6
+
+- **Fechar o dia**: ao clicar em **Encerrar o dia** na Rotina (ou `Shift D`), o Nexo mostra o que saiu hoje, os focos que ficaram (leve para o próximo dia de trabalho com um clique), seus passos vencidos, os impedimentos e a **daily** pronta para copiar. De manhã, o botão de copiar daily fica na tela Hoje. É texto montado só com o que você registrou, sem IA.
+- **Desfazer**: mudou o status, a prioridade ou o prazo, moveu um registro, mandou algo para a lixeira? O aviso traz **Desfazer**, e `Ctrl Z` (fora de campos de texto) faz o mesmo.
+- **Várias tarefas de uma vez**: em Tarefas, marque a caixinha (ou `Ctrl` + clique, ou `X`) e use a barra de baixo para mudar status, prioridade, categoria, prazo, lembrete ou foco de todas juntas. `J` e `K` andam pela lista, `Enter` abre, `F` põe no foco de hoje e `M` abre o menu.
+- **Visões salvas**: monte os filtros e guarde com um nome no botão **Visões**. Elas também aparecem na paleta (`Ctrl K`).
+- **Transcrição do Teams na reunião**: no modo reunião, botão **Transcrição**. Cole o texto (ou escolha o .vtt), copie o prompt, cole a resposta do Copilot e as decisões, passos e impedimentos entram na captura. O texto original fica anexado.
+- **Depende de**: na lateral da tarefa, ligue as tarefas que precisam terminar antes. Quando todas terminam, aparece o lembrete "Destravou". O Radar mostra o que está segurando cada frente.
+- **Tarefas que se repetem**: no modelo de tarefa, escolha **Repetir** (toda semana, todo mês ou a cada N dias). No dia, o Nexo lembra com **Criar agora** ou **Pular esta vez**. Ele nunca cria sozinho.
+- **Falar com alguém**: anote o que levar para a próxima conversa com uma pessoa (na página dela, no menu da tarefa ou na paleta). Na reunião com ela, os assuntos aparecem na pauta.
+- **Imprimir ou salvar em PDF** a tarefa ou o assunto inteiro (menu "..."), e **Copiar em Markdown**.
+- **Comparar versões** de uma página: no histórico, "Comparar com agora" mostra o que entrou e o que saiu.
+- **Busca dentro dos vídeos**: a busca e o Perguntar agora acham o que foi dito nas transcrições, e o resultado leva ao instante da fala.
+- **Avisos do Windows** (opcional, em Configurações): com o Nexo em segundo plano, os avisos da rotina e os lembretes críticos chegam como notificação do sistema.
 
 ## Rotina: o dia em blocos, a hora de sair e o banco de horas (3.5)
 

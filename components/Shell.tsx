@@ -33,6 +33,8 @@ import { desfazerUltimo } from "./desfazer";
 import { Novidades } from "./shell/Novidades";
 import { Esperando } from "./Esperando";
 import { JanelaAssunto, pedirAssunto } from "./Assuntos";
+import { AvisosDoSistema } from "./AvisosDoSistema";
+import { Impressao } from "./Impressao";
 import { ModeloForm } from "./Modelos";
 import { Celebracao } from "./jogo/Celebracao";
 import { AvisosDaJornada } from "./jornada/Ferramenta";
@@ -230,6 +232,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <ModeloForm />
       <Celebracao />
       <AvisosDaJornada />
+      <AvisosDoSistema />
+      <Impressao />
       <Confete />
       <Personalizar />
       <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />

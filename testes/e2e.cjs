@@ -1264,6 +1264,11 @@ async function main() {
     await pg.locator("[data-slot=versao]").first().waitFor();
     await pg.locator("[data-slot=titulo-da-versao]", { hasText: "Guia do scan" }).waitFor();
     afirmar((await pg.locator("[data-slot=historico-de-versoes]").innerText()).includes("Frase que não pode sumir."), "a versão mais nova do histórico não é o texto de antes do apagão");
+    // comparar com agora: o texto que sumiu aparece como linha que saiu
+    await pg.getByRole("radio", { name: "Comparar com agora" }).click();
+    await pg.locator("[data-slot=comparacao]").waitFor();
+    afirmar((await pg.locator("[data-slot=linha-saiu]").allInnerTexts()).some((t) => t.includes("Frase que não pode sumir.")), "a comparação não mostrou o que saiu");
+    await pg.getByRole("radio", { name: "Ver a versão" }).click();
     await pg.locator("[data-slot=restaurar-versao]").click();
     await ateOsDados((d) => textoDoGuia(d) === antes, "restaurar não devolveu o texto de antes");
     await ed.getByText("Frase que não pode sumir.").waitFor();
@@ -1687,6 +1692,8 @@ async function main() {
     await pg.locator("[data-slot=barra-lote]").getByRole("button", { name: "Prioridade" }).click();
     await pg.getByRole("menuitem", { name: "1", exact: true }).click();
     await ateOsDados((d) => ids.every((id) => d.tarefas.find((t) => t.id === id).prioridade === 1), "a prioridade em lote não foi gravada");
+    // o desfazer entra na pilha quando as duas gravações voltam: o aviso com "Desfazer" é o sinal
+    await pg.locator("[data-sonner-toast]", { hasText: "Prioridade 1 em 2 tarefas" }).waitFor();
     await pg.evaluate(() => document.activeElement?.blur());
     await pg.keyboard.press("Control+z");
     await ateOsDados((d) => ids.every((id) => d.tarefas.find((t) => t.id === id).prioridade === antes[id]), "Ctrl Z não desfez a prioridade em lote");
@@ -1708,6 +1715,76 @@ async function main() {
     await pg.keyboard.press("Enter");
     await pg.locator("[data-slot=ordenacao][data-valor=prazo]").waitFor();
     await pg.locator("[data-slot=visoes-salvas]", { hasText: "Abertas por prazo" }).waitFor();
+  });
+
+  await etapa("busca e perguntar acham a fala dentro da transcrição do vídeo", async () => {
+    await pg.goto(`${B}/busca?q=${encodeURIComponent("achados críticos")}`);
+    const achado = pg.locator("[data-slot=resultado][data-tipo=video]").first();
+    await achado.waitFor();
+    afirmar((await achado.innerText()).includes("Bruno"), "o resultado do vídeo não mostra quem falou");
+    afirmar(((await achado.locator("a").getAttribute("href")) || "").includes("&t=10"), "o resultado do vídeo não leva ao instante da fala");
+  });
+
+  await etapa("dependências, tarefa que se repete e falar com alguém", async () => {
+    const d0 = await dados();
+    const abertas = d0.tarefas.filter((t) => !["concluida", "cancelada"].includes(t.status));
+    afirmar(abertas.length >= 2, "precisa de duas tarefas abertas");
+    const [a, b] = abertas;
+    // a depende de b; b ligar em a seria ciclo
+    await pg.goto(`${B}/tarefas/${a.id}`);
+    await pg.locator("[data-slot=dependencias] [data-slot=combobox]").click();
+    await pg.keyboard.type(b.titulo.slice(0, 12));
+    await pg.keyboard.press("Enter");
+    await ateOsDados((d) => (d.tarefas.find((t) => t.id === a.id).dependeDe || []).includes(b.id), "a dependência não foi gravada");
+    await pg.goto(`${B}/tarefas/${b.id}`);
+    await pg.locator("[data-slot=segura]").waitFor();
+    await pg.locator("[data-slot=dependencias] [data-slot=combobox]").click();
+    await pg.keyboard.type(a.titulo.slice(0, 12));
+    await pg.keyboard.press("Enter");
+    await pg.getByText("criaria um ciclo").first().waitFor();
+    // modelo que se repete todo dia: vira lembrete com "Criar agora" e "Pular esta vez"
+    await pg.goto(`${B}/configuracoes`);
+    await pg.locator("[data-slot=novo-modelo]").click();
+    await pg.getByLabel("Nome do modelo").fill("Conferir os alertas");
+    await pg.getByLabel("Como o modelo se repete").click();
+    await pg.getByRole("option", { name: "A cada N dias" }).click();
+    await pg.getByLabel("De quantos em quantos dias").fill("1");
+    await pg.locator("[data-slot=salvar-modelo]").click();
+    await ateOsDados((d) => d.modelos.items.some((m) => m.nome === "Conferir os alertas" && m.repetir?.tipo === "dias"), "a repetição do modelo não foi gravada");
+    await pg.locator("[data-slot=sino]").click();
+    const lembrete = pg.getByRole("button", { name: /Hora de criar a tarefa de sempre/ });
+    await lembrete.waitFor();
+    await pg.keyboard.press("Escape");
+    // falar com: anota na pessoa e aparece na pauta da reunião com ela
+    await pg.goto(`${B}/pessoas?p=${encodeURIComponent("Marina")}`);
+    await pg.locator("[data-slot=falar-com]").waitFor();
+    await pg.getByLabel("Novo assunto para falar com Marina").fill("Pedir o calendário de treinamentos");
+    await pg.keyboard.press("Enter");
+    await ateOsDados((d) => (d.assuntos?.items || []).some((x) => x.texto === "Pedir o calendário de treinamentos" && !x.resolvidoEm), "o assunto não foi gravado");
+    await pg.goto(`${B}/tarefas/${a.id}/reuniao`);
+    await pg.locator("[data-slot=reuniao] input[placeholder='Nome e Enter']").fill("Marina");
+    await pg.keyboard.press("Enter");
+    await pg.getByText("Para falar com Marina").first().waitFor();
+    await pg.getByRole("button", { name: "Descartar reunião" }).click();
+    await pg.getByRole("button", { name: "Descartar", exact: true }).click();
+    await pg.locator("[data-slot=propriedades]").waitFor();
+  });
+
+  await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {
+    const t = (await dados()).tarefas[0];
+    await pg.goto(`${B}/tarefas/${t.id}`);
+    await pg.locator("[data-slot=propriedades]").waitFor();
+    await pg.evaluate(() => { window.print = () => { window.__imprimiu = (window.__imprimiu || 0) + 1; }; });
+    await pg.locator("button[aria-label='Mais ações da tarefa']").first().click();
+    await pg.getByRole("menuitem", { name: "Imprimir ou salvar em PDF" }).click();
+    await pg.waitForFunction(() => window.__imprimiu === 1);
+    afirmar((await pg.locator("[data-impressao]").innerText()).includes(t.titulo), "a folha de impressão não tem a tarefa");
+    await pg.emulateMedia({ media: "print" });
+    afirmar(await pg.locator("[data-impressao]").isVisible(), "a folha não aparece na impressão");
+    afirmar(!(await pg.locator("[data-slot=app]").isVisible()), "o app aparece junto na impressão");
+    await pg.emulateMedia({ media: "screen" });
+    await pg.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await pg.locator("[data-impressao]").waitFor({ state: "detached" });
   });
 
   // ---------- tema ----------

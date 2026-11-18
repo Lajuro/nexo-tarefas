@@ -5,9 +5,9 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Archive, ArchiveRestore, BookMarked, BookText, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users,
-} from "lucide-react";
+  Archive, ArchiveRestore, BookMarked, BookText, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users, Printer } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { pedirImpressao } from "@/components/Impressao";
 import { CardTarefa } from "@/components/CardTarefa";
 import { CategoriaForm } from "@/components/CategoriaForm";
 import { PromptModal } from "@/components/PromptModal";
@@ -136,6 +136,7 @@ export default function PaginaCategoria() {
             </Dica>
             <DropdownMenuContent className="w-56">
               <DropdownMenuItem onSelect={() => setLinkForm(true)}><Link2 /> Adicionar link ou documento</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => pedirImpressao({ tipo: "categoria", id: cat.id })}><Printer /> Imprimir ou salvar em PDF</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => void alternarArquivada(cat)}>
                 {cat.arquivada ? <><ArchiveRestore /> Desarquivar</> : <><Archive /> Arquivar</>}

@@ -242,6 +242,8 @@ checa "modelo: repetição válida é gravada" '"repetir":{"tipo":"mes","diaDoMe
 checa "modelo: repetição torta vira null" '"nome":"Torto"' "$R"
 checa "modelo: repetição torta vira null (sem repetir)" '"repetir":null' "$R"
 
+checa "transcrições: só lê e responde a lista" '"transcricoes":[' "$(curl -s $B/api/transcricoes)"
+
 # ---------- verificação de integridade e restauração de backup ----------
 V=$(curl -s $B/api/verificar)
 checa "verificar: acusa arquivo ilegível como erro" '"id":"ilegivel","gravidade":"erro"' "$V"

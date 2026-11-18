@@ -5,10 +5,11 @@
 // links das citações são calculados aqui a partir das fontes, nunca lidos do texto.
 
 import { quemSouEu } from "./prompts";
+import { type Fala, emTrechos, formatarTempo } from "./transcricao";
 import { hrefInterno, paraTextoPlano } from "./texto-rico";
 import { type Dados, type Registro, type Tarefa, formatarData, hojeISO, nomeStatus, semAcento, tipoInfo } from "./tipos";
 
-export type TipoFonte = "registro" | "tarefa" | "pagina" | "nota" | "link" | "pessoa";
+export type TipoFonte = "registro" | "tarefa" | "pagina" | "nota" | "link" | "pessoa" | "video";
 
 export interface Fonte {
   /** Como a fonte é citada: "F1", "F2"... */
@@ -264,17 +265,73 @@ export interface ResultadoDaBusca {
 }
 
 /** Acha, em tudo o que está guardado, os trechos que mais têm a ver com a pergunta. */
+/** Trecho de transcrição que vira uma fonte: até este tamanho (em caracteres) de fala seguida. */
+const TAMANHO_DO_TRECHO_DE_VIDEO = 1400;
+
+/** As transcrições dos vídeos viram fontes "Vídeo: título (12:34)", em trechos com o tempo de início. */
+function candidatasDeVideo(dados: Dados, transcricoes: { paginaId: string; falas: Fala[] }[], categoriaId: string | null): Candidata[] {
+  const out: Candidata[] = [];
+  const paginas = new Map((dados.paginas?.items ?? []).map((p) => [p.id, p]));
+  for (const { paginaId, falas } of transcricoes) {
+    const p = paginas.get(paginaId);
+    if (!p || p.arquivadaEm || (categoriaId && p.categoriaId !== categoriaId)) continue;
+    const cat = dados.categorias.items.find((c) => c.id === p.categoriaId)?.nome ?? "";
+    let linhas: string[] = [];
+    let inicio = -1;
+    let tamanho = 0;
+    const fechar = () => {
+      if (!linhas.length) return;
+      const s = Math.max(0, Math.round(inicio));
+      out.push({
+        tipo: "video", chave: `video:${p.id}:${s}`, titulo: `Vídeo: ${p.titulo || "sem título"}${inicio >= 0 ? ` (${formatarTempo(inicio)})` : ""}`,
+        contexto: cat ? `categoria "${cat}"` : "", data: (p.atualizadaEm || "").slice(0, 10) || null,
+        rota: `/paginas?p=${p.id}${inicio >= 0 ? `&t=${s}` : ""}`, interno: hrefInterno("pagina", p.id), corpo: linhas.join("\n"), peso: 0.95,
+      });
+      linhas = [];
+      inicio = -1;
+      tamanho = 0;
+    };
+    for (const t of emTrechos(falas)) {
+      const texto = t.falas.map((i) => falas[i].texto).join(" ");
+      const linha = `${t.inicio >= 0 ? `[${formatarTempo(t.inicio)}] ` : ""}${t.quem ? `${t.quem}: ` : ""}${texto}`;
+      if (tamanho + linha.length > TAMANHO_DO_TRECHO_DE_VIDEO && linhas.length) fechar();
+      if (!linhas.length) inicio = t.inicio;
+      linhas.push(linha);
+      tamanho += linha.length + 1;
+    }
+    fechar();
+  }
+  return out;
+}
+
+const videoGuardado = new WeakMap<object, Map<string, Preparadas>>();
+function prepararVideo(dados: Dados, transcricoes: { paginaId: string; falas: Fala[] }[], categoriaId: string | null): Preparadas {
+  let porCategoria = videoGuardado.get(transcricoes);
+  if (!porCategoria) videoGuardado.set(transcricoes, (porCategoria = new Map()));
+  const chave = `${categoriaId ?? ""}`;
+  let p = porCategoria.get(chave);
+  if (!p) {
+    const todas = candidatasDeVideo(dados, transcricoes, categoriaId);
+    p = { todas, normalizadas: todas.map((c) => ({ titulo: semAcento(c.titulo), contexto: semAcento(c.contexto), corpo: semAcento(c.corpo) })) };
+    porCategoria.set(chave, p);
+  }
+  return p;
+}
+
 export function buscarFontes(
   pergunta: string,
   dados: Dados,
-  opcoes: { categoriaId?: string | null; limite?: number; maxFontes?: number; hoje?: string } = {},
+  opcoes: { categoriaId?: string | null; limite?: number; maxFontes?: number; hoje?: string; transcricoes?: { paginaId: string; falas: Fala[] }[] } = {},
 ): ResultadoDaBusca {
   const termos = termosDaPergunta(pergunta);
   if (!termos.length) return { termos: [], fontes: [], deFora: 0 };
   const limite = opcoes.limite ?? TAMANHOS.medio;
   const maxFontes = opcoes.maxFontes ?? Math.max(6, Math.round(limite / 900));
   const hoje = opcoes.hoje ?? hojeISO();
-  const { todas, normalizadas } = preparar(dados, opcoes.categoriaId ?? null);
+  const base = preparar(dados, opcoes.categoriaId ?? null);
+  const video = opcoes.transcricoes?.length ? prepararVideo(dados, opcoes.transcricoes, opcoes.categoriaId ?? null) : null;
+  const todas = video ? [...base.todas, ...video.todas] : base.todas;
+  const normalizadas = video ? [...base.normalizadas, ...video.normalizadas] : base.normalizadas;
 
   // Em quantas fontes cada palavra aparece: palavra rara vale mais do que palavra que está em todo lugar.
   const emQuantas = termos.map((t) => normalizadas.filter((n) => contar(n.titulo, t.radical, 1) || contar(n.contexto, t.radical, 1) || contar(n.corpo, t.radical, 1)).length);
@@ -429,7 +486,7 @@ export interface Consulta {
 export const CONSULTA_VAZIA: Consulta = { pergunta: "", categoriaId: "", tamanho: "medio", fora: [], resposta: "", perguntaCopiada: "", copiadas: [] };
 
 const ID = "[a-zA-Z0-9_-]{1,80}";
-const CHAVE = new RegExp(`^(?:registro:${ID}:${ID}|(?:tarefa|pagina|nota|link|pessoa):${ID})$`);
+const CHAVE = new RegExp(`^(?:registro:${ID}:${ID}|video:${ID}:\\d{1,6}|(?:tarefa|pagina|nota|link|pessoa):${ID})$`);
 const texto = (x: unknown, max: number) => (typeof x === "string" ? x.slice(0, max) : "");
 
 /** A consulta vem do localStorage: só entra o que tem a forma certa. Rotas e links nunca são guardados, são recalculados. */
@@ -468,6 +525,7 @@ export function destinoDaChave(chave: string, dados: Dados): { tipo: TipoFonte; 
   }
   if (tipo === "tarefa") return dados.tarefas.some((x) => x.id === a) ? { tipo, rota: `/tarefas/${a}`, interno: hrefInterno("tarefa", a) } : null;
   if (tipo === "pagina") return (dados.paginas?.items ?? []).some((x) => x.id === a) ? { tipo, rota: `/paginas?p=${a}`, interno: hrefInterno("pagina", a) } : null;
+  if (tipo === "video") return (dados.paginas?.items ?? []).some((x) => x.id === a) ? { tipo, rota: `/paginas?p=${a}&t=${Number(b) || 0}`, interno: hrefInterno("pagina", a) } : null;
   if (tipo === "nota") return (dados.notas?.items ?? []).some((x) => x.id === a) ? { tipo, rota: `/notas?n=${a}`, interno: null } : null;
   if (tipo === "link") return dados.links.items.some((x) => x.id === a) ? { tipo, rota: "/links", interno: null } : null;
   const pessoa = (dados.pessoas?.items ?? []).find((x) => x.id === a);

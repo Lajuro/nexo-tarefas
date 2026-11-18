@@ -790,3 +790,33 @@ body:has([data-slot="lateral"][data-arrastando]) {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* ---------- impressão (3.6): só a folha de components/Impressao.tsx vai para o papel ---------- */
+[data-impressao] {
+  display: none;
+}
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+  body > *:not([data-impressao]) {
+    display: none !important;
+  }
+  [data-impressao] {
+    display: block !important;
+    color: black;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  [data-impressao] h1,
+  [data-impressao] h2,
+  [data-impressao] h3 {
+    break-after: avoid;
+  }
+}

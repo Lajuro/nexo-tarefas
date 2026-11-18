@@ -8,9 +8,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowUpRight, BookText, Check, ChevronDown, Copy, Eraser, Link2, ListTodo, type LucideIcon, MessageSquareText, NotebookPen, Save, Search, SearchX, Sparkles, User,
+  ArrowUpRight, BookText, Check, ChevronDown, Copy, Eraser, Link2, ListTodo, type LucideIcon, MessageSquareText, NotebookPen, Save, Search, SearchX, Sparkles, User, Clapperboard,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { useTranscricoes } from "@/components/useTranscricoes";
 import { Pagina, Painel, PontoCor, Vazio, copiarTexto } from "@/components/comum";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import { usePref } from "@/lib/preferencias";
 import { agoraISO, formatarData, normalizarPagina, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
-const ICONE: Record<TipoFonte, LucideIcon> = { registro: MessageSquareText, tarefa: ListTodo, pagina: BookText, nota: NotebookPen, link: Link2, pessoa: User };
+const ICONE: Record<TipoFonte, LucideIcon> = { registro: MessageSquareText, tarefa: ListTodo, pagina: BookText, nota: NotebookPen, link: Link2, pessoa: User, video: Clapperboard };
 
 const EXEMPLOS = ["O que ficou decidido sobre ", "O que está pendente com ", "Como funciona o processo de ", "Quem pode ajudar com ", "O que está travando "];
 
@@ -61,9 +62,11 @@ function Conteudo() {
   }, [pedida, router, setBruta]);
 
   const pergunta = useDeferredValue(c.pergunta);
+  // as transcrições dos vídeos entram como fontes quando chegam (são pedidas à parte, não vêm em /api/dados)
+  const transcricoes = useTranscricoes();
   const resultado = useMemo(
-    () => (dados ? buscarFontes(pergunta, dados, { categoriaId: c.categoriaId || null, limite: TAMANHOS[c.tamanho] }) : { termos: [], fontes: [], deFora: 0 }),
-    [dados, pergunta, c.categoriaId, c.tamanho],
+    () => (dados ? buscarFontes(pergunta, dados, { categoriaId: c.categoriaId || null, limite: TAMANHOS[c.tamanho], transcricoes: transcricoes ?? undefined }) : { termos: [], fontes: [], deFora: 0 }),
+    [dados, pergunta, c.categoriaId, c.tamanho, transcricoes],
   );
   const fora = useMemo(() => new Set(c.fora), [c.fora]);
   const escolhidas = useMemo(() => resultado.fontes.filter((f) => !fora.has(f.chave)), [resultado.fontes, fora]);

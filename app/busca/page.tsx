@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { BookText, ChevronRight, ExternalLink, Library, ListTodo, MessageCircleQuestion, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
+import { BookText, ChevronRight, Clapperboard, ExternalLink, Library, ListTodo, MessageCircleQuestion, MessagesSquare, Search, SearchX, Sparkles, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { useTranscricoes } from "@/components/useTranscricoes";
+import { emTrechos, formatarTempo } from "@/lib/transcricao";
 import { hrefLink } from "@/components/LinkForm";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import { CampoBusca } from "@/components/busca/CampoBusca";
@@ -46,6 +48,7 @@ function trecho(texto: string, termo: string) {
 }
 
 type Aba = "tudo" | "tarefas" | "registros" | "paginas" | "links" | "pessoas";
+interface AchadoVideo { pagina: PaginaDeConhecimento; inicio: number; quem: string; texto: string }
 // Mesma ordem dos campos pesquisados em cada registro.
 const CAMPOS_REGISTRO = ["Título", "Resumo", "Anotações", "Decisões", "Impedimentos", "Participantes", "Próximos passos"];
 
@@ -202,6 +205,25 @@ function Conteudo() {
     return { tarefas, registros, links, cadastro, times, paginas };
   }, [dados, n, termo]);
 
+  // transcrições dos vídeos (3.6): pedidas à parte; cada trecho de fala que tem todas as palavras é um resultado
+  const transcricoes = useTranscricoes();
+  const videos = useMemo(() => {
+    if (!n || !transcricoes?.length) return [] as AchadoVideo[];
+    const palavras = palavrasDe(n);
+    const paginas = new Map((dados!.paginas?.items ?? []).map((p) => [p.id, p]));
+    const out: AchadoVideo[] = [];
+    for (const { paginaId, falas } of transcricoes) {
+      const pagina = paginas.get(paginaId);
+      if (!pagina) continue;
+      for (const t of emTrechos(falas)) {
+        const texto = t.falas.map((i) => falas[i].texto).join(" ");
+        const x = semAcento(`${t.quem} ${texto}`);
+        if (palavras.every((w) => x.includes(w))) out.push({ pagina, inicio: t.inicio, quem: t.quem, texto });
+      }
+    }
+    return out;
+  }, [dados, n, transcricoes]);
+
   const pessoas = useMemo(() => (n ? montarPessoas(dados!.tarefas).filter((p) => p.chave.includes(n)).slice(0, 6) : []), [dados, n]);
   const sugestoes = useMemo(() => {
     if (n) return [];
@@ -213,10 +235,10 @@ function Conteudo() {
   }, [dados, n]);
 
   const qtdPessoas = r.cadastro.length + r.times.length;
-  const total = r.tarefas.length + r.registros.length + r.links.length + qtdPessoas + r.paginas.length;
+  const total = r.tarefas.length + r.registros.length + r.links.length + qtdPessoas + r.paginas.length + videos.length;
   const cat = (id: string | null) => dados!.categorias.items.find((c) => c.id === id);
   const mostra = (a: Exclude<Aba, "tudo">) => aba === "tudo" || aba === a;
-  const nesta = aba === "tudo" ? total : aba === "pessoas" ? qtdPessoas : r[aba].length;
+  const nesta = aba === "tudo" ? total : aba === "pessoas" ? qtdPessoas : aba === "paginas" ? r.paginas.length + videos.length : r[aba].length;
 
   // Setas percorrem os resultados como numa lista de app de desktop.
   const mover = (delta: number) => {
@@ -267,7 +289,7 @@ function Conteudo() {
                   { valor: "tudo", rotulo: rotuloAba("Tudo", total) },
                   { valor: "tarefas", rotulo: rotuloAba("Tarefas", r.tarefas.length) },
                   { valor: "registros", rotulo: rotuloAba("Registros", r.registros.length) },
-                  { valor: "paginas", rotulo: rotuloAba("Páginas", r.paginas.length) },
+                  { valor: "paginas", rotulo: rotuloAba("Páginas", r.paginas.length + videos.length) },
                   { valor: "links", rotulo: rotuloAba("Links", r.links.length) },
                   { valor: "pessoas", rotulo: rotuloAba("Pessoas", qtdPessoas) },
                 ]}
@@ -476,6 +498,31 @@ function Conteudo() {
             </Secao>
           )}
 
+          {mostra("paginas") && videos.length > 0 && (
+            <Secao titulo="Nos vídeos" icone={<Clapperboard />} contagem={videos.length}>
+              <ListaResultados>
+                {videos.slice(0, limite).map((v, i) => (
+                  <Resultado key={`${v.pagina.id}:${v.inicio}:${i}`} tipo="video">
+                    <Link href={`/paginas?p=${v.pagina.id}${v.inicio >= 0 ? `&t=${Math.round(v.inicio)}` : ""}`} className={CLASSE_RESULTADO}>
+                      <Clapperboard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm leading-snug font-medium">
+                          {v.pagina.titulo || "Vídeo sem título"}
+                          {v.inicio >= 0 && <span className="ml-1.5 font-mono text-xs font-normal text-muted-foreground tabular-nums">{formatarTempo(v.inicio)}</span>}
+                        </h3>
+                        <p className="mt-0.5 line-clamp-2 text-[13px] text-muted-foreground [&_mark]:text-foreground">
+                          {v.quem && <span className="font-medium text-foreground/80">{v.quem}: </span>}
+                          <Destaque texto={trecho(v.texto, termo)} termo={termo} />
+                        </p>
+                      </div>
+                    </Link>
+                  </Resultado>
+                ))}
+              </ListaResultados>
+              <MostrarMais total={videos.length} visiveis={Math.min(limite, videos.length)} aoPedir={mais} />
+            </Secao>
+          )}
+
           {mostra("links") && r.links.length > 0 && (
             <Secao titulo="Links e documentos" icone={<Library />} contagem={r.links.length}>
               <ListaResultados>
@@ -521,7 +568,7 @@ function ListaResultados({ children }: { children: ReactNode }) {
   );
 }
 
-function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | "pessoa" | "time" | "pagina"; children: ReactNode }) {
+function Resultado({ tipo, children }: { tipo: "tarefa" | "registro" | "link" | "pessoa" | "time" | "pagina" | "video"; children: ReactNode }) {
   return (
     <motion.div data-slot="resultado" data-tipo={tipo} variants={itemLista} className="border-b last:border-0">
       {children}

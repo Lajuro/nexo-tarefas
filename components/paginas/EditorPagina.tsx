@@ -147,7 +147,7 @@ export function EditorPagina({
           <Dica texto="Histórico de versões">
             <Button variant="ghost" size="icon-sm" aria-label="Histórico de versões" data-slot="abrir-historico" onClick={() => setHistorico(true)}><History /></Button>
           </Dica>
-          <Historico paginaId={id} aberto={historico} fechar={() => setHistorico(false)} aoRestaurar={(t, texto) => mudar({ titulo: t, texto })} />
+          <Historico paginaId={id} aberto={historico} fechar={() => setHistorico(false)} atual={valor} aoRestaurar={(t, texto) => mudar({ titulo: t, texto })} />
           <Dica texto={painel ? "Esconder o sumário" : "Mostrar o sumário"}>
             <Button variant="ghost" size="icon-sm" aria-label="Sumário e citações" aria-pressed={painel} onClick={aoAlternarPainel}><PanelRight className={cn(painel && "text-primary")} /></Button>
           </Dica>

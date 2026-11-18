@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/diversos";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { avisosDoMinuto, blocoNoInstante, blocosDoDia, contarPonto, duracao, emHora, emMinutos, pausaPlanejada } from "@/lib/jornada";
 import { gravarPref, lerPref, usePref } from "@/lib/preferencias";
+import { notificar } from "@/lib/notificar";
 import type { BlocoDaJornada } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { VISUAL_DO_BLOCO, horaDeAgora, useJornada, useMinuto, usePonto } from "./pecas";
@@ -162,7 +163,11 @@ export function AvisosDaJornada() {
     const novos = avisos.filter((a) => !ja.has(a.chave));
     if (!novos.length) return;
     gravarPref<Avisados>("jornadaAvisados", { data: hoje, chaves: [...ja, ...novos.map((a) => a.chave)].slice(-300) });
-    for (const a of novos) sonner(a.titulo, { description: a.detalhe, duration: 12000, action: { label: "Ver a rotina", onClick: () => router.push("/rotina") } });
+    for (const a of novos) {
+      sonner(a.titulo, { description: a.detalhe, duration: 12000, action: { label: "Ver a rotina", onClick: () => router.push("/rotina") } });
+      // com o Nexo em segundo plano (e se o usuário ligou), o mesmo aviso chega pelo Windows
+      notificar("rotina", a.titulo, a.detalhe, { tag: `rotina:${hoje}:${a.chave}`, rota: "/rotina" });
+    }
   }, [pronta, ligado, hoje, agora, blocos, conta, dia, pausaDoDia, router]);
   return null;
 }

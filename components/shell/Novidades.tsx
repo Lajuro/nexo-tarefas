@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  BookText, CalendarClock, Clapperboard, Component, MessageCircleQuestion, type LucideIcon, Presentation, Radar, ShieldCheck, Sparkles, Waypoints,
+  BookText, CalendarClock, Clapperboard, Component, FileAudio, Link2, ListChecks, MessageCircleQuestion, MoonStar, type LucideIcon, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
@@ -16,12 +16,18 @@ import { Button } from "@/components/ui/button";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.5";
+export const VERSAO_NOVIDADES = "3.6";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
 
 const NOVIDADES: { icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string }[] = [
+  { icone: MoonStar, titulo: "Fechar o dia e daily pronta", texto: "Ao encerrar o dia (ou Shift D): o que saiu, o que fica para amanhã, os impedimentos e a daily pronta para copiar. De manhã, \"Copiar daily\" na tela Hoje.", href: "/", rotulo: "Ir para Hoje" },
+  { icone: Undo2, titulo: "Desfazer em todo lugar", texto: "Mudou o status, moveu, excluiu? O aviso traz \"Desfazer\", e Ctrl Z faz o mesmo fora dos campos de texto.", href: "/tarefas", rotulo: "Ir para Tarefas" },
+  { icone: ListChecks, titulo: "Várias tarefas de uma vez", texto: "Selecione com Ctrl + clique ou X e mude status, prioridade, categoria, prazo ou foco de todas juntas. Visões salvas guardam seus filtros, e J/K andam pela lista.", href: "/tarefas", rotulo: "Ir para Tarefas" },
+  { icone: FileAudio, titulo: "Transcrição do Teams na reunião", texto: "Cole a transcrição no modo reunião: o Copilot organiza e decisões, passos e impedimentos já entram na captura. O texto original fica anexado.", href: "/tarefas", rotulo: "Abrir uma tarefa" },
+  { icone: Link2, titulo: "Dependências, repetição e falar com", texto: "Ligue uma tarefa a outra e saiba quando ela destravou. Modelos que se repetem lembram de criar a tarefa. E anote o que levar para a próxima conversa com cada pessoa.", href: "/pessoas", rotulo: "Abrir Pessoas" },
+  { icone: Printer, titulo: "Imprimir, comparar e avisar", texto: "Tarefa e assunto em PDF para o gestor, comparação entre versões de uma página, busca dentro das transcrições e avisos do Windows (ligue em Configurações).", href: "/configuracoes", rotulo: "Abrir Configurações" },
   { icone: CalendarClock, titulo: "Rotina: o dia em blocos e a hora de sair", texto: "Reserve horários para tarefas, chamados e pausas, e o app avisa o que é para fazer agora. Registre a entrada e ele diz a que horas você sai, com banco de horas da semana e do mês.", href: "/rotina", rotulo: "Abrir a Rotina" },
   { icone: BookText, titulo: "Documentação de verdade", texto: "Páginas dentro de páginas, numa árvore que você arrasta. Abas, modo leitura com sumário, modelos (processo, guia, runbook) e [[ para ligar uma página à outra.", href: "/paginas", rotulo: "Abrir Páginas" },
   { icone: Component, titulo: "Componentes no texto", texto: "Destaques coloridos, blocos que abrem e fecham, código com cores e botão copiar, índice automático, arquivos anexados e cartões vivos de tarefa.", href: "/paginas", rotulo: "Digite / numa página" },
@@ -55,7 +61,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Rotina do dia em blocos, hora de sair e banco de horas.",
+          description: "Fechar o dia com daily, desfazer, ações em lote, dependências e mais.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

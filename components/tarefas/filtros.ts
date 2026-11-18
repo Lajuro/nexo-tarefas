@@ -3,7 +3,7 @@
 
 import { ehFocoHoje } from "@/lib/acoes";
 import { aberta, dataLocal, ultimaAtividade } from "@/lib/lembretes";
-import { STATUS, Status, Tarefa, diasAte, hojeISO, passosAbertos, semAcento } from "@/lib/tipos";
+import { STATUS, type Status, type Tarefa, diasAte, hojeISO, passosAbertos, semAcento } from "@/lib/tipos";
 
 export type Ordem = "prioridade" | "prazo" | "atividade" | "titulo";
 export type FiltroStatus = "abertas" | "todas" | Status;

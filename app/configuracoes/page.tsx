@@ -7,6 +7,7 @@ import { PainelModelos } from "@/components/Modelos";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { ItemLixeira, PainelLixeira, PainelPasta, PainelProtecao, PainelSaude } from "@/components/configuracoes/dados";
 import { PainelAparencia, PainelAtalhos, PainelJogo, PainelQuemSouEu, PainelRotina, PainelSobre } from "@/components/configuracoes/preferencias";
+import { PainelNotificacoes } from "@/components/configuracoes/Notificacoes";
 
 async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, { cache: "no-store", ...init });
@@ -80,6 +81,7 @@ export default function Configuracoes() {
         <div className="flex min-w-0 flex-col gap-4">
           <PainelAparencia />
           <PainelRotina />
+          <PainelNotificacoes />
           <PainelJogo />
           <PainelQuemSouEu />
           <PainelAtalhos />

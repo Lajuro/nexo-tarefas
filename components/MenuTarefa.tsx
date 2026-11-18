@@ -6,7 +6,7 @@
 
 import { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, MessagesSquare, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
+import { AlarmClock, AlarmClockOff, ArrowUpRight, CalendarClock, CalendarX, FileText, MessagesSquare, Printer, Copy, Ellipsis, Gauge, Hourglass, LayoutTemplate, Merge, MessageSquareReply, Pin, PinOff, Presentation, Target, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { pedirJuntarTarefa } from "./MoverEJuntar";
@@ -14,6 +14,7 @@ import { IconeStatus, copiarTexto } from "./comum";
 import { pedirEspera, useCobranca } from "@/components/Esperando";
 import { pedirModelo } from "@/components/Modelos";
 import { pedirAssunto } from "@/components/Assuntos";
+import { copiarTarefaEmMarkdown, pedirImpressao } from "@/components/Impressao";
 import { DURACOES, iniciarSessao } from "@/components/shell/SessaoFoco";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
@@ -96,7 +97,7 @@ const KIT_CONTEXTO = {
 function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: boolean; aoExcluir?: () => void }) {
   const a = useAcoesTarefa();
   const cobranca = useCobranca();
-  const { toast } = useNexo();
+  const { toast, dados } = useNexo();
   const hoje = hojeISO();
   const foco = ehFocoHoje(t);
   return (
@@ -199,6 +200,12 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       <k.Separator />
       <k.Item onSelect={async () => (await copiarTexto(t.titulo)) && toast("Título copiado.", "info")}>
         <Copy /> Copiar título
+      </k.Item>
+      <k.Item onSelect={async () => (await copiarTarefaEmMarkdown(t, dados?.categorias.items.find((c) => c.id === t.categoriaId))) && toast("Tarefa copiada em Markdown: cabeçalho, passos e linha do tempo.", "info")}>
+        <FileText /> Copiar em Markdown
+      </k.Item>
+      <k.Item onSelect={() => pedirImpressao({ tipo: "tarefa", id: t.id })}>
+        <Printer /> Imprimir ou salvar em PDF
       </k.Item>
       {aberta(t) && (
         <k.Item onSelect={() => pedirAssunto({ tarefaId: t.id })}>
