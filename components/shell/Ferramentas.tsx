@@ -4,18 +4,18 @@
 //   Agenda        o dia e a hora; ao abrir, os prazos das próximas duas semanas
 //   FocoRapido    o foco de hoje, com os passos marcáveis ali mesmo
 //   AnotarRapido  cria uma tarefa ou uma folha do bloco de notas sem sair de onde está
-//   BotaoAparencia tema, cor de destaque e cantos, com atalho para o painel "Personalizar"
+//   MenuMais      tema, tela cheia, atalhos e o painel "Personalizar", num botão só
 // Quais aparecem é escolha do usuário (lib/moldura.ts).
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AlarmClock, ArrowRight, CalendarDays, CircleCheckBig, Flag, ListTodo, Moon, NotebookPen, Palette, PenLine, SlidersHorizontal, Sun, Sunrise,
-  Target, Timer,
+  AlarmClock, ArrowRight, CalendarDays, CircleCheckBig, Ellipsis, Flag, Keyboard, ListTodo, Maximize, Minimize, Monitor, Moon, NotebookPen, Palette,
+  PenLine, SlidersHorizontal, Sun, Sunrise, Target, Timer,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { useTema } from "@/components/Raiz";
+import { Tema, useTema } from "@/components/Raiz";
 import { useHoje } from "@/components/useHoje";
 import { ItemPasso } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -23,16 +23,19 @@ import { Segmentado } from "@/components/ui/controles";
 import { deISO, somarDias } from "@/components/ui/data";
 import { Kbd } from "@/components/ui/diversos";
 import { Input, Textarea } from "@/components/ui/input";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator,
+  DropdownMenuTrigger, MenuAtalho,
+} from "@/components/ui/menu";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { comFoco, comPassoAlternado, tarefaRapida } from "@/lib/acoes";
 import { suave } from "@/lib/animacoes";
 import { aberta, dataLocal, dataRelativa, passoEhMeu, sugestoesDeFoco } from "@/lib/lembretes";
-import { abrirPersonalizar } from "@/lib/moldura";
+import { AbaPersonalizar, IdFerramenta, abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 import { paraTextoPlano } from "@/lib/texto-rico";
 import { agoraISO, normalizarNota, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
-import { SeletorAcento, SeletorCantos, SeletorTema } from "./Aparencia";
 import { iniciarSessao } from "./SessaoFoco";
 
 const ficha =
@@ -128,20 +131,18 @@ export function Agenda() {
         <PopoverTrigger asChild>
           <button type="button" data-slot="ferramenta-agenda" aria-label="Agenda" className={cn(ficha, "hidden lg:inline-flex")}>
             <CalendarDays className="size-3.5" />
+            {/* Só o dia: a hora fica dentro do balão (3.9), para a barra ter espaço para as migalhas. */}
             <span className="first-letter:uppercase">{semPonto(DIA_NAVBAR.format(deISO(hoje)))}</span>
-            {agora && (
-              <span className="hidden items-center gap-1.5 xl:flex">
-                <span aria-hidden className="h-3 w-px bg-border" />
-                <span className="tabular-nums">{agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-              </span>
-            )}
             {atrasados.length > 0 && <span aria-label={`${atrasados.length} em atraso`} className="size-1.5 rounded-full bg-destructive" />}
           </button>
         </PopoverTrigger>
       </Dica>
       <PopoverContent align="end" className="w-[352px] p-0">
         <div className="border-b px-3.5 pt-3 pb-2.5">
-          <p className="text-[13px] font-semibold tracking-tight">{maiuscula(DIA_LONGO.format(deISO(hoje)))}</p>
+          <p className="flex items-baseline gap-2 text-[13px] font-semibold tracking-tight">
+            <span className="min-w-0 flex-1">{maiuscula(DIA_LONGO.format(deISO(hoje)))}</span>
+            {agora && <span data-slot="agenda-hora" className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">{agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>}
+          </p>
           <p className="text-xs text-muted-foreground">
             {noPeriodo.length === 0 ? "Nenhum prazo nas próximas duas semanas." : `${noPeriodo.length} ${noPeriodo.length === 1 ? "data marcada" : "datas marcadas"} nas próximas duas semanas.`}
           </p>
@@ -474,51 +475,53 @@ export function AnotarRapido() {
 }
 
 // =====================================================================
-// Aparência
+// Mais: o que é de uso raro fica num menu só (3.9)
 // =====================================================================
 
-export function BotaoAparencia() {
-  const { resolvido } = useTema();
-  const [aberto, setAberto] = useState(false);
+/**
+ * Tema, tela cheia, atalhos e Personalizar num botão só. Antes eram três botões soltos na barra
+ * (aparência, tela cheia e atalhos), e cada um já tinha outro caminho (F11, tecla ?, paleta, Personalizar).
+ * Tela cheia e atalhos respeitam o que o usuário escondeu em Personalizar > Superior.
+ */
+export function MenuMais({ cheia, telaCheia, abrirAtalhos, ocultas }: {
+  cheia: boolean; telaCheia: () => void; abrirAtalhos: () => void; ocultas: IdFerramenta[];
+}) {
+  const { tema, resolvido, definirTema } = useTema();
+  const comTelaCheia = !ocultas.includes("telaCheia");
+  const comAtalhos = !ocultas.includes("ajuda");
+  // Personalizar abre depois de o menu fechar, para o foco não voltar ao botão por cima do painel.
+  const personalizar = (aba: AbaPersonalizar) => setTimeout(() => abrirPersonalizar(aba), 80);
   return (
-    <Popover open={aberto} onOpenChange={setAberto}>
-      <Dica texto="Aparência: tema e cores">
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Aparência: tema e cores" data-slot="botao-tema">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span key={resolvido} initial={{ rotate: -60, opacity: 0, scale: 0.6 }} animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                exit={{ rotate: 60, opacity: 0, scale: 0.6 }} transition={{ duration: 0.16 }} className="inline-flex">
-                {resolvido === "escuro" ? <Moon className="size-4" /> : <Sun className="size-4" />}
-              </motion.span>
-            </AnimatePresence>
+    <DropdownMenu>
+      <Dica texto="Mais: tema, tela cheia, atalhos e personalizar">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label="Mais opções" data-slot="menu-mais" className="data-[state=open]:bg-accent">
+            <Ellipsis />
           </Button>
-        </PopoverTrigger>
+        </DropdownMenuTrigger>
       </Dica>
-      <PopoverContent align="end" data-slot="popover" className="w-[300px] p-0">
-        <div className="flex flex-col gap-3.5 p-3.5">
-          <div className="flex flex-col gap-1.5">
-            <span className="flex items-center gap-1.5 text-xs font-medium sem-selecao"><Palette className="size-3.5 text-muted-foreground" /> Tema</span>
-            <SeletorTema className="flex w-full [&>button]:flex-1" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium sem-selecao">Cor de destaque</span>
-            <SeletorAcento />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium sem-selecao">Cantos</span>
-            <SeletorCantos className="flex w-full [&>button]:flex-1" />
-          </div>
-        </div>
-        <div className="border-t bg-muted/40 p-1.5">
-          <Button variant="ghost" size="sm" className="w-full justify-start"
-            onClick={() => {
-              setAberto(false);
-              setTimeout(() => abrirPersonalizar("aparencia"), 120);
-            }}>
-            <SlidersHorizontal /> Personalizar tudo
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+      <DropdownMenuContent className="w-60">
+        <DropdownMenuLabel className="flex items-center gap-1.5">
+          {resolvido === "escuro" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />} Tema
+        </DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={tema} onValueChange={(v) => definirTema(v as Tema)}>
+          <DropdownMenuRadioItem value="claro" data-slot="tema-claro"><Sun /> Claro</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="escuro" data-slot="tema-escuro"><Moon /> Escuro</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="sistema" data-slot="tema-sistema"><Monitor /> Sistema</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuItem onSelect={() => personalizar("aparencia")}><Palette /> Cor de destaque, cantos e letra...</DropdownMenuItem>
+        {(comTelaCheia || comAtalhos) && <DropdownMenuSeparator />}
+        {comTelaCheia && (
+          <DropdownMenuItem data-slot="mais-tela-cheia" onSelect={telaCheia}>
+            {cheia ? <Minimize /> : <Maximize />} {cheia ? "Sair da tela cheia" : "Tela cheia"} <MenuAtalho>F11</MenuAtalho>
+          </DropdownMenuItem>
+        )}
+        {comAtalhos && (
+          <DropdownMenuItem data-slot="mais-atalhos" onSelect={abrirAtalhos}><Keyboard /> Atalhos de teclado <MenuAtalho>?</MenuAtalho></DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem data-slot="mais-personalizar" onSelect={() => personalizar("superior")}><SlidersHorizontal /> Personalizar as barras...</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

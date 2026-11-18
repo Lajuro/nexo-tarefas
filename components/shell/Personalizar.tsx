@@ -17,7 +17,7 @@ import {
 } from "@/lib/moldura";
 import { cn } from "@/lib/utils";
 import { OpcoesAparencia } from "./Aparencia";
-import { NAV } from "./navegacao";
+import { GRUPO_ACOMPANHAR, TELAS_ACOMPANHAR, gruposDoMenu } from "./navegacao";
 
 function Bloco({ titulo, ajuda, children }: { titulo: string; ajuda?: ReactNode; children: ReactNode }) {
   return (
@@ -80,7 +80,7 @@ const trocar = <T,>(lista: T[], i: number, delta: number) => {
 
 function AbaLateral() {
   const { moldura, mudarMoldura } = useMoldura();
-  const grupos = NAV.map((g) => ({ grupo: g.grupo, itens: naOrdem(g.itens, moldura.ordem, (i) => i.href) }));
+  const grupos = gruposDoMenu(moldura.acompanharSeparado).map((g) => ({ grupo: g.grupo, itens: naOrdem(g.itens, moldura.ordem, (i) => i.href) }));
   // A ordem guardada é uma lista só, com todos os grupos em sequência.
   const reordenar = (grupo: string, hrefs: string[]) =>
     mudarMoldura({ ordem: grupos.flatMap((g) => (g.grupo === grupo ? hrefs : g.itens.map((i) => i.href))) });
@@ -104,6 +104,13 @@ function AbaLateral() {
             </div>
           );
         })}
+      </Bloco>
+
+      <Bloco titulo={GRUPO_ACOMPANHAR}
+        ajuda={`${TELAS_ACOMPANHAR.map((n) => n.nome).join(", ").replace(/, ([^,]*)$/, " e $1")}. Juntas, viram um item só no menu e trocam por abas no topo da tela. As abas e os atalhos valem dos dois jeitos.`}>
+        <CampoSwitch marcado={moldura.acompanharSeparado} aoMudar={(v) => mudarMoldura({ acompanharSeparado: v })}>
+          Mostrar as cinco telas separadas no menu
+        </CampoSwitch>
       </Bloco>
 
       <Bloco titulo="Seções" ajuda="Blocos que ficam abaixo da navegação. Fixadas e Recentes só aparecem quando têm algo.">
@@ -137,7 +144,7 @@ function AbaSuperior() {
   const { moldura, mudarMoldura } = useMoldura();
   return (
     <div className="flex flex-col gap-6">
-      <Bloco titulo="Ferramentas da barra superior" ajuda="O sino e o botão de aparência ficam sempre. O resto é com você.">
+      <Bloco titulo="Ferramentas da barra superior" ajuda="O sino e o menu Mais (tema e Personalizar) ficam sempre. Tela cheia e Atalhos aparecem dentro do menu Mais. O resto é com você.">
         <div className="flex flex-col gap-1">
           {FERRAMENTAS.map((id) => {
             const ligado = !moldura.ferramentasOcultas.includes(id);

@@ -21,10 +21,10 @@ import { comFixada } from "@/lib/acoes";
 import { mola, suave } from "@/lib/animacoes";
 import { aberta, passoEhMeu, passosAbertosDe } from "@/lib/lembretes";
 import { IdSecao, LARGURA_LATERAL, NOME_SECAO, abrirPersonalizar, alternarNa, naOrdem, useMoldura, useRecentes } from "@/lib/moldura";
-import { useRotina } from "@/lib/preferencias";
-import { Tarefa, diasAte } from "@/lib/tipos";
+import { Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
-import { ItemNav, NAV, NAV_CONFIG, rotaAtiva } from "./navegacao";
+import { ITEM_ACOMPANHAR, ItemNav, NAV_CONFIG, ehAcompanhar, gruposDoMenu, rotaAtiva } from "./navegacao";
+import { useDestinoAcompanhar, useRevisaoAtrasada } from "./Acompanhar";
 import { Logo } from "./Logo";
 
 const foco = "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35";
@@ -47,13 +47,17 @@ function Contagem({ n, tom }: { n: number; tom?: "perigo" | "alerta" }) {
 }
 
 function Linha({
-  item, ativo, recolhida, contador, tom, ponto,
+  item, ativo, recolhida, contador, tom, ponto, destino, dicaPonto,
 }: {
   item: ItemNav; ativo: boolean; recolhida: boolean; contador?: number; tom?: "perigo" | "alerta"; ponto?: boolean;
+  /** Para onde o link leva, quando não é o próprio `item.href` (o item "Acompanhar" abre a última aba usada). */
+  destino?: string;
+  /** O que o ponto quer dizer, para leitor de tela e para a dica com a barra recolhida. */
+  dicaPonto?: string;
 }) {
   const link = (
     <Link
-      href={item.href}
+      href={destino ?? item.href}
       data-slot="nav-item"
       data-ativo={ativo || undefined}
       aria-current={ativo ? "page" : undefined}
@@ -80,10 +84,11 @@ function Linha({
       </span>
       {!recolhida && <span className="relative z-10 flex-1 truncate">{item.nome}</span>}
       {!recolhida && !!contador && <Contagem n={contador} tom={tom} />}
-      {!recolhida && !contador && ponto && <span className="relative z-10 size-1.5 rounded-full bg-alerta" />}
+      {!recolhida && !contador && ponto && <span aria-hidden className="relative z-10 size-1.5 rounded-full bg-alerta" />}
+      {ponto && dicaPonto && <span className="sr-only">({dicaPonto})</span>}
     </Link>
   );
-  return recolhida ? <Dica texto={item.nome} side="right">{link}</Dica> : link;
+  return recolhida ? <Dica texto={ponto && dicaPonto ? `${item.nome} (${dicaPonto})` : item.nome} side="right">{link}</Dica> : link;
 }
 
 /** Bloco recolhível da barra lateral (foco, fixadas, recentes, assuntos). */
@@ -147,8 +152,9 @@ export function Lateral({
   const pathname = usePathname();
   const { dados, atualizarTarefa } = useNexo();
   const { pedemAtencao: urgentes, criticos } = useLembretes();
-  const { rotina, carregado } = useRotina();
   const { moldura, mudarMoldura } = useMoldura();
+  const revisaoAtrasada = useRevisaoAtrasada();
+  const destinoAcompanhar = useDestinoAcompanhar();
   const recentesIds = useRecentes();
   const hoje = useHoje();
 
@@ -165,23 +171,24 @@ export function Lateral({
     const notas = (dados?.notas?.items ?? []).filter((n) => !n.arquivadaEm && (n.texto.trim() || n.titulo.trim())).length;
     return { abertas: tarefas.filter(aberta).length, pendencias: passosAbertosDe(tarefas).length, notas };
   }, [dados?.tarefas, dados?.notas]);
-  const revisaoAtrasada = carregado && numeros.abertas > 0 && (!rotina.ultimaRevisao || (diasAte(rotina.ultimaRevisao) ?? 0) <= -7);
 
-  const extra = (href: string): { contador?: number; tom?: "perigo" | "alerta"; ponto?: boolean } => {
+  const extra = (href: string): { contador?: number; tom?: "perigo" | "alerta"; ponto?: boolean; dicaPonto?: string } => {
     const n = (contador: number, tom?: "perigo" | "alerta") => (moldura.contadores ? { contador, tom } : { ponto: !!tom && contador > 0 });
     if (href === "/") return n(urgentes, criticos ? "perigo" : "alerta");
     if (href === "/tarefas") return n(numeros.abertas);
     if (href === "/pendencias") return n(numeros.pendencias);
     if (href === "/notas") return n(numeros.notas);
-    if (href === "/revisao") return { ponto: revisaoAtrasada };
+    if (href === "/revisao") return { ponto: revisaoAtrasada, dicaPonto: "revisão atrasada" };
+    if (href === ITEM_ACOMPANHAR.href) return { ponto: revisaoAtrasada, dicaPonto: "revisão semanal atrasada" };
     return {};
   };
 
   const grupos = useMemo(
     () =>
-      NAV.map((g) => ({ grupo: g.grupo, itens: naOrdem(g.itens, moldura.ordem, (i) => i.href).filter((i) => !moldura.ocultos.includes(i.href)) }))
+      gruposDoMenu(moldura.acompanharSeparado)
+        .map((g) => ({ grupo: g.grupo, itens: naOrdem(g.itens, moldura.ordem, (i) => i.href).filter((i) => !moldura.ocultos.includes(i.href)) }))
         .filter((g) => g.itens.length > 0),
-    [moldura.ordem, moldura.ocultos],
+    [moldura.ordem, moldura.ocultos, moldura.acompanharSeparado],
   );
 
   // ---------- seções ----------
@@ -356,15 +363,23 @@ export function Lateral({
 
       <nav aria-label="Principal"
         className={cn("flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-2.5 pt-1 pb-3", moldura.titulosDeGrupo ? "gap-4" : "gap-2", recolhida && "items-stretch px-2")}>
-        {grupos.map((g, i) => (
-          <div key={g.grupo} className="flex flex-col gap-0.5">
-            {!recolhida && moldura.titulosDeGrupo && <span className={cn("px-2 pb-1", rotulo)}>{g.grupo}</span>}
-            {(recolhida || !moldura.titulosDeGrupo) && i > 0 && <span aria-hidden className="mx-2 mb-1.5 h-px bg-sidebar-border" />}
-            {g.itens.map((item) => (
-              <Linha key={item.href} item={item} ativo={rotaAtiva(pathname, item.href)} recolhida={recolhida} {...extra(item.href)} />
-            ))}
-          </div>
-        ))}
+        {grupos.map((g, i) => {
+          // Grupo de um item só com o mesmo nome ("Acompanhar"): o título repetiria o item, então vira só um traço.
+          const comTitulo = !recolhida && moldura.titulosDeGrupo && !(g.itens.length === 1 && g.itens[0].nome === g.grupo);
+          return (
+            <div key={g.grupo} className="flex flex-col gap-0.5">
+              {comTitulo && <span className={cn("px-2 pb-1", rotulo)}>{g.grupo}</span>}
+              {!comTitulo && i > 0 && <span aria-hidden className="mx-2 mb-1.5 h-px bg-sidebar-border" />}
+              {g.itens.map((item) => {
+                const junto = item.href === ITEM_ACOMPANHAR.href;
+                return (
+                  <Linha key={item.href} item={item} recolhida={recolhida} {...extra(item.href)}
+                    ativo={junto ? ehAcompanhar(pathname) : rotaAtiva(pathname, item.href)} destino={junto ? destinoAcompanhar : undefined} />
+                );
+              })}
+            </div>
+          );
+        })}
 
         {!recolhida &&
           moldura.secoes

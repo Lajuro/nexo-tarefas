@@ -32,7 +32,7 @@ Variáveis opcionais: `NEXO_DESTINO` (pasta do app, padrão `%USERPROFILE%\nexo-
 
 ## Usar
 
-Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como um aplicativo (modo aplicativo do Edge). Para tela cheia, use F11 ou o botão na barra superior. O servidor roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
+Abra pelo atalho (ou `Iniciar Nexo.cmd`). O Nexo abre em janela própria, como um aplicativo (modo aplicativo do Edge). Para tela cheia, use F11 ou o botão "..." da barra superior. O servidor roda em `http://127.0.0.1:3210` e só aceita conexões da própria máquina. Na primeira vez ele pede a pasta de dados: use uma pasta dentro do OneDrive para ter backup.
 
 A página inicial é a tela **Hoje**: o que pede atenção agora, o foco do dia e uma captura rápida de tarefa.
 
@@ -78,6 +78,14 @@ O Nexo lembra você do que fazer:
 - **Sino de lembretes**: as tarefas que merecem atenção, com a opção de adiar até uma data. O número do sino é o mesmo da tela Hoje e do menu: conta tarefas, não avisos (uma tarefa atrasada, com passo vencido e sem retorno é uma coisa só).
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
+
+## Novidades da 3.9: menu mais curto
+
+- **Acompanhar**: Radar, Diário, Revisão semanal, Relatórios e Conquistas viraram um item só no menu lateral, **Acompanhar**. Ele abre a última dessas telas que você usou (na primeira vez, o Radar), e no topo de cada uma há abas para trocar entre elas. Os atalhos continuam: `G F` Radar, `G D` Diário, `G S` Revisão, `G R` Relatórios, `G Q` Conquistas. O ponto de "revisão atrasada" aparece no item Acompanhar e na aba Revisão.
+- **Quer as cinco separadas, como antes?** Abra Personalizar (o botão ao lado de Configurações, no pé do menu) > Lateral e ligue "Mostrar as cinco telas separadas no menu". A ordem e os itens que você tinha escondido continuam como estavam.
+- **Barra superior com menos botões**: tema, tela cheia e atalhos de teclado agora ficam no botão **...** do canto direito, junto com "Personalizar as barras". F11 e a tecla `?` continuam valendo.
+- **Agenda mostra só o dia**: a hora aparece quando você abre o balão. O ponto vermelho de atraso continua.
+- **Ícones diferentes entre si**: com o menu recolhido (`Ctrl B`), cada tela tem um desenho próprio, e passar o mouse mostra o nome.
 
 ## Novidades da 3.8
 
@@ -245,11 +253,12 @@ Por segurança, o editor nunca carrega imagem de fora nem executa nada do que fo
 O botão de ajustes no rodapé da barra lateral (ou "Personalizar" na paleta, `Ctrl K`) abre um painel ao lado do app. Tudo muda na hora, enquanto você olha.
 
 - **Aparência**: tema claro, escuro ou do sistema, **cor de destaque** (dez opções), cantos retos, suaves ou redondos, letra (Geist, a do Windows ou serifada), estilo da barra lateral (sólida, vidro ou colorida), fundo das telas (liso, aurora ou pontilhado) e quanto a interface se mexe (completo, sutil ou nenhum).
-- **Barra lateral**: arraste os itens para mudar a ordem, desligue o que não usa, escolha quais seções aparecem (Foco de hoje, Fixadas, Recentes, Assuntos). A largura se ajusta arrastando a borda direita da barra. Clique no título de uma seção para recolher.
+- **Barra lateral**: arraste os itens para mudar a ordem, desligue o que não usa, escolha quais seções aparecem (Foco de hoje, Fixadas, Recentes, Assuntos). A largura se ajusta arrastando a borda direita da barra. Clique no título de uma seção para recolher. "Mostrar as cinco telas separadas no menu" troca o item Acompanhar por Radar, Diário, Revisão semanal, Relatórios e Conquistas soltos.
 - **Barra superior**: escolha as ferramentas que ficam à mão.
-  - **Agenda**: o dia e a hora. Ao clicar, os prazos, passos com data e lembretes das próximas duas semanas.
+  - **Agenda**: o dia. Ao clicar, a hora e os prazos, passos com data e lembretes das próximas duas semanas.
   - **Foco**: quantos passos do foco de hoje já saíram. Ao clicar, você marca passos sem sair da tela em que está.
   - **Anotar** (tecla `A`): cria uma tarefa ou uma folha do bloco de notas de qualquer tela. O que você digitar fica guardado ali até virar tarefa ou folha, mesmo se fechar o balão.
+  - **...** (sempre à vista): tema, tela cheia, atalhos de teclado e Personalizar. Tela cheia e atalhos escondidos aqui somem também desse menu.
 - **Fixar uma tarefa**: no menu da tarefa (botão direito ou "..."), "Fixar na barra lateral". Ela fica a um clique, em qualquer tela.
 
 Essas escolhas ficam no navegador daquele computador. "Voltar tudo ao padrão" desfaz tudo de uma vez, sem tocar nas suas tarefas. Para aumentar ou diminuir tudo, use `Ctrl +` e `Ctrl -`.

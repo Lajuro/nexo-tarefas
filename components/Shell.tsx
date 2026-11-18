@@ -19,7 +19,8 @@ import { Lateral } from "./shell/Lateral";
 import { Paleta } from "./shell/Paleta";
 import { Personalizar } from "./shell/Personalizar";
 import { Carregando, JanelaAtalhos, Onboarding, TelaErro } from "./shell/Telas";
-import { NAV, nomeDaRota } from "./shell/navegacao";
+import { NAV, ehAcompanhar, nomeDaRota } from "./shell/navegacao";
+import { AbasAcompanhar } from "./shell/Acompanhar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
@@ -216,6 +217,8 @@ export function Shell({ children }: { children: ReactNode }) {
           planejarDia={() => setRitual(true)}
         />
         <Avisos />
+        {/* Radar, Diário, Revisão, Relatórios e Conquistas: abas em comum no topo (o menu tem um item só para elas). */}
+        {ehAcompanhar(pathname) && <AbasAcompanhar />}
         <main data-slot="conteudo" className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
         <AnimatePresence initial={false}>
           {moldura.barraStatus && (

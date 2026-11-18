@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronLeft, ChevronRight, CircleHelp, Loader2, Maximize, Minimize, PanelLeft, PanelLeftClose, Search, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, PanelLeft, PanelLeftClose, Search, SlidersHorizontal } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { PontoCor } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Dica } from "@/components/ui/popover";
 import { suave } from "@/lib/animacoes";
 import { IdFerramenta, abrirPersonalizar, useMoldura } from "@/lib/moldura";
 import { cn } from "@/lib/utils";
-import { Agenda, AnotarRapido, BotaoAparencia, FocoRapido } from "./Ferramentas";
+import { Agenda, AnotarRapido, FocoRapido, MenuMais } from "./Ferramentas";
 import { FerramentaRotina } from "@/components/jornada/Ferramenta";
 import { SessaoFoco } from "./SessaoFoco";
 import { Sino } from "./Sino";
@@ -47,7 +47,7 @@ function Migalhas() {
     if (sub === "reuniao") {
       partes.push({ nome: t?.titulo ?? "Tarefa", href: `/tarefas/${id}` });
       partes.push({ nome: "Reunião" });
-    } else partes.push({ nome: t?.titulo ?? "Tarefa", vis: cat ? "hidden @[20rem]/migalhas:block" : "hidden @[9rem]/migalhas:block", classe: "shrink-[4]" });
+    } else partes.push({ nome: t?.titulo ?? "Tarefa", vis: cat ? "hidden @[20rem]/migalhas:block" : "hidden @[9rem]/migalhas:block", classe: "shrink-[30]" });
   } else if (raiz === "categorias" && id) {
     const cat = dados?.categorias.items.find((c) => c.id === id);
     partes.push({ nome: "Categorias", href: "/categorias" });
@@ -154,19 +154,8 @@ export function BarraSuperior({
           <div className="mx-1 h-4 w-px shrink-0 bg-border" />
 
           <Sino />
-          <BotaoAparencia />
-          <Vaga id="telaCheia" ocultas={ocultas}>
-            <Dica texto={cheia ? "Sair da tela cheia" : "Tela cheia"} atalho="F11">
-              <Button variant="ghost" size="icon" aria-label={cheia ? "Sair da tela cheia" : "Tela cheia"} onClick={telaCheia}>
-                {cheia ? <Minimize /> : <Maximize />}
-              </Button>
-            </Dica>
-          </Vaga>
-          <Vaga id="ajuda" ocultas={ocultas}>
-            <Dica texto="Atalhos de teclado" atalho="?">
-              <Button variant="ghost" size="icon" aria-label="Atalhos de teclado" onClick={abrirAtalhos}><CircleHelp /></Button>
-            </Dica>
-          </Vaga>
+          {/* Tema, tela cheia, atalhos e Personalizar: uso raro, num menu só (3.9). */}
+          <MenuMais cheia={cheia} telaCheia={telaCheia} abrirAtalhos={abrirAtalhos} ocultas={ocultas} />
         </header>
       </ContextMenuTrigger>
       <ContextMenuContent>

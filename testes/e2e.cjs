@@ -21,10 +21,11 @@
 // pessoas e times (cadastro, time, importar do Outlook, busca), links, relatórios, revisão, configurações, tela Hoje (captura rápida e foco),
 // ritual "Planejar o dia", bloco de notas (escrever, prompt, JSON, prévia, aplicar), paleta Ctrl+K,
 // moldura (fixar tarefa na barra lateral, anotar rápido pelo atalho A, foco na barra superior,
-// painel Personalizar: cor de destaque, esconder item e ferramenta), esperando quem (cobrança),
+// painel Personalizar: cor de destaque, esconder item e ferramenta, separar as telas de acompanhar),
+// "Acompanhar" (item único no menu, abas em comum, última aba lembrada), menu "Mais", esperando quem (cobrança),
 // modelos de tarefa, sessão de foco, diário, editor de texto rico (blocos, imagem colada, conteúdo
 // perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), conquistas (nível,
-// meta do dia, desligar) e tema escuro.
+// meta do dia, desligar) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -695,8 +696,11 @@ async function main() {
     await pg.getByText("Foco de hoje", { exact: true }).last().waitFor();
     await pg.getByRole("button", { name: "Planejar o dia" }).last().waitFor();
     await pg.keyboard.press("Escape");
+    // a ficha da agenda mostra só o dia; a hora fica dentro do balão
+    afirmar(!/\d{2}:\d{2}/.test(await pg.locator("[data-slot=ferramenta-agenda]").innerText()), "a ficha da agenda voltou a mostrar a hora");
     await pg.locator("[data-slot=ferramenta-agenda]").click();
     await pg.getByRole("group", { name: "Escolher um dia" }).waitFor();
+    afirmar(/^\d{2}:\d{2}$/.test((await pg.locator("[data-slot=agenda-hora]").innerText()).trim()), "a hora não apareceu dentro do balão da agenda");
     await pg.keyboard.press("Escape");
   });
 
@@ -1577,10 +1581,49 @@ async function main() {
     await pg.goto(B + "/configuracoes");
     await pg.locator("[data-slot=painel-jogo]").getByRole("switch").first().click();
     await pg.locator("[data-slot=nivel-lateral]").waitFor({ state: "detached" });
+    // com a gamificação desligada, a aba Conquistas some das abas de Acompanhar
+    await pg.goto(B + "/radar");
+    await pg.locator("[data-slot=abas-acompanhar]").waitFor();
+    afirmar((await pg.locator("[data-slot=aba-acompanhar]").count()) === 4, "com as conquistas desligadas, as abas deviam ser quatro");
+    afirmar((await pg.locator("[data-slot=aba-acompanhar][data-href='/conquistas']").count()) === 0, "a aba Conquistas apareceu com a gamificação desligada");
     await pg.goto(B + "/conquistas");
     await pg.locator("[data-slot=ligar-jogo]").click();
     await pg.locator("[data-slot=cartao-nivel]").waitFor();
     await pg.locator("[data-slot=lateral] [data-slot=nivel-lateral]").waitFor();
+  });
+
+  // ---------- Acompanhar: um item no menu, abas em comum e a última aba lembrada ----------
+  await etapa("acompanhar: item único no menu, abas e última aba usada", async () => {
+    await pg.goto(B + "/");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    // pelo começo do texto: o item Acompanhar traz "(revisão semanal atrasada)" para leitor de tela
+    const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: new RegExp("^" + nome) });
+    // no menu padrão as cinco telas viram um item só
+    await nav("Acompanhar").waitFor();
+    for (const nome of ["Radar", "Diário", "Revisão semanal", "Relatórios", "Conquistas"])
+      afirmar((await nav(nome).count()) === 0, `"${nome}" não devia aparecer solto no menu padrão`);
+    // a última aba usada foi Conquistas (a etapa anterior terminou nela): o item abre nela
+    await nav("Acompanhar").click();
+    await pg.waitForURL("**/conquistas");
+    await pg.locator("[data-slot=lateral] [data-slot=nav-item][data-ativo]", { hasText: "Acompanhar" }).waitFor();
+    const abas = pg.locator("[data-slot=abas-acompanhar] [data-slot=aba-acompanhar]");
+    afirmar((await abas.allInnerTexts()).map((t) => t.split("\n")[0].trim()).join(",") === "Radar,Diário,Revisão,Relatórios,Conquistas", "as abas de Acompanhar não são as cinco esperadas");
+    afirmar((await pg.locator("[data-slot=aba-acompanhar][aria-current=page]").innerText()).startsWith("Conquistas"), "a aba da tela aberta não ficou marcada");
+    // trocar de aba: o item continua marcado e passa a abrir a nova aba
+    await pg.locator("[data-slot=aba-acompanhar][data-href='/relatorios']").click();
+    await pg.waitForURL("**/relatorios");
+    await pg.locator("[data-slot=lateral] [data-slot=nav-item][data-ativo]", { hasText: "Acompanhar" }).waitFor();
+    await pg.goto(B + "/tarefas");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    afirmar((await pg.locator("[data-slot=abas-acompanhar]").count()) === 0, "as abas de Acompanhar apareceram fora das cinco telas");
+    await nav("Acompanhar").click();
+    await pg.waitForURL("**/relatorios");
+    // os atalhos de cada tela continuam valendo
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("s");
+    await pg.waitForURL("**/revisao");
+    afirmar((await pg.locator("[data-slot=aba-acompanhar][aria-current=page]").innerText()).startsWith("Revisão"), "G S não marcou a aba Revisão");
   });
 
   // ---------- confiança: saúde dos dados, restaurar backup e novidades ----------
@@ -1633,9 +1676,16 @@ async function main() {
     await pg.locator("[data-slot=abrir-personalizar]").click();
     const painel = pg.locator("[data-slot=personalizar]");
     await painel.waitFor();
-    // esconder um item de navegação e trazê-lo de volta
-    const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: nome });
+    const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: new RegExp("^" + nome) });
+    // separar as telas de acompanhar: as cinco voltam ao menu e o item "Acompanhar" sai
+    await painel.getByRole("radio", { name: "Lateral" }).click();
+    await nav("Acompanhar").waitFor();
+    afirmar((await nav("Relatórios").count()) === 0, "Relatórios apareceu solto no menu padrão");
+    await painel.getByRole("switch", { name: "Mostrar as cinco telas separadas no menu" }).click();
     await nav("Relatórios").waitFor();
+    await nav("Acompanhar").waitFor({ state: "detached" });
+    afirmar(JSON.parse(await pg.evaluate(() => localStorage.getItem("nexo:moldura"))).acompanharSeparado === true, "a escolha de separar não foi guardada");
+    // esconder um item de navegação e trazê-lo de volta
     await painel.getByRole("switch", { name: "Mostrar Relatórios" }).click();
     await nav("Relatórios").waitFor({ state: "detached" });
     afirmar(JSON.parse(await pg.evaluate(() => localStorage.getItem("nexo:moldura"))).ocultos.includes("/relatorios"), "o item escondido não foi guardado");
@@ -1651,6 +1701,13 @@ async function main() {
     await painel.getByRole("radio", { name: "Superior" }).click();
     await painel.getByRole("switch", { name: "Mostrar Data e agenda" }).click();
     await pg.locator("[data-slot=ferramenta-agenda]").waitFor({ state: "detached" });
+    // ferramenta que mora no menu "Mais": escondida, some também de dentro dele
+    await painel.getByRole("switch", { name: "Mostrar Atalhos" }).click();
+    await pg.locator("[data-slot=menu-mais]").click();
+    await pg.locator("[data-slot=mais-tela-cheia]").waitFor();
+    afirmar((await pg.locator("[data-slot=mais-atalhos]").count()) === 0, "Atalhos escondido continuou no menu Mais");
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=menu]").waitFor({ state: "detached" });
     // cor de destaque
     await painel.getByRole("radio", { name: "Aparência" }).click();
     await painel.getByRole("radio", { name: "Verde" }).click();
@@ -1668,6 +1725,19 @@ async function main() {
     await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
     await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "275");
     await pg.locator("[data-slot=ferramenta-agenda]").waitFor();
+    // o padrão volta a juntar as telas de acompanhar
+    await nav("Acompanhar").waitFor();
+    afirmar((await nav("Relatórios").count()) === 0, "depois de voltar ao padrão, Relatórios continuou solto no menu");
+    await painel.getByRole("button", { name: "Pronto" }).click();
+    await painel.waitFor({ state: "detached" });
+    // o menu "Mais" leva aos atalhos de novo e ao Personalizar
+    await pg.locator("[data-slot=menu-mais]").click();
+    await pg.locator("[data-slot=mais-atalhos]").click();
+    await pg.getByRole("dialog").filter({ hasText: "Atalhos" }).first().waitFor();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=menu-mais]").click();
+    await pg.locator("[data-slot=mais-personalizar]").click();
+    await painel.waitFor();
     await painel.getByRole("button", { name: "Pronto" }).click();
     await painel.waitFor({ state: "detached" });
   });
@@ -1789,10 +1859,10 @@ async function main() {
 
   // ---------- tema ----------
   await etapa("tema escuro", async () => {
-    await pg.locator("[data-slot=botao-tema]").click();
-    await pg.getByRole("radio", { name: "Escuro" }).click();
+    await pg.locator("[data-slot=menu-mais]").click();
+    await pg.getByRole("menuitemradio", { name: "Escuro" }).click();
     await pg.waitForFunction(() => document.documentElement.classList.contains("dark"));
-    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=menu]").waitFor({ state: "detached" });
   });
 
   await navegador.close();

@@ -159,6 +159,28 @@ teste("moldura: listas de texto ignoram o que não é texto e têm tamanho limit
   assert.ok(m.ordem.length <= 60);
 });
 
+teste("moldura: telas de acompanhar juntas por padrão; separadas só com true de verdade (3.9)", () => {
+  assert.equal(M.MOLDURA_PADRAO.acompanharSeparado, false);
+  assert.equal(M.normalizarMoldura({}).acompanharSeparado, false);
+  assert.equal(M.normalizarMoldura({ acompanharSeparado: true }).acompanharSeparado, true);
+  for (const x of ["true", 1, "sim", {}, null]) assert.equal(M.normalizarMoldura({ acompanharSeparado: x }).acompanharSeparado, false);
+});
+
+teste("moldura: o que a 3.8 guardou continua igual ao abrir na 3.9", () => {
+  const da38 = {
+    largura: 280, ordem: ["/notas", "/pendencias", "/conquistas", "/radar"], ocultos: ["/relatorios", "/links"], titulosDeGrupo: false, contadores: true,
+    secoes: ["recentes", "foco", "fixadas", "assuntos"], secoesOcultas: ["fixadas"], secoesFechadas: ["assuntos"], ferramentasOcultas: ["telaCheia"], barraStatus: false,
+  };
+  const m = M.normalizarMoldura(da38);
+  assert.deepEqual({ ...m, acompanharSeparado: undefined }, { ...da38, acompanharSeparado: undefined });
+  assert.equal(m.acompanharSeparado, false);
+  // mudar uma coisa depois não apaga as outras
+  const depois = M.normalizarMoldura({ ...m, acompanharSeparado: true, ocultos: [...m.ocultos, "/acompanhar"] });
+  assert.deepEqual(depois.ordem, da38.ordem);
+  assert.deepEqual(depois.ocultos, ["/relatorios", "/links", "/acompanhar"]);
+  assert.deepEqual(depois.ferramentasOcultas, ["telaCheia"]);
+});
+
 teste("naOrdem: respeita a ordem escolhida e mantém o resto como estava", () => {
   const itens = [{ h: "/a" }, { h: "/b" }, { h: "/c" }, { h: "/d" }];
   const chave = (i) => i.h;

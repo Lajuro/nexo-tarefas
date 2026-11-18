@@ -16,17 +16,20 @@ export const NOME_SECAO: Record<IdSecao, { nome: string; descricao: string }> = 
   assuntos: { nome: "Categorias", descricao: "As categorias com mais tarefas abertas." },
 };
 
-/** Ferramentas opcionais da barra superior. O sino e a aparência ficam sempre. */
+/**
+ * Ferramentas opcionais da barra superior. O sino e o menu "Mais" (com a aparência) ficam sempre.
+ * Tela cheia e atalhos moram dentro do menu "Mais" desde a 3.9: escondê-las tira do menu.
+ */
 export const FERRAMENTAS = ["rotina", "agenda", "foco", "anotar", "busca", "telaCheia", "ajuda"] as const;
 export type IdFerramenta = (typeof FERRAMENTAS)[number];
 export const NOME_FERRAMENTA: Record<IdFerramenta, { nome: string; descricao: string }> = {
   rotina: { nome: "Rotina de hoje", descricao: "O bloco de agora e quanto falta, ou a hora de sair. Ao clicar, o próximo bloco e os botões do ponto." },
-  agenda: { nome: "Data e agenda", descricao: "O dia e a hora. Ao clicar, os prazos das próximas duas semanas." },
+  agenda: { nome: "Data e agenda", descricao: "O dia. Ao clicar, a hora e os prazos das próximas duas semanas." },
   foco: { nome: "Foco de hoje", descricao: "Quantos passos do foco já saíram. Ao clicar, marca passos sem trocar de tela." },
   anotar: { nome: "Anotar rápido", descricao: "Cria uma tarefa ou uma folha do bloco de notas de qualquer tela (atalho A)." },
   busca: { nome: "Campo de busca", descricao: "Abre a paleta de comandos. O atalho Ctrl K continua valendo sem ele." },
-  telaCheia: { nome: "Tela cheia", descricao: "Botão de tela cheia (F11)." },
-  ajuda: { nome: "Atalhos", descricao: "Botão da lista de atalhos de teclado (?)." },
+  telaCheia: { nome: "Tela cheia", descricao: "Item de tela cheia no menu Mais. A tecla F11 continua valendo sem ele." },
+  ajuda: { nome: "Atalhos", descricao: "Item da lista de atalhos de teclado no menu Mais. A tecla ? continua valendo sem ele." },
 };
 
 export const LARGURA_LATERAL = { padrao: 244, minima: 208, maxima: 400, recolhida: 56 };
@@ -47,6 +50,11 @@ export interface Moldura {
   secoesFechadas: IdSecao[];
   ferramentasOcultas: IdFerramenta[];
   barraStatus: boolean;
+  /**
+   * Radar, Diário, Revisão semanal, Relatórios e Conquistas como cinco itens no menu (como até a 3.8).
+   * Padrão (false): um item só, "Acompanhar", e as cinco telas trocam por abas no topo.
+   */
+  acompanharSeparado: boolean;
 }
 
 export const MOLDURA_PADRAO: Moldura = {
@@ -60,6 +68,7 @@ export const MOLDURA_PADRAO: Moldura = {
   secoesFechadas: [],
   ferramentasOcultas: [],
   barraStatus: true,
+  acompanharSeparado: false,
 };
 
 const textos = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string").slice(0, 60) : []);
@@ -81,6 +90,7 @@ export function normalizarMoldura(x: unknown): Moldura {
     secoesFechadas: dentro(SECOES, m.secoesFechadas),
     ferramentasOcultas: dentro(FERRAMENTAS, m.ferramentasOcultas),
     barraStatus: m.barraStatus !== false,
+    acompanharSeparado: m.acompanharSeparado === true,
   };
 }
 

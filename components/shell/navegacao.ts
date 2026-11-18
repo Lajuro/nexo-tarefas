@@ -1,5 +1,8 @@
+// Ícones com silhuetas diferentes entre si (3.9): com a barra recolhida, só o ícone diz qual tela é.
+// Evite repetir a "folha com linhas" (FileText, BookText, NotebookPen, ListTodo...) em dois itens.
 import {
-  BookOpenText, BookText, CalendarCheck, CalendarClock, CircleCheckBig, FileText, Trophy, Link2, ListTodo, type LucideIcon, MessageCircleQuestion, NotebookPen, Radar, Settings, Shapes, Sun, Users,
+  CalendarClock, ChartColumn, ClipboardCheck, Footprints, History, Library, Link2, type LucideIcon, MessageCircleQuestion, Radar, Settings, Shapes,
+  SquareKanban, StickyNote, Sun, Telescope, Trophy, Users,
 } from "lucide-react";
 
 export interface ItemNav {
@@ -15,16 +18,16 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     grupo: "Dia a dia",
     itens: [
       { href: "/", nome: "Hoje", icone: Sun, tecla: "h" },
-      { href: "/tarefas", nome: "Tarefas", icone: ListTodo, tecla: "t" },
+      { href: "/tarefas", nome: "Tarefas", icone: SquareKanban, tecla: "t" },
       { href: "/rotina", nome: "Rotina", icone: CalendarClock, tecla: "o" },
-      { href: "/pendencias", nome: "Pendências", icone: CircleCheckBig, tecla: "p" },
-      { href: "/notas", nome: "Notas", icone: NotebookPen, tecla: "n" },
+      { href: "/pendencias", nome: "Pendências", icone: Footprints, tecla: "p" },
+      { href: "/notas", nome: "Notas", icone: StickyNote, tecla: "n" },
     ],
   },
   {
     grupo: "Conhecimento",
     itens: [
-      { href: "/paginas", nome: "Páginas", icone: BookText, tecla: "a" },
+      { href: "/paginas", nome: "Páginas", icone: Library, tecla: "a" },
       { href: "/perguntar", nome: "Perguntar", icone: MessageCircleQuestion, tecla: "u" },
       { href: "/categorias", nome: "Categorias", icone: Shapes, tecla: "c" },
       { href: "/pessoas", nome: "Pessoas", icone: Users, tecla: "e" },
@@ -35,13 +38,30 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     grupo: "Acompanhar",
     itens: [
       { href: "/radar", nome: "Radar", icone: Radar, tecla: "f" },
-      { href: "/diario", nome: "Diário", icone: BookOpenText, tecla: "d" },
-      { href: "/revisao", nome: "Revisão semanal", icone: CalendarCheck, tecla: "s" },
-      { href: "/relatorios", nome: "Relatórios", icone: FileText, tecla: "r" },
+      { href: "/diario", nome: "Diário", icone: History, tecla: "d" },
+      { href: "/revisao", nome: "Revisão semanal", icone: ClipboardCheck, tecla: "s" },
+      { href: "/relatorios", nome: "Relatórios", icone: ChartColumn, tecla: "r" },
       { href: "/conquistas", nome: "Conquistas", icone: Trophy, tecla: "q" },
     ],
   },
 ];
+
+/** O grupo cujas telas viram abas de uma tela só (components/shell/Acompanhar.tsx). */
+export const GRUPO_ACOMPANHAR = "Acompanhar";
+export const TELAS_ACOMPANHAR: ItemNav[] = NAV.find((g) => g.grupo === GRUPO_ACOMPANHAR)!.itens;
+
+/**
+ * O item único do menu no lugar das cinco telas de acompanhar. O `href` é só a chave dele nas preferências
+ * (ordem, itens escondidos): o link de verdade leva à última aba usada.
+ */
+export const ITEM_ACOMPANHAR: ItemNav = { href: "/acompanhar", nome: "Acompanhar", icone: Telescope };
+
+/** A tela é uma das cinco de acompanhar? */
+export const ehAcompanhar = (pathname: string) => TELAS_ACOMPANHAR.some((n) => rotaAtiva(pathname, n.href));
+
+/** Os grupos do menu como o usuário escolheu: as cinco telas de acompanhar juntas num item (padrão) ou separadas. */
+export const gruposDoMenu = (separado: boolean) =>
+  separado ? NAV : NAV.map((g) => (g.grupo === GRUPO_ACOMPANHAR ? { ...g, itens: [ITEM_ACOMPANHAR] } : g));
 
 export const NAV_CONFIG: ItemNav = { href: "/configuracoes", nome: "Configurações", icone: Settings };
 
