@@ -31,12 +31,13 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
-  { versao: "3.12", icone: Eye, titulo: "Hoje mais fácil de bater o olho", texto: "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha (passe o mouse para ver a explicação) e embaixo fica só o que dá para resolver ali: o passo com o botão Concluir. A barra superior perdeu as molduras, a lista de tarefas mostra o título inteiro e o quadro cabe na tela.", href: "/", rotulo: "Abrir a tela Hoje",
+  { versao: "3.12", icone: Eye, titulo: "Hoje mais fácil de bater o olho", texto: "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha (passe o mouse para ver a explicação) e embaixo fica só o que dá para resolver ali: o passo com o botão Concluir. O nome de cada tela ficou maior, a barra superior perdeu as molduras, a busca fica num lugar só, a lista de tarefas mostra o título inteiro, o quadro cabe na tela e \"O que há de novo\" separa esta versão do histórico.", href: "/", rotulo: "Abrir a tela Hoje",
     pontos: [
       "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha. Passe o mouse num selo para ver a explicação.",
       "Embaixo dos selos fica só o que dá para resolver ali: o passo, com o botão Concluir.",
-      "A barra superior perdeu as molduras e a barra lateral esmaece no fim, sem item cortado.",
-      "A lista de tarefas mostra o título inteiro e o quadro cabe na tela.",
+      "O nome de cada tela ficou maior. A barra superior perdeu as molduras, e a busca aparece num lugar só: na barra lateral ou, com ela recolhida, na barra superior.",
+      "Em Tarefas, Grade, Lista e Quadro subiram para o cabeçalho, a lista mostra o título inteiro e o quadro cabe na tela.",
+      "Na tarefa, \"Depende de\" vazio é uma linha só. No Radar, o gráfico de movimento ganhou linha de base.",
       "Esta janela também mudou: o que é desta versão vem primeiro e o resto virou um histórico que abre ao clicar.",
     ] },
   { versao: "3.11", icone: PencilLine, titulo: "Formulários com o essencial primeiro", texto: "No registro, o Copilot fica no topo da coluna da direita e resumo, decisões, passos e impedimentos aparecem quando têm conteúdo (ou em \"Preencher à mão\"). Em Nova tarefa, status, lembrete de voltar, tags e descrição estão em \"Mais opções\", que lembra se você prefere aberto. A prioridade mostra as faixas baixa, média e alta.", href: "/tarefas", rotulo: "Ir para Tarefas" },
@@ -87,7 +88,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "A tela Hoje ficou mais fácil de bater o olho, a lista de tarefas mostra o título inteiro e o quadro cabe na tela.",
+          description: "Telas mais fáceis de bater o olho: nome da tela maior, motivos em selos na tela Hoje, título inteiro na lista de tarefas e o quadro cabendo na tela.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

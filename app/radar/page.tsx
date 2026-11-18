@@ -44,14 +44,14 @@ function SeloSaude({ saude }: { saude: Saude }) {
 function Movimento({ semanas }: { semanas: number[] }) {
   const maior = Math.max(1, ...semanas);
   return (
-    <div data-slot="movimento" className="flex h-8 items-end gap-1" role="img" aria-label={`Movimento nas últimas ${semanas.length} semanas: ${semanas.join(", ")}`}>
+    <div data-slot="movimento" className="flex h-8 items-end gap-1 border-b border-foreground/15" role="img" aria-label={`Movimento nas últimas ${semanas.length} semanas: ${semanas.join(", ")}`}>
       {semanas.map((n, i) => {
         const atras = semanas.length - 1 - i;
         return (
           <Dica key={i} texto={`${atras === 0 ? "Esta semana" : atras === 1 ? "Semana passada" : `Há ${atras} semanas`}: ${n} ${n === 1 ? "movimento" : "movimentos"}`}>
             <div className="flex h-full flex-1 items-end">
-              <div className={cn("w-full rounded-t-[3px] transition-[height] duration-500 ease-out", n ? (atras === 0 ? "bg-primary" : "bg-primary/40") : "bg-muted")}
-                style={{ height: `${n ? Math.max(14, (n / maior) * 100) : 8}%` }} />
+              <div className={cn("w-full rounded-t-[3px] transition-[height] duration-500 ease-out", atras === 0 ? "bg-primary" : "bg-primary/40")}
+                style={{ height: n ? `${Math.max(14, (n / maior) * 100)}%` : 0 }} />
             </div>
           </Dica>
         );

@@ -105,7 +105,8 @@ export function BarraSuperior({
   const router = useRouter();
   const { gravando } = useNexo();
   const { moldura } = useMoldura();
-  const ocultas = moldura.ferramentasOcultas;
+  // Com a barra lateral aberta, o campo de busca já está nela: o da barra superior só aparece com ela recolhida (3.12).
+  const ocultas = recolhida || moldura.ferramentasOcultas.includes("busca") ? moldura.ferramentasOcultas : [...moldura.ferramentasOcultas, "busca" as const];
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>

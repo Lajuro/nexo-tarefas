@@ -61,6 +61,18 @@ export function PainelDependencias({ tarefa }: { tarefa: Tarefa }) {
   const todas = [...deps.abertas, ...deps.fechadas];
   const destravou = aberta(tarefa) && todas.length > 0 && deps.abertas.length === 0;
 
+  const seletor = (classe: string, placeholder: string) => (
+    <Combobox valor="" aoMudar={ligar} opcoes={opcoes} permitirLimpar={false} placeholder={placeholder}
+      buscaPlaceholder="Buscar tarefa..." vazio="Nenhuma tarefa com esse nome." aria-label="Ligar uma tarefa de que esta depende" className={classe} />
+  );
+
+  // Nada ligado, nada segurado: o painel é só o cabeçalho com o seletor, em vez de um bloco com uma frase.
+  if (todas.length === 0 && segura.length === 0 && deps.sumidas.length === 0)
+    return (
+      <Painel titulo="Depende de" icone={<Link2 />}
+        acoes={seletor("h-7 w-auto max-w-44 border-transparent bg-transparent px-2 text-xs shadow-none hover:border-transparent hover:bg-accent dark:bg-transparent dark:hover:bg-accent", "Ligar a outra tarefa")} />
+    );
+
   return (
     <Painel titulo="Depende de" icone={<Link2 />} contagem={deps.abertas.length || undefined} corpoClassName="flex flex-col gap-2 py-2.5">
       {destravou && (
@@ -74,8 +86,7 @@ export function PainelDependencias({ tarefa }: { tarefa: Tarefa }) {
         <p className="text-xs text-muted-foreground">Nada segura esta tarefa. Se ela só anda depois de outra, ligue aqui.</p>
       )}
       {deps.sumidas.length > 0 && <p className="text-xs text-muted-foreground">{deps.sumidas.length === 1 ? "Uma tarefa ligada foi para a lixeira." : `${deps.sumidas.length} tarefas ligadas foram para a lixeira.`}</p>}
-      <Combobox valor="" aoMudar={ligar} opcoes={opcoes} permitirLimpar={false} placeholder="Depende de outra tarefa..."
-        buscaPlaceholder="Buscar tarefa..." vazio="Nenhuma tarefa com esse nome." aria-label="Ligar uma tarefa de que esta depende" className="w-full" />
+      {seletor("w-full", "Depende de outra tarefa...")}
       {segura.length > 0 && (
         <div data-slot="segura" className="mt-1 border-t pt-2">
           <p className="mb-0.5 text-xs font-medium text-muted-foreground">Esta tarefa segura</p>

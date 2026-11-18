@@ -336,12 +336,14 @@ export function Lateral({
                 <Plus className="size-4" />
               </button>
             </Dica>
-            <Dica texto="Buscar" atalho="Ctrl K" side="right">
-              <button type="button" aria-label="Buscar" onClick={abrirPaleta}
-                className={cn("inline-flex size-8 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-foreground", foco)}>
-                <Search className="size-4" />
-              </button>
-            </Dica>
+            {moldura.ferramentasOcultas.includes("busca") && (
+              <Dica texto="Buscar" atalho="Ctrl K" side="right">
+                <button type="button" aria-label="Buscar" onClick={abrirPaleta}
+                  className={cn("inline-flex size-8 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-foreground", foco)}>
+                  <Search className="size-4" />
+                </button>
+              </Dica>
+            )}
           </>
         ) : (
           <>

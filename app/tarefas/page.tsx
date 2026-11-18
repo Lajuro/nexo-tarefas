@@ -403,16 +403,6 @@ function Tarefas() {
             </motion.div>
           )}
         </AnimatePresence>
-        <Segmentado<Visao>
-          valor={visao}
-          aoMudar={setVisao}
-          aria-label="Como ver as tarefas"
-          opcoes={[
-            { valor: "grade", rotulo: "Grade", icone: <LayoutGrid /> },
-            { valor: "lista", rotulo: "Lista", icone: <Rows3 /> },
-            { valor: "quadro", rotulo: "Quadro", icone: <Kanban /> },
-          ]}
-        />
       </div>
 
       </div>
@@ -499,9 +489,16 @@ function Tarefas() {
       titulo="Tarefas"
       descricao="Tudo o que foi designado pra você, num lugar só."
       acoes={
-        <Button onClick={() => abrirNovaTarefa()}>
-          <Plus /> Nova tarefa <Kbd className="border-white/25 bg-black/12 text-white">N</Kbd>
-        </Button>
+        <Segmentado<Visao>
+          valor={visao}
+          aoMudar={setVisao}
+          aria-label="Como ver as tarefas"
+          opcoes={[
+            { valor: "grade", rotulo: "Grade", icone: <LayoutGrid /> },
+            { valor: "lista", rotulo: "Lista", icone: <Rows3 /> },
+            { valor: "quadro", rotulo: "Quadro", icone: <Kanban /> },
+          ]}
+        />
       }
       barra={barra}
       semRolagem={noQuadro}

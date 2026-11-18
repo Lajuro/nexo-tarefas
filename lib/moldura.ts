@@ -27,7 +27,7 @@ export const NOME_FERRAMENTA: Record<IdFerramenta, { nome: string; descricao: st
   agenda: { nome: "Data e agenda", descricao: "O dia. Ao clicar, a hora e os prazos das próximas duas semanas." },
   foco: { nome: "Foco de hoje", descricao: "Quantos passos do foco já saíram. Ao clicar, marca passos sem trocar de tela." },
   anotar: { nome: "Anotar rápido", descricao: "Cria uma tarefa ou uma folha do bloco de notas de qualquer tela (atalho A)." },
-  busca: { nome: "Campo de busca", descricao: "Abre a paleta de comandos. O atalho Ctrl K continua valendo sem ele." },
+  busca: { nome: "Campo de busca", descricao: "Aparece com a barra lateral recolhida (aberta, a busca já está nela). O atalho Ctrl K continua valendo sem ele." },
   telaCheia: { nome: "Tela cheia", descricao: "Item de tela cheia no menu Mais. A tecla F11 continua valendo sem ele." },
   ajuda: { nome: "Atalhos", descricao: "Item da lista de atalhos de teclado no menu Mais. A tecla ? continua valendo sem ele." },
 };

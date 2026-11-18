@@ -82,7 +82,11 @@ O Nexo lembra você do que fazer:
 ## 3.12: mais fácil de bater o olho
 
 - **Tela Hoje**: em "Precisa de você", os motivos de cada tarefa viraram selos numa linha (vermelho para o que está errado, âmbar para o que pede atenção, cinza para o resto). Passe o mouse num selo para ver a explicação. Embaixo fica só o que dá para resolver ali mesmo: o passo, com o botão **Concluir**. A saudação ficou maior e a lista ocupa menos espaço, então o foco de hoje aparece sem rolar.
-- **Barra superior mais leve**: as ferramentas (rotina, agenda, foco, anotar, busca) perderam a moldura; o fundo aparece quando você passa o mouse.
+- **Nome da tela maior** em todas as telas, para o olho achar onde está.
+- **Barra superior mais leve**: as ferramentas (rotina, agenda, foco, anotar) perderam a moldura; o fundo aparece quando você passa o mouse. A **busca** fica num lugar só: na barra lateral ou, com ela recolhida, na barra superior. `Ctrl K` e `/` continuam abrindo de qualquer lugar.
+- **Tela Tarefas**: Grade, Lista e Quadro subiram para o cabeçalho e os cartões começam mais cedo. O botão "Nova tarefa" de lá saiu, porque já está na barra lateral (e no atalho `N`).
+- **Página da tarefa**: "Depende de" vazio virou uma linha só, com o seletor ao lado.
+- **Radar**: o gráfico de movimento de cada categoria ganhou linha de base.
 - **Lista de tarefas**: o título aparece inteiro. Num notebook, as outras colunas ficam mais justas para dar lugar a ele.
 - **Quadro**: as cinco colunas cabem na tela de um notebook, sem a última ficar cortada.
 - **Barra lateral**: o que não cabe esmaece no fim, em vez de um item aparecer pela metade, e o nome do seu nível aparece inteiro.
