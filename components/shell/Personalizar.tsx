@@ -7,11 +7,16 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Reorder, useDragControls } from "motion/react";
-import { GripVertical, PanelLeft, PanelTop, Palette, RotateCcw, X } from "lucide-react";
-import { useAparencia, useConfirmar } from "@/components/Raiz";
+import { ClipboardCopy, ClipboardPaste, GripVertical, PanelLeft, PanelTop, Palette, RotateCcw, Sun, X } from "lucide-react";
+import { useNexo } from "@/components/Provider";
+import { useAparencia, useConfirmar, useTema } from "@/components/Raiz";
+import { Modal, copiarTexto } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { CampoSwitch, Segmentado, Switch } from "@/components/ui/controles";
+import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
+import { TAMANHO_MAXIMO, lerPersonalizacao, textoDaPersonalizacao } from "@/lib/personalizacao";
+import { BLOCOS_HOJE, LateralHoje, NOME_BLOCO_HOJE, PrimeiroHoje, TAMANHO_DO_NOME, useTelaHoje } from "@/lib/tela-hoje";
 import {
   AbaPersonalizar, FERRAMENTAS, IdSecao, LARGURA_LATERAL, NOME_FERRAMENTA, NOME_SECAO, alternarNa, naOrdem, useMoldura,
 } from "@/lib/moldura";
@@ -171,11 +176,128 @@ function AbaSuperior() {
   );
 }
 
+/** Liga e desliga um bloco fixo (sem ordem). */
+function ItemFixo({ nome, descricao, ligado, aoLigar }: { nome: string; descricao: string; ligado: boolean; aoLigar: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border bg-card px-2.5 py-1.5 shadow-xs">
+      <span className={cn("min-w-0 flex-1 transition-opacity", !ligado && "opacity-50")}>
+        <span className="block text-[13px] font-medium sem-selecao">{nome}</span>
+        <span className="block text-xs leading-snug text-muted-foreground">{descricao}</span>
+      </span>
+      <Switch checked={ligado} onCheckedChange={aoLigar} aria-label={`Mostrar ${nome}`} />
+    </div>
+  );
+}
+
+/** A tela Hoje do jeito do usuário: o nome na saudação, o que aparece e em que ordem. */
+function AbaHoje() {
+  const { telaHoje, mudarTelaHoje } = useTelaHoje();
+  const ligado = (id: (typeof BLOCOS_HOJE)[number]) => !telaHoje.ocultos.includes(id);
+  const ligar = (id: (typeof BLOCOS_HOJE)[number]) => (v: boolean) => mudarTelaHoje((t) => ({ ocultos: alternarNa(t.ocultos, id, !v) }));
+  // O nome é escrito num rascunho e só vale ao sair do campo: o normalizador apara espaços, o que atrapalharia a digitação.
+  const [nome, setNome] = useState(telaHoje.nome);
+  useEffect(() => setNome(telaHoje.nome), [telaHoje.nome]);
+  const fixo = (id: (typeof BLOCOS_HOJE)[number]) => (
+    <ItemFixo key={id} nome={NOME_BLOCO_HOJE[id].nome} descricao={NOME_BLOCO_HOJE[id].descricao} ligado={ligado(id)} aoLigar={ligar(id)} />
+  );
+
+  return (
+    <div data-slot="aba-hoje" className="flex flex-col gap-6">
+      <Bloco titulo="Saudação" ajuda="Como o Nexo te chama no topo da tela Hoje. Fica só neste navegador.">
+        <Input value={nome} maxLength={TAMANHO_DO_NOME} placeholder="Seu nome ou apelido" aria-label="Seu nome na saudação"
+          onChange={(e) => setNome(e.target.value)} onBlur={() => mudarTelaHoje({ nome })}
+          onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} />
+      </Bloco>
+
+      <Bloco titulo="Coluna principal" ajuda="No automático, o que pede atenção vem primeiro; com tudo em dia, o foco sobe.">
+        <Segmentado<PrimeiroHoje>
+          aria-label="O que vem primeiro na tela Hoje"
+          valor={telaHoje.primeiro}
+          aoMudar={(primeiro) => mudarTelaHoje({ primeiro })}
+          className="self-start"
+          opcoes={[
+            { valor: "auto", rotulo: "Automático" },
+            { valor: "precisa", rotulo: "Precisa de você" },
+            { valor: "foco", rotulo: "Foco" },
+          ]}
+        />
+        <div className="flex flex-col gap-1">{(["captura", "precisa", "foco"] as const).map(fixo)}</div>
+      </Bloco>
+
+      <Bloco titulo="Coluna da direita" ajuda="Arraste para mudar a ordem e desligue o que você não usa.">
+        <Reorder.Group axis="y" values={telaHoje.laterais} onReorder={(novo) => mudarTelaHoje({ laterais: novo as LateralHoje[] })} className="flex flex-col gap-1">
+          {telaHoje.laterais.map((id, i) => (
+            <ItemOrdenavel key={id} valor={id} nome={NOME_BLOCO_HOJE[id].nome} descricao={NOME_BLOCO_HOJE[id].descricao}
+              ligado={ligado(id)} aoLigar={ligar(id)} mover={(d) => mudarTelaHoje({ laterais: trocar(telaHoje.laterais, i, d) })} />
+          ))}
+        </Reorder.Group>
+      </Bloco>
+
+      <Bloco titulo="Rodapé da tela">{fixo("semana")}</Bloco>
+    </div>
+  );
+}
+
+/** Copiar a personalização inteira como texto e colar em outro navegador ou computador. */
+function LevarPersonalizacao() {
+  const { toast } = useNexo();
+  const { tema, definirTema } = useTema();
+  const { aparencia, mudarAparencia } = useAparencia();
+  const { moldura, mudarMoldura } = useMoldura();
+  const { telaHoje, mudarTelaHoje } = useTelaHoje();
+  const [colando, setColando] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [erro, setErro] = useState("");
+
+  const copiar = async () => {
+    if (await copiarTexto(textoDaPersonalizacao({ tema, aparencia, moldura, hoje: telaHoje }))) toast("Código copiado. No outro computador, abra Personalizar e cole.");
+    else toast("Não consegui copiar automaticamente.", "erro");
+  };
+  const aplicar = () => {
+    const lido = lerPersonalizacao(texto);
+    if (!lido.ok) return setErro(lido.erro);
+    definirTema(lido.valor.tema);
+    mudarAparencia(lido.valor.aparencia);
+    mudarMoldura(lido.valor.moldura);
+    mudarTelaHoje(lido.valor.hoje);
+    setColando(false);
+    setTexto("");
+    toast("Personalização aplicada.");
+  };
+
+  return (
+    <section data-slot="levar-personalizacao" className="mt-6 flex flex-col gap-2 border-t pt-4">
+      <div>
+        <h3 className="text-xs font-semibold tracking-tight sem-selecao">Levar para outro computador</h3>
+        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+          A personalização mora no navegador. Copie o código aqui e cole no outro: tema, cores, barras e a tela Hoje vão juntos. Suas tarefas não entram nisso.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" data-acao="copiar-personalizacao" onClick={copiar}><ClipboardCopy /> Copiar código</Button>
+        <Button variant="outline" size="sm" data-acao="colar-personalizacao" onClick={() => { setErro(""); setColando(true); }}><ClipboardPaste /> Colar código...</Button>
+      </div>
+      <Modal titulo="Colar o código de personalização" descricao="O que está neste navegador é trocado pelo que vem no código. Só a aparência e as barras mudam."
+        aberto={colando} fechar={() => setColando(false)}
+        rodape={<>
+          <Button variant="ghost" onClick={() => setColando(false)}>Cancelar</Button>
+          <Button onClick={aplicar} disabled={!texto.trim()} data-acao="aplicar-personalizacao">Aplicar</Button>
+        </>}>
+        <Textarea value={texto} rows={5} maxLength={TAMANHO_MAXIMO} autoFocus aria-label="Código de personalização" placeholder="Cole aqui o código copiado no outro computador"
+          className="font-mono text-xs" onChange={(e) => { setTexto(e.target.value); setErro(""); }}
+          onKeyDown={(e) => (e.ctrlKey || e.metaKey) && e.key === "Enter" && aplicar()} />
+        {erro && <p role="alert" className="mt-2 text-xs text-destructive">{erro}</p>}
+      </Modal>
+    </section>
+  );
+}
+
 export function Personalizar() {
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<AbaPersonalizar>("aparencia");
   const { restaurarAparencia } = useAparencia();
   const { restaurarMoldura } = useMoldura();
+  const { restaurarTelaHoje } = useTelaHoje();
   const confirmar = useConfirmar();
 
   useEffect(() => {
@@ -196,12 +318,13 @@ export function Personalizar() {
   const restaurar = async () => {
     const ok = await confirmar({
       titulo: "Voltar tudo ao padrão?",
-      descricao: "Cores, cantos, letra, barra lateral e barra superior voltam a ser como vieram. Suas tarefas e anotações não mudam.",
+      descricao: "Cores, cantos, letra, barra lateral, barra superior e a tela Hoje voltam a ser como vieram. Suas tarefas e anotações não mudam.",
       confirmar: "Voltar ao padrão",
     });
     if (!ok) return;
     restaurarAparencia();
     restaurarMoldura();
+    restaurarTelaHoje();
   };
 
   return (
@@ -228,11 +351,12 @@ export function Personalizar() {
               aria-label="O que personalizar"
               valor={aba}
               aoMudar={setAba}
-              className="flex w-full [&>button]:flex-1"
+              className="flex w-full [&>button]:flex-1 [&>button]:gap-1.5 [&>button]:px-1.5"
               opcoes={[
                 { valor: "aparencia", rotulo: "Aparência", icone: <Palette /> },
                 { valor: "lateral", rotulo: "Lateral", icone: <PanelLeft /> },
                 { valor: "superior", rotulo: "Superior", icone: <PanelTop /> },
+                { valor: "hoje", rotulo: "Hoje", icone: <Sun /> },
               ]}
             />
             <DialogPrimitive.Close aria-label="Fechar"
@@ -241,7 +365,7 @@ export function Personalizar() {
             </DialogPrimitive.Close>
           </header>
           <div key={aba} data-aba={aba} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
-            {aba === "aparencia" ? <OpcoesAparencia /> : aba === "lateral" ? <AbaLateral /> : <AbaSuperior />}
+            {aba === "aparencia" ? <><OpcoesAparencia /><LevarPersonalizacao /></> : aba === "lateral" ? <AbaLateral /> : aba === "superior" ? <AbaSuperior /> : <AbaHoje />}
           </div>
           <footer className="flex shrink-0 items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2.5">
             <Button variant="ghost" size="sm" onClick={restaurar}><RotateCcw /> Voltar tudo ao padrão</Button>

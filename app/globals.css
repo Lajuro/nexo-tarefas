@@ -8,38 +8,45 @@
    hexadecimal solto num componente. Claro em :root, escuro em .dark
    (a classe é aplicada no <html> por components/Tema.tsx).
    ------------------------------------------------------------------ */
-:root {
+/* Os tokens são declarados no <html> e também em .tema-claro / .tema-escuro: qualquer elemento com uma dessas
+   classes recalcula as cores com as variáveis dele (--matiz, --croma, --neutro, --tinta). É assim que as
+   miniaturas dos temas prontos mostram as cores de verdade (components/shell/Aparencia.tsx). */
+:root,
+.tema-claro {
   --radius: 0.625rem;
   /* Cor de destaque escolhida pelo usuário (lib/aparencia.ts muda estas duas). */
   --matiz: 275;
   --croma: 1;
+  /* Tom dos neutros (fundos, bordas, texto): matiz e quanto de cor eles levam. Ver [data-neutros] abaixo. */
+  --neutro: 265;
+  --tinta: 1;
 
-  --background: oklch(0.984 0.003 265);
-  --foreground: oklch(0.21 0.02 265);
+  --background: oklch(0.984 calc(0.003 * var(--tinta)) var(--neutro));
+  --foreground: oklch(0.21 calc(0.02 * var(--tinta)) var(--neutro));
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.02 265);
+  --card-foreground: oklch(0.21 calc(0.02 * var(--tinta)) var(--neutro));
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.02 265);
+  --popover-foreground: oklch(0.21 calc(0.02 * var(--tinta)) var(--neutro));
   --primary: oklch(0.48 calc(0.215 * var(--croma)) var(--matiz));
   --primary-foreground: oklch(0.99 0.005 var(--matiz));
   /* Fundo cheio com texto claro por cima (botão primário, selo de foco). No claro é o próprio --primary;
      no escuro é mais fundo que ele, para o texto branco passar de 4,5:1 sem escurecer o text-primary. */
   --primary-solido: var(--primary);
-  --secondary: oklch(0.955 0.006 265);
-  --secondary-foreground: oklch(0.27 0.02 265);
-  --muted: oklch(0.962 0.005 265);
-  --muted-foreground: oklch(0.5 0.02 265);
+  --secondary: oklch(0.955 calc(0.006 * var(--tinta)) var(--neutro));
+  --secondary-foreground: oklch(0.27 calc(0.02 * var(--tinta)) var(--neutro));
+  --muted: oklch(0.962 calc(0.005 * var(--tinta)) var(--neutro));
+  --muted-foreground: oklch(0.5 calc(0.02 * var(--tinta)) var(--neutro));
   --accent: oklch(0.948 calc(0.014 * var(--croma)) var(--matiz));
   --accent-foreground: oklch(0.25 calc(0.03 * var(--croma)) var(--matiz));
   --destructive: oklch(0.5 0.2 25);
-  --border: oklch(0.915 0.007 265);
-  --input: oklch(0.875 0.01 265);
+  --border: oklch(0.915 calc(0.007 * var(--tinta)) var(--neutro));
+  --input: oklch(0.875 calc(0.01 * var(--tinta)) var(--neutro));
   --ring: oklch(0.51 calc(0.215 * var(--croma)) var(--matiz));
 
-  --sidebar: oklch(0.969 0.005 265);
-  --sidebar-foreground: oklch(0.36 0.02 265);
+  --sidebar: oklch(0.969 calc(0.005 * var(--tinta)) var(--neutro));
+  --sidebar-foreground: oklch(0.36 calc(0.02 * var(--tinta)) var(--neutro));
   --sidebar-accent: oklch(0.925 calc(0.014 * var(--croma)) var(--matiz));
-  --sidebar-border: oklch(0.905 0.008 265);
+  --sidebar-border: oklch(0.905 calc(0.008 * var(--tinta)) var(--neutro));
 
   /* Cores de estado e de status: no claro, escuras o bastante para o texto delas passar de 4,5:1
      também sobre o fundo tingido da mesma cor (selos, contadores). Ver AGENTS.md, seção 13. */
@@ -52,36 +59,37 @@
   --st-aguardando: oklch(0.49 0.12 72);
   --st-bloqueada: oklch(0.5 0.2 25);
   --st-concluida: oklch(0.47 0.13 152);
-  --st-cancelada: oklch(0.5 0.01 265);
+  --st-cancelada: oklch(0.5 calc(0.01 * var(--tinta)) var(--neutro));
 
   --marca-texto: oklch(0.9 0.16 95);
   --sombra-cor: 250 30% 20%;
   color-scheme: light;
 }
 
-.dark {
-  --background: oklch(0.158 0.012 265);
-  --foreground: oklch(0.945 0.006 265);
-  --card: oklch(0.193 0.014 265);
-  --card-foreground: oklch(0.945 0.006 265);
-  --popover: oklch(0.215 0.016 265);
-  --popover-foreground: oklch(0.945 0.006 265);
+.dark,
+.tema-escuro {
+  --background: oklch(0.158 calc(0.012 * var(--tinta)) var(--neutro));
+  --foreground: oklch(0.945 calc(0.006 * var(--tinta)) var(--neutro));
+  --card: oklch(0.193 calc(0.014 * var(--tinta)) var(--neutro));
+  --card-foreground: oklch(0.945 calc(0.006 * var(--tinta)) var(--neutro));
+  --popover: oklch(0.215 calc(0.016 * var(--tinta)) var(--neutro));
+  --popover-foreground: oklch(0.945 calc(0.006 * var(--tinta)) var(--neutro));
   --primary: oklch(0.63 calc(0.2 * var(--croma)) var(--matiz));
   --primary-foreground: oklch(0.99 0.005 var(--matiz));
   --primary-solido: oklch(0.52 calc(0.2 * var(--croma)) var(--matiz));
-  --secondary: oklch(0.245 0.016 265);
-  --secondary-foreground: oklch(0.93 0.006 265);
-  --muted: oklch(0.232 0.015 265);
-  --muted-foreground: oklch(0.69 0.02 265);
+  --secondary: oklch(0.245 calc(0.016 * var(--tinta)) var(--neutro));
+  --secondary-foreground: oklch(0.93 calc(0.006 * var(--tinta)) var(--neutro));
+  --muted: oklch(0.232 calc(0.015 * var(--tinta)) var(--neutro));
+  --muted-foreground: oklch(0.69 calc(0.02 * var(--tinta)) var(--neutro));
   --accent: oklch(0.262 calc(0.026 * var(--croma)) var(--matiz));
-  --accent-foreground: oklch(0.96 0.006 265);
+  --accent-foreground: oklch(0.96 calc(0.006 * var(--tinta)) var(--neutro));
   --destructive: oklch(0.66 0.2 22);
   --border: oklch(1 0 0 / 0.09);
   --input: oklch(1 0 0 / 0.14);
   --ring: oklch(0.66 calc(0.19 * var(--croma)) var(--matiz));
 
-  --sidebar: oklch(0.14 0.012 265);
-  --sidebar-foreground: oklch(0.76 0.015 265);
+  --sidebar: oklch(0.14 calc(0.012 * var(--tinta)) var(--neutro));
+  --sidebar-foreground: oklch(0.76 calc(0.015 * var(--tinta)) var(--neutro));
   --sidebar-accent: oklch(0.235 calc(0.024 * var(--croma)) var(--matiz));
   --sidebar-border: oklch(1 0 0 / 0.07);
 
@@ -94,11 +102,43 @@
   --st-aguardando: oklch(0.8 0.14 78);
   --st-bloqueada: oklch(0.72 0.18 22);
   --st-concluida: oklch(0.74 0.16 152);
-  --st-cancelada: oklch(0.64 0.01 265);
+  --st-cancelada: oklch(0.64 calc(0.01 * var(--tinta)) var(--neutro));
 
   --marca-texto: oklch(0.55 0.13 90);
   --sombra-cor: 250 50% 2%;
   color-scheme: dark;
+}
+
+/* Tons neutros (aparencia.neutros). Só o matiz e a saturação mudam: a luminosidade de cada token fica igual,
+   então o contraste do texto não depende desta escolha. Vem depois dos tokens para valer também nas miniaturas. */
+[data-neutros="frio"] {
+  --neutro: 265;
+  --tinta: 1;
+}
+[data-neutros="neutro"] {
+  --tinta: 0;
+}
+[data-neutros="quente"] {
+  --neutro: 75;
+  --tinta: 2.4;
+}
+[data-neutros="destaque"] {
+  --neutro: var(--matiz);
+  --tinta: 2.4;
+}
+
+/* Escuro profundo (aparencia.escuro): fundos mais perto do preto. O texto e as cores de estado não mudam,
+   então o contraste só aumenta. */
+.dark[data-escuro="profundo"],
+.tema-escuro[data-escuro="profundo"] {
+  --background: oklch(0.105 calc(0.01 * var(--tinta)) var(--neutro));
+  --card: oklch(0.15 calc(0.012 * var(--tinta)) var(--neutro));
+  --popover: oklch(0.178 calc(0.014 * var(--tinta)) var(--neutro));
+  --secondary: oklch(0.205 calc(0.014 * var(--tinta)) var(--neutro));
+  --muted: oklch(0.192 calc(0.013 * var(--tinta)) var(--neutro));
+  --accent: oklch(0.225 calc(0.026 * var(--croma)) var(--matiz));
+  --sidebar: oklch(0.085 calc(0.01 * var(--tinta)) var(--neutro));
+  --sidebar-accent: oklch(0.195 calc(0.024 * var(--croma)) var(--matiz));
 }
 
 @theme inline {
@@ -690,9 +730,17 @@ html[data-fundo="pontilhado"] [data-slot="conteudo"] {
   background-image: radial-gradient(color-mix(in oklch, var(--foreground) 11%, transparent) 1px, transparent 1px);
   background-size: 18px 18px;
 }
+html[data-fundo="grade"] [data-slot="conteudo"] {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--foreground) 5%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
 /* Com fundo decorado, o cabeçalho das telas deixa de ser opaco para o desenho continuar por baixo. */
 html[data-fundo="aurora"] [data-slot="pagina"] > header,
-html[data-fundo="pontilhado"] [data-slot="pagina"] > header {
+html[data-fundo="pontilhado"] [data-slot="pagina"] > header,
+html[data-fundo="grade"] [data-slot="pagina"] > header {
   background-color: color-mix(in oklch, var(--background) 55%, transparent);
 }
 

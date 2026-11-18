@@ -9,16 +9,17 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, Undo2, Waypoints, type LucideIcon,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
+import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.12";
+export const VERSAO_NOVIDADES = "3.13";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -28,9 +29,19 @@ type Novidade = {
   versao: string; icone: LucideIcon; titulo: string; texto: string; href: string; rotulo: string;
   /** Só para a versão atual: o que mudou em frases curtas, no lugar do parágrafo. */
   pontos?: string[];
+  /** Em vez de ir para uma tela, o botão faz isto (abrir o painel Personalizar, por exemplo). */
+  acao?: () => void;
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.13", icone: Paintbrush, titulo: "O Nexo com a sua cara", texto: "Temas prontos que trocam tudo com um clique, cor de destaque livre (qualquer matiz), tons neutros frios, cinza, quentes ou puxados para a sua cor, escuro profundo e fundo em grade. A tela Hoje pode ter o seu nome na saudação, só os blocos que você usa e na ordem que preferir. E um código leva a personalização inteira para outro computador.", href: "/", rotulo: "Abrir o Personalizar", acao: () => abrirPersonalizar("aparencia"),
+    pontos: [
+      "Temas prontos: Oceano, Floresta, Pôr do sol, Papel, Ameixa, Meia-noite e outros. Um clique troca cor, tons, cantos, letra, barra lateral e fundo.",
+      "Sua cor: a última bolinha da cor de destaque abre o matiz e a intensidade. Qualquer cor serve, o texto continua legível.",
+      "Tons neutros (frios, cinza, quentes ou da sua cor), escuro profundo para ambiente escuro e um fundo novo, em grade.",
+      "Tela Hoje sob medida: seu nome na saudação, o que aparece e em que ordem. Abra pelo botão ao lado de Planejar o dia.",
+      "Levar para outro computador: copie o código em Personalizar e cole no outro navegador.",
+    ] },
   { versao: "3.12", icone: Eye, titulo: "Hoje mais fácil de bater o olho", texto: "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha (passe o mouse para ver a explicação) e embaixo fica só o que dá para resolver ali: o passo com o botão Concluir. O nome de cada tela ficou maior, a barra superior perdeu as molduras, a busca fica num lugar só, a lista de tarefas mostra o título inteiro, o quadro cabe na tela e \"O que há de novo\" separa esta versão do histórico.", href: "/", rotulo: "Abrir a tela Hoje",
     pontos: [
       "Em \"Precisa de você\", os motivos de cada tarefa viraram selos numa linha. Passe o mouse num selo para ver a explicação.",
@@ -88,7 +99,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Telas mais fáceis de bater o olho: nome da tela maior, motivos em selos na tela Hoje, título inteiro na lista de tarefas e o quadro cabendo na tela.",
+          description: "Personalização nova: temas prontos, cor de destaque livre, tons neutros, tela Hoje sob medida e um código para levar tudo a outro computador.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });
@@ -133,9 +144,13 @@ export function Novidades() {
                 ) : (
                   <p className="mt-3 text-[13px] leading-relaxed">{n.texto}</p>
                 )}
-                <Button asChild variant="outline" size="sm" className="mt-3.5">
-                  <Link href={n.href} onClick={ir}>{n.rotulo} <ArrowRight /></Link>
-                </Button>
+                {n.acao ? (
+                  <Button variant="outline" size="sm" className="mt-3.5" data-acao="novidade-acao" onClick={() => { ir(); n.acao?.(); }}>{n.rotulo} <ArrowRight /></Button>
+                ) : (
+                  <Button asChild variant="outline" size="sm" className="mt-3.5">
+                    <Link href={n.href} onClick={ir}>{n.rotulo} <ArrowRight /></Link>
+                  </Button>
+                )}
               </article>
             ))}
           </div>
@@ -168,9 +183,13 @@ export function Novidades() {
                         <CollapsibleContent>
                           <div className="pt-0.5 pr-2 pb-2.5 pl-[34px]">
                             <p className="text-[13px] leading-relaxed text-muted-foreground">{n.texto}</p>
-                            <Button asChild variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
-                              <Link href={n.href} onClick={ir}>{n.rotulo}</Link>
-                            </Button>
+                            {n.acao ? (
+                              <Button variant="link" size="sm" className="mt-1 h-auto p-0 text-xs" onClick={() => { ir(); n.acao?.(); }}>{n.rotulo}</Button>
+                            ) : (
+                              <Button asChild variant="link" size="sm" className="mt-1 h-auto p-0 text-xs">
+                                <Link href={n.href} onClick={ir}>{n.rotulo}</Link>
+                              </Button>
+                            )}
                           </div>
                         </CollapsibleContent>
                       </Collapsible>

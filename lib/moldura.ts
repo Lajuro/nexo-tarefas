@@ -139,7 +139,7 @@ export function useRecentes() {
 }
 
 /** Abre o painel "Personalizar" de qualquer lugar, já na aba pedida. */
-export type AbaPersonalizar = "aparencia" | "lateral" | "superior";
+export type AbaPersonalizar = "aparencia" | "lateral" | "superior" | "hoje";
 export function abrirPersonalizar(aba: AbaPersonalizar = "aparencia") {
   window.dispatchEvent(new CustomEvent("nexo:personalizar", { detail: { aba } }));
 }

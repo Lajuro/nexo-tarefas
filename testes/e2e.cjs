@@ -1806,6 +1806,105 @@ async function main() {
     await painel.waitFor({ state: "detached" });
   });
 
+  // ---------- personalização (3.13): temas prontos, cor livre, tons neutros, tela Hoje e código ----------
+  await etapa("personalizar: temas prontos, cor livre, tela Hoje sob medida e código para outro computador", async () => {
+    await pg.goto(B + "/");
+    await pg.locator("[data-slot=hoje]").waitFor();
+    const raiz = (fn, arg) => pg.waitForFunction(fn, arg);
+    const blocos = () => pg.evaluate(() => [...document.querySelectorAll("[data-slot=hoje] [data-bloco]")].map((e) => e.dataset.bloco));
+    // o botão da tela Hoje abre o painel já na aba dela
+    await pg.locator("[data-acao=personalizar-hoje]").click();
+    const painel = pg.locator("[data-slot=personalizar]");
+    await painel.locator("[data-slot=aba-hoje]").waitFor();
+    // nome na saudação
+    await painel.getByLabel("Seu nome na saudação").fill("  Ana  ");
+    await pg.keyboard.press("Enter");
+    await pg.locator("[data-slot=pagina] h1", { hasText: /, Ana$/ }).waitFor();
+    // esconder um bloco, mudar a ordem da coluna da direita e pôr o foco primeiro
+    afirmar((await blocos()).includes("semana"), "a semana devia aparecer por padrão");
+    await painel.getByRole("switch", { name: "Mostrar Próximos 7 dias" }).click();
+    await pg.locator("[data-bloco=semana]").waitFor({ state: "detached" });
+    await painel.getByRole("button", { name: /^Mover Progresso de hoje/ }).press("ArrowUp");
+    await raiz(() => {
+      const b = [...document.querySelectorAll("[data-slot=hoje] aside [data-bloco]")].map((e) => e.dataset.bloco);
+      return b.indexOf("progresso") >= 0 && b.indexOf("progresso") < b.indexOf("rotina");
+    });
+    await painel.getByRole("radio", { name: "Foco", exact: true }).click();
+    await raiz(() => {
+      const b = [...document.querySelectorAll("[data-slot=hoje] [data-bloco]")].map((e) => e.dataset.bloco);
+      return b.indexOf("foco") >= 0 && b.indexOf("foco") < b.indexOf("precisa");
+    });
+    // tema pronto: troca cor, fundo, escuro profundo e o próprio tema de uma vez
+    await painel.getByRole("radio", { name: "Aparência" }).click();
+    afirmar((await painel.locator("[data-tema-pronto]").count()) >= 8, "faltam temas prontos");
+    await painel.locator("[data-tema-pronto=meia-noite]").click();
+    await raiz(() => {
+      const h = document.documentElement;
+      return h.classList.contains("dark") && h.dataset.escuro === "profundo" && h.dataset.fundo === "aurora" && h.style.getPropertyValue("--matiz") === "252";
+    });
+    afirmar((await painel.locator("[data-tema-pronto=meia-noite]").getAttribute("aria-checked")) === "true", "o tema aplicado não ficou marcado");
+    // a miniatura tem as cores do próprio tema: a do Papel continua clara com o app escuro
+    const luz = await pg.evaluate(() => {
+      const cv = document.createElement("canvas");
+      cv.width = cv.height = 1;
+      const cx = cv.getContext("2d");
+      const brilho = (el) => {
+        cx.fillStyle = getComputedStyle(el).backgroundColor;
+        cx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = cx.getImageData(0, 0, 1, 1).data;
+        return r + g + b;
+      };
+      return { papel: brilho(document.querySelector("[data-tema-pronto=papel] .tema-claro")), app: brilho(document.body) };
+    });
+    afirmar(luz.papel > 600 && luz.app < 150, "a miniatura do tema claro não usou as cores dela: " + JSON.stringify(luz));
+    // cor livre: parte da cor atual e aceita qualquer matiz, com a intensidade limitada
+    await painel.locator("[data-acento=livre]").click();
+    await painel.locator("[data-slot=cor-livre]").waitFor();
+    await raiz(() => document.documentElement.style.getPropertyValue("--matiz") === "252");
+    await painel.getByRole("slider", { name: "Matiz da cor de destaque" }).press("Home");
+    await raiz(() => document.documentElement.style.getPropertyValue("--matiz") === "0");
+    const croma = Number(await pg.evaluate(() => document.documentElement.style.getPropertyValue("--croma")));
+    afirmar(croma > 0.3 && croma <= 1, "croma da cor livre fora da faixa: " + croma);
+    afirmar((await painel.locator("[data-tema-pronto][aria-checked=true]").count()) === 0, "com a cor livre, nenhum tema pronto devia ficar marcado");
+    await painel.getByRole("radio", { name: "Quentes" }).click();
+    await raiz(() => document.documentElement.dataset.neutros === "quente");
+    // copiar o código, voltar ao padrão e colar: tudo volta
+    await painel.locator("[data-acao=copiar-personalizacao]").click();
+    await pg.waitForFunction(async () => (await navigator.clipboard.readText()).includes('"personalizacao"'));
+    const codigo = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(codigo.length < 3000 && JSON.parse(codigo).hoje.nome === "Ana", "o código copiado não traz a personalização");
+    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
+    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+    await raiz(() => document.documentElement.style.getPropertyValue("--matiz") === "275" && document.documentElement.dataset.neutros === "frio");
+    await pg.locator("[data-bloco=semana]").waitFor();
+    afirmar(!(await pg.locator("[data-slot=pagina] h1").innerText()).includes("Ana"), "o nome continuou na saudação depois de voltar ao padrão");
+    await painel.locator("[data-acao=colar-personalizacao]").click();
+    const campo = pg.getByRole("textbox", { name: "Código de personalização" });
+    await campo.fill("isto não é um código");
+    await pg.locator("[data-acao=aplicar-personalizacao]").click();
+    await pg.getByRole("alert").filter({ hasText: "código de personalização" }).waitFor();
+    afirmar((await pg.evaluate(() => document.documentElement.style.getPropertyValue("--matiz"))) === "275", "um texto qualquer mudou a aparência");
+    await campo.fill("segue o código:\n" + codigo);
+    await pg.locator("[data-acao=aplicar-personalizacao]").click();
+    await raiz(() => document.documentElement.style.getPropertyValue("--matiz") === "0" && document.documentElement.dataset.neutros === "quente" && document.documentElement.classList.contains("dark"));
+    await pg.locator("[data-slot=pagina] h1", { hasText: /, Ana$/ }).waitFor();
+    await pg.locator("[data-bloco=semana]").waitFor({ state: "detached" });
+    // depois de recarregar, o script do <head> aplica a mesma coisa antes da primeira pintura
+    await pg.reload();
+    await pg.locator("[data-slot=hoje]").waitFor();
+    const depois = await pg.evaluate(() => ({ ...document.documentElement.dataset, matiz: document.documentElement.style.getPropertyValue("--matiz") }));
+    afirmar(depois.matiz === "0" && depois.neutros === "quente" && depois.escuro === "profundo", "a personalização não voltou depois de recarregar: " + JSON.stringify(depois));
+    // deixa tudo como veio para as próximas etapas
+    await pg.locator("[data-acao=personalizar-hoje]").click();
+    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
+    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+    await painel.getByRole("radio", { name: "Aparência" }).click();
+    await painel.getByRole("radio", { name: "Sistema", exact: true }).click();
+    await raiz(() => !document.documentElement.classList.contains("dark") && document.documentElement.style.getPropertyValue("--matiz") === "275");
+    await painel.getByRole("button", { name: "Pronto" }).click();
+    await painel.waitFor({ state: "detached" });
+  });
+
   await etapa("tarefas: seleção em lote, desfazer com Ctrl Z, visão salva e teclado", async () => {
     await pg.goto(`${B}/tarefas`);
     await pg.locator("[data-slot=contador-tarefas]").waitFor();

@@ -79,6 +79,18 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.13: o Nexo com a sua cara
+
+Abra **Personalizar** (o botão ao lado de Configurações, no pé do menu, ou o "..." da barra superior). Tudo muda na hora e fica só no seu navegador; suas tarefas não mudam.
+
+- **Temas prontos**: Nexo, Grafite, Oceano, Floresta, Pôr do sol, Papel, Ameixa, Meia-noite e Terminal. Um clique troca cor, tons, cantos, letra, barra lateral e fundo. Os que têm um sol ou uma lua também mudam para claro ou escuro. Depois é só ajustar o que quiser.
+- **Sua cor**: a última bolinha da cor de destaque abre dois controles, matiz e intensidade. Qualquer cor serve: o Nexo mantém a luminosidade, então o texto continua legível.
+- **Tons neutros**: os fundos, as bordas e o texto podem ser frios (como sempre foram), cinza, quentes ou puxados de leve para a sua cor.
+- **Escuro profundo**: fundos quase pretos, com mais contraste, para ambiente escuro.
+- **Fundo em grade**, além de liso, aurora e pontilhado.
+- **Tela Hoje sob medida**: o botão ao lado de "Planejar o dia" abre as opções. Ponha seu nome na saudação, esconda os blocos que você não usa, mude a ordem dos painéis da direita e escolha se o foco ou "Precisa de você" vem primeiro.
+- **Levar para outro computador**: no fim da aba Aparência, "Copiar código" guarda a personalização inteira num texto. No outro computador (ou em outro navegador), "Colar código..." aplica tudo.
+
 ## 3.12: mais fácil de bater o olho
 
 - **Tela Hoje**: em "Precisa de você", os motivos de cada tarefa viraram selos numa linha (vermelho para o que está errado, âmbar para o que pede atenção, cinza para o resto). Passe o mouse num selo para ver a explicação. Embaixo fica só o que dá para resolver ali mesmo: o passo, com o botão **Concluir**. A saudação ficou maior e a lista ocupa menos espaço, então o foco de hoje aparece sem rolar.

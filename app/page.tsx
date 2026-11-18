@@ -3,9 +3,9 @@
 // Tela "Hoje": o lugar onde o dia começa. Mostra o foco escolhido, o que precisa de atenção,
 // a semana que vem pela frente e o que já andou, sem precisar abrir tarefa por tarefa.
 
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { motion } from "motion/react";
-import { Ban, ClipboardCopy, Hourglass, MoonStar, Plus, Sunrise } from "lucide-react";
+import { Ban, ClipboardCopy, Hourglass, MoonStar, Plus, SlidersHorizontal, Sunrise } from "lucide-react";
 import { CartaoDaRotina } from "@/components/jornada/Ferramenta";
 import { useNexo } from "@/components/Provider";
 import { abrirFecharDia, abrirNovaTarefa, abrirPlanejarDia } from "@/components/Shell";
@@ -23,6 +23,8 @@ import { Semana } from "@/components/hoje/Semana";
 import { dataLonga, useAgora } from "@/components/hoje/apoio";
 import { itemLista, lista } from "@/lib/animacoes";
 import { resumoDoDia, saudacao } from "@/lib/lembretes";
+import { abrirPersonalizar } from "@/lib/moldura";
+import { type BlocoHoje, type LateralHoje, useTelaHoje } from "@/lib/tela-hoje";
 import { hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,10 @@ export default function Hoje() {
   const agora = useAgora();
   const hoje = hojeISO();
   const lembretesDoDia = useLembretes();
+  // A tela do jeito do usuário (Personalizar > Hoje): o que aparece, em que ordem e o nome na saudação.
+  const { telaHoje } = useTelaHoje();
+  const mostra = (id: BlocoHoje) => !telaHoje.ocultos.includes(id);
+  const titulo = telaHoje.nome ? `${saudacao(agora)}, ${telaHoje.nome}` : saudacao(agora);
 
   const tarefas = useMemo(() => dados?.tarefas ?? [], [dados?.tarefas]);
   const categorias = dados?.categorias.items ?? [];
@@ -63,6 +69,9 @@ export default function Hoje() {
           <Button variant="ghost" size="icon" aria-label="Fechar o dia" data-acao="fechar-o-dia" onClick={() => abrirFecharDia()}><MoonStar /></Button>
         </Dica>
       )}
+      <Dica texto="Personalizar esta tela: o que aparece, a ordem e o seu nome na saudação">
+        <Button variant="ghost" size="icon" aria-label="Personalizar a tela Hoje" data-acao="personalizar-hoje" onClick={() => abrirPersonalizar("hoje")}><SlidersHorizontal /></Button>
+      </Dica>
       <Button onClick={() => abrirPlanejarDia()} data-acao="planejar-o-dia">
         <Sunrise /> Planejar o dia <Kbd className="border-white/25 bg-black/12 text-white">D</Kbd>
       </Button>
@@ -71,7 +80,7 @@ export default function Hoje() {
 
   if (tarefas.length === 0) {
     return (
-      <Pagina titulo={saudacao(agora)} descricao={dataLonga(hoje)} acoes={acoes}>
+      <Pagina titulo={titulo} descricao={dataLonga(hoje)} acoes={acoes}>
         <CapturaRapida />
         <Vazio titulo="Seu dia começa aqui" icone={<Sunrise />} className="mt-4">
           <p>
@@ -86,9 +95,22 @@ export default function Hoje() {
     );
   }
 
+  // Coluna principal: no automático, o que está estourando vem antes do que foi escolhido; com tudo em dia, o foco sobe.
+  const precisaPrimeiro = telaHoje.primeiro === "auto" ? pedemAtencao > 0 : telaHoje.primeiro === "precisa";
+  const principais = (precisaPrimeiro ? (["precisa", "foco"] as const) : (["foco", "precisa"] as const)).filter(mostra);
+  const paineis: Record<LateralHoje, { largo: boolean; conteudo: ReactNode }> = {
+    rotina: { largo: true, conteudo: <CartaoDaRotina /> },
+    progresso: { largo: true, conteudo: <ProgressoDoDia resumo={resumo} /> },
+    aguardando: { largo: false, conteudo: <AguardandoRetorno tarefas={resumo.aguardando} icone={<Hourglass />} /> },
+    bloqueadas: { largo: false, conteudo: <BloqueadasEParadas bloqueadas={resumo.bloqueadas} paradas={resumo.paradas} icone={<Ban />} /> },
+  };
+  const laterais = telaHoje.laterais.filter(mostra);
+  const duasColunas = principais.length > 0 && laterais.length > 0;
+  const nadaAVista = principais.length === 0 && laterais.length === 0 && !mostra("captura") && !mostra("semana");
+
   return (
     <Pagina
-      titulo={saudacao(agora)}
+      titulo={titulo}
       descricao={
         <span className="inline-flex max-w-full items-center gap-2">
           <span className="truncate">{dataLonga(hoje)}</span>
@@ -105,40 +127,50 @@ export default function Hoje() {
       acoes={acoes}
     >
       <motion.div data-slot="hoje" variants={lista} initial="escondido" animate="visivel" className="@container flex flex-col gap-4">
-        <motion.div variants={itemLista}>
-          <CapturaRapida />
-        </motion.div>
+        {mostra("captura") && (
+          <motion.div variants={itemLista} data-bloco="captura">
+            <CapturaRapida />
+          </motion.div>
+        )}
 
-        <div className="mt-2 grid gap-x-6 gap-y-8 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
-          {/* O que está estourando vem antes do que foi escolhido: com tudo em dia, o foco sobe. */}
-          <div className="flex min-w-0 flex-col gap-8">
-            <motion.div variants={itemLista} className={pedemAtencao ? "order-1" : "order-2"}>
-              <PrecisaDeVoce {...lembretesDoDia} />
-            </motion.div>
-            <motion.div variants={itemLista} className={pedemAtencao ? "order-2" : "order-1"}>
-              <FocoHoje focos={resumo.focos} tarefas={tarefas} categorias={categorias} />
-            </motion.div>
+        {nadaAVista && (
+          <Vazio titulo="Você escondeu todos os blocos desta tela" icone={<SlidersHorizontal />}>
+            <p>Escolha o que quer ver aqui em Personalizar. Nada foi apagado: são só os blocos da tela.</p>
+            <Button variant="outline" onClick={() => abrirPersonalizar("hoje")}>Escolher o que aparece</Button>
+          </Vazio>
+        )}
+
+        {(principais.length > 0 || laterais.length > 0) && (
+          <div className={cn("mt-2 grid gap-x-6 gap-y-8", duasColunas && "@5xl:grid-cols-[minmax(0,1fr)_20rem]")}>
+            {principais.length > 0 && (
+              <div className="flex min-w-0 flex-col gap-8">
+                {principais.map((id) => (
+                  <motion.div key={id} variants={itemLista} data-bloco={id}>
+                    {id === "precisa" ? <PrecisaDeVoce {...lembretesDoDia} /> : <FocoHoje focos={resumo.focos} tarefas={tarefas} categorias={categorias} />}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {laterais.length > 0 && (
+              // Sem a coluna principal, os painéis ocupam a largura toda, lado a lado.
+              <aside className={cn("grid min-w-0 content-start items-start gap-4 @xl:grid-cols-2", duasColunas ? "@5xl:grid-cols-1" : "@5xl:grid-cols-3")}>
+                {laterais.map((id) => (
+                  <motion.div key={id} variants={itemLista} data-bloco={id}
+                    className={cn("min-w-0", paineis[id].largo && duasColunas && "@xl:col-span-2 @5xl:col-span-1")}>
+                    {paineis[id].conteudo}
+                  </motion.div>
+                ))}
+              </aside>
+            )}
           </div>
+        )}
 
-          <aside className="grid min-w-0 content-start items-start gap-4 @xl:grid-cols-2 @5xl:grid-cols-1">
-            <motion.div variants={itemLista} className="min-w-0 @xl:col-span-2 @5xl:col-span-1">
-              <CartaoDaRotina />
-            </motion.div>
-            <motion.div variants={itemLista} className="min-w-0 @xl:col-span-2 @5xl:col-span-1">
-              <ProgressoDoDia resumo={resumo} />
-            </motion.div>
-            <motion.div variants={itemLista} className="min-w-0">
-              <AguardandoRetorno tarefas={resumo.aguardando} icone={<Hourglass />} />
-            </motion.div>
-            <motion.div variants={itemLista} className="min-w-0">
-              <BloqueadasEParadas bloqueadas={resumo.bloqueadas} paradas={resumo.paradas} icone={<Ban />} />
-            </motion.div>
-          </aside>
-        </div>
-
-        <motion.div variants={itemLista} className="mt-4">
-          <Semana hoje={hoje} tarefas={tarefas} categorias={categorias} />
-        </motion.div>
+        {mostra("semana") && (
+          <motion.div variants={itemLista} className="mt-4" data-bloco="semana">
+            <Semana hoje={hoje} tarefas={tarefas} categorias={categorias} />
+          </motion.div>
+        )}
       </motion.div>
     </Pagina>
   );

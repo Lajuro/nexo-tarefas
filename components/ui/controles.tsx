@@ -98,7 +98,7 @@ function Slider({ className, ...props }: React.ComponentProps<typeof SliderPrimi
       <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-muted">
         <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb className="block size-4 rounded-full border-2 border-primary bg-card shadow-sm transition-[box-shadow,transform] outline-none hover:scale-110 focus-visible:ring-4 focus-visible:ring-ring/30" />
+      <SliderPrimitive.Thumb aria-label={props["aria-label"]} className="block size-4 rounded-full border-2 border-primary bg-card shadow-sm transition-[box-shadow,transform] outline-none hover:scale-110 focus-visible:ring-4 focus-visible:ring-ring/30" />
     </SliderPrimitive.Root>
   );
 }
