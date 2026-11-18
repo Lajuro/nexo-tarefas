@@ -101,7 +101,7 @@ export function MarcaAtual({ ativa }: { ativa: boolean }) {
     <span
       className={cn(
         "ml-auto inline-flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors",
-        ativa ? "border-primary bg-primary text-primary-foreground" : "border-input",
+        ativa ? "border-primary-solido bg-primary-solido text-primary-foreground" : "border-input",
       )}
     >
       {ativa && <Check className="size-2.5" strokeWidth={3} />}

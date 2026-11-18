@@ -19,7 +19,7 @@ import { SeletorData } from "@/components/ui/data";
 import { Seletor } from "@/components/ui/select";
 import { modeloDaTarefa, passosDoTexto, porUso } from "@/lib/modelos";
 import { comOcorrenciaAtendida, proximaOcorrencia, textoDaRepeticao } from "@/lib/recorrencia";
-import { Modelo, type RepeticaoDoModelo, agoraISO, formatarData, hojeISO, normalizarModelo, normalizarRepeticao, novoId } from "@/lib/tipos";
+import { Modelo, type RepeticaoDoModelo, agoraISO, dataCurta, hojeISO, normalizarModelo, normalizarRepeticao, novoId } from "@/lib/tipos";
 
 const DIAS_DA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -210,7 +210,7 @@ function CampoRepetir({ valor, aoMudar }: { valor: RepeticaoDoModelo | null; aoM
   const valido = normalizarRepeticao(valor);
   return (
     <Campo rotulo={<span className="inline-flex items-center gap-1.5"><Repeat className="size-3.5" /> Repetir</span>}
-      dica={valido ? `${textoDaRepeticao(valido)}. Próxima: ${formatarData(proximaOcorrencia(valido, hoje))}. O Nexo lembra de criar a tarefa; nada nasce sozinho.` : "Para demandas com data certa: o Nexo lembra de criar a tarefa no dia (e dá para pular uma vez)."}>
+      dica={valido ? `${textoDaRepeticao(valido)}. Próxima: ${dataCurta(proximaOcorrencia(valido, hoje))}. O Nexo lembra de criar a tarefa; nada nasce sozinho.` : "Para demandas com data certa: o Nexo lembra de criar a tarefa no dia (e dá para pular uma vez)."}>
       <div data-slot="repetir-modelo" className="flex flex-wrap items-center gap-2">
         <Seletor
           valor={tipo || "nao"}
@@ -304,7 +304,7 @@ export function PainelModelos({ usar }: { usar: (modeloId: string) => void }) {
                     {c && <span className="inline-flex shrink-0 items-center gap-1"><PontoCor cor={c.cor} />{c.nome}</span>}
                     <span className="truncate">
                       {[
-                        m.repetir ? `${textoDaRepeticao(m.repetir)} (próxima: ${formatarData(proximaOcorrencia(m.repetir, hojeISO()), false)})` : "",
+                        m.repetir ? `${textoDaRepeticao(m.repetir)} (próxima: ${dataCurta(proximaOcorrencia(m.repetir, hojeISO()))})` : "",
                         m.quando, plural(m.passos.length, "passo", "passos"), m.usos ? `usado ${plural(m.usos, "vez", "vezes")}` : "ainda não usado",
                       ].filter(Boolean).join(" · ")}
                     </span>

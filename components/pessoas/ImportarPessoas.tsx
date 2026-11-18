@@ -73,7 +73,7 @@ function Indicador({ passo }: { passo: Passo }) {
             <span
               className={cn(
                 "inline-flex size-5 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-colors",
-                feito || ativo ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                feito || ativo ? "bg-primary-solido text-primary-foreground" : "bg-muted text-muted-foreground",
               )}
             >
               {feito ? <Check className="size-3" /> : p.n}
@@ -600,7 +600,7 @@ export function ImportarPessoas({ aberto, fechar }: { aberto: boolean; fechar: (
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Numero valor={resumo.criadas} rotulo={resumo.criadas === 1 ? "criada" : "criadas"} destaque />
+                  <Numero valor={resumo.criadas} rotulo={resumo.criadas === 1 ? "criada" : "criadas"} />
                   <Numero valor={resumo.completadas} rotulo={resumo.completadas === 1 ? "completada" : "completadas"} />
                   <Numero valor={resumo.puladas} rotulo={resumo.puladas === 1 ? "pulada" : "puladas"} />
                 </div>
@@ -642,10 +642,10 @@ function ResultadoLeitura({ leitura }: { leitura: Leitura }) {
   return <div><Reconhecidos n={leitura.pessoas.length} /></div>;
 }
 
-function Numero({ valor, rotulo, destaque }: { valor: number; rotulo: string; destaque?: boolean }) {
+function Numero({ valor, rotulo }: { valor: number; rotulo: string }) {
   return (
     <div className="rounded-xl border bg-card px-4 py-3 shadow-xs">
-      <div className={cn("text-2xl font-semibold tabular-nums", destaque && "text-primary")}>{valor}</div>
+      <div className={cn("text-2xl font-semibold tabular-nums", !valor && "text-muted-foreground")}>{valor}</div>
       <div className="text-xs text-muted-foreground">{rotulo}</div>
     </div>
   );

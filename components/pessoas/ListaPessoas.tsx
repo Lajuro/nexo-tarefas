@@ -22,7 +22,7 @@ import { itemLista, lista as cascata, mola } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { type EntradaPessoa, plural } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
-import { type Categoria, type Pessoa, formatarData, semAcento } from "@/lib/tipos";
+import { type Categoria, type Pessoa, dataCurta, semAcento } from "@/lib/tipos";
 import { ImportarPessoas } from "./ImportarPessoas";
 import { PessoaForm } from "./PessoaForm";
 import { AbasPessoas } from "./AbasPessoas";
@@ -354,7 +354,7 @@ function UltimoContato({ data }: { data: string | null }) {
       {data ? (
         <>
           <span className="block text-[13px]">{dataRelativa(data)}</span>
-          <span className="block text-xs text-muted-foreground tabular-nums">{formatarData(data)}</span>
+          <span className="block text-xs text-muted-foreground tabular-nums">{dataCurta(data)}</span>
         </>
       ) : (
         <span className="text-xs text-muted-foreground">Sem registro</span>

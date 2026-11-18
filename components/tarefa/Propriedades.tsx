@@ -16,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { SeletorData } from "@/components/ui/data";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aberta } from "@/lib/lembretes";
-import { Categoria, Tarefa, diasAte, formatarData } from "@/lib/tipos";
+import { Categoria, Tarefa, diasAte, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** A cara de todo valor editável da faixa. */
@@ -40,17 +40,15 @@ function Prop({ rotulo, icone, children, slot }: { rotulo: string; icone?: React
   );
 }
 
-/** "3 dias de atraso", "vence hoje", "em 5 dias": só quando o prazo está perto ou estourou. */
-function avisoPrazo(prazo: string | null, fechada: boolean): { texto: string; tom: string; gatilho: string } | null {
+/**
+ * Cor do prazo: vermelho quando venceu, âmbar até 3 dias. O texto ("20/11 · 2 dias de atraso") vem do próprio
+ * SeletorData, na regra única de data (3.10); antes havia um segundo aviso ao lado, que repetia o relativo.
+ */
+function corDoPrazo(prazo: string | null, fechada: boolean): string | null {
   const d = diasAte(prazo);
   if (d === null || fechada) return null;
-  const perigo = { tom: "text-destructive", gatilho: "text-destructive hover:text-destructive" };
-  const alerta = { tom: "text-alerta", gatilho: "text-alerta hover:text-alerta" };
-  const calmo = { tom: "text-muted-foreground", gatilho: "text-foreground" };
-  if (d < 0) return { texto: -d === 1 ? "1 dia de atraso" : `${-d} dias de atraso`, ...perigo };
-  if (d === 0) return { texto: "vence hoje", ...alerta };
-  if (d === 1) return { texto: "vence amanhã", ...alerta };
-  if (d <= 7) return { texto: `em ${d} dias`, ...(d <= 3 ? alerta : calmo) };
+  if (d < 0) return "text-destructive hover:text-destructive";
+  if (d <= 3) return "text-alerta hover:text-alerta";
   return null;
 }
 
@@ -146,7 +144,7 @@ export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria 
   const { atualizarComVolta } = useNexo();
   const acoes = useAcoesTarefa();
   const ehAberta = aberta(tarefa);
-  const aviso = avisoPrazo(tarefa.prazo, !ehAberta);
+  const corPrazo = corDoPrazo(tarefa.prazo, !ehAberta);
   const lembrete = tarefa.lembrarEm ?? "";
   const lembreteVencido = !!lembrete && (diasAte(lembrete) ?? 1) <= 0;
   // As datas usam o SeletorData compacto do kit: tira o ícone de calendário dele e iguala ao EDITAVEL.
@@ -182,12 +180,12 @@ export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria 
           compacto
           seta
           valor={tarefa.prazo ?? ""}
-          aoMudar={(v) => (v || null) !== tarefa.prazo && atualizarComVolta(tarefa.id, (t) => ({ ...t, prazo: v || null }), v ? `Prazo: ${formatarData(v)}.` : "Prazo removido.")}
+          aoMudar={(v) => (v || null) !== tarefa.prazo && atualizarComVolta(tarefa.id, (t) => ({ ...t, prazo: v || null }), v ? `Prazo: ${dataCurta(v)}.` : "Prazo removido.")}
           placeholder="sem prazo"
           aria-label="Prazo da tarefa"
-          className={cn(data, tarefa.prazo && (aviso ? aviso.gatilho : "text-foreground"))}
+          prazo
+          className={cn(data, tarefa.prazo && (corPrazo ?? "text-foreground"))}
         />
-        {aviso && <span data-slot="aviso-prazo" className={cn("text-xs font-medium whitespace-nowrap", aviso.tom)}>{aviso.texto}</span>}
       </Prop>
 
       {ehAberta && (

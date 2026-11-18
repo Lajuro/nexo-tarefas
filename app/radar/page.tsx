@@ -17,7 +17,7 @@ import { Dica } from "@/components/ui/popover";
 import { itemLista, lista } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { type Frente, type ItemPrazo, type Saude, colunaDoPrazo, montarRadar, nomeSaude, textoDoRadar } from "@/lib/radar";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const VISUAL: Record<Saude, { icone: LucideIcon; selo: string; texto: string }> = {
@@ -65,7 +65,7 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
   const numeros: { n: number; rotulo: string; classe?: string }[] = [
     { n: f.abertas.length, rotulo: f.abertas.length === 1 ? "aberta" : "abertas" },
     { n: f.atrasadas.length, rotulo: f.atrasadas.length === 1 ? "atrasada" : "atrasadas", classe: "text-destructive" },
-    { n: f.bloqueadas.length, rotulo: f.bloqueadas.length === 1 ? "bloqueada" : "bloqueadas", classe: "text-destructive" },
+    { n: f.bloqueadas.length, rotulo: f.bloqueadas.length === 1 ? "bloqueada" : "bloqueadas", classe: "text-alerta" },
     { n: f.aguardando.length, rotulo: "aguardando", classe: "text-alerta" },
   ].filter((x, i) => i === 0 || x.n > 0);
   return (
@@ -106,7 +106,7 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
           <div className="w-28 shrink-0"><Movimento semanas={f.semanas} /></div>
           <div className="min-w-0 flex-1 text-xs leading-snug text-muted-foreground">
             {f.proximoPrazo && (
-              <div className="truncate"><Flag className="mr-1 inline size-3 align-[-2px]" />{formatarData(f.proximoPrazo.data, false)} · {f.proximoPrazo.tarefa.titulo}</div>
+              <div className="truncate"><Flag className="mr-1 inline size-3 align-[-2px]" />{dataCurta(f.proximoPrazo.data)} · {f.proximoPrazo.tarefa.titulo}</div>
             )}
             {f.aguardando[0]?.esperando?.quem && (
               <div className="truncate"><Hourglass className="mr-1 inline size-3 align-[-2px]" />esperando {f.aguardando[0].esperando.quem}</div>
@@ -125,7 +125,7 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
 function Chip({ item }: { item: ItemPrazo }) {
   const Icone = ICONE_PRAZO[item.tipo];
   return (
-    <Dica texto={`${ROTULO_PRAZO[item.tipo]} em ${formatarData(item.data)}: ${item.titulo}${item.tipo !== "tarefa" ? ` (${item.tarefaTitulo})` : ""}`}>
+    <Dica texto={`${ROTULO_PRAZO[item.tipo]} em ${dataCurta(item.data)}: ${item.titulo}${item.tipo !== "tarefa" ? ` (${item.tarefaTitulo})` : ""}`}>
       <Link
         href={`/tarefas/${item.tarefaId}`}
         data-slot="prazo"
@@ -136,7 +136,7 @@ function Chip({ item }: { item: ItemPrazo }) {
         )}
       >
         <Icone className="size-3 shrink-0" />
-        <span className="shrink-0 tabular-nums">{formatarData(item.data, false)}</span>
+        <span className="shrink-0 tabular-nums">{dataCurta(item.data)}</span>
         <span className="truncate">{item.titulo}</span>
       </Link>
     </Dica>
@@ -215,7 +215,7 @@ export default function PaginaRadar() {
                   <div className="border-b bg-muted/40 px-3 py-2 font-medium text-muted-foreground sem-selecao">Categoria</div>
                   {colunasVisiveis.map((c) => (
                     <div key={c} className={cn("border-b border-l bg-muted/40 px-2 py-2 font-medium sem-selecao", c === -1 ? "text-destructive" : c === 0 ? "text-foreground" : "text-muted-foreground")}>
-                      {c === -1 ? "Atrasado" : c === 0 ? "Esta semana" : <span className="tabular-nums">{formatarData(radar.semanas[c].inicio, false)} a {formatarData(radar.semanas[c].fim, false)}</span>}
+                      {c === -1 ? "Atrasado" : c === 0 ? "Esta semana" : <span className="tabular-nums">{dataCurta(radar.semanas[c].inicio)} a {dataCurta(radar.semanas[c].fim)}</span>}
                     </div>
                   ))}
                   {linhas.map(({ f, itens }, i) => (
@@ -230,7 +230,7 @@ export default function PaginaRadar() {
                           <div key={c} className={cn("flex min-w-0 flex-col gap-1 border-l px-1.5 py-1.5", i > 0 && "border-t", c === 0 && "bg-primary/[0.03]")}>
                             {daqui.slice(0, 4).map((p, j) => <Chip key={`${p.tarefaId}:${p.tipo}:${p.data}:${j}`} item={p} />)}
                             {daqui.length > 4 && (
-                              <Dica texto={daqui.slice(4).map((p) => `${formatarData(p.data, false)} ${p.titulo}`).join(" · ")}>
+                              <Dica texto={daqui.slice(4).map((p) => `${dataCurta(p.data)} ${p.titulo}`).join(" · ")}>
                                 <span className="px-1 text-xs text-muted-foreground sem-selecao">e mais {daqui.length - 4}</span>
                               </Dica>
                             )}

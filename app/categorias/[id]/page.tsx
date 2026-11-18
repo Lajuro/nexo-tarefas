@@ -16,7 +16,7 @@ import { LinkForm, hrefLink } from "@/components/LinkForm";
 import { useAcoesCategoria } from "@/components/categorias/acoes";
 import { TextoRico } from "@/components/tarefa/Texto";
 import {
-  AvatarPessoa, Contador, Estatistica, IconeStatus, Pagina, Painel, PontoCor, Secao, TipoBadge, Vazio, formatarTamanho,
+  AvatarPessoa, Contador, Estatistica, IconeStatus, type TomNumero, Pagina, Painel, PontoCor, Secao, TipoBadge, Vazio, formatarTamanho,
 } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
@@ -26,14 +26,15 @@ import { itemLista, lista } from "@/lib/animacoes";
 import { usePref } from "@/lib/preferencias";
 import { pessoasDaCategoria } from "@/lib/pessoas";
 import { promptCategoria } from "@/lib/prompts";
-import { LinkDoc, STATUS, STATUS_ABERTOS, Status, formatarData } from "@/lib/tipos";
+import { LinkDoc, STATUS, STATUS_ABERTOS, Status, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
-const TOM_DO_STATUS: Record<Status, "neutro" | "primario" | "sucesso" | "alerta" | "perigo"> = {
+// Só pinta o número de status que pede algo: bloqueada pede atenção, concluída deu certo (3.10).
+const TOM_DO_STATUS: Record<Status, TomNumero> = {
   a_fazer: "neutro",
-  em_andamento: "primario",
-  aguardando: "alerta",
-  bloqueada: "perigo",
+  em_andamento: "neutro",
+  aguardando: "neutro",
+  bloqueada: "alerta",
   concluida: "sucesso",
   cancelada: "neutro",
 };
@@ -194,7 +195,7 @@ export default function PaginaCategoria() {
                     <article key={r.id} data-slot="referencia" className="rounded-xl border bg-card px-4 py-3 shadow-xs">
                       <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <TipoBadge tipo={r.tipo} />
-                        <span className="text-xs text-muted-foreground tabular-nums">{formatarData(r.data)}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{dataCurta(r.data)}</span>
                         <h3 className="min-w-0 text-sm leading-snug font-semibold tracking-tight">{r.titulo || "Sem título"}</h3>
                       </header>
                       <div className="mt-2 max-h-72 overflow-y-auto pr-1">

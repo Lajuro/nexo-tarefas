@@ -22,7 +22,7 @@ import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, formatarData, semAcento, type Pagina as PaginaDeConhecimento } from "@/lib/tipos";
+import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, dataCurta, semAcento, type Pagina as PaginaDeConhecimento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export default function Busca() {
@@ -399,7 +399,7 @@ function Conteudo() {
                         <IconeTipo tipo={reg.tipo} comFundo className="mt-0.5" />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground tabular-nums">{formatarData(reg.data)}</span>
+                            <span className="font-medium text-foreground tabular-nums">{dataCurta(reg.data)}</span>
                             <TipoBadge tipo={reg.tipo} />
                             <span className="inline-flex min-w-0 items-center gap-1">
                               <IconeStatus status={t.status} className="size-3" />

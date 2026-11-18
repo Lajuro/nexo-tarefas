@@ -7,12 +7,12 @@ import Link from "next/link";
 import { ReactNode, useEffect, useId, useRef } from "react";
 import { animate, motion } from "motion/react";
 import {
-  Ban, CalendarClock, Check, ChevronDown, ChevronLeft, Circle, CircleCheck, CircleDot, CircleSlash, Flag, Gavel, Hourglass,
+  Ban, CalendarClock, CalendarX, Check, ChevronDown, ChevronLeft, Circle, CircleCheck, CircleDot, CircleSlash, Flag, Gavel, Hourglass,
   type LucideIcon, NotebookPen, OctagonAlert, Users, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { suave } from "@/lib/animacoes";
-import { Categoria, STATUS, Status, TipoRegistro, diasAte, formatarData, nomeStatus, tipoInfo } from "@/lib/tipos";
+import { Categoria, STATUS, Status, TipoRegistro, dataComRelativo, dataCurta, diasAte, nomeStatus, tipoInfo } from "@/lib/tipos";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Label } from "@/components/ui/controles";
 import { CampoChips } from "@/components/ui/chips";
@@ -158,13 +158,18 @@ export function NumeroAnimado({ valor, className }: { valor: number; className?:
   return <span ref={ref} className={cn("tabular-nums", className)}>{valor}</span>;
 }
 
+/**
+ * Cor de número só quando a cor diz algo (3.10): `perigo` para o que está errado (prazo vencido, em risco),
+ * `alerta` para o que pede atenção (bloqueadas, pede atenção), `sucesso` para o que deu certo (concluídas, em dia).
+ * Contagem neutra fica na cor do texto. Zero nunca tem cor.
+ */
 const TONS = {
   neutro: "text-foreground",
-  primario: "text-primary",
   sucesso: "text-sucesso",
   alerta: "text-alerta",
   perigo: "text-destructive",
 } as const;
+export type TomNumero = keyof typeof TONS;
 
 /** Cartão de número do topo das telas. Com `href` vira link. */
 export function Estatistica({
@@ -176,9 +181,9 @@ export function Estatistica({
     <>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-xs text-muted-foreground">{rotulo}</span>
-        {icone && <span className={cn("opacity-70 [&_svg]:size-3.5", TONS[valor ? tom : "neutro"])}>{icone}</span>}
+        {icone && <span className={cn("[&_svg]:size-3.5", valor && tom !== "neutro" ? TONS[tom] : "text-muted-foreground")}>{icone}</span>}
       </div>
-      <NumeroAnimado valor={valor} className={cn("mt-1 block text-2xl leading-none font-semibold tracking-tight", valor ? TONS[tom] : "text-muted-foreground/80")} />
+      <NumeroAnimado valor={valor} className={cn("mt-1 block text-2xl leading-none font-semibold tracking-tight", valor ? TONS[tom] : "text-muted-foreground")} />
     </>
   );
   const classe = cn(
@@ -301,10 +306,15 @@ export const opcoesStatus = STATUS.map((s) => ({
 // =====================================================================
 
 export const nivelPrioridade = (p: number) => (p >= 8 ? "alta" : p >= 5 ? "media" : "baixa");
+/**
+ * Prioridade não usa cor de alarme (3.10): vermelho é só para o que está errado (atraso, erro, exclusão).
+ * A escala é neutra e se lê pelo peso, mesmo sem enxergar cor: contorno (baixa), preenchido suave (média)
+ * e preenchido forte (alta). O número de 1 a 10 continua escrito.
+ */
 const PRIO_COR = {
-  alta: "bg-destructive/12 text-destructive ring-destructive/25",
-  media: "bg-alerta/16 text-alerta ring-alerta/30",
-  baixa: "bg-muted text-muted-foreground ring-border",
+  alta: "bg-foreground/85 font-bold text-background ring-transparent",
+  media: "bg-foreground/[0.09] text-foreground ring-foreground/10",
+  baixa: "bg-transparent text-muted-foreground ring-foreground/25",
 };
 const PRIO_NOME = { alta: "alta", media: "média", baixa: "baixa" };
 
@@ -348,14 +358,14 @@ export function SeletorPrioridade({ valor, aoMudar, className }: { valor: number
             onClick={() => aoMudar(n)}
             className={cn(
               "relative h-full min-w-0 flex-1 rounded-[5px] text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              ativo ? "font-semibold" : n < valor ? "text-foreground/70 hover:bg-accent" : "text-muted-foreground/80 hover:bg-accent hover:text-foreground",
-              ativo && (nivel === "alta" ? "text-white" : nivel === "media" ? "text-black/85" : "text-background"),
+              ativo ? "font-semibold" : n < valor ? "text-foreground/80 hover:bg-accent" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              ativo && (nivel === "baixa" ? "text-foreground" : "text-background"),
             )}
           >
             {ativo && (
               <motion.span
                 layoutId={`prio-${id}`}
-                className={cn("absolute inset-0 rounded-[5px] shadow-xs", nivel === "alta" ? "bg-destructive" : nivel === "media" ? "bg-alerta" : "bg-foreground/70")}
+                className={cn("absolute inset-0 rounded-[5px] shadow-xs", nivel === "alta" ? "bg-foreground/85" : nivel === "media" ? "bg-muted-foreground" : "bg-card ring-1 ring-foreground/45 ring-inset")}
                 transition={{ type: "spring", stiffness: 520, damping: 38 }}
               />
             )}
@@ -384,16 +394,21 @@ export function CatTag({ cat, className }: { cat?: Categoria | null; className?:
   );
 }
 
+/**
+ * Prazo de tarefa ou passo, na regra única de data (3.10): "20/11 · em 2 dias", "18/11 · 3 dias de atraso".
+ * Vermelho só quando venceu (atraso é o que está errado); âmbar quando vence em até 3 dias. Atraso também
+ * muda o ícone, para não depender da cor e não se confundir com o selo de "Bloqueada" ao lado.
+ */
 export function PrazoTag({ prazo, concluida, className }: { prazo: string | null | undefined; concluida?: boolean; className?: string }) {
   if (!prazo) return null;
   const d = diasAte(prazo)!;
-  const tom = concluida ? "text-muted-foreground" : d < 0 ? "text-destructive" : d <= 3 ? "text-alerta" : "text-muted-foreground";
-  const txt = concluida ? "" : d < 0 ? ` · ${-d}d de atraso` : d === 0 ? " · hoje" : d === 1 ? " · amanhã" : d <= 7 ? ` · em ${d}d` : "";
+  const atrasado = !concluida && d < 0;
+  const tom = concluida ? "text-muted-foreground" : atrasado ? "text-destructive" : d <= 3 ? "text-alerta" : "text-muted-foreground";
+  const Icone = atrasado ? CalendarX : CalendarClock;
   return (
-    <span data-slot="prazo" className={cn("inline-flex shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap", tom, className)}>
-      <CalendarClock className="size-3.5" />
-      {formatarData(prazo)}
-      {txt}
+    <span data-slot="prazo" data-atrasado={atrasado || undefined} className={cn("inline-flex shrink-0 items-center gap-1 text-xs font-medium whitespace-nowrap tabular-nums", tom, className)}>
+      <Icone className="size-3.5" />
+      {concluida ? dataCurta(prazo) : dataComRelativo(prazo, { prazo: true })}
     </span>
   );
 }
@@ -401,10 +416,11 @@ export function PrazoTag({ prazo, concluida, className }: { prazo: string | null
 export const TIPO_VISUAL: Record<TipoRegistro, { icone: LucideIcon; texto: string; fundo: string }> = {
   reuniao: { icone: Users, texto: "text-info", fundo: "bg-info/14" },
   atividade: { icone: Wrench, texto: "text-primary", fundo: "bg-primary/12" },
-  impedimento: { icone: OctagonAlert, texto: "text-destructive", fundo: "bg-destructive/12" },
+  // impedimento pede atenção (como "bloqueada"): âmbar, não vermelho. Marco é do sistema: neutro (3.10).
+  impedimento: { icone: OctagonAlert, texto: "text-alerta", fundo: "bg-alerta/14" },
   decisao: { icone: Gavel, texto: "text-sucesso", fundo: "bg-sucesso/14" },
   nota: { icone: NotebookPen, texto: "text-muted-foreground", fundo: "bg-muted" },
-  marco: { icone: Flag, texto: "text-alerta", fundo: "bg-alerta/16" },
+  marco: { icone: Flag, texto: "text-muted-foreground", fundo: "bg-muted" },
 };
 
 /** Ícone do tipo de registro. `comFundo` desenha a bolinha colorida usada na timeline. */
@@ -638,7 +654,7 @@ export function SeloFeito({ className }: { className?: string }) {
       initial={{ scale: 0, rotate: -30 }}
       animate={{ scale: 1, rotate: 0 }}
       transition={{ type: "spring", stiffness: 500, damping: 22 }}
-      className={cn("inline-flex size-5 items-center justify-center rounded-full bg-sucesso text-white", className)}
+      className={cn("inline-flex size-5 items-center justify-center rounded-full bg-sucesso text-background", className)}
     >
       <Check className="size-3" strokeWidth={3} />
     </motion.span>

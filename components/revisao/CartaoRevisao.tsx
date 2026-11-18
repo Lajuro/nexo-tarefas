@@ -11,12 +11,12 @@ import { BotaoMenuTarefa, MenuContextoTarefa } from "@/components/MenuTarefa";
 import { useLembretes } from "@/components/useLembretes";
 import { AvatarPessoa, Campo, CatTag, Contador, IconeTipo, ItemPasso, SeletorPrioridade, SeletorStatus, TipoBadge } from "@/components/comum";
 import { Button } from "@/components/ui/button";
-import { SeletorData, dataPorExtenso } from "@/components/ui/data";
+import { SeletorData } from "@/components/ui/data";
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus, comFoco, comLembrete, comPassoAlternado, ehFocoHoje } from "@/lib/acoes";
 import { Gravidade, LIMITES, aberta, dataRelativa } from "@/lib/lembretes";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { Categoria, Tarefa, diasAte, formatarData, ordenarRegistros } from "@/lib/tipos";
+import { Categoria, Tarefa, diasAte, dataCurta, ordenarRegistros } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { Retrato } from "./retrato";
 
@@ -35,13 +35,11 @@ function Titulo({ children, n }: { children: ReactNode; n?: number }) {
   );
 }
 
-/** Texto curto ao lado do rótulo de uma data ("em 3 dias", "2d de atraso"). */
-function DistanciaData({ data, atrasoEhRuim }: { data: string | null | undefined; atrasoEhRuim?: boolean }) {
-  if (!data) return null;
+/** Cor do valor de uma data na revisão: o texto ("20/11 · em 3 dias") já vem do SeletorData (regra única de data, 3.10). */
+function corDaData(data: string | null | undefined, atrasoEhRuim?: boolean) {
+  if (!data) return undefined;
   const d = diasAte(data) ?? 0;
-  const tom = d < 0 ? (atrasoEhRuim ? "text-destructive" : "text-alerta") : d <= (atrasoEhRuim ? LIMITES.prazoProximo : 0) ? "text-alerta" : "text-muted-foreground";
-  const txt = d < 0 && atrasoEhRuim ? `${-d}d de atraso` : dataRelativa(data);
-  return <span className={cn("text-xs font-medium tabular-nums", tom)}>{txt}</span>;
+  return d < 0 ? (atrasoEhRuim ? "text-destructive" : "text-alerta") : d <= (atrasoEhRuim ? LIMITES.prazoProximo : 0) ? "text-alerta" : undefined;
 }
 
 export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa; antes: Retrato; categoria?: Categoria }) {
@@ -61,8 +59,8 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
   const foco = ehFocoHoje(t);
   const estaAberta = aberta(t);
   const parado = antes.parado;
-  const tomParado = parado >= LIMITES.parada * 2 ? "bg-destructive/10 text-destructive ring-destructive/20"
-    : parado >= LIMITES.parada ? "bg-alerta/14 text-alerta ring-alerta/25"
+  // parada pede atenção (âmbar), por mais tempo que seja: vermelho é para o que está errado (3.10)
+  const tomParado = parado >= LIMITES.parada ? "bg-alerta/14 text-alerta ring-alerta/25"
     : "bg-muted text-muted-foreground ring-border";
 
   return (
@@ -133,7 +131,7 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
                       <TipoBadge tipo={ultimo.tipo} />
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <span className="tabular-nums">{dataPorExtenso(ultimo.data)} · {dataRelativa(ultimo.data)}</span>
+                      <span className="tabular-nums">{dataCurta(ultimo.data)} · {dataRelativa(ultimo.data)}</span>
                       {ultimo.participantes.length > 0 && (
                         <Dica texto={`Com ${ultimo.participantes.join(", ")}`}>
                           <span className="flex items-center -space-x-1.5">
@@ -170,10 +168,10 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
                           {p.responsavel && <span>{p.responsavel}</span>}
                           {p.prazo && (
                             <span className={cn("tabular-nums", !p.feito && (diasAte(p.prazo) ?? 0) < 0 && "font-medium text-destructive")}>
-                              prazo {formatarData(p.prazo, false)}
+                              prazo {dataCurta(p.prazo)}
                             </span>
                           )}
-                          <span className="tabular-nums">desde {formatarData(r.data, false)}</span>
+                          <span className="tabular-nums">desde {dataCurta(r.data)}</span>
                         </>
                       }
                     />
@@ -193,12 +191,14 @@ export function CartaoRevisao({ tarefa: t, antes, categoria }: { tarefa: Tarefa;
             <Campo rotulo="Prioridade" className="flex-none" lado={<span className="text-xs text-muted-foreground tabular-nums">{t.prioridade} de 10</span>}>
               <SeletorPrioridade valor={t.prioridade} aoMudar={(p) => p !== t.prioridade && atualizarTarefa(t.id, (x) => ({ ...x, prioridade: p }))} />
             </Campo>
-            <Campo rotulo="Prazo" className="flex-none" lado={estaAberta && <DistanciaData data={t.prazo} atrasoEhRuim />}>
-              <SeletorData aria-label="Prazo" valor={t.prazo ?? ""} placeholder="Sem prazo" aoMudar={(v) => atualizarTarefa(t.id, (x) => ({ ...x, prazo: v || null }))} />
+            <Campo rotulo="Prazo" className="flex-none">
+              <SeletorData prazo={estaAberta} aria-label="Prazo" valor={t.prazo ?? ""} placeholder="Sem prazo" className={estaAberta ? corDaData(t.prazo, true) : undefined}
+                aoMudar={(v) => atualizarTarefa(t.id, (x) => ({ ...x, prazo: v || null }))} />
             </Campo>
-            <Campo rotulo="Lembrar de voltar em" className="flex-none" lado={estaAberta && <DistanciaData data={t.lembrarEm} />}>
+            <Campo rotulo="Lembrar de voltar em" className="flex-none">
               <SeletorData
                 aria-label="Lembrar de voltar em"
+                className={estaAberta ? corDaData(t.lembrarEm) : undefined}
                 valor={t.lembrarEm ?? ""}
                 placeholder="Me lembre de voltar em..."
                 disabled={!estaAberta}

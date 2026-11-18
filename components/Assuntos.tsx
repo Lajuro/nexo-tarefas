@@ -19,7 +19,7 @@ import { Dica } from "@/components/ui/popover";
 import { assuntoNovo, assuntosCom, comAssuntoResolvido } from "@/lib/assuntos";
 import { aberta, dataLocal } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 
 type Pedido = { pessoa?: string; tarefaId?: string | null };
 const EVENTO = "nexo:assunto";
@@ -131,7 +131,7 @@ export function PainelFalarCom({ nome }: { nome: string }) {
       <div data-slot="falar-com">
         {abertos.map((a) => (
           <ItemPasso key={a.id} texto={a.texto} feito={false} aoAlternar={(f) => void marcar(a.id, f)}
-            meta={tarefa(a.tarefaId) ? <Link href={`/tarefas/${a.tarefaId}`} className="hover:underline">{tarefa(a.tarefaId)!.titulo}</Link> : <>desde {formatarData(dataLocal(a.criadoEm), false)}</>} />
+            meta={tarefa(a.tarefaId) ? <Link href={`/tarefas/${a.tarefaId}`} className="hover:underline">{tarefa(a.tarefaId)!.titulo}</Link> : <>desde {dataCurta(a.criadoEm)}</>} />
         ))}
         {abertos.length === 0 && <p className="mb-1 text-xs text-muted-foreground">Nada anotado para a próxima conversa com {primeiro}.</p>}
       </div>
@@ -148,7 +148,7 @@ export function PainelFalarCom({ nome }: { nome: string }) {
       )}
       {verTratados && tratados.map((a) => (
         <ItemPasso key={a.id} texto={a.texto} feito aoAlternar={(f) => void marcar(a.id, f)}
-          meta={<>tratado em {formatarData(dataLocal(a.resolvidoEm), false)}</>} />
+          meta={<>tratado em {dataCurta(a.resolvidoEm)}</>} />
       ))}
     </Painel>
   );

@@ -103,7 +103,7 @@ function Secao({
         <button type="button" onClick={alternar} aria-expanded={!fechada}
           className={cn("flex h-6 min-w-0 flex-1 items-center gap-1 rounded-md px-2 text-left transition-colors hover:text-foreground", rotulo, foco)}>
           <span className="truncate">{NOME_SECAO[id].nome}</span>
-          {!!contagem && <span className="font-medium tabular-nums opacity-70">{contagem}</span>}
+          {!!contagem && <span className="font-medium tabular-nums">{contagem}</span>}
           <ChevronRight className={cn(
             "size-3 shrink-0 transition-[transform,opacity] duration-200",
             fechada ? "opacity-70" : "rotate-90 opacity-0 group-hover/sec:opacity-70 group-focus-within/sec:opacity-70",
@@ -332,7 +332,7 @@ export function Lateral({
           <>
             <Dica texto="Nova tarefa" atalho="N" side="right">
               <button type="button" aria-label="Nova tarefa" onClick={novaTarefa}
-                className="inline-flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-xs transition-transform outline-none hover:bg-primary/90 focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-95">
+                className="inline-flex size-8 items-center justify-center rounded-md bg-primary-solido text-primary-foreground shadow-xs transition-transform outline-none hover:bg-primary-solido/90 focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-95">
                 <Plus className="size-4" />
               </button>
             </Dica>
@@ -346,10 +346,10 @@ export function Lateral({
         ) : (
           <>
             <button type="button" onClick={novaTarefa} data-slot="nova-tarefa"
-              className="group/nova flex h-8 items-center gap-2 rounded-md bg-primary px-2.5 text-[13px] font-medium text-primary-foreground shadow-xs transition-[background-color,transform,box-shadow] outline-none sem-selecao hover:bg-primary/90 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]">
+              className="group/nova flex h-8 items-center gap-2 rounded-md bg-primary-solido px-2.5 text-[13px] font-medium text-primary-foreground shadow-xs transition-[background-color,transform,box-shadow] outline-none sem-selecao hover:bg-primary-solido/90 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 active:scale-[0.98] dark:shadow-[inset_0_1px_0_oklch(1_0_0/0.14)]">
               <Plus className="size-4 transition-transform duration-300 ease-out group-hover/nova:rotate-90" />
               <span className="flex-1 truncate text-left">Nova tarefa</span>
-              <kbd className="rounded border border-white/25 bg-white/15 px-1 font-mono text-[11px]">N</kbd>
+              <kbd className="rounded border border-white/25 bg-black/12 px-1 font-mono text-[11px]">N</kbd>
             </button>
             <button type="button" onClick={abrirPaleta} data-slot="abrir-busca"
               className={cn("flex h-8 items-center gap-2 rounded-md border border-sidebar-border bg-background/60 px-2.5 text-[13px] text-muted-foreground transition-colors sem-selecao hover:border-ring/40 hover:text-foreground", foco)}>

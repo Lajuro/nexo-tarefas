@@ -163,7 +163,7 @@ function Toaster({ tema }: { tema: "light" | "dark" }) {
           toast:
             "!rounded-lg !border !border-border !bg-popover !text-popover-foreground !shadow-lg !font-sans !text-[13px] !py-3 !px-3.5 !gap-2.5",
           description: "!text-muted-foreground",
-          actionButton: "!bg-primary !text-primary-foreground !rounded-md !h-6 !text-xs !font-medium",
+          actionButton: "!bg-primary-solido !text-primary-foreground !rounded-md !h-6 !text-xs !font-medium",
           cancelButton: "!bg-muted !text-muted-foreground !rounded-md",
           success: "[&_[data-icon]]:!text-sucesso",
           error: "[&_[data-icon]]:!text-destructive",

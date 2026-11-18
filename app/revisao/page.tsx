@@ -17,12 +17,12 @@ import { Estatistica, Pagina, PontoCor, PrazoTag, PrioBadge, Secao, StatusBadge,
 import { CartaoRevisao } from "@/components/revisao/CartaoRevisao";
 import { Retrato, filaDeRevisao, mudancasDesde, retratoDaSemana, tirarRetrato } from "@/components/revisao/retrato";
 import { Button } from "@/components/ui/button";
-import { dataPorExtenso, somarDias } from "@/components/ui/data";
+import { somarDias } from "@/components/ui/data";
 import { Badge, Kbd, Progress } from "@/components/ui/diversos";
 import { curva, itemLista, lista, subir } from "@/lib/animacoes";
 import { LIMITES, dataRelativa, diasSemAtividade } from "@/lib/lembretes";
 import { useRotina } from "@/lib/preferencias";
-import { Categoria, Tarefa, diasAte, formatarData, hojeISO } from "@/lib/tipos";
+import { Categoria, Tarefa, diasAte, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Fase = "abertura" | "passos" | "fim";
@@ -204,7 +204,7 @@ export default function Revisao() {
                   <p data-slot="ultima-revisao" className="mt-1 min-h-5 text-[13px] text-muted-foreground">
                     {!carregado ? "" : revisou ? (
                       <>
-                        Sua última revisão foi <strong className="font-semibold text-foreground">{dataRelativa(revisou)}</strong> ({formatarData(revisou)}).
+                        Sua última revisão foi <strong className="font-semibold text-foreground">{dataRelativa(revisou)}</strong> ({dataCurta(revisou)}).
                         {-(diasAte(revisou) ?? 0) >= 7 && <span className="text-alerta"> Já passou de uma semana.</span>}
                       </>
                     ) : "Você ainda não fez uma revisão. A primeira é a que mais ajuda."}
@@ -218,7 +218,7 @@ export default function Revisao() {
                 </div>
                 {abertas.length > 0 ? (
                   <Button size="lg" data-slot="comecar-revisao" onClick={() => comecar()}>
-                    Começar revisão <Kbd className="border-white/20 bg-white/15 text-white">Enter</Kbd>
+                    Começar revisão <Kbd className="border-white/25 bg-black/12 text-white">Enter</Kbd>
                   </Button>
                 ) : (
                   <div className="flex flex-wrap gap-2">
@@ -230,11 +230,11 @@ export default function Revisao() {
             </motion.section>
 
             <motion.div variants={itemLista} className="mt-8">
-              <Secao titulo="Retrato da semana" acoes={<span className="text-xs text-muted-foreground tabular-nums">de {formatarData(semana.desde, false)} até hoje</span>}>
+              <Secao titulo="Retrato da semana" acoes={<span className="text-xs text-muted-foreground tabular-nums">de {dataCurta(semana.desde)} até hoje</span>}>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   <Estatistica rotulo="Tarefas concluídas" valor={semana.concluidas} tom="sucesso" icone={<CircleCheck />} />
-                  <Estatistica rotulo="Registros feitos" valor={semana.registros} tom="primario" icone={<NotebookText />} />
-                  <Estatistica rotulo="Passos concluídos" valor={semana.passos} tom="sucesso" icone={<CheckCheck />} />
+                  <Estatistica rotulo="Registros feitos" valor={semana.registros} icone={<NotebookText />} />
+                  <Estatistica rotulo="Passos concluídos" valor={semana.passos} icone={<CheckCheck />} />
                   <Estatistica rotulo="Tarefas criadas" valor={semana.criadas} icone={<CirclePlus />} />
                 </div>
               </Secao>
@@ -329,7 +329,8 @@ export default function Revisao() {
 
 function LinhaFila({ t, cat, aoClicar }: { t: Tarefa; cat?: Categoria; aoClicar: () => void }) {
   const parado = diasSemAtividade(t);
-  const tom = parado >= LIMITES.parada * 2 ? "text-destructive" : parado >= LIMITES.parada ? "text-alerta" : "text-muted-foreground";
+  // parada pede atenção (âmbar); vermelho fica para o que está errado, como prazo vencido (3.10)
+  const tom = parado >= LIMITES.parada ? "text-alerta" : "text-muted-foreground";
   return (
     <li>
       <MenuContextoTarefa tarefa={t}>
@@ -377,14 +378,14 @@ function Fechamento({
           <h2 className="mt-3 text-xl font-semibold tracking-tight">Revisão concluída</h2>
           <p className="mt-1 max-w-md text-[13px] text-muted-foreground">
             Você passou por {plural(resultado.length, "tarefa aberta", "tarefas abertas")}. A próxima revisão fica para{" "}
-            <strong className="font-semibold text-foreground">{dataPorExtenso(somarDias(hojeISO(), 7))}</strong>.
+            <strong className="font-semibold text-foreground">{dataCurta(somarDias(hojeISO(), 7))}</strong>.
           </p>
         </motion.div>
 
         <motion.div variants={itemLista} className="mt-6 grid grid-cols-3 gap-3">
-          <Estatistica rotulo="Tarefas revisadas" valor={resultado.length} tom="primario" icone={<ListChecks />} />
+          <Estatistica rotulo="Tarefas revisadas" valor={resultado.length} icone={<ListChecks />} />
           <Estatistica rotulo="Tarefas com alteração" valor={alteradas.length} icone={<RotateCcw />} />
-          <Estatistica rotulo="Passos concluídos" valor={passos} tom="sucesso" icone={<CheckCheck />} />
+          <Estatistica rotulo="Passos concluídos" valor={passos} icone={<CheckCheck />} />
         </motion.div>
 
         <motion.div variants={itemLista} className="mt-8">

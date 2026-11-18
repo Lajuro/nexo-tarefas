@@ -14,7 +14,7 @@ import { useNexo } from "@/components/Provider";
 import { type ItemDoSumario, nomeDaPagina, sumarioDosBlocos } from "@/lib/paginas";
 import { NOMES_DE_LINGUAGEM, realcar } from "@/lib/realce";
 import { Bloco, Inline, NOME_DO_DESTAQUE, type TipoDeDestaque, analisarMarkdown, paraTextoPlano } from "@/lib/texto-rico";
-import { formatarData, nomeStatus } from "@/lib/tipos";
+import { dataCurta, nomeStatus } from "@/lib/tipos";
 import { lerTempo } from "@/lib/transcricao";
 import { cn } from "@/lib/utils";
 
@@ -184,7 +184,7 @@ function CartaoInterno({ i }: { i: Extract<Inline, { t: "interno" }> }) {
     if (t) {
       titulo = t.titulo;
       const abertos = t.registros.reduce((n, r) => n + r.proximosPassos.filter((p) => !p.feito).length, 0);
-      linha = [nomeStatus(t.status), t.prazo ? `prazo ${formatarData(t.prazo)}` : "", abertos ? `${abertos} ${abertos === 1 ? "passo em aberto" : "passos em aberto"}` : ""].filter(Boolean).join(" · ");
+      linha = [nomeStatus(t.status), t.prazo ? `prazo ${dataCurta(t.prazo)}` : "", abertos ? `${abertos} ${abertos === 1 ? "passo em aberto" : "passos em aberto"}` : ""].filter(Boolean).join(" · ");
     }
   } else if (i.tipo === "pagina") {
     const p = dados?.paginas?.items.find((x) => x.id === i.alvo);

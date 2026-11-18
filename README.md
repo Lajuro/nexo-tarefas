@@ -79,6 +79,13 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.10: cores com significado e datas de um jeito só
+
+- **Vermelho é só o que está errado**: prazo vencido, erro, excluir e o aviso de algo crítico. A prioridade deixou de ser vermelha e âmbar: agora é um quadradinho neutro, com contorno (1 a 4), preenchido claro (5 a 7) ou escuro (8 a 10), e o número continua lá. Impedimento e tarefa parada há muito tempo ficam em âmbar, que quer dizer "pede atenção".
+- **Números só com cor quando ela diz algo**: atrasadas e em risco em vermelho, bloqueadas e "pede atenção" em âmbar, concluídas e "em dia" em verde. O resto (abertas, passos em aberto, registros) fica na cor do texto.
+- **Datas sempre iguais**: `20/11` (com o ano só se não for este ano) e, quando ajuda, `em 2 dias`, `há 4 dias` ou `3 dias de atraso`, sempre por extenso. Os textos que você copia (status, ata, daily, cobrança) e o espelho em Markdown continuam com a data completa.
+- **Mais fácil de ler**: selos e contadores passaram de 4,5:1 de contraste nos dois temas, com qualquer cor de destaque, e o botão principal no tema escuro também.
+
 ## Novidades da 3.9: menu mais curto
 
 - **Acompanhar**: Radar, Diário, Revisão semanal, Relatórios e Conquistas viraram um item só no menu lateral, **Acompanhar**. Ele abre a última dessas telas que você usou (na primeira vez, o Radar), e no topo de cada uma há abas para trocar entre elas. Os atalhos continuam: `G F` Radar, `G D` Diário, `G S` Revisão, `G R` Relatórios, `G Q` Conquistas. O ponto de "revisão atrasada" aparece no item Acompanhar e na aba Revisão.

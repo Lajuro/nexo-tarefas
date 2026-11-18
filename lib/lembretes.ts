@@ -2,7 +2,7 @@
 // É função pura (sem estado, sem disco): a interface decide o que mostrar e o que adiar.
 // Nada aqui é gravado. "Adiar" um lembrete fica em localStorage (ver components/useLembretes.ts).
 
-import { type Modelo, type Passo, type Registro, STATUS_ABERTOS, type Tarefa, diasAte, formatarData, hojeISO, semAcento } from "./tipos";
+import { type Modelo, type Passo, type Registro, STATUS_ABERTOS, type Tarefa, dataCurta, dataLocal, dataRelativa, diasAte, hojeISO, semAcento } from "./tipos";
 import { recorrenciasDevidas, textoDaRepeticao } from "./recorrencia";
 
 /** Limites, em dias, que disparam cada tipo de lembrete. */
@@ -64,16 +64,9 @@ export interface PassoAberto {
   passo: Passo;
 }
 
-const p2 = (n: number) => String(n).padStart(2, "0");
-
-/** Converte um carimbo ISO (UTC) na data de calendário local AAAA-MM-DD. */
-export function dataLocal(carimbo: string | null | undefined): string {
-  if (!carimbo) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(carimbo)) return carimbo;
-  const d = new Date(carimbo);
-  if (Number.isNaN(d.getTime())) return carimbo.slice(0, 10);
-  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
-}
+// dataLocal e dataRelativa moram em lib/tipos.ts (regra única de data na tela, 3.10); continuam exportadas daqui
+// porque boa parte do app as importa deste arquivo.
+export { dataLocal, dataRelativa };
 
 export const aberta = (t: Tarefa) => STATUS_ABERTOS.includes(t.status);
 
@@ -157,13 +150,13 @@ export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[] }
       const d = diasAte(t.prazo)!;
       if (d < 0)
         out.push({ ...base, id: `prazo:${t.id}:${t.prazo}`, tipo: "prazo_vencido", gravidade: "critico", dias: -d,
-          titulo: `Prazo venceu há ${dias(-d)}`, detalhe: `Era para ${formatarData(t.prazo)}. Renegocie o prazo ou conclua.` });
+          titulo: `Prazo venceu há ${dias(-d)}`, detalhe: `Era para ${dataCurta(t.prazo)}. Renegocie o prazo ou conclua.` });
       else if (d === 0)
         out.push({ ...base, id: `prazo:${t.id}:${t.prazo}`, tipo: "prazo_hoje", gravidade: "critico", dias: 0,
           titulo: "O prazo é hoje", detalhe: "Última chamada para entregar ou avisar que vai atrasar." });
       else if (d <= LIMITES.prazoProximo)
         out.push({ ...base, id: `prazo:${t.id}:${t.prazo}`, tipo: "prazo_proximo", gravidade: "atencao", dias: LIMITES.prazoProximo - d,
-          titulo: d === 1 ? "O prazo é amanhã" : `Prazo em ${dias(d)}`, detalhe: `Vence em ${formatarData(t.prazo)}.` });
+          titulo: d === 1 ? "O prazo é amanhã" : `Prazo em ${dias(d)}`, detalhe: `Vence em ${dataCurta(t.prazo)}.` });
     }
 
     if (t.lembrarEm && (diasAte(t.lembrarEm) ?? 1) <= 0) {
@@ -222,7 +215,7 @@ export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[] }
     out.push({
       id: `recorrencia:${modelo.id}:${data}`, tipo: "recorrencia", gravidade: "atencao", dias: d,
       tarefaId: "", tarefaTitulo: modelo.nome, modeloId: modelo.id, data,
-      titulo: d === 0 ? "Hora de criar a tarefa de sempre" : `Tarefa de sempre esperando desde ${formatarData(data, false)}`,
+      titulo: d === 0 ? "Hora de criar a tarefa de sempre" : `Tarefa de sempre esperando desde ${dataCurta(data)}`,
       detalhe: `${modelo.repetir ? textoDaRepeticao(modelo.repetir) : ""}: crie a tarefa do modelo ou pule esta vez.`,
     });
   }
@@ -357,17 +350,6 @@ export function sugestoesDeFoco(tarefas: Tarefa[], limite = 8): SugestaoFoco[] {
     })
     .sort((a, b) => b.pontos - a.pontos)
     .slice(0, limite);
-}
-
-/** "hoje", "ontem", "há 3 dias", "amanhã", "em 5 dias". Aceita data ou carimbo. */
-export function dataRelativa(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = diasAte(dataLocal(iso));
-  if (d === null) return "";
-  if (d === 0) return "hoje";
-  if (d === -1) return "ontem";
-  if (d === 1) return "amanhã";
-  return d < 0 ? `há ${dias(-d)}` : `em ${dias(d)}`;
 }
 
 /** Saudação conforme a hora local. */

@@ -84,7 +84,7 @@ export function DetalheTime({ time, diretorio }: { time: Time; diretorio: Entrad
       <div data-slot="resumo-time" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Estatistica rotulo="Pessoas no time" valor={r.membros.length} icone={<UsersRound />} />
         <Estatistica rotulo="Responsáveis" valor={r.responsaveis.length} icone={<Crown />} />
-        <Estatistica rotulo="Em aberto com o time" valor={r.passos.length} tom="alerta" icone={<Hourglass />} />
+        <Estatistica rotulo="Em aberto com o time" valor={r.passos.length} icone={<Hourglass />} />
         <Estatistica rotulo="Tarefas relacionadas" valor={tarefasAbertas.length} icone={<ListTodo />} />
       </div>
 

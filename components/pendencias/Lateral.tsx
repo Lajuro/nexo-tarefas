@@ -10,7 +10,7 @@ import { dataPorExtenso, deISO, somarDias } from "@/components/ui/data";
 import { Dica } from "@/components/ui/popover";
 import { suave } from "@/lib/animacoes";
 import { aberta, dataLocal } from "@/lib/lembretes";
-import { Categoria, Tarefa, hojeISO } from "@/lib/tipos";
+import { Categoria, Tarefa, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const INICIAIS_DOS_DIAS = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -48,11 +48,11 @@ export function PainelProgresso({ tarefas, emAberto }: { tarefas: Tarefa[]; emAb
       <div data-slot="progresso-passos" data-hoje={feitosHoje} data-semana={feitosSemana}>
         <div className="grid grid-cols-2 divide-x">
           <div className="pr-3">
-            <NumeroAnimado valor={feitosHoje} className={cn("block text-2xl leading-none font-semibold tracking-tight", feitosHoje ? "text-sucesso" : "text-muted-foreground/80")} />
+            <NumeroAnimado valor={feitosHoje} className={cn("block text-2xl leading-none font-semibold tracking-tight", !feitosHoje && "text-muted-foreground")} />
             <span className="mt-1.5 block text-xs text-muted-foreground">{feitosHoje === 1 ? "concluído hoje" : "concluídos hoje"}</span>
           </div>
           <div className="pl-3.5">
-            <NumeroAnimado valor={feitosSemana} className={cn("block text-2xl leading-none font-semibold tracking-tight", !feitosSemana && "text-muted-foreground/80")} />
+            <NumeroAnimado valor={feitosSemana} className={cn("block text-2xl leading-none font-semibold tracking-tight", !feitosSemana && "text-muted-foreground")} />
             <span className="mt-1.5 block text-xs text-muted-foreground">na semana</span>
           </div>
         </div>
@@ -65,7 +65,7 @@ export function PainelProgresso({ tarefas, emAberto }: { tarefas: Tarefa[]; emAb
           {serie.map((d) => {
             const eHoje = d.dia === hoje;
             return (
-              <Dica key={d.dia} texto={`${eHoje ? "Hoje" : dataPorExtenso(d.dia)}: ${d.n ? passos(d.n) : "nenhum passo concluído"}`}>
+              <Dica key={d.dia} texto={`${eHoje ? "Hoje" : dataCurta(d.dia)}: ${d.n ? passos(d.n) : "nenhum passo concluído"}`}>
                 <div className="group/dia flex min-w-0 flex-1 flex-col items-center justify-end gap-1.5 rounded-md pt-1 transition-colors hover:bg-accent/60">
                   <div className="flex w-full flex-1 items-end justify-center">
                     {d.n > 0 ? (

@@ -19,7 +19,7 @@ import { Segmentado } from "@/components/ui/controles";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { apagarNotaPendente } from "@/lib/rascunhos";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { Nota, agoraISO, formatarData, novoId } from "@/lib/tipos";
+import { Nota, agoraISO, dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Aba = "abertas" | "arquivadas";
@@ -162,7 +162,7 @@ function Conteudo() {
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-4">
                   <h2 className="text-sm font-semibold tracking-tight">{nomeDaFolha(atual)}</h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    Escrita em {formatarData(dataLocal(atual.criadaEm))} · arquivada em {formatarData(dataLocal(atual.arquivadaEm))}
+                    Escrita em {dataCurta(atual.criadaEm)} · arquivada em {dataCurta(atual.arquivadaEm)}
                   </p>
                   {!!atual.gerou?.length && (
                     <div data-slot="frutos" className="mt-3 rounded-xl border bg-card px-3.5 py-3 shadow-xs">

@@ -4,6 +4,7 @@ import * as React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { dataComRelativo } from "@/lib/tipos";
 import { campoBase } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
@@ -27,7 +28,10 @@ export function somarDias(iso: string, dias: number) {
 }
 const hoje = () => paraISO(new Date());
 
-/** "sex, 28 nov 2026" (ou sem o ano quando é o ano corrente). */
+/**
+ * "sex, 28 nov 2026" (ou sem o ano quando é o ano corrente). Só para o que não é data solta na tela:
+ * leitor de tela (aria-label) e título de um dia. Na tela, a regra é dataCurta/dataComRelativo (lib/tipos.ts).
+ */
 export function dataPorExtenso(iso: string) {
   const d = deISO(iso);
   const ano = d.getFullYear() === new Date().getFullYear() ? "" : ` ${d.getFullYear()}`;
@@ -154,7 +158,7 @@ function Calendario({
                     "relative mx-auto inline-flex size-8 items-center justify-center rounded-md text-[13px] tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                     fora && "text-muted-foreground/80",
                     !sel && "hover:bg-accent",
-                    sel && "bg-primary font-semibold text-primary-foreground shadow-xs",
+                    sel && "bg-primary-solido font-semibold text-primary-foreground shadow-xs",
                     eHoje && !sel && "font-semibold text-primary",
                   )}
                 >
@@ -178,6 +182,7 @@ function SeletorData({
   className,
   compacto,
   seta,
+  prazo,
   id,
   disabled,
   "aria-label": ariaLabel,
@@ -191,6 +196,8 @@ function SeletorData({
   compacto?: boolean;
   /** Setinha no fim, a pista de que o valor abre um seletor (faixa de propriedades da tarefa). */
   seta?: boolean;
+  /** É um prazo: data que passou aparece como atraso ("20/11 · 2 dias de atraso"). */
+  prazo?: boolean;
   id?: string;
   disabled?: boolean;
   "aria-label"?: string;
@@ -229,7 +236,7 @@ function SeletorData({
           )}
         >
           <CalendarDays className="size-3.5 shrink-0 opacity-60" />
-          <span className="flex-1 truncate">{valor ? dataPorExtenso(valor) : placeholder}</span>
+          <span className="flex-1 truncate tabular-nums">{valor ? dataComRelativo(valor, { prazo, ate: Infinity }) : placeholder}</span>
           {seta && <ChevronDown aria-hidden data-slot="seta-editavel" className="-ml-0.5 size-3 shrink-0 opacity-50" />}
           {valor && limpavel && !compacto && (
             <span
@@ -259,7 +266,7 @@ function SeletorData({
         />
         {texto && (
           <p className="mb-2 px-1 text-xs text-muted-foreground">
-            {digitado ? <>Enter para escolher <strong className="text-foreground">{dataPorExtenso(digitado)}</strong></> : "Não entendi essa data."}
+            {digitado ? <>Enter para escolher <strong className="text-foreground">{dataComRelativo(digitado, { ate: Infinity })}</strong></> : "Não entendi essa data."}
           </p>
         )}
         <Calendario valor={valor || null} aoMudar={escolher} />
@@ -310,7 +317,7 @@ function SeletorHora({
   const coluna = "flex h-48 w-14 flex-col gap-0.5 overflow-y-auto pr-0.5";
   const celula = (ativo: boolean) =>
     cn("h-7 shrink-0 rounded-md text-[13px] tabular-nums transition-colors",
-      ativo ? "bg-primary font-semibold text-primary-foreground" : "hover:bg-accent");
+      ativo ? "bg-primary-solido font-semibold text-primary-foreground" : "hover:bg-accent");
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>

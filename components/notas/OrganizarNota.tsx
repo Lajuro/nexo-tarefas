@@ -25,7 +25,7 @@ import {
   LeituraNotas, Proposta, PropostaTarefa, apelidosDasTarefas, comRegistroDaNota, frutoDe, interpretarNotas, levaTextoInteiro, promptNotas,
   registroDaProposta, tarefaDaProposta,
 } from "@/lib/notas";
-import { FrutoDaNota, Nota, Passo, Tarefa, agoraISO, formatarData, novoId } from "@/lib/tipos";
+import { FrutoDaNota, Nota, Passo, Tarefa, agoraISO, dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** Destino de um registro: id de tarefa existente, ou "nova:<chave da proposta de tarefa nova>". */
@@ -41,7 +41,7 @@ function ListaPassos({ passos }: { passos: Passo[] }) {
           <span className="min-w-0">
             <span className="text-foreground">{p.texto}</span>
             {p.responsavel ? ` · ${p.responsavel}` : ""}
-            {p.prazo ? ` · até ${formatarData(p.prazo, false)}` : ""}
+            {p.prazo ? ` · até ${dataCurta(p.prazo)}` : ""}
           </span>
         </li>
       ))}

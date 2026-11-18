@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/command";
 import { comRegistroRecebido, comTarefaJuntada, semRegistroMovido } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
-import { formatarData, nomeStatus, tipoInfo } from "@/lib/tipos";
+import { dataCurta, nomeStatus, tipoInfo } from "@/lib/tipos";
 
 type Pedido = { tipo: "mover"; tarefaId: string; registroId: string } | { tipo: "juntar"; tarefaId: string };
 
@@ -139,7 +139,7 @@ export function MoverEJuntar() {
     <>
       <Modal
         titulo="Mover registro para outra tarefa"
-        descricao={registro ? `${tipoInfo(registro.tipo).nome} de ${formatarData(registro.data)}${registro.titulo ? `: ${registro.titulo}` : ""}` : undefined}
+        descricao={registro ? `${tipoInfo(registro.tipo).nome} de ${dataCurta(registro.data)}${registro.titulo ? `: ${registro.titulo}` : ""}` : undefined}
         aberto={pedido?.tipo === "mover" && !!registro}
         fechar={fechar}
         rodape={

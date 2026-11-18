@@ -219,7 +219,7 @@ function Ritual({ encerrar, registrarAvancar }: { encerrar: () => void; registra
           )}
           <Button data-foco-inicial data-acao="ritual-avancar" onClick={avancar}>
             {ultima ? "Começar o dia" : "Continuar"}
-            <Kbd className="border-white/20 bg-white/15 text-white">Enter</Kbd>
+            <Kbd className="border-white/25 bg-black/12 text-white">Enter</Kbd>
           </Button>
         </div>
       </DialogFooter>

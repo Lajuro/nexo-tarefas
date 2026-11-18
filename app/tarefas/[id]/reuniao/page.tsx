@@ -31,7 +31,7 @@ import { apagarReuniao, gravarReuniao, lerReuniao } from "@/lib/rascunhos";
 import { chaveDoAssunto, comAssuntoResolvido, idsDeAssuntos } from "@/lib/assuntos";
 import { type Reuniao, comReuniao, montarPauta, registroDaReuniao, reuniaoNova, reuniaoTemConteudo, textoDaAta, textoDaPauta } from "@/lib/reuniao";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { formatarData, novoId } from "@/lib/tipos";
+import { dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -267,7 +267,7 @@ export default function PaginaReuniao() {
                       texto={x.passo.texto}
                       feito={r.resolvidos.includes(chave)}
                       aoAlternar={(f) => alternarResolvido(chave, f)}
-                      meta={[x.passo.responsavel, x.passo.prazo ? `até ${formatarData(x.passo.prazo)}` : ""].filter(Boolean).join(" · ") || undefined}
+                      meta={[x.passo.responsavel, x.passo.prazo ? `até ${dataCurta(x.passo.prazo)}` : ""].filter(Boolean).join(" · ") || undefined}
                     />
                   );
                 })}
@@ -299,7 +299,7 @@ export default function PaginaReuniao() {
                 {p.passos.map((x) => (
                   <Link key={`${x.registro.id}:${x.passo.id}`} href={`/tarefas/${x.tarefa.id}`} className="group text-[13px] leading-snug">
                     <span className="group-hover:underline">{x.passo.texto}</span>
-                    <span className="block text-xs text-muted-foreground">{x.tarefa.titulo}{x.passo.prazo ? ` · até ${formatarData(x.passo.prazo)}` : ""}</span>
+                    <span className="block text-xs text-muted-foreground">{x.tarefa.titulo}{x.passo.prazo ? ` · até ${dataCurta(x.passo.prazo)}` : ""}</span>
                   </Link>
                 ))}
                 {p.esperas.map((t) => (
@@ -315,7 +315,7 @@ export default function PaginaReuniao() {
               <Painel titulo="Últimas decisões" icone={<Gavel />} corpoClassName="flex flex-col gap-2.5 px-3.5 py-2.5">
                 {pauta.decisoes.map((d, i) => (
                   <div key={i}>
-                    <div className="text-xs text-muted-foreground">{formatarData(d.data)}{d.titulo ? ` · ${d.titulo}` : ""}</div>
+                    <div className="text-xs text-muted-foreground">{dataCurta(d.data)}{d.titulo ? ` · ${d.titulo}` : ""}</div>
                     <TextoRico texto={d.texto} className="text-[13px]" />
                   </div>
                 ))}
@@ -324,7 +324,7 @@ export default function PaginaReuniao() {
 
             {ultimo && trechoUltimo && (
               <Painel titulo="Onde a conversa parou" corpoClassName="px-3.5 py-2.5">
-                <div className="text-xs text-muted-foreground">{formatarData(ultimo.data)}{ultimo.titulo ? ` · ${ultimo.titulo}` : ""}</div>
+                <div className="text-xs text-muted-foreground">{dataCurta(ultimo.data)}{ultimo.titulo ? ` · ${ultimo.titulo}` : ""}</div>
                 <p className="mt-0.5 text-[13px] leading-snug texto-pre">{trechoUltimo}{trechoUltimo.length >= 320 ? "..." : ""}</p>
               </Painel>
             )}
@@ -391,7 +391,7 @@ export default function PaginaReuniao() {
                     <div className="mt-1.5 flex items-center gap-1.5">
                       <CampoSugestoes valor={p.responsavel} sugestoes={responsaveis} placeholder="Responsável" aria-label="Responsável pelo passo" className="h-7 min-w-0 flex-1 text-xs"
                         aoMudar={(v) => mudar({ passos: r.passos.map((x) => (x.id === p.id ? { ...x, responsavel: v } : x)) })} />
-                      <SeletorData valor={p.prazo} placeholder="Prazo" aria-label="Prazo do passo" className="h-7 w-32 text-xs"
+                      <SeletorData prazo valor={p.prazo} placeholder="Prazo" aria-label="Prazo do passo" className="h-7 w-40 text-xs"
                         aoMudar={(v) => mudar({ passos: r.passos.map((x) => (x.id === p.id ? { ...x, prazo: v } : x)) })} />
                     </div>
                     </div>

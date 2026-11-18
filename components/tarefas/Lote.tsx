@@ -18,7 +18,7 @@ import { SeletorData, somarDias } from "@/components/ui/data";
 import * as M from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus, comFoco, comLembrete } from "@/lib/acoes";
-import { STATUS, type Categoria, type Status, type Tarefa, formatarData, hojeISO, nomeStatus } from "@/lib/tipos";
+import { STATUS, type Categoria, type Status, type Tarefa, dataCurta, hojeISO, nomeStatus } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /** A seleção da tela: ids marcados. */
@@ -118,8 +118,8 @@ export function BarraDeLote({ selecao, tarefas, categorias }: { selecao: Selecao
   const prioridade = (p: number) => void aplicar(escolhidas, (x) => ({ ...x, prioridade: p }), `Prioridade ${p} em ${plural(n)}.`);
   const categoria = (id: string | null) =>
     void aplicar(escolhidas, (x) => ({ ...x, categoriaId: id }), id ? `${plural(n)} em ${categorias.find((c) => c.id === id)?.nome ?? "outra categoria"}.` : `${plural(n)} sem categoria.`);
-  const prazo = (v: string | null) => void aplicar(escolhidas, (x) => ({ ...x, prazo: v || null }), v ? `Prazo ${formatarData(v)} em ${plural(n)}.` : `Prazo removido de ${plural(n)}.`);
-  const lembrar = (v: string | null) => void aplicar(escolhidas, (x) => comLembrete(x, v), v ? `Lembrete em ${formatarData(v)} para ${plural(n)}.` : `Lembrete removido de ${plural(n)}.`);
+  const prazo = (v: string | null) => void aplicar(escolhidas, (x) => ({ ...x, prazo: v || null }), v ? `Prazo ${dataCurta(v)} em ${plural(n)}.` : `Prazo removido de ${plural(n)}.`);
+  const lembrar = (v: string | null) => void aplicar(escolhidas, (x) => comLembrete(x, v), v ? `Lembrete em ${dataCurta(v)} para ${plural(n)}.` : `Lembrete removido de ${plural(n)}.`);
   const foco = (ligar: boolean) => void aplicar(escolhidas, (x) => comFoco(x, ligar), ligar ? `${plural(n)} no foco de hoje.` : `${plural(n)} fora do foco.`);
 
   const lixeira = async () => {

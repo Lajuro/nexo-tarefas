@@ -18,7 +18,7 @@ import { Dica } from "@/components/ui/popover";
 import { comReferencia } from "@/lib/acoes";
 import { itemLista, lista, suave } from "@/lib/animacoes";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
-import { Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, diasAte, formatarData, hojeISO, nomeStatus, tipoInfo } from "@/lib/tipos";
+import { Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, diasAte, dataCurta, hojeISO, nomeStatus, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { PassoDaTarefa } from "./Passos";
 import { TextoRico } from "./Texto";
@@ -103,7 +103,7 @@ function Alteracoes({ r }: { r: Registro }) {
       )}
       {a.prazo && (
         <span className="inline-flex items-center gap-1.5 tabular-nums">
-          Prazo: {formatarData(a.prazo.de) || "sem"} {seta} <strong className="font-semibold text-foreground">{formatarData(a.prazo.para) || "sem"}</strong>
+          Prazo: {dataCurta(a.prazo.de) || "sem"} {seta} <strong className="font-semibold text-foreground">{dataCurta(a.prazo.para) || "sem"}</strong>
         </span>
       )}
     </div>
@@ -133,7 +133,7 @@ function CardRegistro({
       data-destacado={destacado || undefined}
       className={cn(
         "group/reg scroll-mt-16 rounded-xl border bg-card pb-3.5 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-ring/30 hover:shadow-sm",
-        r.tipo === "impedimento" && "border-destructive/30 hover:border-destructive/45",
+        r.tipo === "impedimento" && "border-alerta/35 hover:border-alerta/50",
         destacado && "border-primary/60 ring-[3px] ring-primary/20",
       )}
     >
@@ -189,8 +189,8 @@ function CardRegistro({
       )}
 
       {r.impedimentos && (
-        <div data-slot="registro-impedimentos" className="mx-4 mt-3.5 rounded-lg border border-destructive/25 bg-destructive/[0.06] px-3 py-2.5 dark:bg-destructive/10">
-          <Rotulo icone={<OctagonAlert />} className="text-destructive">Impedimentos</Rotulo>
+        <div data-slot="registro-impedimentos" className="mx-4 mt-3.5 rounded-lg border border-alerta/30 bg-alerta/[0.07] px-3 py-2.5 dark:bg-alerta/10">
+          <Rotulo icone={<OctagonAlert />} className="text-alerta">Impedimentos</Rotulo>
           <TextoRico texto={r.impedimentos} className="text-[13px]" />
         </div>
       )}
@@ -349,7 +349,7 @@ function Entrada({
                 hoje && "text-primary",
                 repeteData && "sr-only",
               )}>
-              {formatarData(data)}
+              {dataCurta(data)}
             </time>
             {hora && <span className={cn("block text-xs leading-4 text-muted-foreground tabular-nums", repeteData && "pt-0.5")}>{hora}</span>}
             {!repeteData && !discreta && <span className="block text-xs leading-4 text-muted-foreground">{dataRelativa(data)}</span>}

@@ -16,7 +16,7 @@ import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger, Table, TBod
 import type { PreviaDoBackup } from "@/lib/armazenamento";
 import type { Achado, Verificacao } from "@/lib/integridade";
 import { dataRelativa } from "@/lib/lembretes";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
@@ -428,7 +428,7 @@ export function PainelSaude() {
               <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                 {v.numeros.tarefas} tarefas, {v.numeros.registros} registros, {v.numeros.passos} passos, {v.numeros.paginas} páginas e {v.numeros.notas} folhas em {formatarTamanho(v.numeros.bytesDados)}.{" "}
                 {v.numeros.anexos} {v.numeros.anexos === 1 ? "anexo" : "anexos"} ({formatarTamanho(v.numeros.bytesAnexos)}). {v.numeros.backups} {v.numeros.backups === 1 ? "backup" : "backups"}
-                {v.numeros.ultimoBackup ? `, o diário mais recente de ${formatarData(v.numeros.ultimoBackup)}` : ""}.
+                {v.numeros.ultimoBackup ? `, o diário mais recente de ${dataCurta(v.numeros.ultimoBackup)}` : ""}.
               </p>
             </div>
           </div>

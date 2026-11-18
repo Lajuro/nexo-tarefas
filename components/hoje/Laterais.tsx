@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { diasEsperando, resumoEspera } from "@/lib/espera";
 import { LIMITES, ResumoDia, dataLocal, diasSemAtividade } from "@/lib/lembretes";
-import { Tarefa, formatarData, hojeISO } from "@/lib/tipos";
+import { Tarefa, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 // ---------- Progresso do dia ----------
@@ -88,8 +88,9 @@ function Marcador({ icone, valor, rotulo }: { icone: ReactNode; valor: number; r
   return (
     <div className="rounded-lg bg-muted/60 px-2.5 py-2">
       <div className="flex items-center justify-between">
-        <NumeroAnimado valor={valor} className={cn("text-lg leading-none font-semibold tracking-tight", valor ? "text-sucesso" : "text-muted-foreground/80")} />
-        <span className={cn("[&_svg]:size-3.5", valor ? "text-sucesso/80" : "text-muted-foreground/80")}>{icone}</span>
+        {/* contagem neutra: o número não ganha cor só por ser maior que zero (3.10) */}
+        <NumeroAnimado valor={valor} className={cn("text-lg leading-none font-semibold tracking-tight", valor ? "text-foreground" : "text-muted-foreground")} />
+        <span className="text-muted-foreground [&_svg]:size-3.5">{icone}</span>
       </div>
       <div className="mt-1 truncate text-xs text-muted-foreground">{rotulo}</div>
     </div>
@@ -127,7 +128,7 @@ function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) 
                 passou ? "bg-alerta/16 text-alerta" : "bg-muted text-muted-foreground",
               )}
             >
-              {dias === 0 ? "hoje" : `${dias}d`}
+              {dias === 0 ? "hoje" : `${dias} ${dias === 1 ? "dia" : "dias"}`}
             </span>
           </Link>
         </MenuContextoTarefa>
@@ -153,16 +154,17 @@ function LinhaTarefa({ tarefa: t, limite }: { tarefa: Tarefa; limite: number }) 
           <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
           <span className="block truncate text-xs text-muted-foreground">
             {dias === 0 ? "Teve novidade hoje" : dias === 1 ? "Sem novidade desde ontem" : `Sem novidade há ${dias} dias`}
-            {t.prazo ? ` · prazo ${formatarData(t.prazo, false)}` : ""}
+            {t.prazo ? ` · prazo ${dataCurta(t.prazo)}` : ""}
           </span>
         </span>
         <span
           className={cn(
             "inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-xs font-semibold tabular-nums",
-            passou ? (t.status === "bloqueada" ? "bg-destructive/12 text-destructive" : "bg-alerta/16 text-alerta") : "bg-muted text-muted-foreground",
+            // parada há muito tempo pede atenção (âmbar), mesmo bloqueada: vermelho fica para o que está errado (3.10)
+            passou ? "bg-alerta/16 text-alerta" : "bg-muted text-muted-foreground",
           )}
         >
-          {dias === 0 ? "hoje" : `${dias}d`}
+          {dias === 0 ? "hoje" : `${dias} ${dias === 1 ? "dia" : "dias"}`}
         </span>
       </Link>
     </MenuContextoTarefa>

@@ -918,6 +918,60 @@ export function formatarData(iso: string | null | undefined, comAno = true) {
   return comAno ? `${d}/${m}/${a.slice(2)}` : `${d}/${m}`;
 }
 
+// ---------- datas na tela (3.10): uma regra só ----------
+// Na interface toda data aparece de um jeito só:
+//   absoluta: dataCurta() → "20/11", com o ano só quando não é o ano corrente ("20/11/25");
+//   relativa: dataRelativa() → "hoje", "amanhã", "ontem", "em 5 dias", "há 3 dias" (sempre por extenso);
+//   prazo:    prazoRelativo() → igual à relativa, mas o que passou vira "3 dias de atraso";
+//   as duas juntas: "20/11 · em 2 dias" (dataComRelativo, PrazoTag).
+// Título de um dia (Diário, Rotina, Relatórios) pode vir por extenso ("quarta, 18 de novembro"): é título, não data solta.
+// O que sai do app (espelho .md, prompts, textos de "Copiar", marcos gravados) continua com formatarData(), data completa.
+
+const pluralDias = (n: number) => `${n} ${n === 1 ? "dia" : "dias"}`;
+
+/** Converte um carimbo ISO (UTC) na data de calendário local AAAA-MM-DD. Data pura passa direto. */
+export function dataLocal(carimbo: string | null | undefined): string {
+  if (!carimbo) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(carimbo)) return carimbo;
+  const d = new Date(carimbo);
+  if (Number.isNaN(d.getTime())) return carimbo.slice(0, 10);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** "20/11" (ano corrente) ou "20/11/25" (outro ano). Aceita data ou carimbo. */
+export function dataCurta(iso: string | null | undefined, hoje = hojeISO()): string {
+  const local = dataLocal(iso);
+  if (!local) return "";
+  return formatarData(local, local.slice(0, 4) !== hoje.slice(0, 4));
+}
+
+/** "hoje", "ontem", "há 3 dias", "amanhã", "em 5 dias". Aceita data ou carimbo. */
+export function dataRelativa(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = diasAte(dataLocal(iso));
+  if (d === null) return "";
+  if (d === 0) return "hoje";
+  if (d === -1) return "ontem";
+  if (d === 1) return "amanhã";
+  return d < 0 ? `há ${pluralDias(-d)}` : `em ${pluralDias(d)}`;
+}
+
+/** Como dataRelativa, mas para prazo: o que já passou é atraso ("1 dia de atraso", "3 dias de atraso"). */
+export function prazoRelativo(iso: string | null | undefined): string {
+  const d = diasAte(iso);
+  if (d === null) return "";
+  return d < 0 ? `${pluralDias(-d)} de atraso` : dataRelativa(iso);
+}
+
+/** "20/11 · em 2 dias". O relativo só entra quando ajuda: até `ate` dias para a frente ou para trás (padrão 7). */
+export function dataComRelativo(iso: string | null | undefined, { prazo = false, ate = 7 } = {}): string {
+  if (!iso) return "";
+  const d = diasAte(dataLocal(iso));
+  const rel = d !== null && (Math.abs(d) <= ate || (prazo && d < 0)) ? (prazo ? prazoRelativo(iso) : dataRelativa(iso)) : "";
+  return rel ? `${dataCurta(iso)} · ${rel}` : dataCurta(iso);
+}
+
 // Carimbo ISO (UTC) mostrado no fuso local, ex.: "13/11 14:32".
 export function formatarDataHora(iso: string | null | undefined) {
   if (!iso) return "";

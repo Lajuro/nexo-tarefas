@@ -22,7 +22,7 @@ import { nomesConhecidos } from "@/lib/pessoas";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import { Rascunho, apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
 import {
-  Passo, Registro, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, formatarData, formatarDataHora, hojeISO, nomeStatus,
+  Passo, Registro, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, agoraISO, dataCurta, formatarDataHora, hojeISO, nomeStatus,
   normalizarPasso, normalizarRegistro, novoId, passosAbertos,
 } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -516,7 +516,7 @@ export function RegistroEditor({
                         />
                         <CampoSugestoes valor={p.responsavel || ""} aoMudar={(v) => mudarPasso(i, "responsavel", v)} sugestoes={quem}
                           placeholder="Quem" aria-label="Responsável" className="w-[104px] shrink-0" />
-                        <SeletorData compacto valor={p.prazo ?? ""} aoMudar={(v) => mudarPasso(i, "prazo", v || null)}
+                        <SeletorData compacto prazo valor={p.prazo ?? ""} aoMudar={(v) => mudarPasso(i, "prazo", v || null)}
                           placeholder="Prazo" aria-label="Prazo do passo" className={cn("shrink-0", p.prazo && "text-foreground")} />
                         <Dica texto="Remover passo">
                           <Button variant="ghost" size="icon-sm" aria-label="Remover passo" className="shrink-0"
@@ -570,7 +570,7 @@ export function RegistroEditor({
                             {passo.texto}
                           </span>
                           <span className="shrink-0 pt-px text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-                            {passo.responsavel ? `${passo.responsavel} · ` : ""}{formatarData(origem.data, false)}
+                            {passo.responsavel ? `${passo.responsavel} · ` : ""}{dataCurta(origem.data)}
                           </span>
                         </label>
                       </li>
@@ -592,8 +592,8 @@ export function RegistroEditor({
                 <Campo rotulo="Status" lado={status !== tarefa.status && <Antes>{nomeStatus(tarefa.status)}</Antes>}>
                   <Seletor valor={status} aoMudar={(v) => setStatus(v as Status)} opcoes={opcoesStatus} aria-label="Status da tarefa" />
                 </Campo>
-                <Campo rotulo="Prazo" lado={(prazo || null) !== tarefa.prazo && <Antes>{formatarData(tarefa.prazo) || "sem prazo"}</Antes>}>
-                  <SeletorData valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo da tarefa" />
+                <Campo rotulo="Prazo" lado={(prazo || null) !== tarefa.prazo && <Antes>{dataCurta(tarefa.prazo) || "sem prazo"}</Antes>}>
+                  <SeletorData prazo valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo da tarefa" />
                 </Campo>
               </LinhaCampos>
               <Campo rotulo={`Prioridade: ${prioridade}`} lado={prioridade !== tarefa.prioridade && <Antes>{tarefa.prioridade}</Antes>}>

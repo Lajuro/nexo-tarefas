@@ -8,7 +8,7 @@ import { PontoCor, Secao } from "@/components/comum";
 import { deISO, somarDias } from "@/components/ui/data";
 import { Dica } from "@/components/ui/popover";
 import { aberta, passosAbertosDe } from "@/lib/lembretes";
-import { Categoria, Passo, Tarefa, formatarData } from "@/lib/tipos";
+import { Categoria, Passo, Tarefa, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -48,7 +48,7 @@ export function Semana({ hoje, tarefas, categorias }: { hoje: string; tarefas: T
       contagem={total || undefined}
       acoes={
         <span className="text-xs text-muted-foreground tabular-nums">
-          {formatarData(hoje, false)} a {formatarData(dias[6].data, false)}
+          {dataCurta(hoje)} a {dataCurta(dias[6].data)}
         </span>
       }
     >
@@ -74,7 +74,7 @@ export function Semana({ hoje, tarefas, categorias }: { hoje: string; tarefas: T
                   <span
                     className={cn(
                       "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums",
-                      ehHoje ? "bg-primary text-primary-foreground" : itens.length ? "text-foreground" : "text-muted-foreground",
+                      ehHoje ? "bg-primary-solido text-primary-foreground" : itens.length ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
                     {d.getDate()}

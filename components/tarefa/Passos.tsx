@@ -7,7 +7,7 @@ import { ItemPasso } from "@/components/comum";
 import { SeletorData } from "@/components/ui/data";
 import { comPassoAlternado, comPrazoDoPasso } from "@/lib/acoes";
 import { dataLocal } from "@/lib/lembretes";
-import { Passo, Registro, diasAte, formatarData } from "@/lib/tipos";
+import { Passo, Registro, diasAte, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,17 +42,16 @@ export function PassoDaTarefa({
           )}
           {extra}
           {(!passo.feito || passo.prazo) && (
-            <SeletorData
+            <SeletorData prazo={!passo.feito}
               compacto
               valor={passo.prazo ?? ""}
               aoMudar={(v) => atualizarTarefa(tarefaId, (t) => comPrazoDoPasso(t, registro.id, passo.id, v || null))}
               placeholder="Prazo"
-              aria-label={passo.prazo ? `Prazo do passo: ${formatarData(passo.prazo)}. Clique para mudar.` : "Definir prazo do passo"}
+              aria-label={passo.prazo ? `Prazo do passo: ${dataCurta(passo.prazo)}. Clique para mudar.` : "Definir prazo do passo"}
               className={cn("-mx-1 h-5 gap-1 px-1 text-xs [&_svg]:size-3", passo.prazo ? tomPrazo : "text-muted-foreground")}
             />
           )}
-          {d !== null && d < 0 && <span className="text-destructive">{-d === 1 ? "1 dia de atraso" : `${-d} dias de atraso`}</span>}
-          {passo.feito && passo.feitoEm && <span>feito em {formatarData(dataLocal(passo.feitoEm), false)}</span>}
+          {passo.feito && passo.feitoEm && <span>feito em {dataCurta(passo.feitoEm)}</span>}
         </>
       }
     />

@@ -64,7 +64,7 @@ export default function Hoje() {
         </Dica>
       )}
       <Button onClick={() => abrirPlanejarDia()} data-acao="planejar-o-dia">
-        <Sunrise /> Planejar o dia <Kbd className="border-white/20 bg-white/15 text-white">D</Kbd>
+        <Sunrise /> Planejar o dia <Kbd className="border-white/25 bg-black/12 text-white">D</Kbd>
       </Button>
     </>
   );

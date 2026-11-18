@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Dica } from "@/components/ui/popover";
 import { formatarMinutos } from "@/lib/acoes";
 import { type GrupoDeConquista, NOME_DO_GRUPO, XP } from "@/lib/jogo";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const GRUPOS: GrupoDeConquista[] = ["passos", "registros", "tarefas", "ritmo", "foco", "organizacao"];
@@ -74,7 +74,7 @@ export default function Conquistas() {
               <p className="mb-2 text-xs font-medium text-muted-foreground sem-selecao">XP dos últimos 14 dias</p>
               <div data-slot="grafico-xp" className="flex h-20 items-end gap-1.5">
                 {ultimosDias.map((d, i) => (
-                  <Dica key={d.data} texto={`${formatarData(d.data, false)}: ${d.xp} XP em ${d.avancos} ${d.avancos === 1 ? "avanço" : "avanços"}`}>
+                  <Dica key={d.data} texto={`${dataCurta(d.data)}: ${d.xp} XP em ${d.avancos} ${d.avancos === 1 ? "avanço" : "avanços"}`}>
                     <div className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                       <div className={cn("w-full rounded-t-[3px] transition-[height] duration-500 ease-out", d.xp ? (i === ultimosDias.length - 1 ? "bg-primary" : "bg-primary/45") : "bg-muted")}
                         style={{ height: `${d.xp ? Math.max(8, (d.xp / maiorXp) * 100) : 4}%` }} />
@@ -103,10 +103,10 @@ export default function Conquistas() {
               </div>
             </section>
             <div className="grid grid-cols-2 gap-3">
-              <Estatistica rotulo="Dias úteis seguidos" valor={sequencia.atual} icone={<Flame />} tom="alerta" />
+              <Estatistica rotulo="Dias úteis seguidos" valor={sequencia.atual} icone={<Flame />} />
               <Estatistica rotulo="Melhor sequência" valor={sequencia.melhor} icone={<Flame />} />
-              <Estatistica rotulo="Conquistas" valor={feitas.length} icone={<Medal />} tom="primario" />
-              <Estatistica rotulo="Recorde de avanços num dia" valor={recorde?.avancos ?? 0} icone={<Zap />} tom="sucesso" />
+              <Estatistica rotulo="Conquistas" valor={feitas.length} icone={<Medal />} />
+              <Estatistica rotulo="Recorde de avanços num dia" valor={recorde?.avancos ?? 0} icone={<Zap />} />
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ import { ehFocoHoje } from "@/lib/acoes";
 import { mola, suave } from "@/lib/animacoes";
 import { aberta, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { cn } from "@/lib/utils";
-import { Categoria, Tarefa, diasAte, formatarData, nomeStatus, ordenarRegistros, passosAbertos } from "@/lib/tipos";
+import { Categoria, Tarefa, diasAte, dataCurta, nomeStatus, ordenarRegistros, passosAbertos } from "@/lib/tipos";
 import type { Ordem } from "./filtros";
 import { type Selecao, Selecionavel } from "./Lote";
 
@@ -101,13 +101,13 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
           </span>
           {foco && (
             <Dica texto="Foco de hoje">
-              <span data-slot="foco-hoje" className="inline-flex size-[18px] shrink-0 items-center justify-center rounded bg-primary text-primary-foreground">
+              <span data-slot="foco-hoje" className="inline-flex size-[18px] shrink-0 items-center justify-center rounded bg-primary-solido text-primary-foreground">
                 <Target className="size-3" strokeWidth={2.4} />
               </span>
             </Dica>
           )}
           {lembrar && (
-            <Dica texto={chegou ? `Você pediu para voltar nisto ${dataRelativa(lembrar)}` : `Lembrar de voltar ${dataRelativa(lembrar)} (${formatarData(lembrar, false)})`}>
+            <Dica texto={chegou ? `Você pediu para voltar nisto ${dataRelativa(lembrar)}` : `Lembrar de voltar ${dataRelativa(lembrar)} (${dataCurta(lembrar)})`}>
               <span data-slot="lembrete" className={cn("inline-flex shrink-0", chegou ? "text-alerta" : "text-muted-foreground")}>
                 <AlarmClock className="size-3.5" />
               </span>
@@ -120,7 +120,7 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
         <span className="flex justify-center"><PrioBadge p={t.prioridade} /></span>
 
         <span className="flex min-w-0">
-          {t.prazo ? <PrazoTag prazo={t.prazo} concluida={!ab} /> : <span className="text-xs text-muted-foreground/80">Sem prazo</span>}
+          {t.prazo ? <PrazoTag prazo={t.prazo} concluida={!ab} /> : <span className="text-xs text-muted-foreground">Sem prazo</span>}
         </span>
 
         <span className={cn(SO_MEDIA, "items-center")}>
@@ -132,7 +132,7 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
               </span>
             </Dica>
           ) : (
-            <span className="pl-1 text-xs text-muted-foreground/80">0</span>
+            <span className="pl-1 text-xs text-muted-foreground">0</span>
           )}
         </span>
 
@@ -155,7 +155,7 @@ function Linha({ t, cat, selecionando }: { t: Tarefa; cat?: Categoria | null; se
               </span>
             </Dica>
           )}
-          {pessoas.length === 0 && reunioes === 0 && <span className="text-xs text-muted-foreground/80">Ninguém ainda</span>}
+          {pessoas.length === 0 && reunioes === 0 && <span className="text-xs text-muted-foreground">Ninguém ainda</span>}
         </span>
 
         <span className="truncate text-xs text-muted-foreground">{dataRelativa(ult)}</span>

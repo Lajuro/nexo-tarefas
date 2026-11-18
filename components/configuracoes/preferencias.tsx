@@ -24,7 +24,7 @@ import { Badge, Kbd } from "@/components/ui/diversos";
 import { LIMITES, dataRelativa } from "@/lib/lembretes";
 import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref, useRotina } from "@/lib/preferencias";
-import { diasAte, formatarData, hojeISO } from "@/lib/tipos";
+import { diasAte, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 // ---------- Aparência ----------
@@ -146,7 +146,7 @@ export function PainelRotina() {
           alerta={carregado && revisaoAtrasada}
           detalhe={
             !carregado ? "" : revisou
-              ? `Última: ${dataRelativa(revisou)} (${formatarData(revisou)})${revisaoAtrasada ? ". Já passou de uma semana." : ""}`
+              ? `Última: ${dataRelativa(revisou)} (${dataCurta(revisou)})${revisaoAtrasada ? ". Já passou de uma semana." : ""}`
               : "Você ainda não fez uma revisão"
           }
         >
@@ -253,7 +253,7 @@ export function PainelSobre() {
   return (
     <Painel>
       <div data-slot="sobre" className="flex items-center gap-3.5">
-        <span aria-hidden className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-sm sem-selecao">
+        <span aria-hidden className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-solido text-lg font-bold text-primary-foreground shadow-sm sem-selecao">
           N
         </span>
         <div className="min-w-0 flex-1">

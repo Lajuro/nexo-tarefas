@@ -109,7 +109,7 @@ export function EtapaFocos({
                   aria-hidden
                   className={cn(
                     "mt-px inline-flex size-[18px] shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color] duration-150",
-                    marcado ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card dark:bg-input/20",
+                    marcado ? "border-primary-solido bg-primary-solido text-primary-foreground" : "border-input bg-card dark:bg-input/20",
                   )}
                 >
                   {marcado && (

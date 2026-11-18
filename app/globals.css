@@ -20,15 +20,18 @@
   --card-foreground: oklch(0.21 0.02 265);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.21 0.02 265);
-  --primary: oklch(0.51 calc(0.215 * var(--croma)) var(--matiz));
+  --primary: oklch(0.48 calc(0.215 * var(--croma)) var(--matiz));
   --primary-foreground: oklch(0.99 0.005 var(--matiz));
+  /* Fundo cheio com texto claro por cima (botão primário, selo de foco). No claro é o próprio --primary;
+     no escuro é mais fundo que ele, para o texto branco passar de 4,5:1 sem escurecer o text-primary. */
+  --primary-solido: var(--primary);
   --secondary: oklch(0.955 0.006 265);
   --secondary-foreground: oklch(0.27 0.02 265);
   --muted: oklch(0.962 0.005 265);
   --muted-foreground: oklch(0.5 0.02 265);
   --accent: oklch(0.948 calc(0.014 * var(--croma)) var(--matiz));
   --accent-foreground: oklch(0.25 calc(0.03 * var(--croma)) var(--matiz));
-  --destructive: oklch(0.56 0.22 25);
+  --destructive: oklch(0.5 0.2 25);
   --border: oklch(0.915 0.007 265);
   --input: oklch(0.875 0.01 265);
   --ring: oklch(0.51 calc(0.215 * var(--croma)) var(--matiz));
@@ -38,16 +41,18 @@
   --sidebar-accent: oklch(0.925 calc(0.014 * var(--croma)) var(--matiz));
   --sidebar-border: oklch(0.905 0.008 265);
 
-  --sucesso: oklch(0.52 0.15 152);
-  --alerta: oklch(0.53 0.125 68);
-  --info: oklch(0.54 0.16 245);
+  /* Cores de estado e de status: no claro, escuras o bastante para o texto delas passar de 4,5:1
+     também sobre o fundo tingido da mesma cor (selos, contadores). Ver AGENTS.md, seção 13. */
+  --sucesso: oklch(0.47 0.13 152);
+  --alerta: oklch(0.48 0.11 68);
+  --info: oklch(0.48 0.15 245);
 
-  --st-a-fazer: oklch(0.5 0.03 262);
-  --st-andamento: oklch(0.52 0.19 258);
-  --st-aguardando: oklch(0.58 0.15 68);
-  --st-bloqueada: oklch(0.55 0.22 25);
-  --st-concluida: oklch(0.52 0.15 152);
-  --st-cancelada: oklch(0.58 0.01 265);
+  --st-a-fazer: oklch(0.48 0.03 262);
+  --st-andamento: oklch(0.48 0.18 258);
+  --st-aguardando: oklch(0.49 0.12 72);
+  --st-bloqueada: oklch(0.5 0.2 25);
+  --st-concluida: oklch(0.47 0.13 152);
+  --st-cancelada: oklch(0.5 0.01 265);
 
   --marca-texto: oklch(0.9 0.16 95);
   --sombra-cor: 250 30% 20%;
@@ -61,8 +66,9 @@
   --card-foreground: oklch(0.945 0.006 265);
   --popover: oklch(0.215 0.016 265);
   --popover-foreground: oklch(0.945 0.006 265);
-  --primary: oklch(0.6 calc(0.2 * var(--croma)) var(--matiz));
+  --primary: oklch(0.63 calc(0.2 * var(--croma)) var(--matiz));
   --primary-foreground: oklch(0.99 0.005 var(--matiz));
+  --primary-solido: oklch(0.52 calc(0.2 * var(--croma)) var(--matiz));
   --secondary: oklch(0.245 0.016 265);
   --secondary-foreground: oklch(0.93 0.006 265);
   --muted: oklch(0.232 0.015 265);
@@ -107,6 +113,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-solido: var(--primary-solido);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

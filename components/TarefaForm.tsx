@@ -306,7 +306,7 @@ export function TarefaForm({
 
         <LinhaCampos>
           <Campo rotulo="Prazo">
-            <SeletorData valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo" />
+            <SeletorData prazo valor={prazo} aoMudar={setPrazo} placeholder="Sem prazo" aria-label="Prazo" />
           </Campo>
           <Campo rotulo="Lembrar de voltar em" dica="O app te avisa nesse dia para você retomar a tarefa.">
             <SeletorData valor={lembrarEm} aoMudar={setLembrarEm} placeholder="Sem lembrete" aria-label="Lembrar de voltar em" />

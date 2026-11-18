@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useAparencia } from "@/components/Raiz";
 import type { Conquista } from "@/lib/jogo";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export const ICONE_CONQUISTA: Record<string, LucideIcon> = {
@@ -57,7 +57,7 @@ export function CartaoConquista({ c }: { c: Conquista }) {
         <p className={cn("truncate text-[13px] font-semibold tracking-tight", !c.feita && "text-muted-foreground")}>{c.nome}</p>
         <p className="text-xs leading-snug text-muted-foreground">{c.descricao}</p>
         {c.feita ? (
-          <p className="mt-1.5 text-xs font-medium text-sucesso">{c.em ? `Alcançada em ${formatarData(c.em)}` : "Alcançada"}</p>
+          <p className="mt-1.5 text-xs font-medium text-sucesso">{c.em ? `Alcançada em ${dataCurta(c.em)}` : "Alcançada"}</p>
         ) : (
           <div className="mt-2 flex items-center gap-2">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">

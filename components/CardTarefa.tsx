@@ -4,7 +4,7 @@
 // O cartão inteiro é um link para a tarefa; o botão direito e o "..." abrem o menu de ações.
 
 import Link from "next/link";
-import { AlarmClock, CalendarClock, ListChecks, Target, Users, Link2 } from "lucide-react";
+import { AlarmClock, ListChecks, Target, Users, Link2 } from "lucide-react";
 import { BotaoMenuTarefa, MenuContextoTarefa } from "./MenuTarefa";
 import { useNexo } from "./Provider";
 import { dependenciasDe } from "@/lib/dependencias";
@@ -14,7 +14,7 @@ import { ehFocoHoje } from "@/lib/acoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { cn } from "@/lib/utils";
 import {
-  Categoria, STATUS_ABERTOS, Tarefa, diasAte, formatarData, hojeISO, nomeStatus, passosAbertos, tipoInfo, ultimoRegistro,
+  Categoria, STATUS_ABERTOS, Tarefa, dataCurta, diasAte, nomeStatus, passosAbertos, tipoInfo, ultimoRegistro,
 } from "@/lib/tipos";
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
@@ -26,7 +26,7 @@ function SeloFoco({ pequeno }: { pequeno?: boolean }) {
       <span
         data-slot="foco-hoje"
         className={cn(
-          "inline-flex shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-xs",
+          "inline-flex shrink-0 items-center justify-center rounded-md bg-primary-solido text-primary-foreground shadow-xs",
           pequeno ? "size-5" : "size-6",
         )}
       >
@@ -76,27 +76,11 @@ function Contadores({ t, aberta, curto }: { t: Tarefa; aberta: boolean; curto?: 
         <Dica texto={chegou ? `Você pediu para voltar nisto ${dataRelativa(lembrar)}` : `Lembrar de voltar ${dataRelativa(lembrar)}`}>
           <span data-slot="lembrete" className={cn("inline-flex shrink-0 items-center gap-1 tabular-nums", chegou && "font-medium text-alerta")}>
             <AlarmClock className="size-3.5" />
-            {formatarData(lembrar, false)}
+            {dataCurta(lembrar)}
           </span>
         </Dica>
       )}
     </>
-  );
-}
-
-/** Prazo em formato curto (sem o ano quando é deste ano), para caber no cartão compacto. */
-function PrazoCurto({ prazo, aberta }: { prazo: string | null; aberta: boolean }) {
-  if (!prazo) return null;
-  const d = diasAte(prazo) ?? 0;
-  const esteAno = prazo.slice(0, 4) === hojeISO().slice(0, 4);
-  const tom = !aberta ? "" : d < 0 ? "text-destructive" : d <= 3 ? "text-alerta" : "";
-  const extra = !aberta ? "" : d < 0 ? ` · ${-d}d de atraso` : d === 0 ? " · hoje" : d === 1 ? " · amanhã" : d <= 7 ? ` · em ${d}d` : "";
-  return (
-    <span data-slot="prazo" className={cn("inline-flex shrink-0 items-center gap-1 font-medium whitespace-nowrap tabular-nums", tom)}>
-      <CalendarClock className="size-3" />
-      {formatarData(prazo, esteAno ? false : true)}
-      {extra}
-    </span>
   );
 }
 
@@ -125,13 +109,8 @@ export function CardTarefa({
     aberta ? "bg-card shadow-xs" : "bg-muted/45 hover:bg-card",
     foco && "border-primary/50",
   );
-  const barra = cat?.cor && (
-    <span
-      aria-hidden
-      className={cn("absolute left-0 w-[3px] rounded-r-full transition-opacity duration-200 group-focus-within/card:opacity-100 group-hover/card:opacity-100", compacto ? "inset-y-2.5" : "inset-y-3.5", aberta ? "opacity-75" : "opacity-35")}
-      style={{ background: cat.cor }}
-    />
-  );
+  // A categoria aparece uma vez só no cartão: o ponto com o nome (CatTag). Antes havia também uma borda
+  // colorida à esquerda, que repetia a mesma informação e somava mais uma cor (3.10).
   const titulo = cn(
     "line-clamp-2 leading-snug tracking-tight text-balance [overflow-wrap:anywhere]",
     aberta ? "text-foreground" : "text-muted-foreground",
@@ -150,7 +129,6 @@ export function CardTarefa({
           data-foco={foco || undefined}
           className={cn(base, "gap-1.5 rounded-lg py-2.5 pr-2.5 pl-3", className)}
         >
-          {barra}
           <div className="flex items-center gap-1.5">
             <CatTag cat={cat} className="flex-1 text-xs" />
             {foco && <SeloFoco pequeno />}
@@ -163,7 +141,7 @@ export function CardTarefa({
                 <span className="inline-flex shrink-0"><IconeStatus status={t.status} /></span>
               </Dica>
             )}
-            <PrazoCurto prazo={t.prazo} aberta={aberta} />
+            <PrazoTag prazo={t.prazo} concluida={!aberta} className="[&_svg]:size-3" />
             <Contadores t={t} aberta={aberta} curto />
           </div>
           <BotaoMenuTarefa tarefa={t} className={cn(classeMenu, "absolute right-1 bottom-1 size-6 bg-card shadow-xs hover:bg-accent")} />
@@ -180,9 +158,8 @@ export function CardTarefa({
         data-slot="card-tarefa"
         data-status={t.status}
         data-foco={foco || undefined}
-        className={cn(base, "h-full rounded-xl pt-3 pr-3 pb-0.5 pl-4", className)}
+        className={cn(base, "h-full rounded-xl pt-3 pr-3 pb-0.5 pl-3.5", className)}
       >
-        {barra}
         <div className="flex items-center gap-2">
           <CatTag cat={cat} className="flex-1" />
           {foco && <SeloFoco />}

@@ -53,7 +53,7 @@ export function CapturaRapida({ className }: { className?: string }) {
         )}
         onClick={() => campo.current?.focus()}
       >
-        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors duration-150 group-focus-within/captura:bg-primary group-focus-within/captura:text-primary-foreground">
+        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors duration-150 group-focus-within/captura:bg-primary-solido group-focus-within/captura:text-primary-foreground">
           <Plus className="size-3.5" strokeWidth={2.5} />
         </span>
         <Input

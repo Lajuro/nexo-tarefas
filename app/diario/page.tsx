@@ -25,7 +25,7 @@ import {
 import { dataRelativa } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { Categoria, formatarData } from "@/lib/tipos";
+import { Categoria, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const TIPOS: { valor: TipoNoDiario; rotulo: string }[] = [
@@ -166,7 +166,7 @@ function Dia({ dia, cats, aoCopiar }: { dia: DiaDoDiario; cats: Map<string, Cate
           {passos > 0 && ` · ${plural(passos, "passo feito", "passos feitos")}`}
         </span>
         <Dica texto="Copiar este dia como texto">
-          <Button variant="ghost" size="icon-sm" aria-label={`Copiar o dia ${formatarData(dia.data)} como texto`} onClick={() => aoCopiar(dia)}
+          <Button variant="ghost" size="icon-sm" aria-label={`Copiar o dia ${dataCurta(dia.data)} como texto`} onClick={() => aoCopiar(dia)}
             className="ml-auto opacity-0 transition-opacity group-hover/dia:opacity-100 focus-visible:opacity-100">
             <ClipboardCopy />
           </Button>
@@ -250,9 +250,9 @@ export default function Diario() {
             <Mapa atividade={atividade} hoje={hoje} dia={dia} escolher={(d) => { setDia(d); setMostrar(DIAS_POR_VEZ); }} />
           </Painel>
           <div className="grid min-w-[280px] flex-1 basis-[280px] grid-cols-2 content-start gap-3 lg:max-w-[360px]">
-            <Estatistica rotulo="Dias ativos em 30" valor={numeros.comAtividade} icone={<CalendarDays />} tom="primario" />
-            <Estatistica rotulo="Avanços em 30 dias" valor={numeros.total} icone={<ListChecks />} tom="sucesso" />
-            <Estatistica rotulo="Dias úteis seguidos" valor={numeros.atual} icone={<Flame />} tom="alerta" />
+            <Estatistica rotulo="Dias ativos em 30" valor={numeros.comAtividade} icone={<CalendarDays />} />
+            <Estatistica rotulo="Avanços em 30 dias" valor={numeros.total} icone={<ListChecks />} />
+            <Estatistica rotulo="Dias úteis seguidos" valor={numeros.atual} icone={<Flame />} />
             <Estatistica rotulo="Melhor sequência" valor={numeros.melhor} icone={<Flame />} />
           </div>
         </div>
@@ -277,7 +277,7 @@ export default function Diario() {
           ) : (
             <AnimatePresence initial={false} mode="popLayout">
               {visiveis.map((d) => (
-                <Dia key={d.data} dia={d} cats={cats} aoCopiar={(x) => copiar(textoDoDia(x), `Dia ${formatarData(x.data)} copiado como texto.`)} />
+                <Dia key={d.data} dia={d} cats={cats} aoCopiar={(x) => copiar(textoDoDia(x), `Dia ${dataCurta(x.data)} copiado como texto.`)} />
               ))}
             </AnimatePresence>
           )}

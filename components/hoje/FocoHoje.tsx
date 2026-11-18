@@ -114,9 +114,8 @@ function CartaoFoco({ tarefa: t, categoria }: { tarefa: Tarefa; categoria: Categ
         data-tarefa={t.id}
         className="@container/foco relative overflow-hidden rounded-xl border bg-card shadow-xs transition-[border-color,box-shadow] duration-150 hover:border-ring/30 hover:shadow-sm"
       >
-        <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-muted-foreground/25" style={categoria?.cor ? { background: categoria.cor } : undefined} />
         <div className="grid @2xl/foco:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-          <div className="flex min-w-0 flex-col gap-2 py-3.5 pr-3 pl-5">
+          <div className="flex min-w-0 flex-col gap-2 py-3.5 pr-3 pl-4">
             <div className="flex items-center gap-1">
               <CatTag cat={categoria} className="mr-auto" />
               <PrioBadge p={t.prioridade} className="mr-1" />

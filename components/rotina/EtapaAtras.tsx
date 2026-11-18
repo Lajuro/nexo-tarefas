@@ -11,13 +11,13 @@ import { MenuContextoTarefa, useAcoesTarefa } from "@/components/MenuTarefa";
 import { CatTag, PrioBadge, SeletorStatus } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/controles";
-import { SeletorData, dataPorExtenso } from "@/components/ui/data";
+import { SeletorData } from "@/components/ui/data";
 import { Progress } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
 import { comLembrete, comPassoAlternado, comPrazoDoPasso } from "@/lib/acoes";
 import { itemLista, lista } from "@/lib/animacoes";
 import { aberta, dataRelativa, passoEhMeu } from "@/lib/lembretes";
-import { Categoria, Passo, Tarefa, formatarData, nomeStatus } from "@/lib/tipos";
+import { Categoria, Passo, Tarefa, dataCurta, nomeStatus } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { CabecalhoEtapa } from "./pecas";
 
@@ -182,13 +182,13 @@ function CartaoPendencias({
               titulo={
                 !okPrazo ? `Prazo venceu ${dataRelativa(t.prazo)}`
                 : fechada ? `Tarefa ${nomeStatus(t.status).toLowerCase()}`
-                : t.prazo ? `Novo prazo: ${dataPorExtenso(t.prazo)}`
+                : t.prazo ? `Novo prazo: ${dataCurta(t.prazo)}`
                 : "Ficou sem prazo"
               }
-              detalhe={`Era para ${formatarData(g.prazoEra)}`}
+              detalhe={`Era para ${dataCurta(g.prazoEra)}`}
             >
               {!fechada && (
-                <SeletorData
+                <SeletorData prazo
                   compacto
                   valor={okPrazo ? (t.prazo ?? "") : ""}
                   aoMudar={(v) => atualizarTarefa(t.id, (x) => ({ ...x, prazo: v || null }))}
@@ -258,12 +258,12 @@ function CartaoPendencias({
                     {p.feito ? "Passo concluído"
                       : fechada ? `Tarefa ${nomeStatus(t.status).toLowerCase()}`
                       : !p.prazo ? `${dono}ficou sem prazo`
-                      : ok ? `${dono}novo prazo: ${dataPorExtenso(p.prazo)}`
+                      : ok ? `${dono}novo prazo: ${dataCurta(p.prazo)}`
                       : `${dono}venceu ${dataRelativa(p.prazo)}`}
                   </div>
                 </div>
                 {!p.feito && !fechada && (
-                  <SeletorData
+                  <SeletorData prazo
                     compacto
                     valor={ok ? (p.prazo ?? "") : ""}
                     aoMudar={(v) => atualizarTarefa(t.id, (y) => comPrazoDoPasso(y, x.registroId, x.passoId, v || null))}

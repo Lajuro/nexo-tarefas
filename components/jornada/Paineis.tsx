@@ -103,7 +103,7 @@ export function PainelDoPonto({
             <div className="grid grid-cols-3 gap-3">
               <Numero rotulo="Entrada" valor={p.entrada ?? ""} slot="ponto-entrada" />
               {conta.estado === "aberto" ? (
-                <Numero rotulo={conta.saidaPrevista != null ? "Você sai às" : "Saída"} valor={conta.saidaPrevista != null ? emHora(conta.saidaPrevista) : "livre"} tom={conta.extra > 0 && conta.saidaPrevista != null ? "text-alerta" : "text-primary"} slot="saida-prevista" />
+                <Numero rotulo={conta.saidaPrevista != null ? "Você sai às" : "Saída"} valor={conta.saidaPrevista != null ? emHora(conta.saidaPrevista) : "livre"} tom={conta.extra > 0 && conta.saidaPrevista != null ? "text-alerta" : undefined} slot="saida-prevista" />
               ) : (
                 <Numero rotulo="Saída" valor={p.saida ?? ""} slot="ponto-saida" />
               )}

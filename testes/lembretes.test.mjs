@@ -114,5 +114,37 @@ teste("agruparLembretes: lista vazia e lembretes adiados (filtrados antes) não 
   assert.equal(fogo.gravidade, "atencao", "sem os críticos (adiados), o grupo cai para atenção");
 });
 
+// ---------- regra única de data na tela (3.10, lib/tipos.ts) ----------
+const diaDaqui = (n) => { const d = new Date(); d.setDate(d.getDate() + n); const p = (x) => String(x).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+
+teste("dataCurta: dia/mês no ano corrente, com o ano (2 dígitos) só em outro ano", () => {
+  assert.equal(T.dataCurta("2026-11-20", "2026-11-18"), "20/11");
+  assert.equal(T.dataCurta("2025-12-31", "2026-01-02"), "31/12/25");
+  assert.equal(T.dataCurta("2027-01-05", "2026-12-30"), "05/01/27");
+  assert.equal(T.dataCurta(""), "");
+  assert.equal(T.dataCurta(null), "");
+});
+
+teste("dataRelativa: sempre por extenso, do mesmo jeito", () => {
+  assert.equal(T.dataRelativa(diaDaqui(0)), "hoje");
+  assert.equal(T.dataRelativa(diaDaqui(1)), "amanhã");
+  assert.equal(T.dataRelativa(diaDaqui(-1)), "ontem");
+  assert.equal(T.dataRelativa(diaDaqui(2)), "em 2 dias");
+  assert.equal(T.dataRelativa(diaDaqui(-4)), "há 4 dias");
+  assert.equal(L.dataRelativa(diaDaqui(-4)), "há 4 dias", "lib/lembretes continua exportando a mesma função");
+});
+
+teste("prazoRelativo e dataComRelativo: prazo que passou é atraso; relativo só perto da data", () => {
+  assert.equal(T.prazoRelativo(diaDaqui(-1)), "1 dia de atraso");
+  assert.equal(T.prazoRelativo(diaDaqui(-3)), "3 dias de atraso");
+  assert.equal(T.prazoRelativo(diaDaqui(0)), "hoje");
+  const curta = (n) => T.dataCurta(diaDaqui(n));
+  assert.equal(T.dataComRelativo(diaDaqui(2), { prazo: true }), `${curta(2)} · em 2 dias`);
+  assert.equal(T.dataComRelativo(diaDaqui(-30), { prazo: true }), `${curta(-30)} · 30 dias de atraso`, "atraso aparece mesmo longe");
+  assert.equal(T.dataComRelativo(diaDaqui(30)), curta(30), "longe da data, só a data");
+  assert.equal(T.dataComRelativo(diaDaqui(30), { ate: Infinity }), `${curta(30)} · em 30 dias`);
+  assert.ok(!/\d+d\b/.test(T.dataComRelativo(diaDaqui(3), { prazo: true })), "nada de abreviação como 3d");
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);

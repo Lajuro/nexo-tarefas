@@ -21,7 +21,7 @@ import * as M from "@/components/ui/menu";
 import { somarDias } from "@/components/ui/data";
 import { aplicarStatus, comFixada, comFoco, comLembrete, ehFocoHoje } from "@/lib/acoes";
 import { aberta } from "@/lib/lembretes";
-import { STATUS, Status, Tarefa, formatarData, hojeISO, nomeStatus } from "@/lib/tipos";
+import { STATUS, Status, Tarefa, dataCurta, hojeISO, nomeStatus } from "@/lib/tipos";
 import { toast as sonner } from "sonner";
 
 /** Ações de tarefa prontas para usar em botões fora do menu também. */
@@ -42,7 +42,7 @@ export function useAcoesTarefa() {
     mudarPrioridade: (t: Tarefa, p: number) =>
       t.prioridade === p ? Promise.resolve(null) : atualizarComVolta(t.id, (x) => ({ ...x, prioridade: p }), `Prioridade de “${encurtar(t.titulo)}”: ${p}.`),
     mudarPrazo: (t: Tarefa, data: string | null) =>
-      (data || null) === t.prazo ? Promise.resolve(null) : atualizarComVolta(t.id, (x) => ({ ...x, prazo: data || null }), data ? `Prazo de “${encurtar(t.titulo)}”: ${formatarData(data)}.` : "Prazo removido."),
+      (data || null) === t.prazo ? Promise.resolve(null) : atualizarComVolta(t.id, (x) => ({ ...x, prazo: data || null }), data ? `Prazo de “${encurtar(t.titulo)}”: ${dataCurta(data)}.` : "Prazo removido."),
     alternarFoco: async (t: Tarefa) => {
       const ligar = !ehFocoHoje(t);
       await atualizarComVolta(t.id, (x) => comFoco(x, ligar), ligar ? "Entrou no foco de hoje." : "Saiu do foco de hoje.");
@@ -56,7 +56,7 @@ export function useAcoesTarefa() {
       await atualizarComVolta(t.id, (x) => comFixada(x, ligar), ligar ? "Fixada na barra lateral." : "Saiu das fixadas.");
     },
     lembrarEm: async (t: Tarefa, data: string | null) => {
-      await atualizarComVolta(t.id, (x) => comLembrete(x, data), data ? `Vou te lembrar em ${formatarData(data)}.` : "Lembrete removido.");
+      await atualizarComVolta(t.id, (x) => comLembrete(x, data), data ? `Vou te lembrar em ${dataCurta(data)}.` : "Lembrete removido.");
     },
     excluir: async (t: Tarefa, depois?: () => void) => {
       const ok = await confirmar({
@@ -156,7 +156,7 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       </k.Sub>
       {aberta(t) && (
         <k.Sub>
-          <k.SubTrigger><CalendarClock /> Prazo{t.prazo ? ` (${formatarData(t.prazo, false)})` : ""}</k.SubTrigger>
+          <k.SubTrigger><CalendarClock /> Prazo{t.prazo ? ` (${dataCurta(t.prazo)})` : ""}</k.SubTrigger>
           <k.SubContent>
             <k.Item onSelect={() => a.mudarPrazo(t, hoje)}>Hoje</k.Item>
             <k.Item onSelect={() => a.mudarPrazo(t, somarDias(hoje, 1))}>Amanhã</k.Item>
@@ -182,7 +182,7 @@ function Itens({ t, k, semAbrir, aoExcluir }: { t: Tarefa; k: Kit; semAbrir?: bo
       )}
       {aberta(t) && (
         <k.Sub>
-          <k.SubTrigger><AlarmClock /> Lembrar de voltar{t.lembrarEm ? ` (${formatarData(t.lembrarEm, false)})` : ""}</k.SubTrigger>
+          <k.SubTrigger><AlarmClock /> Lembrar de voltar{t.lembrarEm ? ` (${dataCurta(t.lembrarEm)})` : ""}</k.SubTrigger>
           <k.SubContent>
             <k.Item onSelect={() => a.lembrarEm(t, somarDias(hoje, 1))}>Amanhã</k.Item>
             <k.Item onSelect={() => a.lembrarEm(t, somarDias(hoje, 3))}>Em 3 dias</k.Item>

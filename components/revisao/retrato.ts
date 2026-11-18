@@ -3,7 +3,7 @@
 
 import { ehFocoHoje } from "@/lib/acoes";
 import { aberta, dataLocal, diasSemAtividade } from "@/lib/lembretes";
-import { Status, Tarefa, formatarData, hojeISO, nomeStatus } from "@/lib/tipos";
+import { Status, Tarefa, dataCurta, hojeISO, nomeStatus } from "@/lib/tipos";
 
 /** Como a tarefa estava quando a revisão começou. */
 export interface Retrato {
@@ -58,12 +58,12 @@ export function mudancasDesde(antes: Retrato, agora: Tarefa | undefined): Mudanc
   if (agora.prazo !== antes.prazo) {
     itens.push(
       !agora.prazo ? "Prazo removido"
-        : antes.prazo ? `Prazo: ${formatarData(antes.prazo)} → ${formatarData(agora.prazo)}`
-        : `Prazo definido para ${formatarData(agora.prazo)}`,
+        : antes.prazo ? `Prazo: ${dataCurta(antes.prazo)} → ${dataCurta(agora.prazo)}`
+        : `Prazo definido para ${dataCurta(agora.prazo)}`,
     );
   }
   const lembrar = agora.lembrarEm ?? null;
-  if (lembrar !== antes.lembrarEm) itens.push(lembrar ? `Lembrete de voltar marcado para ${formatarData(lembrar)}` : "Lembrete de voltar removido");
+  if (lembrar !== antes.lembrarEm) itens.push(lembrar ? `Lembrete de voltar marcado para ${dataCurta(lembrar)}` : "Lembrete de voltar removido");
   const foco = ehFocoHoje(agora);
   if (foco !== antes.foco) itens.push(foco ? "Entrou no foco de hoje" : "Saiu do foco de hoje");
 

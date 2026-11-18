@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/menu";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
-import { Categoria, LinkDoc, Tarefa, formatarData, semAcento } from "@/lib/tipos";
+import { Categoria, LinkDoc, Tarefa, dataCurta, semAcento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Tipo = "" | "link" | "arquivo";
@@ -241,7 +241,7 @@ function LinhaLink({
           </Td>
           <Td className="hidden xl:table-cell">
             <Dica texto={`Adicionado ${dataRelativa(adicionado)}`}>
-              <span className="text-xs text-muted-foreground tabular-nums">{formatarData(adicionado)}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{dataCurta(adicionado)}</span>
             </Dica>
           </Td>
           <Td className="py-1.5">

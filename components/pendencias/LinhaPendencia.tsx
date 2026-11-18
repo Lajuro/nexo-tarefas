@@ -9,7 +9,7 @@ import { SeletorData } from "@/components/ui/data";
 import { Dica } from "@/components/ui/popover";
 import { itemRemovivel } from "@/lib/animacoes";
 import { LIMITES, dataRelativa } from "@/lib/lembretes";
-import { Categoria, diasAte, formatarData, tipoInfo } from "@/lib/tipos";
+import { Categoria, diasAte, dataCurta, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import type { Agrupamento, Pendencia } from "./agrupar";
 
@@ -36,7 +36,7 @@ export function LinhaPendencia({
     : d < 0 ? "text-destructive hover:text-destructive"
     : d === 0 ? "text-alerta hover:text-alerta"
     : "text-foreground/80";
-  const origem = `${tipoInfo(registro.tipo).nome} de ${formatarData(registro.data, false)}`;
+  const origem = `${tipoInfo(registro.tipo).nome} de ${dataCurta(registro.data)}`;
 
   return (
     <motion.li {...itemRemovivel} data-slot="pendencia" data-passo={passo.id} data-antigo={p.antigo || undefined} className="overflow-hidden">
@@ -86,13 +86,13 @@ export function LinhaPendencia({
             </>
           }
         />
-        <SeletorData
+        <SeletorData prazo={!concluido}
           compacto
           valor={passo.prazo ?? ""}
           aoMudar={(v) => aoMudarPrazo(p, v || null)}
           placeholder="Prazo"
           disabled={concluido}
-          aria-label={passo.prazo ? `Prazo do passo: ${formatarData(passo.prazo)}. Clique para mudar.` : "Definir prazo do passo"}
+          aria-label={passo.prazo ? `Prazo do passo: ${dataCurta(passo.prazo)}. Clique para mudar.` : "Definir prazo do passo"}
           className={cn(
             "shrink-0 tabular-nums transition-[opacity,background-color,color] duration-150",
             tomPrazo,

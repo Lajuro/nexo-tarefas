@@ -23,7 +23,7 @@ import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { promptRelatorio } from "@/lib/prompts";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { Categoria, Registro, Tarefa, formatarData, hojeISO } from "@/lib/tipos";
+import { Categoria, Registro, Tarefa, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 type Periodo = "7" | "15" | "30" | "mes" | "livre";
@@ -240,10 +240,10 @@ export default function Relatorios() {
       </section>
 
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Estatistica rotulo="Registros" valor={numeros.registros} tom="primario" icone={<NotebookText className="max-xl:hidden" />} />
+        <Estatistica rotulo="Registros" valor={numeros.registros} icone={<NotebookText className="max-xl:hidden" />} />
         <Estatistica rotulo="Reuniões" valor={numeros.reunioes} icone={<Users className="max-xl:hidden" />} />
         <Estatistica rotulo="Tarefas tocadas" valor={numeros.tocadas} icone={<Layers className="max-xl:hidden" />} />
-        <Estatistica rotulo="Passos concluídos" valor={numeros.passos} tom="sucesso" icone={<CheckCheck className="max-xl:hidden" />} />
+        <Estatistica rotulo="Passos concluídos" valor={numeros.passos} icone={<CheckCheck className="max-xl:hidden" />} />
         <Estatistica rotulo="Tarefas concluídas" valor={numeros.concluidas} tom="sucesso" icone={<CircleCheck className="max-xl:hidden" />} />
       </div>
 
@@ -265,7 +265,7 @@ export default function Relatorios() {
         {itens.length === 0 ? (
           <Vazio titulo="Nada registrado nesse período" icone={<CalendarRange />}>
             <p>
-              Nenhum registro entre {formatarData(inicio)} e {formatarData(fim)}
+              Nenhum registro entre {dataCurta(inicio)} e {dataCurta(fim)}
               {cat ? ` na categoria ${catPorId.get(cat)?.nome}` : ""}. Aumente o período ou troque a categoria.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
@@ -340,8 +340,8 @@ function LinhaRegistro({ item: { t, r }, modo, cat }: { item: Item; modo: Agrupa
       )}
     >
       {modo === "tarefa" && (
-        <span className="text-[11px] whitespace-nowrap text-muted-foreground tabular-nums first-letter:uppercase">
-          {dataPorExtenso(r.data)}
+        <span className="text-xs whitespace-nowrap text-muted-foreground tabular-nums">
+          {dataCurta(r.data)}
         </span>
       )}
       <span className="flex items-center"><TipoBadge tipo={r.tipo} /></span>

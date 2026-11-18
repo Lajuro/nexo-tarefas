@@ -26,7 +26,7 @@ import { usePref } from "@/lib/preferencias";
 import { promptPanorama, promptPrepararReuniao } from "@/lib/prompts";
 import { Rascunho, apagarRascunho, apagarReuniao, lerReuniao, listarRascunhos } from "@/lib/rascunhos";
 import { type Reuniao, reuniaoTemConteudo } from "@/lib/reuniao";
-import { Registro, TipoRegistro, agoraISO, formatarData, formatarDataHora, ordenarRegistros, tipoInfo } from "@/lib/tipos";
+import { Registro, TipoRegistro, agoraISO, dataCurta, formatarDataHora, ordenarRegistros, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 // Filtro rápido da linha do tempo. "Atividades" junta tudo que não é reunião nem marco
@@ -161,7 +161,7 @@ function Conteudo() {
   const registrar = (tipo: TipoRegistro) => setEditor({ aberto: true, tipo });
 
   const remover = async (r: Registro) => {
-    const oQue = `${tipoInfo(r.tipo).nome} de ${formatarData(r.data)}${r.titulo ? `: “${r.titulo}”` : ""}`;
+    const oQue = `${tipoInfo(r.tipo).nome} de ${dataCurta(r.data)}${r.titulo ? `: “${r.titulo}”` : ""}`;
     const ok = await confirmar({
       titulo: "Remover este registro da linha do tempo?",
       descricao: `${oQue}. Ele sai da linha do tempo, mas continua guardado dentro do arquivo da tarefa.`,

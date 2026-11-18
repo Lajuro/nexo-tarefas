@@ -120,7 +120,7 @@ export function SeletorMultiplo({
                     data-marcado={marcado || undefined}>
                     <span className={cn(
                       "inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
-                      marcado ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card",
+                      marcado ? "border-primary-solido bg-primary-solido text-primary-foreground" : "border-input bg-card",
                     )}>
                       {marcado && <Check className="size-3 !text-primary-foreground" strokeWidth={3} />}
                     </span>

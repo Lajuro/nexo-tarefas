@@ -86,7 +86,7 @@ export function Sino() {
             {n ? <BellRing /> : <Bell />}
             {n > 0 && (
               <span className={cn(
-                "absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs leading-none font-semibold text-white tabular-nums",
+                "absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-xs leading-none font-semibold text-background tabular-nums",
                 criticos ? "bg-destructive" : "bg-alerta",
               )}>
                 {n > 9 ? "9+" : n}

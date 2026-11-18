@@ -27,7 +27,7 @@ import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { type EntradaPessoa, chaveNome, chavesDaPessoa, plural } from "@/lib/pessoas";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { type Categoria, type Pessoa, type Time, agoraISO, formatarData } from "@/lib/tipos";
+import { type Categoria, type Pessoa, type Time, agoraISO, dataCurta, formatarData } from "@/lib/tipos";
 import { JuntarComo } from "./ListaPessoas";
 import { ListaPassos } from "./ListaPassos";
 import { PainelFalarCom } from "@/components/Assuntos";
@@ -138,11 +138,11 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
       <div data-slot="resumo-pessoa" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Estatistica rotulo="Registros" valor={entrada.registros.length} icone={<MessagesSquare />} />
         <Estatistica rotulo="Tarefas" valor={tarefas.length} icone={<ListTodo />} />
-        <Estatistica rotulo="Em aberto com ela" valor={entrada.passosAbertos.length} tom="alerta" icone={<Hourglass />} />
+        <Estatistica rotulo="Em aberto com ela" valor={entrada.passosAbertos.length} icone={<Hourglass />} />
         <div data-slot="estatistica" className="rounded-xl border bg-card px-3.5 py-3 shadow-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-xs text-muted-foreground">Último contato</span>
-            {entrada.ultimoContato && <span className="text-xs text-muted-foreground tabular-nums">{formatarData(entrada.ultimoContato)}</span>}
+            {entrada.ultimoContato && <span className="text-xs text-muted-foreground tabular-nums">{dataCurta(entrada.ultimoContato)}</span>}
           </div>
           <span className={`mt-1 block truncate text-2xl leading-none font-semibold tracking-tight ${entrada.ultimoContato ? "" : "text-muted-foreground/80"}`}>
             {entrada.ultimoContato ? dataRelativa(entrada.ultimoContato) : "sem registro"}
@@ -451,7 +451,7 @@ function Historico({ entrada }: { entrada: EntradaPessoa }) {
                   <div className="min-w-0 flex-1 pb-4">
                     <div className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <Dica texto={dataRelativa(r.data)}>
-                        <span className="font-medium text-foreground tabular-nums">{formatarData(r.data)}{r.hora ? ` ${r.hora}` : ""}</span>
+                        <span className="font-medium text-foreground tabular-nums">{dataCurta(r.data)}{r.hora ? ` ${r.hora}` : ""}</span>
                       </Dica>
                       <TipoBadge tipo={r.tipo} />
                       <Link href={`/tarefas/${t.id}`}

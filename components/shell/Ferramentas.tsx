@@ -158,7 +158,7 @@ export function Agenda() {
                     "relative flex h-11 flex-col items-center justify-center rounded-md text-xs transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35",
                     sel ? "text-primary-foreground" : d === hoje ? "text-primary hover:bg-accent" : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}>
-                  {sel && <motion.span layoutId="agenda-dia" transition={{ type: "spring", stiffness: 520, damping: 38 }} className="absolute inset-0 rounded-md bg-primary shadow-xs" />}
+                  {sel && <motion.span layoutId="agenda-dia" transition={{ type: "spring", stiffness: 520, damping: 38 }} className="absolute inset-0 rounded-md bg-primary-solido shadow-xs" />}
                   <span className="relative text-[11px] leading-none uppercase opacity-75">{semPonto(DIA_CURTO.format(deISO(d))).slice(0, 3)}</span>
                   <span className={cn("relative mt-0.5 text-[13px] leading-none font-medium tabular-nums", d === hoje && !sel && "font-semibold")}>{Number(d.slice(8))}</span>
                   <span className="relative mt-1 flex h-1 gap-0.5">

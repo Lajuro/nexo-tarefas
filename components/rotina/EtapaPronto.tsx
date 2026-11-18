@@ -67,7 +67,7 @@ export function EtapaPronto({
             const passo = proximoPasso(t);
             return (
               <motion.li key={t.id} variants={itemLista} data-slot="foco-escolhido" className="flex items-start gap-3 rounded-xl border bg-card px-3.5 py-3 shadow-xs">
-                <span className="mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground tabular-nums">
+                <span className="mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-solido text-xs font-semibold text-primary-foreground tabular-nums">
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">

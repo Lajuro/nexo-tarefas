@@ -442,7 +442,7 @@ function Tarefas() {
         ativo={!especial && status === "bloqueada"}
         aoClicar={() => mudarUrl(!especial && status === "bloqueada" ? { status: null } : { f: null, status: "bloqueada" })}
       />
-      <Estatistica rotulo="Passos em aberto" valor={numeros.pendencias} icone={<IconeNumero><ListChecks /></IconeNumero>} tom="primario" href="/pendencias" />
+      <Estatistica rotulo="Passos em aberto" valor={numeros.pendencias} icone={<IconeNumero><ListChecks /></IconeNumero>} href="/pendencias" />
       <Estatistica
         rotulo="Concluídas no mês" valor={numeros.concluidasMes} icone={<IconeNumero><CircleCheckBig /></IconeNumero>} tom="sucesso"
         ativo={especial === "mes"} aoClicar={() => alternarEspecial("mes")}
@@ -500,7 +500,7 @@ function Tarefas() {
       descricao="Tudo o que foi designado pra você, num lugar só."
       acoes={
         <Button onClick={() => abrirNovaTarefa()}>
-          <Plus /> Nova tarefa <Kbd className="border-white/20 bg-white/15 text-white">N</Kbd>
+          <Plus /> Nova tarefa <Kbd className="border-white/25 bg-black/12 text-white">N</Kbd>
         </Button>
       }
       barra={barra}

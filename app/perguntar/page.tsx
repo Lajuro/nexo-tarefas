@@ -24,7 +24,7 @@ import {
   type Consulta, CONSULTA_VAZIA, TAMANHOS, type Tamanho, type TipoFonte, buscarFontes, citadasDaConsulta, fontesCitadas, ligarFontes, normalizarConsulta, paginaDaResposta, promptPergunta,
 } from "@/lib/perguntar";
 import { usePref } from "@/lib/preferencias";
-import { agoraISO, formatarData, normalizarPagina, novoId } from "@/lib/tipos";
+import { agoraISO, dataCurta, normalizarPagina, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const ICONE: Record<TipoFonte, LucideIcon> = { registro: MessageSquareText, tarefa: ListTodo, pagina: BookText, nota: NotebookPen, link: Link2, pessoa: User, video: Clapperboard };
@@ -196,7 +196,7 @@ function Conteudo() {
                           <div className="flex items-center gap-1.5 text-[13px] leading-snug font-medium">
                             <Icone className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{f.titulo}</span>
-                            {f.data && <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
+                            {f.data && <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">{dataCurta(f.data)}</span>}
                           </div>
                           {f.contexto && <div className="truncate text-xs text-muted-foreground">{f.contexto}</div>}
                           <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground texto-pre">{f.trecho.replace(/\n+/g, " · ")}</p>
@@ -268,7 +268,7 @@ function Conteudo() {
                             <span className="inline-flex h-5 min-w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 px-1 text-xs font-semibold tabular-nums text-primary">{f.rotulo}</span>
                             <Icone className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate">{f.titulo}</span>
-                            {f.data && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatarData(f.data)}</span>}
+                            {f.data && <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{dataCurta(f.data)}</span>}
                             {f.contexto && <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">{f.contexto}</span>}
                           </>
                         );

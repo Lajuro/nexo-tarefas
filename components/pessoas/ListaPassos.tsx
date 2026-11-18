@@ -12,7 +12,7 @@ import { comPassoAlternado } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import type { PassoComTarefa } from "@/lib/pessoas";
-import { formatarData } from "@/lib/tipos";
+import { dataCurta } from "@/lib/tipos";
 
 const momento = (x: PassoComTarefa) => `${x.registro.data} ${x.registro.hora || "99:99"} ${x.registro.criadoEm}`;
 
@@ -54,7 +54,7 @@ export function ListaPassos({ passos }: { passos: PassoComTarefa[] }) {
                   <IconeStatus status={x.tarefa.status} className="size-3" />
                   <span className="truncate">{x.tarefa.titulo}</span>
                 </Link>
-                <span className="whitespace-nowrap tabular-nums">desde {formatarData(x.registro.data, false)} ({dataRelativa(x.registro.data)})</span>
+                <span className="whitespace-nowrap tabular-nums">desde {dataCurta(x.registro.data)} · {dataRelativa(x.registro.data)}</span>
                 {x.passo.prazo && <PrazoTag prazo={x.passo.prazo} concluida={feito} className="text-xs [&_svg]:size-3" />}
               </>
             }

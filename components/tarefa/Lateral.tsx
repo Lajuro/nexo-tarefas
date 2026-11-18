@@ -17,7 +17,7 @@ import { formatarMinutos, minutosEmFoco } from "@/lib/acoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
-import { LinkDoc, Tarefa, diasAte, formatarData, passosAbertos } from "@/lib/tipos";
+import { LinkDoc, Tarefa, diasAte, dataCurta, passosAbertos } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
@@ -54,7 +54,7 @@ function Pendencias({ tarefa, aoIrPara }: { tarefa: Tarefa; aoIrPara: (registroI
                 <Dica texto="Ver o registro na linha do tempo">
                   <button type="button" onClick={() => aoIrPara(registro.id)}
                     className="rounded-sm tabular-nums underline-offset-2 outline-none hover:text-foreground hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
-                    desde {formatarData(registro.data, false)}
+                    desde {dataCurta(registro.data)}
                   </button>
                 </Dica>
               }
@@ -209,7 +209,7 @@ function Panorama({ tarefa, aoGerar }: { tarefa: Tarefa; aoGerar: () => void }) 
             <SeloCopilot className="size-5 [&_svg]:size-3" />
             <div className="min-w-0 flex-1">
               <h3 className="text-[13px] leading-tight font-semibold tracking-tight">Último panorama da IA</h3>
-              <p className="text-xs leading-snug text-muted-foreground tabular-nums">{formatarData(dia)} · {dataRelativa(dia)}</p>
+              <p className="text-xs leading-snug text-muted-foreground tabular-nums">{dataCurta(dia)} · {dataRelativa(dia)}</p>
             </div>
             <Dica texto="Copiar o panorama">
               <Button variant="ghost" size="icon-sm" aria-label="Copiar o panorama" onClick={copiar}>
@@ -267,7 +267,7 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
           <span className={rotulo}>{reunioes === 1 ? "reunião" : "reuniões"}</span>
         </div>
         <div className={celula}>
-          <Dica texto={`Último registro ou passo concluído: ${formatarData(ultima)}`}>
+          <Dica texto={`Último registro ou passo concluído: ${dataCurta(ultima)}`}>
             <span className={valor}>{dataRelativa(ultima)}</span>
           </Dica>
           <span className={rotulo}>última atividade</span>
@@ -281,8 +281,8 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
       </div>
       {/* saiu da faixa de propriedades (3.7) para ela caber numa linha */}
       <p data-slot="prop-criada" className="border-t px-3.5 py-2 text-xs text-muted-foreground tabular-nums">
-        Criada em {formatarData(criada)}
-        {fim && ` · ${tarefa.status === "cancelada" ? "cancelada" : "concluída"} em ${formatarData(fim)}`}
+        Criada em {dataCurta(criada)}
+        {fim && ` · ${tarefa.status === "cancelada" ? "cancelada" : "concluída"} em ${dataCurta(fim)}`}
       </p>
     </section>
   );
