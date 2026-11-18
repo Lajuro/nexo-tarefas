@@ -45,12 +45,12 @@ export function GaleriaDeVideos({ paginas, categorias, acoes, aoAbrir, aoNova }:
                   ) : (
                     <span className="absolute inset-0 flex items-center justify-center text-primary/60"><Clapperboard className="size-9" /></span>
                   )}
-                  {v.duracao ? <span className="absolute right-2 bottom-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-white">{formatarTempo(v.duracao)}</span> : null}
-                  {!v.arquivo && !v.caminho && <span className="absolute top-2 left-2 rounded bg-black/65 px-1.5 py-0.5 text-[11px] text-white">{v.url ? "link de fora" : "sem vídeo ainda"}</span>}
+                  {v.duracao ? <span className="absolute right-2 bottom-2 rounded bg-black/75 px-1.5 py-0.5 text-xs font-medium tabular-nums text-white">{formatarTempo(v.duracao)}</span> : null}
+                  {!v.arquivo && !v.caminho && <span className="absolute top-2 left-2 rounded bg-black/65 px-1.5 py-0.5 text-xs text-white">{v.url ? "link de fora" : "sem vídeo ainda"}</span>}
                 </div>
                 <div className="flex flex-1 flex-col gap-1.5 px-3 py-2.5">
                   <span className="line-clamp-2 text-[13px] leading-snug font-medium">{nomeDaPagina(p)}</span>
-                  <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+                  <span className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
                     {cat && <span className="inline-flex min-w-0 items-center gap-1"><PontoCor cor={cat.cor} /><span className="truncate">{cat.nome}</span></span>}
                     {v.transcricao && <span className="inline-flex items-center gap-1"><ScrollText className="size-3" /> transcrição</span>}
                     {(v.capitulos?.length ?? 0) > 0 && <span className="inline-flex items-center gap-1"><ListVideo className="size-3" /> {v.capitulos?.length}</span>}

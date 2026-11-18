@@ -38,7 +38,7 @@ export const primeiraLinha = (s: string) => s.trim().split(/\n+/)[0] ?? "";
 /** Etiqueta de time com a cor dele. Responsável ganha a coroa. */
 export function EtiquetaTime({ time, responsavel, comLink, className }: { time: Time; responsavel?: boolean; comLink?: boolean; className?: string }) {
   const classe = cn(
-    "relative inline-flex h-5 max-w-full min-w-0 items-center gap-1 rounded-md border bg-card px-1.5 text-[11px] font-medium text-foreground/85",
+    "relative inline-flex h-5 max-w-full min-w-0 items-center gap-1 rounded-md border bg-card px-1.5 text-xs font-medium text-foreground/85",
     responsavel && "border-alerta/40 bg-alerta/8",
     comLink && "z-10 transition-colors hover:border-ring/40 hover:bg-accent",
     time.arquivado && "opacity-60",
@@ -84,7 +84,7 @@ export function PilhaAvatares({ nomes, max = 5, className }: { nomes: string[]; 
         </Dica>
       ))}
       {resto > 0 && (
-        <span className="-ml-1.5 inline-flex size-6 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-card tabular-nums">
+        <span className="-ml-1.5 inline-flex size-6 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-card tabular-nums">
           +{resto}
         </span>
       )}

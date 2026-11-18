@@ -14,12 +14,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dica } from "@/components/ui/popover";
 import { comPassoAlternado } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
-import type { Lembrete } from "@/lib/lembretes";
+import type { Gravidade, GrupoDeLembretes, Lembrete } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { cn } from "@/lib/utils";
 import { ICONE_LEMBRETE, TOM_GRAVIDADE } from "./apoio";
 
-const VISIVEIS = 6;
+const VISIVEIS = 4;
 
 const ADIAMENTOS: { dias: number; rotulo: string; aviso: string }[] = [
   { dias: 1, rotulo: "Até amanhã", aviso: "até amanhã" },
@@ -27,20 +27,23 @@ const ADIAMENTOS: { dias: number; rotulo: string; aviso: string }[] = [
   { dias: 7, rotulo: "Por 1 semana", aviso: "por 1 semana" },
 ];
 
-/** Lembretes ativos: o que é crítico ou pede atenção fica à vista; o que é só "bom saber" fica recolhido. */
-export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: ReturnType<typeof useLembretes>) {
+/**
+ * O que pede atenção hoje, uma linha por tarefa com os motivos dentro (prazo vencido, passo atrasado,
+ * sem retorno...). O que é crítico ou pede atenção fica à vista; o que é só "bom saber" fica recolhido.
+ */
+export function PrecisaDeVoce({ grupos, adiados, adiar, reativarTodos }: ReturnType<typeof useLembretes>) {
   const { toast } = useNexo();
   const [olhoAberto, setOlhoAberto] = usePref("hoje:olhoAberto", false);
   const [tudo, setTudo] = useState(false);
 
-  const principais = lembretes.filter((l) => l.gravidade !== "info");
-  const deOlho = lembretes.filter((l) => l.gravidade === "info");
+  const principais = grupos.filter((g) => g.gravidade !== "info");
+  const deOlho = grupos.filter((g) => g.gravidade === "info");
   const mostrados = tudo ? principais : principais.slice(0, VISIVEIS);
   const escondidos = principais.length - mostrados.length;
 
-  const aoAdiar = (l: Lembrete, dias: number, aviso: string) => {
-    adiar(l, dias);
-    toast(`Lembrete adiado ${aviso}.`, "info");
+  const aoAdiar = (g: GrupoDeLembretes, dias: number, aviso: string) => {
+    adiar(g, dias);
+    toast(g.lembretes.length === 1 ? `Lembrete adiado ${aviso}.` : `Lembretes desta tarefa adiados ${aviso}.`, "info");
   };
 
   return (
@@ -60,8 +63,8 @@ export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: Retu
     >
       <div data-slot="precisa-de-voce" className="overflow-hidden rounded-xl border bg-card shadow-xs">
         <AnimatePresence initial={false}>
-          {mostrados.map((l) => (
-            <LinhaLembrete key={l.id} lembrete={l} aoAdiar={aoAdiar} />
+          {mostrados.map((g) => (
+            <LinhaDaTarefa key={g.id} grupo={g} aoAdiar={aoAdiar} />
           ))}
           {principais.length === 0 && (
             <motion.div key="tudo-em-dia" {...itemRemovivel} className="overflow-hidden">
@@ -83,7 +86,7 @@ export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: Retu
             onClick={() => setTudo((v) => !v)}
             className="flex h-8 w-full items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition-colors outline-none sem-selecao hover:bg-accent/50 hover:text-foreground focus-visible:bg-accent/50 focus-visible:text-foreground"
           >
-            {tudo ? "Mostrar menos" : `Mostrar mais ${escondidos}`}
+            {tudo ? "Mostrar menos" : escondidos === 1 ? "Mostrar mais 1 tarefa" : `Mostrar mais ${escondidos} tarefas`}
           </button>
         )}
       </div>
@@ -99,14 +102,14 @@ export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: Retu
               <Eye className="size-3.5" />
               Para ficar de olho
               <Contador n={deOlho.length} />
-              <span className="ml-auto text-[11px] font-normal">{olhoAberto ? "Recolher" : "Sem pressa, mas não esqueça"}</span>
+              <span className="ml-auto text-xs font-normal">{olhoAberto ? "Recolher" : "Sem pressa, mas não esqueça"}</span>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="mt-1.5 overflow-hidden rounded-xl border bg-card shadow-xs">
               <AnimatePresence initial={false}>
-                {deOlho.map((l) => (
-                  <LinhaLembrete key={l.id} lembrete={l} aoAdiar={aoAdiar} />
+                {deOlho.map((g) => (
+                  <LinhaDaTarefa key={g.id} grupo={g} aoAdiar={aoAdiar} />
                 ))}
               </AnimatePresence>
             </div>
@@ -117,49 +120,56 @@ export function PrecisaDeVoce({ lembretes, adiados, adiar, reativarTodos }: Retu
   );
 }
 
-function LinhaLembrete({
-  lembrete: l, aoAdiar,
+const COR_DO_MOTIVO: Record<Gravidade, string> = { critico: "text-destructive", atencao: "text-alerta", info: "text-muted-foreground" };
+
+/** Uma tarefa que pede atenção: o título uma vez só e, embaixo, cada motivo com o que dá para fazer ali mesmo. */
+function LinhaDaTarefa({
+  grupo: g, aoAdiar,
 }: {
-  lembrete: Lembrete; aoAdiar: (l: Lembrete, dias: number, aviso: string) => void;
+  grupo: GrupoDeLembretes; aoAdiar: (g: GrupoDeLembretes, dias: number, aviso: string) => void;
 }) {
   const { dados, atualizarTarefa, toast } = useNexo();
-  const tarefa = dados?.tarefas.find((t) => t.id === l.tarefaId);
-  const Icone = ICONE_LEMBRETE[l.tipo];
-  const href = `/tarefas/${l.tarefaId}`;
+  const tarefa = dados?.tarefas.find((t) => t.id === g.tarefaId);
+  const Icone = ICONE_LEMBRETE[g.lembretes[0].tipo];
+  const href = `/tarefas/${g.tarefaId}`;
 
-  const concluirPasso = async () => {
+  const concluirPasso = async (l: Lembrete) => {
     if (!l.registroId || !l.passoId) return;
     const { registroId, passoId } = l;
     if (await atualizarTarefa(l.tarefaId, (x) => comPassoAlternado(x, registroId, passoId, true))) toast("Passo concluído.");
   };
 
   const linha = (
-    <div className="group/lembrete flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-accent/40">
-      <span className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-full", TOM_GRAVIDADE[l.gravidade])}>
+    <div className="group/lembrete flex items-start gap-3 px-3.5 py-2.5 transition-colors hover:bg-accent/40">
+      <span className={cn("mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full", TOM_GRAVIDADE[g.gravidade])}>
         <Icone className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <span className="shrink-0 text-[13px] font-medium">{l.titulo}</span>
-          <Link
-            href={href}
-            className="truncate rounded-sm text-[13px] text-muted-foreground outline-none hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline"
-          >
-            {l.tarefaTitulo}
-          </Link>
-        </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{l.detalhe}</p>
+        <Link
+          href={href}
+          className="block truncate rounded-sm text-[13px] leading-7 font-medium outline-none hover:underline focus-visible:underline"
+        >
+          {g.tarefaTitulo}
+        </Link>
+        <ul className="flex flex-col gap-1 pb-0.5">
+          {g.lembretes.map((l) => (
+            <li key={l.id} data-slot="motivo" data-tipo={l.tipo} className="flex min-h-6 min-w-0 items-center gap-2 text-xs">
+              <span className={cn("shrink-0 font-medium", COR_DO_MOTIVO[l.gravidade])}>{l.titulo}</span>
+              <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.detalhe}</span>
+              {l.passoId && (
+                <Button variant="outline" size="sm" className="h-6 shrink-0" onClick={() => concluirPasso(l)} data-acao="concluir-passo">
+                  <Check /> Concluir
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="flex shrink-0 items-center gap-0.5">
-        {l.passoId && (
-          <Button variant="outline" size="sm" className="mr-1" onClick={concluirPasso} data-acao="concluir-passo">
-            <Check /> Concluir
-          </Button>
-        )}
         <DropdownMenu>
-          <Dica texto="Adiar este lembrete">
+          <Dica texto={g.lembretes.length === 1 ? "Adiar este lembrete" : "Adiar os lembretes desta tarefa"}>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Adiar este lembrete" data-acao="adiar">
+              <Button variant="ghost" size="icon-sm" aria-label={`Adiar os lembretes de ${g.tarefaTitulo}`} data-acao="adiar">
                 <Clock />
               </Button>
             </DropdownMenuTrigger>
@@ -167,7 +177,7 @@ function LinhaLembrete({
           <DropdownMenuContent className="min-w-40">
             <DropdownMenuLabel>Lembrar de novo</DropdownMenuLabel>
             {ADIAMENTOS.map((a) => (
-              <DropdownMenuItem key={a.dias} onSelect={() => aoAdiar(l, a.dias, a.aviso)}>
+              <DropdownMenuItem key={a.dias} onSelect={() => aoAdiar(g, a.dias, a.aviso)}>
                 {a.rotulo}
               </DropdownMenuItem>
             ))}
@@ -175,7 +185,7 @@ function LinhaLembrete({
         </DropdownMenu>
         <Dica texto="Abrir a tarefa">
           <Button asChild variant="ghost" size="icon-sm">
-            <Link href={href} aria-label={`Abrir a tarefa ${l.tarefaTitulo}`}><ArrowUpRight /></Link>
+            <Link href={href} aria-label={`Abrir a tarefa ${g.tarefaTitulo}`}><ArrowUpRight /></Link>
           </Button>
         </Dica>
       </div>
@@ -186,8 +196,7 @@ function LinhaLembrete({
     <motion.div
       {...itemRemovivel}
       data-slot="lembrete"
-      data-gravidade={l.gravidade}
-      data-tipo={l.tipo}
+      data-gravidade={g.gravidade}
       className="overflow-hidden border-b last:border-b-0"
     >
       {tarefa ? <MenuContextoTarefa tarefa={tarefa}>{linha}</MenuContextoTarefa> : linha}

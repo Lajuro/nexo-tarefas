@@ -223,7 +223,7 @@ function Conteudo() {
               <SeloCopilot />
               <div className="min-w-0 flex-1 basis-56 sem-selecao">
                 <h2 className="text-[13px] leading-tight font-semibold tracking-tight">Copilot</h2>
-                <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">Prompts prontos com o histórico desta tarefa, para copiar e colar.</p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">Prompts prontos com o histórico desta tarefa, para copiar e colar.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPrompt("panorama")}><Sparkles className="text-primary" /> Panorama da tarefa</Button>

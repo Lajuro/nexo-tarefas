@@ -13,7 +13,7 @@ export const NOME_SECAO: Record<IdSecao, { nome: string; descricao: string }> = 
   foco: { nome: "Foco de hoje", descricao: "As tarefas que você escolheu para hoje, com o próximo passo de cada uma." },
   fixadas: { nome: "Fixadas", descricao: "Tarefas que você prendeu aqui pelo menu da tarefa." },
   recentes: { nome: "Recentes", descricao: "As últimas tarefas que você abriu." },
-  assuntos: { nome: "Assuntos", descricao: "Categorias com mais tarefas abertas." },
+  assuntos: { nome: "Categorias", descricao: "As categorias com mais tarefas abertas." },
 };
 
 /** Ferramentas opcionais da barra superior. O sino e a aparência ficam sempre. */

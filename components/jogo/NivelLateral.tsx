@@ -16,7 +16,7 @@ export function NivelLateral({ recolhida }: { recolhida: boolean }) {
   const { nivel, hoje } = estado;
   const anel = (
     <Anel parte={hoje.avancos / hoje.meta} tamanho={recolhida ? 30 : 34} espessura={3.5}>
-      {hoje.bateu ? <Check className="size-3.5 text-sucesso" strokeWidth={3} /> : <span className="text-[10px] font-semibold tabular-nums">{hoje.avancos}/{hoje.meta}</span>}
+      {hoje.bateu ? <Check className="size-3.5 text-sucesso" strokeWidth={3} /> : <span className="text-[11px] font-semibold tabular-nums">{hoje.avancos}/{hoje.meta}</span>}
     </Anel>
   );
   const dica = `Meta do dia: ${hoje.avancos} de ${hoje.meta} avanços. Nível ${nivel.n} (${nivel.nome}), faltam ${nivel.falta} XP para o próximo.`;
@@ -37,7 +37,7 @@ export function NivelLateral({ recolhida }: { recolhida: boolean }) {
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className="truncate text-xs font-semibold text-foreground">Nível {nivel.n} <span className="font-normal text-muted-foreground">· {nivel.nome}</span></span>
-            <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums"><NumeroAnimado valor={estado.xp} /> XP</span>
+            <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums"><NumeroAnimado valor={estado.xp} /> XP</span>
           </span>
           <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-foreground/10">
             <span className={cn("block h-full rounded-full bg-primary transition-[width] duration-700 ease-out")} style={{ width: `${Math.max(3, nivel.parte * 100)}%` }} />

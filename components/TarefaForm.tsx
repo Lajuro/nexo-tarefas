@@ -215,7 +215,7 @@ export function TarefaForm({
       className="max-w-[580px]"
       rodape={
         <>
-          <span className="mr-auto hidden items-center gap-1 text-[11px] text-muted-foreground sem-selecao sm:inline-flex">
+          <span className="mr-auto hidden items-center gap-1 text-xs text-muted-foreground sem-selecao sm:inline-flex">
             <Kbd>Ctrl</Kbd>
             <Kbd>Enter</Kbd>
             <span className="ml-0.5">salva de qualquer campo</span>
@@ -319,7 +319,7 @@ export function TarefaForm({
           <Campo
             rotulo="Passos que vêm do modelo"
             dica="Desmarque o que não vale para esta tarefa. Os marcados entram como próximos passos em aberto."
-            lado={<span className="text-[11px] text-muted-foreground tabular-nums">{passosModelo.filter((p) => p.ligado).length} de {passosModelo.length}</span>}
+            lado={<span className="text-xs text-muted-foreground tabular-nums">{passosModelo.filter((p) => p.ligado).length} de {passosModelo.length}</span>}
           >
             <ul data-slot="passos-do-modelo" className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-2">
               {passosModelo.map((p, i) => {

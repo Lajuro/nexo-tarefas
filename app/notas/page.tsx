@@ -133,7 +133,7 @@ function Conteudo() {
                     n.id === idAtual && "bg-accent",
                   )}>
                   <span className="block truncate text-[13px] font-medium">{nomeDaFolha(n)}</span>
-                  <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                     {n.arquivadaEm ? `arquivada ${dataRelativa(n.arquivadaEm)}` : `criada ${dataRelativa(n.criadaEm)}`}
                     {!!n.gerou?.length && <Contador n={n.gerou.length} />}
                     {!!n.sobras && <TriangleAlert aria-label="Tem anotações que não foram encaixadas" className="size-3 text-alerta" />}
@@ -161,7 +161,7 @@ function Conteudo() {
               <div data-slot="nota-arquivada" className="flex h-full min-h-0 flex-col">
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-4">
                   <h2 className="text-sm font-semibold tracking-tight">{nomeDaFolha(atual)}</h2>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Escrita em {formatarData(dataLocal(atual.criadaEm))} · arquivada em {formatarData(dataLocal(atual.arquivadaEm))}
                   </p>
                   {!!atual.gerou?.length && (
@@ -185,7 +185,7 @@ function Conteudo() {
                     <div data-slot="sobras-guardadas" className="mt-3 rounded-xl border border-alerta/40 bg-alerta/8 px-3.5 py-3">
                       <p className="flex items-center gap-1.5 text-xs font-medium sem-selecao"><TriangleAlert className="size-3.5 text-alerta" /> Ficou de fora ao organizar</p>
                       <p className="mt-1 text-[13px] leading-snug texto-pre">{atual.sobras}</p>
-                      <p className="mt-1.5 text-[11px] text-muted-foreground">A IA não encaixou este trecho em nenhuma tarefa. Para aproveitar, reabra a folha e organize de novo, ou registre à mão.</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground">A IA não encaixou este trecho em nenhuma tarefa. Para aproveitar, reabra a folha e organize de novo, ou registre à mão.</p>
                     </div>
                   )}
                   <p className="mt-4 text-xs font-medium text-muted-foreground sem-selecao">Texto original da folha</p>

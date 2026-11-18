@@ -83,7 +83,7 @@ export function CapturaRapida({ className }: { className?: string }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 4 }}
               transition={{ duration: 0.15 }}
-              className="flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground sem-selecao"
+              className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground sem-selecao"
             >
               <Kbd>Enter</Kbd> para anotar
             </motion.span>
@@ -102,7 +102,7 @@ export function CapturaRapida({ className }: { className?: string }) {
             className="overflow-hidden"
           >
             <div className="flex flex-wrap items-center gap-1.5 px-1 pt-2">
-              <span className="mr-0.5 text-[11px] text-muted-foreground sem-selecao">Anotadas agora</span>
+              <span className="mr-0.5 text-xs text-muted-foreground sem-selecao">Anotadas agora</span>
               <AnimatePresence initial={false} mode="popLayout">
                 {anotadas.map((t) => {
                   const foco = ehFocoHoje(t);

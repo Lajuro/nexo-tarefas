@@ -115,7 +115,7 @@ export function TimeForm({ aberto, fechar, time, aoSalvar }: { aberto: boolean; 
         <Campo rotulo="Descrição">
           <Textarea rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Do que o time cuida" aria-label="Descrição" />
         </Campo>
-        <Campo rotulo="Cor" lado={<span className="text-[11px] text-muted-foreground">{nomeDaCor(cor)}</span>}>
+        <Campo rotulo="Cor" lado={<span className="text-xs text-muted-foreground">{nomeDaCor(cor)}</span>}>
           <SeletorCor valor={cor} aoMudar={setCor} cores={cores} aria-label="Cor do time" />
         </Campo>
         <Campo rotulo="Membros" dica="Digite um nome que ainda não existe para cadastrar a pessoa na hora.">
@@ -143,7 +143,7 @@ export function TimeForm({ aberto, fechar, time, aoSalvar }: { aberto: boolean; 
             opcoes={[...pessoas.filter((p) => membroIds.includes(p.id)), ...pessoas.filter((p) => !membroIds.includes(p.id))].map(opcaoPessoa)}
           />
         </Campo>
-        <Campo rotulo="Categorias" dica="Assuntos de que o time cuida.">
+        <Campo rotulo="Categorias" dica="De quais o time cuida.">
           <SeletorMultiplo
             aria-label="Categorias do time"
             valor={categoriaIds}

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // ---------- Badge ----------
 
 const badgeVariants = cva(
-  "inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium whitespace-nowrap sem-selecao [&_svg]:size-3",
+  "inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-medium whitespace-nowrap sem-selecao [&_svg]:size-3",
   {
     variants: {
       variant: {
@@ -50,7 +50,7 @@ function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
   return (
     <kbd
       className={cn(
-        "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border border-b-2 bg-muted px-1 font-mono text-[10px] font-medium text-muted-foreground sem-selecao",
+        "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded border border-b-2 bg-muted px-1 font-mono text-[11px] font-medium text-muted-foreground sem-selecao",
         className,
       )}
       {...props}

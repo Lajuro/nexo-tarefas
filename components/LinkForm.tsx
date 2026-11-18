@@ -190,7 +190,7 @@ export function LinkForm({
                   <IconeLink link={link} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium">{link.nomeArquivo || link.titulo}</div>
-                    <div className="text-[11px] text-muted-foreground tabular-nums">{formatarTamanho(link.tamanho) || "Tamanho desconhecido"}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">{formatarTamanho(link.tamanho) || "Tamanho desconhecido"}</div>
                   </div>
                   <Button asChild variant="ghost" size="sm">
                     <a href={hrefLink(link)} target="_blank" rel="noreferrer"><ExternalLink /> Abrir</a>

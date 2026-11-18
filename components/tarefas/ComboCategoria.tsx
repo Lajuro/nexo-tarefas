@@ -59,7 +59,7 @@ export function ComboCategoria({
           aria-label={ariaLabel}
           data-slot="combobox"
           data-valor={valor}
-          className={cn(campoBase, "flex h-8 items-center justify-between gap-2 px-2.5 text-left sem-selecao", !atual && "text-muted-foreground/70", className)}
+          className={cn(campoBase, "flex h-8 items-center justify-between gap-2 px-2.5 text-left sem-selecao", !atual && "text-muted-foreground", className)}
         >
           <span className="flex min-w-0 flex-1 items-center gap-2">{atual ? (atual.render ?? <span className="truncate">{atual.rotulo}</span>) : <span className="truncate">{placeholder}</span>}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
@@ -92,7 +92,7 @@ export function ComboCategoria({
             </CommandGroup>
           </CommandList>
           {!nome && (
-            <p className="border-t px-3 py-2 text-[11px] text-muted-foreground sem-selecao">
+            <p className="border-t px-3 py-2 text-xs text-muted-foreground sem-selecao">
               Não achou? Digite o nome e crie a categoria na hora.
             </p>
           )}

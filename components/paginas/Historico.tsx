@@ -80,7 +80,7 @@ export function Historico({ paginaId, aberto, fechar, aoRestaurar }: { paginaId:
                 <button type="button" data-slot="versao" data-ativa={v.versao === escolhida || undefined} onClick={() => setEscolhida(v.versao)}
                   className={cn("w-full rounded-lg px-2.5 py-2 text-left transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/40", v.versao === escolhida && "bg-accent")}>
                   <span className="block text-[13px] font-medium tabular-nums">{formatarDataHora(v.guardadaEm)}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{v.palavras} {v.palavras === 1 ? "palavra" : "palavras"}{v.titulo ? ` · ${v.titulo}` : ""}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{v.palavras} {v.palavras === 1 ? "palavra" : "palavras"}{v.titulo ? ` · ${v.titulo}` : ""}</span>
                 </button>
               </li>
             ))}

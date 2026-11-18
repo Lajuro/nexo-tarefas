@@ -176,7 +176,7 @@ export function SessaoFoco() {
                 <Link href={`/tarefas/${tarefa.id}`} onClick={() => setBalao(false)}
                   className="mt-1 block truncate rounded-sm text-[13px] font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{tarefa.titulo}</Link>
                 <p className="mt-2 text-3xl leading-none font-semibold tracking-tight tabular-nums">{estourou && correndo ? "+" : ""}{relogio(restante)}</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {correndo
                     ? estourou ? `Passou dos ${sessao.alvoMin} min combinados. Já são ${decorridoMin} min.` : `${decorridoMin} min de ${sessao.alvoMin}. Sem pressa: avise quando terminar.`
                     : `Encerrada com ${decorridoMin} min. Falta dizer o que saiu.`}

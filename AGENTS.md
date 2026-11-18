@@ -77,6 +77,7 @@ node testes/paginas.test.mjs  # testes da documentação: árvore de páginas, o
 node testes/transcricao.test.mjs # testes da transcrição de vídeo: VTT, SRT, texto com tempos, sincronia e prompt
 node testes/grafo.test.mjs    # testes do mapa das páginas: nós, ligações e disposição determinística
 node testes/jornada.test.mjs  # testes da rotina: plano do dia, ponto, hora de sair, hora extra, avisos e banco de horas
+node testes/lembretes.test.mjs # testes do motor de lembretes e do agrupamento por tarefa
 NEXO_URL=http://127.0.0.1:3311 node testes/carga.mjs --telas # desempenho com um ano de dados simulados, pasta de dados VAZIA, ver cabeçalho
 ```
 
@@ -191,7 +192,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 
 | Rota | O que faz |
 |---|---|
-| `/` Hoje | Página inicial. Saudação, captura rápida de tarefa, **foco de hoje** (tarefas escolhidas, com os passos marcáveis ali), **precisa de você** (lembretes ativos, com adiar), faixa da semana (prazos dos próximos 7 dias), aguardando retorno, bloqueadas e paradas, progresso do dia. |
+| `/` Hoje | Página inicial. Saudação, captura rápida de tarefa, **precisa de você** (uma linha por tarefa, com os motivos dentro e adiar; vem primeiro quando há algo pedindo atenção), **foco de hoje** (tarefas escolhidas, com os passos marcáveis ali), faixa da semana (prazos dos próximos 7 dias), aguardando retorno, bloqueadas e paradas, progresso do dia. Desde a 3.6 não tem a fileira de cartões de contagem nem um segundo botão de "Nova tarefa": os números já estão no menu e na barra de status. |
 | `/tarefas` | Lista de tarefas com números, filtros (texto, categoria, status), ordenação e três visões: **grade**, **lista** e **quadro** (Kanban por status, arrastar muda o status). Aceita `?status=`, `?cat=`, `?f=atrasadas` e `?f=foco`. |
 | `/tarefas/[id]` | Propriedades editáveis no lugar (categoria, status, prioridade, prazo, follow-up, tags), botões de prompt (Panorama, Preparar reunião), **timeline** (ordem crescente ou decrescente, lembrada), **faixa "Esperando"** no cabeçalho quando a tarefa aguarda terceiros (de quem, o quê, há quantos dias, copiar cobrança, cobrei hoje), lateral com Pendências, tempo em sessões de foco, Links e docs, Pessoas envolvidas e último Panorama IA. |
 | `/tarefas/[id]/reuniao` | **Modo reunião**: pauta à esquerda (pendências da tarefa para marcar como resolvidas, aguardando retorno, o que está com cada participante em outras frentes, últimas decisões, onde a conversa parou), anotações no editor rico ao centro e captura à direita (decisões, próximos passos com responsável e prazo, impedimentos). Relógio, "Copiar pauta", "Encerrar e salvar" e a **ata** em texto para copiar. |
@@ -204,7 +205,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 | `/pessoas` | Abas **Pessoas** (cadastradas e nomes sem cadastro, com cargo, times e "pode ajudar com") e **Times** (`?aba=times`, cartões com cor e membros). `?p=Nome` é o detalhe da pessoa (o que pode ajudar, times, passos com ela, tarefas em comum, histórico); `?time=<id>` é o detalhe do time (responsáveis, membros, passos, categorias, tarefas). Botão **Importar do Outlook** (colar, CSV ou vCard, sem API). |
 | `/links` | Banco de links e arquivos com busca, filtro por tipo e tag, vínculo a tarefa/categoria. Upload salva cópia em `arquivos/`. |
 | `/revisao` | **Revisão semanal** guiada: passa por todas as tarefas abertas, das mais esquecidas para as mais recentes, com decisões rápidas (status, prioridade, prazo, follow-up, foco). |
-| `/radar` | **Radar das frentes**: uma frente por categoria (mais "Sem categoria"), com a saúde (em risco, parada, pede atenção, em dia), os motivos, números, movimento das últimas 8 semanas e próximo prazo. Os contadores do topo filtram. Linha de prazos das próximas 6 semanas por frente (tarefas, passos e follow-ups; vencidos à parte). "Copiar status" gera o texto para o gestor, sem IA. É só leitura (`lib/radar.ts`). |
+| `/radar` | **Radar** (na tela, desde a 3.6, fala "categoria"; no código continua "frente"): uma frente por categoria (mais "Sem categoria"), com a saúde (em risco, parada, pede atenção, em dia), os motivos, números, movimento das últimas 8 semanas e próximo prazo. Os contadores do topo filtram. Linha de prazos das próximas 6 semanas por frente (tarefas, passos e follow-ups; vencidos à parte). "Copiar status" gera o texto para o gestor, sem IA. É só leitura (`lib/radar.ts`). |
 | `/diario` | **Diário**: tudo o que aconteceu em todas as tarefas, dia a dia (registros, marcos e passos concluídos no dia em que foram feitos), com um **mapa de atividade** das últimas 36 semanas (clicar num dia mostra só ele), números dos últimos 30 dias, sequência de dias úteis e filtros por tipo, categoria e pessoa. "Copiar" gera texto simples do dia ou do que está na tela, sem IA. É só leitura (`lib/diario.ts`). |
 | `/relatorios` | Escolhe período (7/15/30 dias, mês, datas livres) e categoria, mostra o que entra e copia o prompt de relatório. |
 | `/conquistas` | **Conquistas** (gamificação): nível e XP, gráfico de XP dos últimos 14 dias, meta do dia, sequência de dias úteis, recorde, e as conquistas por grupo com o progresso de cada uma. Tudo calculado dos dados (`lib/jogo.ts`), nada gravado. Pode ser desligada. |
@@ -225,6 +226,7 @@ Ficam no navegador com o prefixo `nexo:` (via `usePref` de `lib/preferencias.ts`
 ### Rotina e lembretes (o app lembra o usuário do que fazer)
 - **Motor de lembretes** (`lib/lembretes.ts`, função pura sobre os dados): prazo vencido, prazo hoje, prazo chegando (3 dias), passo com prazo vencido ou para hoje, follow-up (`lembrarEm`) chegou, bloqueada sem novidade (3 dias), aguardando retorno (5 dias), parada (7 dias), passos antigos (14 dias) e em andamento sem próximo passo. Os limites estão em `LIMITES`.
 - Lembretes aparecem no sino, na tela Hoje e nos contadores da barra lateral. **Adiar** esconde um lembrete até uma data e fica só no localStorage.
+- **A interface mostra e conta por tarefa** (3.6, `agruparLembretes()` em `lib/lembretes.ts`): o motor continua gerando um lembrete por motivo, mas o sino e "Precisa de você" mostram cada tarefa uma vez, com os motivos dentro, e o número do sino, da frase do dia e do contador do menu é o de **tarefas que pedem atenção** (`useLembretes().pedemAtencao`), sempre o mesmo nos três lugares. A gravidade do grupo é a do motivo mais grave; motivo "info" de uma tarefa que também tem algo grave aparece junto, não em "Para ficar de olho". Adiar um grupo adia todos os lembretes dele (os ids continuam sendo os de cada lembrete, então o que já estava adiado continua adiado). O ritual "Planejar o dia" já agrupava por tarefa por conta própria (`components/rotina/EtapaAtras.tsx`).
 - **Planejar o dia** (`components/rotina/PlanejarDia.tsx`): ritual em 3 passos (o que ficou para trás, escolher os focos, pronto). Abre sozinho na primeira visita do dia (desligável) e pelo atalho `D`.
 - **Foco de hoje**: `tarefa.focoEm = hoje`. Vale só no dia; no dia seguinte a tarefa deixa de ser foco sem precisar limpar nada.
 - **Follow-up**: `tarefa.lembrarEm`. Definido no formulário, na página da tarefa ou pelo menu da tarefa ("Lembrar de voltar").
@@ -290,11 +292,11 @@ Todo componente é **Markdown comum com uma marca**: o campo continua sendo text
 - **Atalhos na tela de Páginas**: `Ctrl P` ou `Ctrl Shift F` leva à busca do explorador; `Alt ←`/`Alt →` troca de aba; duplo clique numa aba fecha as outras; botão do meio fecha a aba.
 - Arrastar usa `@dnd-kit/core`. O clique que nasce de soltar um item é cancelado só por um instante **e só dentro do próprio explorador ou quadro** (`closest("[data-slot=...]")`): cancelar na janela inteira engolia o clique seguinte em outro lugar da tela (apareceu como falha intermitente no e2e).
 
-### O que há de novo (3.0, atualizado na 3.5)
+### O que há de novo (3.0, atualizado na 3.6)
 - `components/shell/Novidades.tsx`, montado no Shell. Na primeira abertura depois de atualizar aparece só um aviso discreto (toast com "Ver novidades"), que não cobre o trabalho nem disputa com o ritual do dia; a janela abre por ele ou por Configurações (`abrirNovidades()`). Quem começa com a pasta vazia não vê aviso.
 - `VERSAO_NOVIDADES` sobe só quando há novidade que vale avisar (não a cada correção). O que já foi visto é a preferência `novidadesVistas`.
 
-### Radar das frentes (2.14)
+### Radar (2.14; "Radar das frentes" até a 3.5)
 - **O que é** (`app/radar/page.tsx`, `lib/radar.ts`): visão por assunto, para responder "como estão as minhas frentes?" sem abrir tarefa por tarefa. `montarRadar(dados, hoje)` é função pura; **a saúde não é gravada**, é conta feita na hora (mesma decisão dos lembretes e da gamificação).
 - **Saúde**, nesta ordem de precedência: `risco` (tarefa aberta com prazo vencido ou bloqueada), `parada` (tem tarefa aberta e nenhum movimento há `RADAR.parada` = 14 dias), `atencao` (prazo em até `LIMITES.prazoProximo` dias, passo com prazo vencido, aguardando há `LIMITES.aguardando` dias ou mais contando da última cobrança, tarefa em andamento sem próximo passo), `em_dia`, `sem_abertas`. Os motivos vão em `frente.motivos`, do mais grave para o menos.
 - **Movimento** = registro (menos marco) ou passo concluído, até hoje. Data no futuro não conta. Sem nenhum movimento, vale a data de criação da tarefa.
@@ -568,6 +570,7 @@ testes/integridade.test.mjs testes da verificação de integridade (node testes/
 testes/paginas.test.mjs   testes da árvore de páginas, do sumário, da busca e dos modelos (node testes/paginas.test.mjs)
 testes/grafo.test.mjs     testes do mapa das páginas (node testes/grafo.test.mjs)
 testes/jornada.test.mjs   testes da rotina, do ponto e do banco de horas (node testes/jornada.test.mjs)
+testes/lembretes.test.mjs testes do motor de lembretes e do agrupamento por tarefa (node testes/lembretes.test.mjs)
 testes/transcricao.test.mjs testes da leitura de transcrições e do vídeo da página (node testes/transcricao.test.mjs)
 testes/carga.mjs          desempenho com um ano de dados simulados numa pasta vazia; sai com erro se algo passar do teto (--telas mede as telas com Playwright)
 Iniciar Nexo.cmd          abre o Nexo em janela própria (modo aplicativo do Edge) e roda npm start
@@ -636,6 +639,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **Bloco de notas** (`/notas`): existe para tirar o atrito de registrar. O usuário escreve solto e a organização fica para depois, com o Copilot. As folhas são dado (ficam em `notas.json`), a resposta vem em JSON e sempre passa por uma prévia. A folha organizada é arquivada, nunca apagada, para dar para voltar ao texto original.
 - **2.7: moldura e aparência personalizáveis.** O que é gosto (cor de destaque, cantos, letra, movimento, estilo da barra lateral, fundo, ordem e visibilidade dos itens, ferramentas da barra superior, largura) é preferência do navegador. O que é organização (`tarefa.fixada`) é dado. A cor de destaque é só matiz e croma (`--matiz`, `--croma`): a luminosidade de cada token continua fixa, para o contraste do texto não depender da cor escolhida.
 - **Não há "escala da interface" própria.** O `zoom` do CSS no `<html>` desalinha os menus e balões do Radix (testado na 2.7), e escalar pela fonte raiz não pega os tamanhos em px. Para aumentar tudo, vale o zoom do navegador (`Ctrl +`/`Ctrl -`), que o Edge lembra.
+- **3.6: acabamento de UX sem tocar em dados.** Saiu de uma revisão crítica da interface feita a pedido do dono, que achou nove problemas; esta versão atacou os quatro que não mexem em dados gravados: (1) um nome por conceito (glossário na seção 13); (2) lembretes mostrados e contados por tarefa, porque uma tarefa com quatro motivos inflava o selo vermelho e os três contadores não batiam (8 no sino, 13 dentro dele); (3) tela Hoje sem a fileira de números, que repetia o menu e a barra de status e empurrava o que é acionável para fora da tela em 1366x768; (4) piso de legibilidade (12px, contraste, alvo de clique). O que ficou para depois, por ser mudança maior e de gosto: enxugar o menu (15 destinos, que não cabem em 768px de altura) fundindo telas de "acompanhar"; a página da tarefa (linha do tempo começa na metade da tela, ações do registro só aparecem com o mouse em cima); a barra superior (migalhas esmagadas); disciplina de cor (vermelho com cinco significados); formulários que mostram tudo de uma vez. No tema escuro, o texto branco sobre `--primary` ficou em 4,1:1: escurecer o token derrubaria o contraste de `text-primary` sobre o fundo escuro, então ficou como está.
 - **3.5: a rotina grava o que o usuário informou e calcula o resto.** Pedido do dono: planejar o dia em blocos (chamados, tarefas, almoço), ser lembrado do que é para fazer agora e saber a que horas sair. Decisões: (1) **padrão Brasil**, confirmado por ele: 8h de trabalho + 1h de almoço = 9h da entrada à saída, com a pausa de verdade ajustando a conta; (2) **só o expediente**, mas dá para planejar além dele e a tela marca como hora extra, em vez de impedir; (3) **banco de horas** com semana, mês e acumulado; (4) dia sem registro não entra no saldo, para o app não acusar dívida de horas em férias ou em dia em que ele não foi usado; (5) a configuração mora na mesma coleção dos dias, como o item `config`, para o plano, o ponto e a jornada serem gravados juntos, com uma revisão só; (6) todos os dias ficam em `jornada.json` (um ano de uso dá uns 250 itens pequenos); se pesar, o caminho é um arquivo por mês, **com migração**; (7) avisos dentro do app, não do Windows, como os lembretes. Ficou de fora: turno que atravessa a meia-noite, feriados automáticos e arrastar bloco de um dia para outro.
 - **3.4: o mapa é conta, o histórico é arquivo à parte.** O mapa segue a regra do radar e dos lembretes: calculado dos dados, sem posições gravadas (posição arrastada à mão seria mais um dado para proteger e para dessincronizar entre PCs). O histórico fica fora de `paginas.json` porque guardar versões dentro da coleção faria ela crescer a cada edição e pesar na gravação automática; fora dela, uma versão antiga do app nem enxerga a pasta. Fica fora do backup de propósito (o backup diário já é, ele mesmo, um histórico por dia). Não há comparação lado a lado (diff) entre versões: a janela mostra a versão inteira; fica no backlog. O histórico vale só para páginas; tarefas têm `registrosRemovidos` e a lixeira.
 - **3.3: o vídeo é da página, a transcrição é um arquivo.** O vídeo e a transcrição ficam em `arquivos/` (ou num caminho do computador), não dentro de `paginas.json`: uma transcrição de uma hora tem dezenas de KB e a coleção de páginas é regravada a cada pausa na digitação. Custo aceito: a transcrição não entra na busca global nem em Perguntar. Vídeo de fora (link) não toca no app porque a regra de não fazer chamada externa vale mais do que a comodidade; a saída para gravação grande é apontar para o arquivo no computador, sem copiar.
@@ -663,6 +667,7 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - Histórico de prompts gerados e respostas coladas por tarefa.
 - Comparar duas versões de uma página lado a lado (hoje o histórico mostra a versão inteira).
 - Pôr a transcrição dos vídeos na busca global e em Perguntar (hoje a busca é dentro da página do vídeo).
+- UX (da revisão da 3.6): menu padrão menor, com telas de "acompanhar" fundidas em abas; página da tarefa com a linha do tempo mais acima e ações do registro visíveis sem o mouse; migalhas que não esmagam o nome da categoria; vermelho só para atraso e erro; formulários com o essencial primeiro e o resto recolhido; um formato de data só.
 - Rotina: turno que atravessa a meia-noite; feriados automáticos; transformar um bloco cumprido em registro da tarefa; exportar o banco de horas em CSV.
 
 ---
@@ -722,7 +727,8 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 
 ### Layout e densidade (cara de app de desktop)
 - A janela não rola. O Shell ocupa `100vh` (barra lateral, barra superior, barra de status) e cada tela usa `<Pagina>`: cabeçalho fixo e corpo com rolagem própria. Para telas com colunas que rolam separadas (quadro, página da tarefa) use `<Pagina semRolagem>` e cuide da rolagem dentro.
-- Densidade compacta: controles com 32px de altura (`h-8`), texto de interface `text-[13px]`, texto de leitura `text-sm`, rótulos `text-xs`, metadados `text-[11px]`. Título de página `text-lg`, de seção `text-[13px] font-semibold`.
+- Densidade compacta: controles com 32px de altura (`h-8`), texto de interface `text-[13px]`, texto de leitura `text-sm`, rótulos e metadados `text-xs` (12px). Título de página `text-lg`, de seção `text-[13px] font-semibold`.
+- **Piso de legibilidade (3.6).** Nenhum texto que se lê tem menos de 12px (`text-xs`). `text-[11px]` só vale para o que não é frase: rótulo em maiúsculas, tecla (`Kbd`), contador dentro de selo, inicial de avatar e eixo de gráfico. Não use 9 nem 10px. Texto informativo não leva opacidade no `text-muted-foreground` (ele já está no limite de 4,5:1 sobre o fundo): `text-muted-foreground/80` fica para o que é decoração ou está vazio de propósito (separador "·", ícone, número zero grande). As cores de estado (`--alerta`, `--destructive`, `--sucesso`, `--info`) têm que dar 4,5:1 como texto pequeno sobre `--card` no tema claro; ao mexer nelas, meça. Alvo de clique com menos de 24px ganha área invisível em volta (o `Checkbox` do kit faz isso com `after:-inset-1`).
 - Espaços: 12 a 16px entre blocos irmãos (`gap-3`/`gap-4`), 32px entre seções (`Secao` já dá). Cartões com `rounded-xl border bg-card shadow-xs`.
 - Cores só por token (`bg-card`, `text-muted-foreground`, `border`, `bg-primary`, `text-destructive`, `text-sucesso`, `text-alerta`, `text-info`, `bg-st-andamento/12`...). Nunca hexadecimal em componente. A única cor livre é `categoria.cor`, que é dado do usuário e entra por `style`.
 - Tema claro e escuro por classe `.dark` no `<html>` (`useTema()`), com opção "sistema". Toda tela tem que ficar boa nos dois.
@@ -738,6 +744,20 @@ A interface foi refeita na v2 com **Tailwind CSS v4 + componentes no padrão Sha
 
 ### Texto e testes
 - Português do Brasil, tom direto, sem travessão. Erros dizem o que aconteceu e o que fazer.
+- **Um nome por conceito (glossário, 3.6).** Em rótulo, título, botão e aviso, use sempre o mesmo nome:
+
+  | Conceito | Nome na interface | Não use |
+  |---|---|---|
+  | `Categoria` | **categoria** | "assunto" e "frente" como nome (em frase explicativa, "assunto" pode aparecer para dizer o que é uma categoria) |
+  | `Passo` | **passo**; os não feitos são **passos em aberto** | "pendente(s)" como substantivo, "próximos passos em aberto" |
+  | lista dos passos em aberto | **Pendências** (a tela e o painel da tarefa) | |
+  | campo do registro | **Próximos passos** (é o nome do campo e da seção do contrato do Copilot) | |
+  | `tarefa.lembrarEm` | **lembrete de voltar** / "Lembrar de voltar em" | "follow-up" |
+  | alertas do motor | **lembretes**; a lista na tela Hoje é **Precisa de você** | |
+  | timeline | **linha do tempo** | "timeline" |
+  | `tarefa.focoEm` | **foco de hoje**; o cronômetro é a **sessão de foco** | |
+
+  No código os nomes antigos continuam (`frente` no radar, `followup` no tipo do lembrete, `secao "assuntos"` na moldura, `data-slot="timeline"`): renomear ali não muda nada para o usuário e mexeria em preferência gravada e em testes. O texto de "Copiar status" do Radar continua dizendo "frentes", porque é prosa para o gestor, não rótulo da interface.
 - Os componentes do kit têm `data-slot` (ex.: `data-slot="seletor-data"`, `"seletor-status"`, `"passo"`, `"estatistica"`). O `testes/e2e.cjs` usa esses atributos e textos visíveis; ao criar componente novo que o teste precise achar, ponha um `data-slot`.
 
 <!-- BEGIN:nextjs-agent-rules -->

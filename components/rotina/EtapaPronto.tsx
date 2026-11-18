@@ -72,8 +72,8 @@ export function EtapaPronto({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3">
-                    <CatTag cat={categorias.find((c) => c.id === t.categoriaId)} className="mr-auto text-[11px]" />
-                    <PrazoTag prazo={t.prazo} className="text-[11px] [&_svg]:size-3" />
+                    <CatTag cat={categorias.find((c) => c.id === t.categoriaId)} className="mr-auto text-xs" />
+                    <PrazoTag prazo={t.prazo} className="text-xs [&_svg]:size-3" />
                   </div>
                   <div className="mt-0.5 text-[13px] leading-snug font-semibold">{t.titulo}</div>
                   <div className="mt-1.5 flex items-start gap-1.5 text-xs leading-snug text-muted-foreground">
@@ -96,7 +96,7 @@ export function EtapaPronto({
 
       {radar.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-[11px] font-medium text-muted-foreground sem-selecao">Também no radar</p>
+          <p className="mb-2 text-xs font-medium text-muted-foreground sem-selecao">Também no radar</p>
           <div className="flex flex-wrap gap-1.5">
             {radar.map((r) => (
               <Badge key={r} variant="secondary">{r}</Badge>

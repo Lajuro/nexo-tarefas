@@ -75,7 +75,7 @@ export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria 
           <PopoverContent className="w-[19rem]">
             <div className="mb-2 flex items-baseline justify-between gap-2 sem-selecao">
               <span className="text-xs font-semibold">Prioridade</span>
-              <span className="text-[11px] text-muted-foreground">1 pode esperar · 10 é urgente</span>
+              <span className="text-xs text-muted-foreground">1 pode esperar · 10 é urgente</span>
             </div>
             <SeletorPrioridade valor={tarefa.prioridade} aoMudar={(p) => p !== tarefa.prioridade && acoes.mudarPrioridade(tarefa, p)} />
           </PopoverContent>
@@ -95,12 +95,12 @@ export function Propriedades({ tarefa, cat }: { tarefa: Tarefa; cat?: Categoria 
       </Prop>
 
       {ehAberta && (
-        <Prop slot="lembrete" rotulo="Lembrar em" icone={<AlarmClock />}>
+        <Prop slot="lembrete" rotulo="Lembrar de voltar" icone={<AlarmClock />}>
           <SeletorData
             compacto
             valor={lembrete}
             aoMudar={(v) => acoes.lembrarEm(tarefa, v || null)}
-            placeholder="Sem lembrete"
+            placeholder="sem data"
             aria-label="Data para lembrar de voltar nesta tarefa"
             className={cn("px-1.5 [&>svg]:hidden", lembrete && (lembreteVencido ? "text-alerta hover:text-alerta" : "text-foreground"))}
           />

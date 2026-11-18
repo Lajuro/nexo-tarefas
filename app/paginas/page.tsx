@@ -225,7 +225,7 @@ function Conteudo() {
                           <span className="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><IconePagina pagina={{ icone: m.icone }} /></span>
                           <span className="min-w-0">
                             <span className="block text-[13px] font-medium text-foreground">{m.nome}</span>
-                            <span className="block text-[11px] leading-snug text-muted-foreground">{m.descricao}</span>
+                            <span className="block text-xs leading-snug text-muted-foreground">{m.descricao}</span>
                           </span>
                         </button>
                       ))}

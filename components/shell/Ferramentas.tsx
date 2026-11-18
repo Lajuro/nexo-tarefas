@@ -115,7 +115,7 @@ export function Agenda() {
           <Dica texto={v.nome} side="left"><v.icone className={cn("mt-0.5 size-3.5 shrink-0", v.cor)} /></Dica>
           <span className="min-w-0 flex-1 leading-snug">
             <span className="block truncate text-[13px] font-medium">{i.titulo}</span>
-            <span className="block truncate text-[11px] text-muted-foreground">{i.detalhe}</span>
+            <span className="block truncate text-xs text-muted-foreground">{i.detalhe}</span>
           </span>
         </Link>
       </li>
@@ -142,7 +142,7 @@ export function Agenda() {
       <PopoverContent align="end" className="w-[352px] p-0">
         <div className="border-b px-3.5 pt-3 pb-2.5">
           <p className="text-[13px] font-semibold tracking-tight">{maiuscula(DIA_LONGO.format(deISO(hoje)))}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {noPeriodo.length === 0 ? "Nenhum prazo nas próximas duas semanas." : `${noPeriodo.length} ${noPeriodo.length === 1 ? "data marcada" : "datas marcadas"} nas próximas duas semanas.`}
           </p>
           <div role="group" aria-label="Escolher um dia" className="mt-2.5 grid grid-cols-7 gap-1">
@@ -154,11 +154,11 @@ export function Agenda() {
                 <button key={d} type="button" aria-pressed={sel} aria-label={`${maiuscula(DIA_LONGO.format(deISO(d)))}, ${doDia.length} ${doDia.length === 1 ? "item" : "itens"}`}
                   onClick={() => setDia(sel ? null : d)}
                   className={cn(
-                    "relative flex h-11 flex-col items-center justify-center rounded-md text-[11px] transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35",
+                    "relative flex h-11 flex-col items-center justify-center rounded-md text-xs transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35",
                     sel ? "text-primary-foreground" : d === hoje ? "text-primary hover:bg-accent" : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}>
                   {sel && <motion.span layoutId="agenda-dia" transition={{ type: "spring", stiffness: 520, damping: 38 }} className="absolute inset-0 rounded-md bg-primary shadow-xs" />}
-                  <span className="relative text-[9px] leading-none uppercase opacity-75">{semPonto(DIA_CURTO.format(deISO(d))).slice(0, 3)}</span>
+                  <span className="relative text-[11px] leading-none uppercase opacity-75">{semPonto(DIA_CURTO.format(deISO(d))).slice(0, 3)}</span>
                   <span className={cn("relative mt-0.5 text-[13px] leading-none font-medium tabular-nums", d === hoje && !sel && "font-semibold")}>{Number(d.slice(8))}</span>
                   <span className="relative mt-1 flex h-1 gap-0.5">
                     {tipos.map((t) => <span key={t} className={cn("size-1 rounded-full", sel ? "bg-primary-foreground" : VISUAL_AGENDA[t].ponto)} />)}
@@ -171,14 +171,14 @@ export function Agenda() {
         <div className="max-h-[320px] overflow-y-auto p-1.5">
           {!dia && atrasados.length > 0 && (
             <div className="mb-1">
-              <p className="px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider text-destructive uppercase sem-selecao">Em atraso</p>
+              <p className="px-2 pt-1 pb-0.5 text-[11px] font-semibold tracking-wider text-destructive uppercase sem-selecao">Em atraso</p>
               <ul>{atrasados.slice(0, 8).map(linha)}</ul>
-              {atrasados.length > 8 && <p className="px-2 py-1 text-[11px] text-muted-foreground">e mais {atrasados.length - 8}. Veja todas em Hoje.</p>}
+              {atrasados.length > 8 && <p className="px-2 py-1 text-xs text-muted-foreground">e mais {atrasados.length - 8}. Veja todas em Hoje.</p>}
             </div>
           )}
           {porDia.map(([d, lista]) => (
             <div key={d} className="mb-1">
-              <p className="px-2 pt-1 pb-0.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase sem-selecao">
+              <p className="px-2 pt-1 pb-0.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase sem-selecao">
                 {semPonto(DIA_NAVBAR.format(deISO(d)))} · {dataRelativa(d)}
               </p>
               <ul>{lista.map(linha)}</ul>
@@ -237,7 +237,7 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
               <Target className={cn("size-3.5", focos.length > 0 && "text-primary")} />
             )}
             <span className="hidden sm:inline">Foco</span>
-            {total > 0 ? <span className="tabular-nums">{feitos}/{total}</span> : focos.length > 0 ? <span className="tabular-nums">{focos.length}</span> : null}
+            {total > 0 ? <span className="tabular-nums">{feitos}/{total}<span className="hidden xl:inline"> passos</span></span> : focos.length > 0 ? <span className="tabular-nums">{focos.length}</span> : null}
           </button>
         </PopoverTrigger>
       </Dica>
@@ -245,7 +245,7 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
         <div className="flex items-center gap-2 border-b px-3.5 py-2.5">
           <Target className="size-3.5 text-primary" />
           <p className="flex-1 text-[13px] font-semibold tracking-tight">Foco de hoje</p>
-          {total > 0 && <span className="text-[11px] text-muted-foreground tabular-nums">{feitos} de {total} {total === 1 ? "passo" : "passos"}</span>}
+          {total > 0 && <span className="text-xs text-muted-foreground tabular-nums">{feitos} de {total} {total === 1 ? "passo" : "passos"}</span>}
         </div>
         <div className="max-h-[360px] overflow-y-auto p-2">
           {focos.length === 0 ? (
@@ -258,7 +258,7 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
                     <li key={s.tarefa.id} className="flex items-center gap-2 rounded-md border bg-card px-2 py-1.5">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px]">{s.tarefa.titulo}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">{s.motivos.join(" · ")}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{s.motivos.join(" · ")}</span>
                       </span>
                       <Button size="sm" variant="outline"
                         onClick={async () => (await atualizarTarefa(s.tarefa.id, (x) => comFoco(x, true))) && toast("Entrou no foco de hoje.", "info")}>
@@ -294,14 +294,14 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
                       </Dica>
                     </div>
                     {passos.length === 0 ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">Sem próximo passo seu. Abra a tarefa e registre o que falta.</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Sem próximo passo seu. Abra a tarefa e registre o que falta.</p>
                     ) : (
                       <div className="mt-1 flex flex-col">
                         {passos.slice(0, 6).map(({ r, p }) => (
                           <ItemPasso key={p.id} texto={p.texto} feito={p.feito}
                             aoAlternar={(feito) => atualizarTarefa(t.id, (x) => comPassoAlternado(x, r.id, p.id, feito))} />
                         ))}
-                        {passos.length > 6 && <p className="pl-7 text-[11px] text-muted-foreground">e mais {passos.length - 6} na tarefa</p>}
+                        {passos.length > 6 && <p className="pl-7 text-xs text-muted-foreground">e mais {passos.length - 6} na tarefa</p>}
                       </div>
                     )}
                   </motion.li>
@@ -415,7 +415,7 @@ export function AnotarRapido() {
             ]}
           />
           <span className="flex-1" />
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground sem-selecao">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground sem-selecao">
             {pend.modo === "tarefa" ? <><Kbd>Enter</Kbd> guarda</> : <><Kbd>Ctrl</Kbd><Kbd>Enter</Kbd> guarda</>}
           </span>
         </div>
@@ -443,7 +443,7 @@ export function AnotarRapido() {
           )}
         </div>
         <div className="mt-2 flex items-center gap-2">
-          <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+          <p className="min-w-0 flex-1 text-xs leading-snug text-muted-foreground">
             {bloqueado
               ? "Os dados estão em somente leitura."
               : pend.modo === "tarefa" ? "Entra em A fazer. Os detalhes ficam para depois." : "O que você digitar fica guardado aqui até virar folha."}
@@ -461,7 +461,7 @@ export function AnotarRapido() {
                     className="flex items-center gap-2 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:bg-accent">
                     {c.tipo === "tarefa" ? <ListTodo className="size-3.5 shrink-0 text-sucesso" /> : <NotebookPen className="size-3.5 shrink-0 text-sucesso" />}
                     <span className="min-w-0 flex-1 truncate">{c.rotulo}</span>
-                    <span className="shrink-0 text-[11px]">abrir</span>
+                    <span className="shrink-0 text-xs">abrir</span>
                   </Link>
                 </motion.li>
               ))}

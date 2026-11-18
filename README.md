@@ -69,13 +69,22 @@ Também tem prompts de **panorama da tarefa**, **preparar próxima reunião**, *
 
 O Nexo lembra você do que fazer:
 
-- **Tela Hoje**: saudação, foco do dia, o que precisa de você, a semana e as tarefas paradas.
+- **Tela Hoje**: abre com o que precisa de você (uma linha por tarefa, com os motivos dentro), depois o foco do dia, a semana e as tarefas paradas.
 - **Planejar o dia**: abre sozinho na primeira visita do dia (dá para desligar) e pela tecla `D`. Mostra o que ficou para trás e você escolhe os focos.
 - **Foco de hoje**: marca as tarefas em que você vai trabalhar no dia. No dia seguinte, elas deixam de ser foco sozinhas.
 - **Lembrar de voltar em**: uma data para a tarefa voltar a aparecer. Dá para definir no formulário, na página da tarefa ou no menu da tarefa.
-- **Sino de lembretes**: tudo o que merece atenção, com a opção de adiar qualquer item até uma data.
+- **Sino de lembretes**: as tarefas que merecem atenção, com a opção de adiar até uma data. O número do sino é o mesmo da tela Hoje e do menu: conta tarefas, não avisos (uma tarefa atrasada, com passo vencido e sem retorno é uma coisa só).
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
+
+## Cada coisa com um nome só (3.6)
+
+A 3.6 foi uma passada de acabamento na interface, sem mexer nos dados:
+
+- **Um nome por conceito**: **categoria** (antes também "assunto" e "frente"), **passo** e **passos em aberto** (a tela que junta todos é **Pendências**), **lembrete de voltar** (antes também "follow-up") e **linha do tempo**.
+- **Lembretes por tarefa**: no sino e em "Precisa de você", cada tarefa aparece uma vez, com todos os motivos embaixo. Adiar adia os motivos daquela tarefa.
+- **Tela Hoje sem números repetidos**: saíram os quatro cartões de contagem (já estão no menu e na barra de status) e o segundo botão de "Nova tarefa".
+- **Letras e contraste**: o texto miúdo subiu de 11 para 12 px, os prazos em âmbar ficaram mais escuros e o círculo de concluir passo ganhou uma área de clique maior.
 
 ## Rotina: o dia em blocos, a hora de sair e o banco de horas (3.5)
 
@@ -146,16 +155,16 @@ A 3.0 junta cinco frentes: **modo reunião**, **páginas de conhecimento com @**
 
 O menu lateral foi reagrupado em **Dia a dia**, **Conhecimento** e **Acompanhar**. A ordem e os itens que você escondeu continuam como estavam.
 
-## Radar das frentes (2.14)
+## Radar (2.14)
 
-Em **Radar** (`G F`) cada categoria vira uma frente, com a saúde calculada na hora:
+Em **Radar** (`G F`) cada categoria aparece com a saúde calculada na hora:
 
 - **Em risco**: tem tarefa com prazo vencido ou bloqueada.
 - **Parada**: tem tarefa aberta e nenhum movimento há 14 dias ou mais.
 - **Pede atenção**: prazo chegando, passo vencido, retorno demorando ou tarefa em andamento sem próximo passo.
 - **Em dia**: nada disso.
 
-Cada cartão diz o porquê, mostra o movimento das últimas 8 semanas e o próximo prazo. Embaixo, a linha de **prazos das próximas semanas** (tarefas, passos e follow-ups, por frente). **Copiar status** gera um texto simples para mandar ao gestor, só com o que está registrado, sem IA.
+Cada cartão diz o porquê, mostra o movimento das últimas 8 semanas e o próximo prazo. Embaixo, a linha de **prazos das próximas semanas** (tarefas, passos e lembretes de voltar, por categoria). **Copiar status** gera um texto simples para mandar ao gestor, só com o que está registrado, sem IA.
 
 ## Perguntar ao Nexo (2.13)
 
@@ -171,7 +180,7 @@ O prompt manda o Copilot responder só com esses trechos e dizer quando eles nã
 
 Na página da tarefa, **Modo reunião** abre uma tela só para a conversa:
 
-- **Antes**: a pauta se monta sozinha com as pendências da tarefa, as últimas decisões, onde a conversa parou e, ao informar os participantes, o que está com cada um em outras frentes. "Copiar" gera a pauta em texto para mandar antes.
+- **Antes**: a pauta se monta sozinha com as pendências da tarefa, as últimas decisões, onde a conversa parou e, ao informar os participantes, o que está com cada um em outras tarefas. "Copiar" gera a pauta em texto para mandar antes.
 - **Durante**: anote solto no editor e capture decisões (`Alt 1`) e próximos passos (`Alt 2`, com responsável e prazo) sem tirar a mão do teclado. Marque na pauta as pendências que forem resolvidas. "Começar" liga o relógio.
 - **Depois**: "Encerrar e salvar" (`Ctrl Enter`) grava a reunião na linha do tempo e mostra a **ata** pronta para copiar, montada só com o que você escreveu.
 

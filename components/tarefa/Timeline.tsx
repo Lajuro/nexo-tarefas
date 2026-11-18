@@ -58,9 +58,9 @@ function AcoesRegistro({
         <Button variant="ghost" size="icon-sm" aria-label="Editar registro" onClick={aoEditar}><Pencil /></Button>
       </Dica>
       {aoAlternarReferencia && (
-        <Dica texto={referencia ? "Tirar da referência do assunto" : "Guardar como referência do assunto (aparece na categoria)"}>
+        <Dica texto={referencia ? "Tirar da referência da categoria" : "Guardar como referência da categoria (vale para todas as tarefas dela)"}>
           <Button variant="ghost" size="icon-sm" aria-pressed={!!referencia} onClick={aoAlternarReferencia}
-            aria-label={referencia ? "Tirar da referência do assunto" : "Guardar como referência do assunto"} className={referencia ? "text-primary" : undefined}>
+            aria-label={referencia ? "Tirar da referência da categoria" : "Guardar como referência da categoria"} className={referencia ? "text-primary" : undefined}>
             <BookMarked />
           </Button>
         </Dica>
@@ -84,7 +84,7 @@ function AcoesRegistro({
 function Alteracoes({ r }: { r: Registro }) {
   const a = r.alteracoes;
   if (!a || (!a.status && !a.prioridade && !a.prazo)) return null;
-  const seta = <span aria-hidden className="text-muted-foreground/70">→</span>;
+  const seta = <span aria-hidden className="text-muted-foreground">→</span>;
   return (
     <div data-slot="registro-alteracoes" className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t px-4 pt-2.5 text-xs text-muted-foreground">
       <span className="text-[11px] font-semibold tracking-wide uppercase sem-selecao">Mudou na tarefa</span>
@@ -119,7 +119,7 @@ function CardRegistro({
   const alternarReferencia = async () => {
     const ligar = !r.referencia;
     if (await atualizarTarefa(tarefa.id, (t) => comReferencia(t, r.id, ligar)))
-      toast(ligar ? "Guardado como referência do assunto. Aparece na página da categoria." : "Saiu da referência do assunto.", "info");
+      toast(ligar ? "Guardado como referência da categoria. Aparece na página dela." : "Saiu da referência da categoria.", "info");
   };
   const feitos = r.proximosPassos.filter((p) => p.feito).length;
 
@@ -139,7 +139,7 @@ function CardRegistro({
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
           <TipoBadge tipo={r.tipo} />
           {r.referencia && (
-            <span data-slot="selo-referencia" className="inline-flex h-5 shrink-0 items-center gap-1 rounded-md bg-primary/12 px-1.5 text-[11px] font-medium text-primary dark:bg-primary/22 dark:text-foreground">
+            <span data-slot="selo-referencia" className="inline-flex h-5 shrink-0 items-center gap-1 rounded-md bg-primary/12 px-1.5 text-xs font-medium text-primary dark:bg-primary/22 dark:text-foreground">
               <BookMarked className="size-3" /> Referência
             </span>
           )}
@@ -350,7 +350,7 @@ function Entrada({
               {formatarData(data)}
             </time>
             {hora && <span className={cn("block text-xs leading-4 text-muted-foreground tabular-nums", repeteData && "pt-0.5")}>{hora}</span>}
-            {!repeteData && !discreta && <span className="block text-[11px] leading-4 text-muted-foreground/80">{dataRelativa(data)}</span>}
+            {!repeteData && !discreta && <span className="block text-xs leading-4 text-muted-foreground">{dataRelativa(data)}</span>}
           </>
         )}
       </div>

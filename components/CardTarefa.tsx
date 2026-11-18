@@ -41,7 +41,7 @@ function Contadores({ t, aberta, curto }: { t: Tarefa; aberta: boolean; curto?: 
   const lembrar = aberta ? t.lembrarEm : null;
   const chegou = lembrar ? (diasAte(lembrar) ?? 1) <= 0 : false;
   if (!curto && aberta && !reunioes && !pend && !lembrar)
-    return <span className="text-muted-foreground/70">Sem pendências em aberto</span>;
+    return <span className="text-muted-foreground">Sem passos em aberto</span>;
   return (
     <>
       {reunioes > 0 && (
@@ -53,10 +53,10 @@ function Contadores({ t, aberta, curto }: { t: Tarefa; aberta: boolean; curto?: 
         </Dica>
       )}
       {pend > 0 && (
-        <Dica texto={plural(pend, "próximo passo em aberto", "próximos passos em aberto")}>
+        <Dica texto={plural(pend, "passo em aberto", "passos em aberto")}>
           <span data-slot="contador-pendencias" className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground/80 tabular-nums">
             <ListChecks className="size-3.5" />
-            {curto ? pend : plural(pend, "pendente", "pendentes")}
+            {curto ? pend : plural(pend, "passo em aberto", "passos em aberto")}
           </span>
         </Dica>
       )}
@@ -140,12 +140,12 @@ export function CardTarefa({
         >
           {barra}
           <div className="flex items-center gap-1.5">
-            <CatTag cat={cat} className="flex-1 text-[11px]" />
+            <CatTag cat={cat} className="flex-1 text-xs" />
             {foco && <SeloFoco pequeno />}
-            <PrioBadge p={t.prioridade} className="size-5 text-[11px]" />
+            <PrioBadge p={t.prioridade} className="size-5 text-xs" />
           </div>
           <h3 className={cn(titulo, "text-[13px] font-medium")}>{t.titulo}</h3>
-          <div className="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+          <div className="flex min-h-5 flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
             {!semStatus && (
               <Dica texto={nomeStatus(t.status)}>
                 <span className="inline-flex shrink-0"><IconeStatus status={t.status} /></span>

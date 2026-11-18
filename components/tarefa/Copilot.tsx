@@ -70,7 +70,7 @@ export function BlocoCopilot({
         <SeloCopilot />
         <div className="min-w-0">
           <h3 className="text-[13px] leading-tight font-semibold tracking-tight sem-selecao">{titulo}</h3>
-          {descricao && <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{descricao}</p>}
+          {descricao && <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{descricao}</p>}
         </div>
       </header>
       <ol className="px-3.5 pt-3.5 pb-3.5">{children}</ol>
@@ -89,7 +89,7 @@ export function PassoCopilot({
       <div className="flex flex-col items-center">
         <span
           className={cn(
-            "inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums transition-colors duration-200 sem-selecao",
+            "inline-flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums transition-colors duration-200 sem-selecao",
             feito ? "bg-sucesso text-background" : "bg-card text-foreground ring-1 ring-primary/35 ring-inset dark:bg-input/30",
           )}
         >

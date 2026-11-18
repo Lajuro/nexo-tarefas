@@ -125,7 +125,7 @@ export function EditorPagina({
             <span className="min-w-0 truncate px-1 font-medium text-foreground">{nomeDaPagina({ titulo, texto: valor.texto })}</span>
           </nav>
           <span data-slot="pagina-situacao" data-situacao={situacao} role="status"
-            className={cn("hidden shrink-0 items-center gap-1 text-[11px] sem-selecao sm:inline-flex", situacao === "erro" ? "text-alerta" : "text-muted-foreground")}>
+            className={cn("hidden shrink-0 items-center gap-1 text-xs sem-selecao sm:inline-flex", situacao === "erro" ? "text-alerta" : "text-muted-foreground")}>
             {situacao === "salvo" && <><Check className="size-3.5 text-sucesso" /> Salvo</>}
             {situacao === "pendente" && "Guardando..."}
             {situacao === "salvando" && <><LoaderCircle className="size-3.5 animate-spin" /> Salvando...</>}
@@ -191,7 +191,7 @@ export function EditorPagina({
                   maxLength={200}
                   placeholder="Título da página"
                   aria-label="Título da página"
-                  className="min-h-0 min-w-0 flex-1 resize-none rounded-none border-0 bg-transparent px-0 py-1 text-[26px] leading-tight font-semibold tracking-tight shadow-none [field-sizing:content] placeholder:font-normal placeholder:text-muted-foreground/60 hover:border-0 focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
+                  className="min-h-0 min-w-0 flex-1 resize-none rounded-none border-0 bg-transparent px-0 py-1 text-[26px] leading-tight font-semibold tracking-tight shadow-none [field-sizing:content] placeholder:font-normal placeholder:text-muted-foreground/80 hover:border-0 focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
                 />
               )}
             </div>
@@ -204,7 +204,7 @@ export function EditorPagina({
                 <>
                   <SeloEstado estado={pagina.estado ?? "rascunho"} />
                   {cat && <span className="inline-flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span>}
-                  {pagina.tags.map((t) => <span key={t} className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium">#{t}</span>)}
+                  {pagina.tags.map((t) => <span key={t} className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium">#{t}</span>)}
                 </>
               ) : (
                 <>
@@ -262,7 +262,7 @@ export function EditorPagina({
                       <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"><IconePagina pagina={f} temFilhas={ativas.some((x) => x.paiId === f.id)} /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-medium">{nomeDaPagina(f)}</span>
-                        <span className="block truncate text-[11px] text-muted-foreground">editada {dataRelativa(f.atualizadaEm)}</span>
+                        <span className="block truncate text-xs text-muted-foreground">editada {dataRelativa(f.atualizadaEm)}</span>
                       </span>
                       <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
                     </button>
@@ -283,12 +283,12 @@ export function EditorPagina({
                 {anterior ? (
                   <button type="button" onClick={() => aoAbrir(anterior.id)} className="group flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-left transition-colors outline-none hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/35">
                     <ArrowLeft className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-x-0.5" />
-                    <span className="min-w-0"><span className="block text-[11px] text-muted-foreground">Anterior</span><span className="block truncate text-[13px] font-medium">{nomeDaPagina(anterior)}</span></span>
+                    <span className="min-w-0"><span className="block text-xs text-muted-foreground">Anterior</span><span className="block truncate text-[13px] font-medium">{nomeDaPagina(anterior)}</span></span>
                   </button>
                 ) : <span />}
                 {proxima && (
                   <button type="button" onClick={() => aoAbrir(proxima.id)} className="group flex items-center justify-end gap-2.5 rounded-xl border px-3.5 py-2.5 text-right transition-colors outline-none hover:border-ring/40 hover:bg-accent/40 focus-visible:ring-[3px] focus-visible:ring-ring/35">
-                    <span className="min-w-0"><span className="block text-[11px] text-muted-foreground">Próxima</span><span className="block truncate text-[13px] font-medium">{nomeDaPagina(proxima)}</span></span>
+                    <span className="min-w-0"><span className="block text-xs text-muted-foreground">Próxima</span><span className="block truncate text-[13px] font-medium">{nomeDaPagina(proxima)}</span></span>
                     <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                   </button>
                 )}
@@ -301,7 +301,7 @@ export function EditorPagina({
           <section>
             <h3 className="mb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase sem-selecao">Nesta página</h3>
             {sumario.length === 0 ? (
-              <p className="text-xs leading-snug text-muted-foreground">Os títulos do texto aparecem aqui. No editor, use <code className="rounded bg-muted px-1 font-mono text-[11px]">#</code> e espaço, ou o menu <code className="rounded bg-muted px-1 font-mono text-[11px]">/</code>.</p>
+              <p className="text-xs leading-snug text-muted-foreground">Os títulos do texto aparecem aqui. No editor, use <code className="rounded bg-muted px-1 font-mono text-xs">#</code> e espaço, ou o menu <code className="rounded bg-muted px-1 font-mono text-xs">/</code>.</p>
             ) : (
               <ul data-slot="sumario" className="border-l">
                 {sumario.map((s) => (

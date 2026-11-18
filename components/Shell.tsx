@@ -280,12 +280,12 @@ function BarraStatus() {
   const hora = ultimaGravacao ? new Date(ultimaGravacao).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
   const item = "flex h-full items-center gap-1.5 px-2 transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:bg-accent";
   return (
-    <footer data-slot="barra-status" className="flex h-6 shrink-0 items-center border-t bg-sidebar text-[11px] text-muted-foreground sem-selecao">
+    <footer data-slot="barra-status" className="flex h-6 shrink-0 items-center border-t bg-sidebar text-xs text-muted-foreground sem-selecao">
       <Dica texto="Seus dados ficam só nesta pasta. Clique para copiar o caminho." side="top" align="start">
         <button type="button" className={cn(item, "min-w-0")}
           onClick={async () => (await copiarTexto(estado?.dataDir ?? "")) && toast("Caminho copiado. Cole no Explorer para abrir.", "info")}>
           <HardDrive className="size-3 shrink-0" />
-          <span className="truncate font-mono text-[10px]">{estado?.dataDir}</span>
+          <span className="truncate font-mono text-[11px]">{estado?.dataDir}</span>
         </button>
       </Dica>
       <div className="flex-1" />
@@ -305,7 +305,7 @@ function BarraStatus() {
       </span>
       <Link href="/tarefas" className={cn(item, "shrink-0 whitespace-nowrap")}><NumeroAnimado valor={abertas} /> {abertas === 1 ? "aberta" : "abertas"}</Link>
       <Link href="/pendencias" className={cn(item, "shrink-0 whitespace-nowrap")}><NumeroAnimado valor={pend} /> {pend === 1 ? "pendência" : "pendências"}</Link>
-      <span className="flex h-full items-center px-2 font-mono text-[10px]">v{versao.version}</span>
+      <span className="flex h-full items-center px-2 font-mono text-[11px]">v{versao.version}</span>
     </footer>
   );
 }

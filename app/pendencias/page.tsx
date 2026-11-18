@@ -88,7 +88,7 @@ export default function Pendencias() {
   return (
     <Pagina
       titulo="Pendências"
-      descricao="Todos os próximos passos em aberto, de todas as tarefas. Bata o olho e vá marcando."
+      descricao="Todos os passos em aberto, de todas as tarefas. Bata o olho e vá marcando."
       barra={
         <>
           <Segmentado<Agrupamento>

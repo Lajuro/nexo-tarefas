@@ -83,13 +83,13 @@ export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas:
                       <IconePagina pagina={p} className="text-muted-foreground" />
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5 truncate font-medium">{nome}{p.fixada && <Bookmark className="size-3 shrink-0 fill-primary text-primary" />}</span>
-                        {caminho && <span className="block truncate text-[11px] text-muted-foreground">{caminho}</span>}
+                        {caminho && <span className="block truncate text-xs text-muted-foreground">{caminho}</span>}
                       </span>
                     </button>
                   </Td>
                   <Td>{cat ? <span className="inline-flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span> : <span className="text-muted-foreground">sem categoria</span>}</Td>
                   <Td><SeloEstado estado={p.estado ?? "rascunho"} /></Td>
-                  <Td><span className="flex flex-wrap gap-1">{p.tags.slice(0, 4).map((t) => <span key={t} className="rounded bg-muted px-1 text-[11px] font-medium text-muted-foreground">#{t}</span>)}</span></Td>
+                  <Td><span className="flex flex-wrap gap-1">{p.tags.slice(0, 4).map((t) => <span key={t} className="rounded bg-muted px-1 text-xs font-medium text-muted-foreground">#{t}</span>)}</span></Td>
                   <Td className={cn("text-right tabular-nums", !palavras && "text-muted-foreground")}>{palavras}</Td>
                   <Td className="whitespace-nowrap text-muted-foreground">{dataRelativa(p.atualizadaEm)}</Td>
                   <Td><BotaoMenuPagina pagina={p} acoes={acoes} aoAbrir={aoAbrir} /></Td>

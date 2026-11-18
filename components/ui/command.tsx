@@ -31,7 +31,7 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
       <Search className="size-4 shrink-0 text-muted-foreground" />
       <CommandPrimitive.Input
         data-slot="command-input"
-        className={cn("h-10 w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/70", className)}
+        className={cn("h-10 w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground", className)}
         {...props}
       />
     </div>
@@ -50,7 +50,7 @@ function CommandGroup({ className, ...props }: React.ComponentProps<typeof Comma
   return (
     <CommandPrimitive.Group
       className={cn(
-        "overflow-hidden text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+        "overflow-hidden text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
         className,
       )}
       {...props}
@@ -123,7 +123,7 @@ function Combobox({
     <Popover open={aberto} onOpenChange={(a) => { setAberto(a); if (!a) setBusca(""); }}>
       <PopoverTrigger asChild>
         <button type="button" id={id} role="combobox" aria-expanded={aberto} aria-label={ariaLabel} data-slot="combobox"
-          className={cn(campoBase, "flex h-8 items-center justify-between gap-2 px-2.5 text-left sem-selecao", !atual && "text-muted-foreground/70", className)}>
+          className={cn(campoBase, "flex h-8 items-center justify-between gap-2 px-2.5 text-left sem-selecao", !atual && "text-muted-foreground", className)}>
           <span className="flex min-w-0 flex-1 items-center gap-2">{atual ? (atual.render ?? <span className="truncate">{atual.rotulo}</span>) : <span className="truncate">{placeholder}</span>}</span>
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
         </button>
@@ -144,7 +144,7 @@ function Combobox({
                 <CommandItem key={o.valor} value={o.rotulo} keywords={[o.detalhe || "", o.valor]}
                   onSelect={() => { aoMudar(o.valor); setAberto(false); }}>
                   <span className="flex min-w-0 flex-1 items-center gap-2">{o.render ?? <span className="truncate">{o.rotulo}</span>}</span>
-                  {o.detalhe && <span className="shrink-0 text-[11px] text-muted-foreground">{o.detalhe}</span>}
+                  {o.detalhe && <span className="shrink-0 text-xs text-muted-foreground">{o.detalhe}</span>}
                   {o.valor === valor && <Check className="size-3.5 !text-primary" />}
                 </CommandItem>
               ))}

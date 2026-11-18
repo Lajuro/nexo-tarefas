@@ -200,7 +200,7 @@ export function DetalheTime({ time, diretorio }: { time: Time; diretorio: Entrad
                     <div className="mb-1 flex items-center gap-2">
                       <AvatarPessoa nome={e.nome} />
                       <Link href={hrefPessoa(e.nome)} className="truncate rounded-sm text-[13px] font-semibold outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/35">{e.nome}</Link>
-                      <span className="text-[11px] text-muted-foreground tabular-nums">{plural(e.passosAbertos.length, "passo", "passos")}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{plural(e.passosAbertos.length, "passo", "passos")}</span>
                     </div>
                     <div className="pl-8">
                       <ListaPassos passos={e.passosAbertos} />
@@ -230,8 +230,8 @@ export function DetalheTime({ time, diretorio }: { time: Time; diretorio: Entrad
                       <IconeStatus status={t.status} className="mt-[3px]" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-medium">{t.titulo}</span>
-                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] text-muted-foreground">
-                          <CatTag cat={categoria(t.categoriaId)} className="text-[11px] font-normal" />
+                        <span className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                          <CatTag cat={categoria(t.categoriaId)} className="text-xs font-normal" />
                           {comMembros && <span className="shrink-0">com gente do time</span>}
                         </span>
                       </span>

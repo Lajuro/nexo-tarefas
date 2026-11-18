@@ -84,7 +84,7 @@ export function LinhaOpcao({ titulo, ajuda, children }: { titulo: string; ajuda?
     <div className="flex flex-col gap-1.5">
       <span className="text-xs font-medium sem-selecao">{titulo}</span>
       {children}
-      {ajuda && <p className="text-[11px] leading-snug text-muted-foreground">{ajuda}</p>}
+      {ajuda && <p className="text-xs leading-snug text-muted-foreground">{ajuda}</p>}
     </div>
   );
 }

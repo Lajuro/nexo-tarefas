@@ -22,7 +22,7 @@ export function EmblemaCategoria({
 }: {
   nome: string; cor: string; tamanho?: "sm" | "md" | "lg"; className?: string;
 }) {
-  const dim = { sm: "size-7 rounded-md text-[10px]", md: "size-9 rounded-lg text-xs", lg: "size-11 rounded-xl text-sm" }[tamanho];
+  const dim = { sm: "size-7 rounded-md text-[11px]", md: "size-9 rounded-lg text-xs", lg: "size-11 rounded-xl text-sm" }[tamanho];
   return (
     <span
       aria-hidden

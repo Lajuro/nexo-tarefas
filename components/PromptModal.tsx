@@ -91,7 +91,7 @@ export function PromptModal({
                   {verPrompt ? "Esconder prompt" : "Ver prompt"}
                 </Button>
               </CollapsibleTrigger>
-              <span data-slot="tamanho-prompt" className="ml-auto font-mono text-[11px] text-muted-foreground tabular-nums">
+              <span data-slot="tamanho-prompt" className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">
                 {prompt.length.toLocaleString("pt-BR")} caracteres
               </span>
             </div>

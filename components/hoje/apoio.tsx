@@ -55,7 +55,7 @@ type TomMotivo = "perigo" | "alerta" | "info" | "default" | "secondary";
 export function tomDoMotivo(motivo: string): TomMotivo {
   if (/^atrasada|prazo hoje/.test(motivo)) return "perigo";
   if (/^prazo|cobrar/.test(motivo)) return "alerta";
-  if (/follow-up/.test(motivo)) return "info";
+  if (/lembrete de voltar/.test(motivo)) return "info";
   if (/^prioridade/.test(motivo)) return "default";
   return "secondary";
 }

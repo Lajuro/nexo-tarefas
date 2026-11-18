@@ -145,7 +145,7 @@ export function gerarLembretes(tarefas: Tarefa[]): Lembrete[] {
     if (t.lembrarEm && (diasAte(t.lembrarEm) ?? 1) <= 0) {
       const d = -diasAte(t.lembrarEm)!;
       out.push({ ...base, id: `followup:${t.id}:${t.lembrarEm}`, tipo: "followup", gravidade: "atencao", dias: d,
-        titulo: d === 0 ? "Follow-up marcado para hoje" : `Follow-up pendente há ${dias(d)}`,
+        titulo: d === 0 ? "Lembrete de voltar: é hoje" : `Lembrete de voltar: era há ${dias(d)}`,
         detalhe: "Você pediu para ser lembrado de voltar nesta tarefa." });
     }
 
@@ -194,6 +194,37 @@ export function gerarLembretes(tarefas: Tarefa[]): Lembrete[] {
         titulo: "Em andamento sem próximo passo", detalhe: "Defina qual é a próxima ação para não travar." });
   }
   return out.sort((a, b) => PESO[a.gravidade] - PESO[b.gravidade] || b.dias - a.dias);
+}
+
+/** Os lembretes de uma mesma tarefa, juntos: a interface mostra a tarefa uma vez só, com os motivos dentro. */
+export interface GrupoDeLembretes {
+  /** Estável entre recargas: o id da tarefa. */
+  id: string;
+  tarefaId: string;
+  tarefaTitulo: string;
+  /** A gravidade mais alta entre os lembretes do grupo: é ela que decide onde a tarefa aparece. */
+  gravidade: Gravidade;
+  /** Do mais grave para o menos, na ordem em que gerarLembretes() devolveu. */
+  lembretes: Lembrete[];
+}
+
+/**
+ * Junta os lembretes por tarefa. Uma tarefa atrasada, com passo vencido e sem retorno rende três
+ * lembretes, mas é um problema só para o usuário: contar por tarefa mantém o número do sino e da tela
+ * Hoje honesto. A ordem dos grupos é a do lembrete mais grave de cada tarefa (a entrada já vem ordenada).
+ */
+export function agruparLembretes(lembretes: Lembrete[]): GrupoDeLembretes[] {
+  const grupos = new Map<string, GrupoDeLembretes>();
+  for (const l of lembretes) {
+    const g = grupos.get(l.tarefaId);
+    if (g) {
+      g.lembretes.push(l);
+      if (PESO[l.gravidade] < PESO[g.gravidade]) g.gravidade = l.gravidade;
+    } else grupos.set(l.tarefaId, { id: l.tarefaId, tarefaId: l.tarefaId, tarefaTitulo: l.tarefaTitulo, gravidade: l.gravidade, lembretes: [l] });
+  }
+  return [...grupos.values()]
+    .map((g) => ({ ...g, lembretes: [...g.lembretes].sort((a, b) => PESO[a.gravidade] - PESO[b.gravidade] || b.dias - a.dias) }))
+    .sort((a, b) => PESO[a.gravidade] - PESO[b.gravidade]);
 }
 
 export interface ResumoDia {
@@ -274,7 +305,7 @@ export function sugestoesDeFoco(tarefas: Tarefa[], limite = 8): SugestaoFoco[] {
         else if (d === 0) { pontos += 50; motivos.push("prazo hoje"); }
         else if (d <= LIMITES.prazoProximo) { pontos += 30; motivos.push(d === 1 ? "prazo amanhã" : `prazo em ${dias(d)}`); }
       }
-      if (t.lembrarEm && t.lembrarEm <= hoje) { pontos += 35; motivos.push("follow-up marcado"); }
+      if (t.lembrarEm && t.lembrarEm <= hoje) { pontos += 35; motivos.push("lembrete de voltar"); }
       if (t.status === "em_andamento") pontos += 8;
       if (t.status === "aguardando") { pontos -= 25; if (diasSemAtividade(t) >= LIMITES.aguardando) { pontos += 30; motivos.push("cobrar retorno"); } }
       if (t.status === "bloqueada") pontos -= 20;

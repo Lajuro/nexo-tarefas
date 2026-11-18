@@ -24,7 +24,7 @@ function Bloco({ titulo, ajuda, children }: { titulo: string; ajuda?: ReactNode;
     <section className="flex flex-col gap-2">
       <div>
         <h3 className="text-xs font-semibold tracking-tight sem-selecao">{titulo}</h3>
-        {ajuda && <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{ajuda}</p>}
+        {ajuda && <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{ajuda}</p>}
       </div>
       {children}
     </section>
@@ -56,14 +56,14 @@ function ItemOrdenavel({
             e.preventDefault();
             mover(e.key === "ArrowUp" ? -1 : 1);
           }}
-          className="inline-flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/60 transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:cursor-grabbing">
+          className="inline-flex h-7 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/80 transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 active:cursor-grabbing">
           <GripVertical className="size-3.5" />
         </button>
       </Dica>
       {icone && <span className={cn("inline-flex shrink-0 text-muted-foreground transition-opacity [&_svg]:size-4", !ligado && "opacity-40")}>{icone}</span>}
       <span className={cn("min-w-0 flex-1 transition-opacity", !ligado && "opacity-50")}>
         <span className="block truncate text-[13px] font-medium sem-selecao">{nome}</span>
-        {descricao && <span className="block text-[11px] leading-snug text-muted-foreground">{descricao}</span>}
+        {descricao && <span className="block text-xs leading-snug text-muted-foreground">{descricao}</span>}
       </span>
       <Switch checked={ligado} onCheckedChange={aoLigar} aria-label={`Mostrar ${nome}`} />
     </Reorder.Item>
@@ -92,7 +92,7 @@ function AbaLateral() {
           const hrefs = g.itens.map((i) => i.href);
           return (
             <div key={g.grupo} className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold tracking-wider text-muted-foreground/80 uppercase sem-selecao">{g.grupo}</span>
+              <span className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase sem-selecao">{g.grupo}</span>
               <Reorder.Group axis="y" values={hrefs} onReorder={(novo) => reordenar(g.grupo, novo as string[])} className="flex flex-col gap-1">
                 {g.itens.map((item, i) => (
                   <ItemOrdenavel key={item.href} valor={item.href} nome={item.nome} icone={<item.icone />}
@@ -121,7 +121,7 @@ function AbaLateral() {
         <CampoSwitch marcado={moldura.titulosDeGrupo} aoMudar={(v) => mudarMoldura({ titulosDeGrupo: v })}>Mostrar os títulos dos grupos (Dia a dia, Conhecimento, Acompanhar)</CampoSwitch>
         <CampoSwitch marcado={moldura.contadores} aoMudar={(v) => mudarMoldura({ contadores: v })}>Mostrar os contadores ao lado dos itens</CampoSwitch>
         <div className="mt-1 flex items-center gap-2">
-          <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+          <p className="min-w-0 flex-1 text-xs leading-snug text-muted-foreground">
             Largura: <span className="font-medium text-foreground tabular-nums">{moldura.largura}px</span>. Arraste a borda direita da barra lateral para ajustar.
           </p>
           <Button variant="outline" size="sm" disabled={moldura.largura === LARGURA_LATERAL.padrao} onClick={() => mudarMoldura({ largura: LARGURA_LATERAL.padrao })}>
@@ -145,7 +145,7 @@ function AbaSuperior() {
               <div key={id} data-slot="opcao-ferramenta" data-valor={id} className="flex items-center gap-2.5 rounded-lg border bg-card px-2.5 py-1.5 shadow-xs">
                 <span className={cn("min-w-0 flex-1 transition-opacity", !ligado && "opacity-50")}>
                   <span className="block text-[13px] font-medium sem-selecao">{NOME_FERRAMENTA[id].nome}</span>
-                  <span className="block text-[11px] leading-snug text-muted-foreground">{NOME_FERRAMENTA[id].descricao}</span>
+                  <span className="block text-xs leading-snug text-muted-foreground">{NOME_FERRAMENTA[id].descricao}</span>
                 </span>
                 <Switch checked={ligado} aria-label={`Mostrar ${NOME_FERRAMENTA[id].nome}`}
                   onCheckedChange={(v) => mudarMoldura((m) => ({ ferramentasOcultas: alternarNa(m.ferramentasOcultas, id, !v) }))} />
@@ -157,7 +157,7 @@ function AbaSuperior() {
       <Bloco titulo="Barra de status" ajuda="A faixa fina do rodapé, com a pasta de dados, o “Salvo às...” e as contagens.">
         <CampoSwitch marcado={moldura.barraStatus} aoMudar={(v) => mudarMoldura({ barraStatus: v })}>Mostrar a barra de status</CampoSwitch>
         {!moldura.barraStatus && (
-          <p className="text-[11px] leading-snug text-muted-foreground">Sem ela, o aviso de “Salvando...” aparece na barra superior só enquanto grava.</p>
+          <p className="text-xs leading-snug text-muted-foreground">Sem ela, o aviso de “Salvando...” aparece na barra superior só enquanto grava.</p>
         )}
       </Bloco>
     </div>

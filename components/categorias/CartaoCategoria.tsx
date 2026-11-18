@@ -91,7 +91,7 @@ export function CartaoCategoria({ cat, tarefas, aoEditar }: { cat: Categoria; ta
               </div>
             </div>
 
-            <p className={cn("mt-3 line-clamp-2 min-h-[2.375rem] text-[13px] leading-[1.1875rem] text-muted-foreground", !cat.descricao && "text-muted-foreground/60 italic")}>
+            <p className={cn("mt-3 line-clamp-2 min-h-[2.375rem] text-[13px] leading-[1.1875rem] text-muted-foreground", !cat.descricao && "text-muted-foreground/80 italic")}>
               {cat.descricao || "Sem descrição"}
             </p>
 
@@ -102,7 +102,7 @@ export function CartaoCategoria({ cat, tarefas, aoEditar }: { cat: Categoria; ta
             </div>
             <Progress valor={n.conclusao} cor={cat.cor} className="mt-1.5" />
 
-            <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Activity className="size-3 shrink-0 opacity-70" />
               {n.ultima ? <span>Última atividade {dataRelativa(n.ultima)}</span> : <span>Sem atividade registrada</span>}
             </div>

@@ -146,7 +146,7 @@ export function EditorNota({
       </div>
       <footer className="flex flex-wrap items-center gap-2 px-6 py-3">
         <span data-slot="nota-situacao" data-situacao={situacao} role="status"
-          className={cn("mr-auto inline-flex items-center gap-1.5 text-[11px] sem-selecao", situacao === "erro" ? "text-alerta" : "text-muted-foreground")}>
+          className={cn("mr-auto inline-flex items-center gap-1.5 text-xs sem-selecao", situacao === "erro" ? "text-alerta" : "text-muted-foreground")}>
           {situacao === "salvo" && (vazia ? "Folha em branco" : <><Check className="size-3.5 text-sucesso" /> Salvo na pasta de dados</>)}
           {situacao === "pendente" && "Guardando..."}
           {situacao === "salvando" && <><LoaderCircle className="size-3.5 animate-spin" /> Salvando...</>}

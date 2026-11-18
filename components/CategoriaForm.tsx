@@ -176,22 +176,22 @@ export function CategoriaForm({ aberto, fechar, cat }: { aberto: boolean; fechar
             }}
           />
         </Campo>
-        <Campo rotulo="Cor" lado={<span className="text-[11px] text-muted-foreground">{nomeDaCor(cor)}</span>}>
+        <Campo rotulo="Cor" lado={<span className="text-xs text-muted-foreground">{nomeDaCor(cor)}</span>}>
           <SeletorCor valor={cor} aoMudar={setCor} cores={cores} />
         </Campo>
 
         <div data-slot="previa-categoria" className="rounded-xl border border-dashed bg-muted/40 p-3">
-          <div className="mb-2 text-[11px] font-medium text-muted-foreground sem-selecao">Prévia</div>
+          <div className="mb-2 text-xs font-medium text-muted-foreground sem-selecao">Prévia</div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex min-w-0 flex-1 basis-56 items-center gap-3 rounded-lg border bg-card p-2.5 shadow-xs">
               <EmblemaCategoria nome={nomeLimpo || "?"} cor={cor} />
               <div className="min-w-0">
-                <div className={cn("truncate text-[13px] font-semibold", !nomeLimpo && "text-muted-foreground/70")}>{previa.nome}</div>
+                <div className={cn("truncate text-[13px] font-semibold", !nomeLimpo && "text-muted-foreground")}>{previa.nome}</div>
                 <div className="truncate text-xs text-muted-foreground">{descricao.trim().split("\n")[0] || "Sem descrição"}</div>
               </div>
             </div>
             <div className="flex min-w-0 flex-col gap-1">
-              <span className="text-[11px] text-muted-foreground sem-selecao">Nas tarefas aparece assim</span>
+              <span className="text-xs text-muted-foreground sem-selecao">Nas tarefas aparece assim</span>
               <CatTag cat={previa as Categoria} className="text-foreground" />
             </div>
           </div>

@@ -133,7 +133,7 @@ export function FaixaEspera({ tarefa: t, className }: { tarefa: Tarefa; classNam
             <span className="font-medium">{t.esperando?.quem || "retorno"}</span>
             {t.esperando?.oQue && <span className="text-muted-foreground">: {t.esperando.oQue}</span>}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {dias === 0 ? "Hoje" : dias === 1 ? "Há 1 dia" : `Há ${dias} dias`}
             {t.esperando?.cobradoEm ? " desde a última cobrança" : " sem retorno"} · {historicoEspera(t)}
           </p>

@@ -121,10 +121,10 @@ export function EtapaFocos({
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] leading-snug font-medium">{t.titulo}</span>
                   <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <CatTag cat={categorias.find((c) => c.id === t.categoriaId)} className="text-[11px]" />
+                    <CatTag cat={categorias.find((c) => c.id === t.categoriaId)} className="text-xs" />
                     <StatusBadge status={t.status} />
                     <EtiquetasMotivo motivos={motivos.get(t.id) ?? []} />
-                    {!(motivos.get(t.id) ?? []).some((m) => /prazo|atrasada/.test(m)) && <PrazoTag prazo={t.prazo} className="text-[11px] [&_svg]:size-3" />}
+                    {!(motivos.get(t.id) ?? []).some((m) => /prazo|atrasada/.test(m)) && <PrazoTag prazo={t.prazo} className="text-xs [&_svg]:size-3" />}
                   </span>
                 </span>
                 <PrioBadge p={t.prioridade} semDica />

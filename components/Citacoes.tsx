@@ -44,13 +44,13 @@ export function PainelCitacoes({ tipo, alvo, outrosNomes, titulo = "Citada em", 
                 <Icone className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium">{c.rotulo}</span>
-                  <span className="block truncate text-[11px] text-muted-foreground">{c.detalhe}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{c.detalhe}</span>
                 </span>
               </Link>
             </li>
           );
         })}
-        {citacoes.length > 12 && <li className="px-2 py-1 text-[11px] text-muted-foreground">e mais {citacoes.length - 12}</li>}
+        {citacoes.length > 12 && <li className="px-2 py-1 text-xs text-muted-foreground">e mais {citacoes.length - 12}</li>}
       </ul>
     </Painel>
   );

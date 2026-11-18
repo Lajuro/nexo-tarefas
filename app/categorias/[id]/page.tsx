@@ -118,7 +118,7 @@ export default function PaginaCategoria() {
       descricao={descricao && !descricaoLonga ? <span className="max-xl:hidden">{descricao}</span> : undefined}
       acoes={
         <>
-          <Dica texto={ts.length ? "Monta um prompt com todas as tarefas do assunto para colar no Copilot" : "Crie uma tarefa neste assunto primeiro"}>
+          <Dica texto={ts.length ? "Monta um prompt com todas as tarefas da categoria para colar no Copilot" : "Crie uma tarefa nesta categoria primeiro"}>
             <span className="inline-flex">
               <Button variant="outline" disabled={!ts.length} onClick={() => setPrompt({ aberto: true, texto: promptCategoria(cat, ts) })}><Sparkles /> Panorama do assunto</Button>
             </span>
@@ -169,10 +169,10 @@ export default function PaginaCategoria() {
 
         <div className="mt-8 grid items-start gap-x-6 gap-y-8 @4xl:grid-cols-[minmax(0,1fr)_352px]">
           <div className="min-w-0">
-            <Secao titulo="Páginas do assunto" contagem={paginasDoAssunto.length || undefined} icone={<BookText />}
+            <Secao titulo="Páginas da categoria" contagem={paginasDoAssunto.length || undefined} icone={<BookText />}
               acoes={<Button variant="ghost" size="sm" asChild><Link href={`/paginas?cat=${cat.id}`}><Plus /> Nova página</Link></Button>}>
               {paginasDoAssunto.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground">Nenhuma página ainda. Guarde aqui o que vale para o assunto todo: o processo, o passo a passo, quem procurar.</p>
+                <p className="text-[13px] text-muted-foreground">Nenhuma página ainda. Guarde aqui o que vale para a categoria toda: o processo, o passo a passo, quem procurar.</p>
               ) : (
                 <div data-slot="paginas-do-assunto" className="flex flex-wrap gap-2">
                   {paginasDoAssunto.map((p) => (
@@ -187,7 +187,7 @@ export default function PaginaCategoria() {
             </Secao>
 
             {referencias.length > 0 && (
-              <Secao titulo="Referência do assunto" contagem={referencias.length} icone={<BookMarked />}>
+              <Secao titulo="Referência da categoria" contagem={referencias.length} icone={<BookMarked />}>
                 <div data-slot="referencias" className="flex flex-col gap-3">
                   {referencias.map(({ t, r }) => (
                     <article key={r.id} data-slot="referencia" className="rounded-xl border bg-card px-4 py-3 shadow-xs">
@@ -214,9 +214,9 @@ export default function PaginaCategoria() {
               {abertas.length ? (
                 <div className={GRADE_TAREFAS}>{abertas.map((t) => <CardTarefa key={t.id} t={t} cat={cat} />)}</div>
               ) : (
-                <Vazio compacto titulo="Nenhuma tarefa aberta neste assunto" icone={<ListTodo />}>
-                  <p>{fechadas.length ? "Tudo o que saiu daqui já foi encerrado." : "Quando surgir uma demanda deste assunto, crie a tarefa por aqui."}</p>
-                  <Button variant="outline" size="sm" onClick={novaTarefa}><Plus /> Criar tarefa neste assunto</Button>
+                <Vazio compacto titulo="Nenhuma tarefa aberta nesta categoria" icone={<ListTodo />}>
+                  <p>{fechadas.length ? "Tudo o que saiu daqui já foi encerrado." : "Quando surgir uma demanda desta categoria, crie a tarefa por aqui."}</p>
+                  <Button variant="outline" size="sm" onClick={novaTarefa}><Plus /> Criar tarefa nesta categoria</Button>
                 </Vazio>
               )}
             </Secao>
@@ -242,7 +242,7 @@ export default function PaginaCategoria() {
 
           <aside className="grid min-w-0 items-start gap-4 @2xl:grid-cols-2 @4xl:grid-cols-1">
             <Painel
-              titulo="Links e documentos do assunto"
+              titulo="Links e documentos da categoria"
               icone={<Link2 />}
               contagem={links.length || undefined}
               corpoClassName="p-1.5"
@@ -254,7 +254,7 @@ export default function PaginaCategoria() {
             >
               {links.length === 0 ? (
                 <p className="px-2 py-3 text-[13px] text-muted-foreground">
-                  Nada vinculado ainda. Guarde aqui a documentação, as pastas e os arquivos que valem para o assunto todo.
+                  Nada vinculado ainda. Guarde aqui a documentação, as pastas e os arquivos que valem para a categoria toda.
                 </p>
               ) : (
                 <ul className="flex flex-col">
@@ -274,7 +274,7 @@ export default function PaginaCategoria() {
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13px] leading-snug font-medium [overflow-wrap:anywhere]">{l.titulo}</span>
-                            {detalhe && <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{detalhe}</span>}
+                            {detalhe && <span className="mt-0.5 block truncate text-xs text-muted-foreground">{detalhe}</span>}
                           </span>
                           <ExternalLink className="mt-1 size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/link:opacity-100 group-focus-visible/link:opacity-100" />
                         </a>
@@ -303,7 +303,7 @@ export default function PaginaCategoria() {
               )}
               {quemAjuda.length === 0 ? (
                 <p className="px-2 py-3 text-[13px] text-muted-foreground">
-                  Ligue pessoas e times a este assunto no cadastro de pessoas. Quem participar das reuniões e atividades dele também aparece aqui.
+                  Ligue pessoas e times a esta categoria no cadastro de pessoas. Quem participar das reuniões e atividades dele também aparece aqui.
                 </p>
               ) : (
                 <ul className="flex flex-col">
@@ -318,9 +318,9 @@ export default function PaginaCategoria() {
                             className="rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
                             {entrada.nome}
                           </Link>
-                          {funcao && <span className="block text-[11px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">{funcao}</span>}
+                          {funcao && <span className="block text-xs leading-snug text-muted-foreground [overflow-wrap:anywhere]">{funcao}</span>}
                           {p?.ajudaCom && <span className="mt-1 block text-xs leading-snug text-foreground/85 [overflow-wrap:anywhere] line-clamp-3 texto-pre">{p.ajudaCom}</span>}
-                          <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{motivos.map((m) => m.descricao).join(" · ")}</span>
+                          <span className="mt-1 block text-xs leading-snug text-muted-foreground">{motivos.map((m) => m.descricao).join(" · ")}</span>
                         </div>
                       </li>
                     );
@@ -335,7 +335,7 @@ export default function PaginaCategoria() {
       <CategoriaForm aberto={editar} fechar={() => setEditar(false)} cat={cat} />
       <LinkForm aberto={linkForm} fechar={() => setLinkForm(false)} categoriaId={cat.id} />
       <PromptModal aberto={prompt.aberto} fechar={() => setPrompt((p) => ({ ...p, aberto: false }))} titulo={`Panorama: ${cat.nome}`}
-        explicacao="Junta todas as tarefas que nasceram deste assunto para a IA enxergar o todo."
+        explicacao="Junta todas as tarefas que nasceram desta categoria para a IA enxergar o todo."
         prompt={prompt.texto} />
     </Pagina>
   );

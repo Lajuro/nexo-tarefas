@@ -55,7 +55,7 @@ export function ListaTimes({ diretorio, totalPessoas }: { diretorio: EntradaPess
   return (
     <Pagina
       titulo="Times"
-      descricao="Grupos de pessoas, quem responde por cada um e de quais assuntos cuidam."
+      descricao="Grupos de pessoas, quem responde por cada um e de quais categorias cuidam."
       acoes={
         <>
           <Button variant="outline" onClick={() => setImportar(true)}><Import /> Importar do Outlook</Button>
@@ -87,7 +87,7 @@ export function ListaTimes({ diretorio, totalPessoas }: { diretorio: EntradaPess
         <Vazio titulo="Nenhum time ainda" icone={<UsersRound />}>
           <p>
             Monte os times com quem você conversa (um squad, a arquitetura, o pessoal de infraestrutura), diga quem responde por cada um
-            e ligue aos assuntos de que cuidam.
+            e ligue às categorias de que cuidam.
           </p>
           <Button onClick={() => setForm({})}><Plus /> Novo time</Button>
         </Vazio>
@@ -159,7 +159,7 @@ function CartaoTime({
               {time.arquivado && <Badge variant="outline">Arquivado</Badge>}
             </div>
             <p className="mt-0.5 line-clamp-2 min-h-[2lh] text-xs leading-snug text-muted-foreground">
-              {time.descricao.trim() || <span className="text-muted-foreground/60">Sem descrição</span>}
+              {time.descricao.trim() || <span className="text-muted-foreground/80">Sem descrição</span>}
             </p>
           </div>
           <BotaoMenu acoes={acoes} rotulo={`Ações do time ${time.nome}`} className="-mt-1 -mr-1.5 opacity-60 group-hover/time:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" />
@@ -167,7 +167,7 @@ function CartaoTime({
 
         <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-3.5">
           <div>
-            <div className="mb-1.5 text-[11px] font-medium text-muted-foreground sem-selecao">
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground sem-selecao">
               {r.responsaveis.length > 1 ? "Responsáveis" : "Responsável"}
             </div>
             {r.responsaveis.length ? (
@@ -186,7 +186,7 @@ function CartaoTime({
                 ))}
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground/70">Ninguém definido</span>
+              <span className="text-xs text-muted-foreground">Ninguém definido</span>
             )}
           </div>
 
@@ -199,12 +199,12 @@ function CartaoTime({
 
           {cats.length > 0 && (
             <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1">
-              {cats.map((c) => <CatTag key={c.id} cat={c} className="max-w-full text-[11px] font-normal" />)}
+              {cats.map((c) => <CatTag key={c.id} cat={c} className="max-w-full text-xs font-normal" />)}
             </div>
           )}
         </div>
 
-        <footer className="mt-auto flex items-center gap-4 border-t bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground tabular-nums">
+        <footer className="mt-auto flex items-center gap-4 border-t bg-muted/30 px-4 py-2 text-xs text-muted-foreground tabular-nums">
           <span data-slot="passos-time" className={`inline-flex items-center gap-1 ${r.passos.length ? "font-medium text-alerta" : ""}`}>
             <Hourglass className="size-3" />
             {r.passos.length ? `${plural(r.passos.length, "passo", "passos")} em aberto` : "Nada pendente"}

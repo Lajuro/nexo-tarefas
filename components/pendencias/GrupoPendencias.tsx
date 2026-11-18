@@ -40,7 +40,7 @@ function Cabecalho({ grupo, cat }: { grupo: Grupo; cat?: Categoria }) {
       <MenuContextoTarefa tarefa={t}>
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b py-2 pr-2 pl-3.5">
           <div className="min-w-[min(100%,16rem)] flex-1">
-            <CatTag cat={cat} className="text-[11px]" />
+            <CatTag cat={cat} className="text-xs" />
             <h2 className="flex items-center gap-2">
               <Link
                 href={`/tarefas/${t.id}`}

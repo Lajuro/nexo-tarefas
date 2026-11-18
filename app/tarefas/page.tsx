@@ -328,7 +328,7 @@ function Tarefas() {
       </div>
       {temChips && (
         <div data-slot="filtros-ativos" className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="mr-0.5 text-[11px] text-muted-foreground sem-selecao">Mostrando só:</span>
+          <span className="mr-0.5 text-xs text-muted-foreground sem-selecao">Mostrando só:</span>
           {chips}
         </div>
       )}

@@ -48,11 +48,11 @@ export function PainelProgresso({ tarefas, emAberto }: { tarefas: Tarefa[]; emAb
       <div data-slot="progresso-passos" data-hoje={feitosHoje} data-semana={feitosSemana}>
         <div className="grid grid-cols-2 divide-x">
           <div className="pr-3">
-            <NumeroAnimado valor={feitosHoje} className={cn("block text-2xl leading-none font-semibold tracking-tight", feitosHoje ? "text-sucesso" : "text-muted-foreground/60")} />
+            <NumeroAnimado valor={feitosHoje} className={cn("block text-2xl leading-none font-semibold tracking-tight", feitosHoje ? "text-sucesso" : "text-muted-foreground/80")} />
             <span className="mt-1.5 block text-xs text-muted-foreground">{feitosHoje === 1 ? "concluído hoje" : "concluídos hoje"}</span>
           </div>
           <div className="pl-3.5">
-            <NumeroAnimado valor={feitosSemana} className={cn("block text-2xl leading-none font-semibold tracking-tight", !feitosSemana && "text-muted-foreground/60")} />
+            <NumeroAnimado valor={feitosSemana} className={cn("block text-2xl leading-none font-semibold tracking-tight", !feitosSemana && "text-muted-foreground/80")} />
             <span className="mt-1.5 block text-xs text-muted-foreground">na semana</span>
           </div>
         </div>
@@ -79,7 +79,7 @@ export function PainelProgresso({ tarefas, emAberto }: { tarefas: Tarefa[]; emAb
                       <span className="h-0.5 w-3.5 rounded-full bg-muted-foreground/25" />
                     )}
                   </div>
-                  <span className={cn("pb-0.5 text-[10px] leading-none sem-selecao", eHoje ? "font-semibold text-foreground" : "text-muted-foreground")}>
+                  <span className={cn("pb-0.5 text-[11px] leading-none sem-selecao", eHoje ? "font-semibold text-foreground" : "text-muted-foreground")}>
                     {INICIAIS_DOS_DIAS[deISO(d.dia).getDay()]}
                   </span>
                 </div>
@@ -115,7 +115,7 @@ export function PainelPrazos({ tarefas, categorias }: { tarefas: Tarefa[]; categ
                   <PontoCor cor={t.categoriaId ? categorias.get(t.categoriaId)?.cor : null} className="mt-[6px]" />
                   <span className="min-w-0 flex-1">
                     <span className="line-clamp-2 text-[13px] leading-snug font-medium">{t.titulo}</span>
-                    <PrazoTag prazo={t.prazo} className="mt-0.5 text-[11px] [&_svg]:size-3" />
+                    <PrazoTag prazo={t.prazo} className="mt-0.5 text-xs [&_svg]:size-3" />
                   </span>
                 </Link>
               </MenuContextoTarefa>

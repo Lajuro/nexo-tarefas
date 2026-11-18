@@ -97,7 +97,7 @@ function Links({ links, aoAdicionar }: { links: LinkDoc[]; aoAdicionar: () => vo
                     className="line-clamp-2 rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none [overflow-wrap:anywhere] hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
                     {l.titulo}
                   </a>
-                  <span className="block truncate text-[11px] text-muted-foreground">
+                  <span className="block truncate text-xs text-muted-foreground">
                     {l.descricao || (l.tipo === "arquivo" ? formatarTamanho(l.tamanho) || l.nomeArquivo : l.url)}
                   </span>
                 </div>
@@ -159,7 +159,7 @@ function QuemAjuda({ tarefa }: { tarefa: Tarefa }) {
   if (!categoriaId || !candidatas.length) return null;
   return (
     <Bloco slot="quem-ajuda-tarefa">
-      <Painel titulo="Quem pode ajudar neste assunto" icone={<Users />} contagem={candidatas.length} corpoClassName="py-2">
+      <Painel titulo="Quem pode ajudar nesta categoria" icone={<Users />} contagem={candidatas.length} corpoClassName="py-2">
         <ul className="flex flex-col">
           {candidatas.slice(0, 4).map(({ entrada }) => {
             const ajuda = entrada.pessoa?.ajudaCom.replace(/\s+/g, " ").trim();
@@ -171,7 +171,7 @@ function QuemAjuda({ tarefa }: { tarefa: Tarefa }) {
                     className="rounded-sm text-[13px] leading-snug font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">
                     {entrada.nome}
                   </Link>
-                  {ajuda && <span className="block truncate text-[11px] leading-snug text-muted-foreground">{ajuda}</span>}
+                  {ajuda && <span className="block truncate text-xs leading-snug text-muted-foreground">{ajuda}</span>}
                 </div>
               </li>
             );
@@ -208,7 +208,7 @@ function Panorama({ tarefa, aoGerar }: { tarefa: Tarefa; aoGerar: () => void }) 
             <SeloCopilot className="size-5 [&_svg]:size-3" />
             <div className="min-w-0 flex-1">
               <h3 className="text-[13px] leading-tight font-semibold tracking-tight">Último panorama da IA</h3>
-              <p className="text-[11px] leading-snug text-muted-foreground tabular-nums">{formatarData(dia)} · {dataRelativa(dia)}</p>
+              <p className="text-xs leading-snug text-muted-foreground tabular-nums">{formatarData(dia)} · {dataRelativa(dia)}</p>
             </div>
             <Dica texto="Copiar o panorama">
               <Button variant="ghost" size="icon-sm" aria-label="Copiar o panorama" onClick={copiar}>
@@ -253,7 +253,7 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
   const emFoco = minutosEmFoco(tarefa);
   const celula = "flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 first:pl-3.5 last:pr-3.5";
   const valor = "truncate text-base leading-tight font-semibold tracking-tight tabular-nums";
-  const rotulo = "text-[11px] leading-snug text-muted-foreground";
+  const rotulo = "text-xs leading-snug text-muted-foreground";
   return (
     <section data-slot="resumo-tarefa" className="flex divide-x rounded-xl border bg-card shadow-xs">
       <div className={celula}>

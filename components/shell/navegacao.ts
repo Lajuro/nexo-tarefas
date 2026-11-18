@@ -69,7 +69,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "C"], descricao: "Ir para Categorias" },
   { teclas: ["G", "E"], descricao: "Ir para Pessoas" },
   { teclas: ["G", "L"], descricao: "Ir para Links e docs" },
-  { teclas: ["G", "F"], descricao: "Ir para o Radar das frentes (saúde de cada assunto e prazos)" },
+  { teclas: ["G", "F"], descricao: "Ir para o Radar (saúde de cada categoria e prazos)" },
   { teclas: ["G", "D"], descricao: "Ir para o Diário (o que aconteceu, dia a dia)" },
   { teclas: ["G", "S"], descricao: "Ir para a Revisão semanal" },
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },

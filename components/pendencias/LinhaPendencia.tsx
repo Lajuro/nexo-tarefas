@@ -32,7 +32,7 @@ export function LinhaPendencia({
   const responsavel = (passo.responsavel ?? "").trim();
   const d = passo.prazo ? diasAte(passo.prazo) : null;
   const tomPrazo =
-    d === null ? "text-muted-foreground/70"
+    d === null ? "text-muted-foreground"
     : d < 0 ? "text-destructive hover:text-destructive"
     : d === 0 ? "text-alerta hover:text-alerta"
     : "text-foreground/80";
@@ -96,7 +96,7 @@ export function LinhaPendencia({
           className={cn(
             "shrink-0 tabular-nums transition-[opacity,background-color,color] duration-150",
             tomPrazo,
-            !passo.prazo && "opacity-45 group-hover/linha:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100",
+            !passo.prazo && "text-muted-foreground",
           )}
         />
       </div>

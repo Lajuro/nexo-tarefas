@@ -29,12 +29,12 @@ const VISUAL: Record<Saude, { icone: LucideIcon; selo: string; texto: string }> 
 };
 
 const ICONE_PRAZO: Record<ItemPrazo["tipo"], LucideIcon> = { tarefa: Flag, passo: CircleCheckBig, lembrar: AlarmClock };
-const ROTULO_PRAZO: Record<ItemPrazo["tipo"], string> = { tarefa: "Prazo da tarefa", passo: "Passo", lembrar: "Follow-up" };
+const ROTULO_PRAZO: Record<ItemPrazo["tipo"], string> = { tarefa: "Prazo da tarefa", passo: "Passo", lembrar: "Lembrete de voltar" };
 
 function SeloSaude({ saude }: { saude: Saude }) {
   const v = VISUAL[saude];
   return (
-    <span data-slot="saude" data-saude={saude} className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-2 text-[11px] font-medium sem-selecao", v.selo)}>
+    <span data-slot="saude" data-saude={saude} className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-full border px-2 text-xs font-medium sem-selecao", v.selo)}>
       <v.icone className="size-3" /> {nomeSaude(saude)}
     </span>
   );
@@ -87,11 +87,11 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
                 <span className="min-w-0">{m}</span>
               </li>
             ))}
-            {f.motivos.length > 3 && <li className="pl-[18px] text-[11px] text-muted-foreground">e mais {f.motivos.length - 3}</li>}
+            {f.motivos.length > 3 && <li className="pl-[18px] text-xs text-muted-foreground">e mais {f.motivos.length - 3}</li>}
           </ul>
         ) : (
           <p className="text-xs leading-snug text-muted-foreground">
-            {f.saude === "sem_abertas" ? "Nada em aberto neste assunto." : "Sem atraso, bloqueio nem pendência vencida."}
+            {f.saude === "sem_abertas" ? "Nada em aberto nesta categoria." : "Sem atraso, bloqueio nem pendência vencida."}
           </p>
         )}
 
@@ -104,7 +104,7 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
 
         <div className="mt-auto flex items-end gap-3 pt-1">
           <div className="w-28 shrink-0"><Movimento semanas={f.semanas} /></div>
-          <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
+          <div className="min-w-0 flex-1 text-xs leading-snug text-muted-foreground">
             {f.proximoPrazo && (
               <div className="truncate"><Flag className="mr-1 inline size-3 align-[-2px]" />{formatarData(f.proximoPrazo.data, false)} · {f.proximoPrazo.tarefa.titulo}</div>
             )}
@@ -113,7 +113,7 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
             )}
             <div className="truncate">{f.ultima ? `Último movimento ${dataRelativa(f.ultima)}` : "Sem movimento registrado"}</div>
           </div>
-          <Dica texto="Copiar o status desta frente">
+          <Dica texto="Copiar o status desta categoria">
             <Button variant="ghost" size="icon-sm" className="-mr-1.5 -mb-1 shrink-0" aria-label={`Copiar o status de ${f.nome}`} onClick={aoCopiar}><Copy /></Button>
           </Dica>
         </div>
@@ -131,7 +131,7 @@ function Chip({ item }: { item: ItemPrazo }) {
         data-slot="prazo"
         data-tipo={item.tipo}
         className={cn(
-          "flex h-6 min-w-0 items-center gap-1 rounded-md border px-1.5 text-[11px] leading-none transition-colors outline-none hover:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/40",
+          "flex h-6 min-w-0 items-center gap-1 rounded-md border px-1.5 text-xs leading-none transition-colors outline-none hover:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/40",
           item.atrasado ? "border-destructive/30 bg-destructive/10 text-destructive" : item.tipo === "tarefa" ? "border-primary/25 bg-primary/10 text-foreground" : "bg-background text-muted-foreground",
         )}
       >
@@ -149,7 +149,7 @@ export default function PaginaRadar() {
   const [filtro, setFiltro] = useState<Saude | null>(null);
   const radar = useMemo(() => (dados ? montarRadar(dados, hoje) : null), [dados, hoje]);
 
-  if (!radar) return <Pagina titulo="Radar das frentes"><span /></Pagina>;
+  if (!radar) return <Pagina titulo="Radar"><span /></Pagina>;
 
   const visiveis = filtro ? radar.frentes.filter((f) => f.saude === filtro) : radar.frentes;
   const copiar = async (ids: (string | null)[] | null, oQue: string) => {
@@ -165,10 +165,10 @@ export default function PaginaRadar() {
 
   return (
     <Pagina
-      titulo="Radar das frentes"
-      descricao="Como está cada assunto, sem abrir tarefa por tarefa."
+      titulo="Radar"
+      descricao="Como está cada categoria, sem abrir tarefa por tarefa."
       acoes={
-        <Dica texto="Texto simples com o status de cada frente, pronto para mandar. Sem IA: só o que está registrado.">
+        <Dica texto="Texto simples com o status de cada categoria, pronto para mandar. Sem IA: só o que está registrado.">
           <Button data-slot="copiar-status" disabled={!radar.frentes.length}
             onClick={() => copiar(filtro ? visiveis.map((f) => f.id) : null, filtro ? `Status das frentes "${nomeSaude(filtro).toLowerCase()}"` : "Status das frentes")}>
             <Copy /> Copiar status
@@ -177,8 +177,8 @@ export default function PaginaRadar() {
       }
     >
       {radar.frentes.length === 0 ? (
-        <Vazio titulo="Nenhuma frente ainda" icone={<IconeRadar />}>
-          <p>O radar mostra uma frente por categoria. Crie categorias e ponha as tarefas nelas para ver a saúde de cada assunto.</p>
+        <Vazio titulo="Nenhuma categoria ainda" icone={<IconeRadar />}>
+          <p>O radar mostra a saúde de cada categoria. Crie categorias e ponha as tarefas nelas.</p>
           <Button asChild><Link href="/categorias">Ir para Categorias</Link></Button>
         </Vazio>
       ) : (
@@ -191,10 +191,10 @@ export default function PaginaRadar() {
             ))}
           </div>
 
-          <Secao titulo={filtro ? `Frentes: ${nomeSaude(filtro).toLowerCase()}` : "Frentes"} contagem={visiveis.length}
+          <Secao titulo={filtro ? `Categorias: ${nomeSaude(filtro).toLowerCase()}` : "Categorias"} contagem={visiveis.length}
             acoes={filtro && <Button variant="ghost" size="sm" onClick={() => setFiltro(null)}>Mostrar todas</Button>}>
             {visiveis.length === 0 ? (
-              <Vazio compacto titulo="Nenhuma frente assim agora" />
+              <Vazio compacto titulo="Nenhuma categoria assim agora" />
             ) : (
               <motion.div key={filtro ?? "todas"} variants={lista} initial="hidden" animate="show" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {visiveis.map((f) => (
@@ -207,12 +207,12 @@ export default function PaginaRadar() {
           <Secao titulo="Prazos das próximas semanas" contagem={radar.prazos.length}>
             {linhas.length === 0 ? (
               <Vazio compacto titulo="Nenhum prazo nas próximas semanas">
-                <p>Prazos de tarefa, de passo e follow-ups aparecem aqui, por frente e por semana.</p>
+                <p>Prazos de tarefa, de passo e lembretes de voltar aparecem aqui, por categoria e por semana.</p>
               </Vazio>
             ) : (
               <div data-slot="linha-de-prazos" className="overflow-x-auto rounded-xl border bg-card shadow-xs">
                 <div className="grid min-w-[860px] text-xs" style={{ gridTemplateColumns: `minmax(140px, 1.1fr) repeat(${colunasVisiveis.length}, minmax(0, 1fr))` }}>
-                  <div className="border-b bg-muted/40 px-3 py-2 font-medium text-muted-foreground sem-selecao">Frente</div>
+                  <div className="border-b bg-muted/40 px-3 py-2 font-medium text-muted-foreground sem-selecao">Categoria</div>
                   {colunasVisiveis.map((c) => (
                     <div key={c} className={cn("border-b border-l bg-muted/40 px-2 py-2 font-medium sem-selecao", c === -1 ? "text-destructive" : c === 0 ? "text-foreground" : "text-muted-foreground")}>
                       {c === -1 ? "Atrasado" : c === 0 ? "Esta semana" : <span className="tabular-nums">{formatarData(radar.semanas[c].inicio, false)} a {formatarData(radar.semanas[c].fim, false)}</span>}
@@ -231,7 +231,7 @@ export default function PaginaRadar() {
                             {daqui.slice(0, 4).map((p, j) => <Chip key={`${p.tarefaId}:${p.tipo}:${p.data}:${j}`} item={p} />)}
                             {daqui.length > 4 && (
                               <Dica texto={daqui.slice(4).map((p) => `${formatarData(p.data, false)} ${p.titulo}`).join(" · ")}>
-                                <span className="px-1 text-[11px] text-muted-foreground sem-selecao">e mais {daqui.length - 4}</span>
+                                <span className="px-1 text-xs text-muted-foreground sem-selecao">e mais {daqui.length - 4}</span>
                               </Dica>
                             )}
                           </div>

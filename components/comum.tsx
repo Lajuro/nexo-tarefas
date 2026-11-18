@@ -131,7 +131,7 @@ export function Painel({
 
 export function Contador({ n, className }: { n: number; className?: string }) {
   return (
-    <span className={cn("inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground tabular-nums", className)}>
+    <span className={cn("inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-muted px-1.5 text-[11px] font-semibold text-muted-foreground tabular-nums", className)}>
       {n}
     </span>
   );
@@ -175,7 +175,7 @@ export function Estatistica({
         <span className="truncate text-xs text-muted-foreground">{rotulo}</span>
         {icone && <span className={cn("opacity-70 [&_svg]:size-3.5", TONS[valor ? tom : "neutro"])}>{icone}</span>}
       </div>
-      <NumeroAnimado valor={valor} className={cn("mt-1 block text-2xl leading-none font-semibold tracking-tight", valor ? TONS[tom] : "text-muted-foreground/60")} />
+      <NumeroAnimado valor={valor} className={cn("mt-1 block text-2xl leading-none font-semibold tracking-tight", valor ? TONS[tom] : "text-muted-foreground/80")} />
     </>
   );
   const classe = cn(
@@ -239,7 +239,7 @@ export function StatusBadge({ status, className }: { status: Status; className?:
   const v = STATUS_VISUAL[status];
   return (
     <span data-slot="status" data-status={status}
-      className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium whitespace-nowrap sem-selecao", v.fundo, v.texto, className)}>
+      className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-medium whitespace-nowrap sem-selecao", v.fundo, v.texto, className)}>
       <v.icone className="size-3" />
       {nomeStatus(status)}
     </span>
@@ -342,7 +342,7 @@ export function SeletorPrioridade({ valor, aoMudar, className }: { valor: number
             onClick={() => aoMudar(n)}
             className={cn(
               "relative h-full min-w-0 flex-1 rounded-[5px] text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-              ativo ? "font-semibold" : n < valor ? "text-foreground/70 hover:bg-accent" : "text-muted-foreground/60 hover:bg-accent hover:text-foreground",
+              ativo ? "font-semibold" : n < valor ? "text-foreground/70 hover:bg-accent" : "text-muted-foreground/80 hover:bg-accent hover:text-foreground",
               ativo && (nivel === "alta" ? "text-white" : nivel === "media" ? "text-black/85" : "text-background"),
             )}
           >
@@ -415,7 +415,7 @@ export function IconeTipo({ tipo, comFundo, className }: { tipo: TipoRegistro; c
 export function TipoBadge({ tipo, className }: { tipo: TipoRegistro; className?: string }) {
   const v = TIPO_VISUAL[tipo] ?? TIPO_VISUAL.nota;
   return (
-    <span data-slot="tipo" className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium whitespace-nowrap", v.fundo, v.texto, className)}>
+    <span data-slot="tipo" className={cn("inline-flex h-5 shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-medium whitespace-nowrap", v.fundo, v.texto, className)}>
       <v.icone className="size-3" />
       {tipoInfo(tipo).nome}
     </span>
@@ -432,7 +432,7 @@ function matiz(nome: string) {
 export function AvatarPessoa({ nome, className, tamanho = "md" }: { nome: string; className?: string; tamanho?: "sm" | "md" | "lg" }) {
   const partes = nome.trim().split(/\s+/);
   const iniciais = ((partes[0]?.[0] ?? "") + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase() || "?";
-  const dim = { sm: "size-5 text-[9px]", md: "size-6 text-[10px]", lg: "size-9 text-xs" }[tamanho];
+  const dim = { sm: "size-5 text-[11px]", md: "size-6 text-[11px]", lg: "size-9 text-xs" }[tamanho];
   return (
     <span
       aria-hidden
@@ -467,7 +467,7 @@ export function ChipPessoa({ nome, href, extra, className }: { nome: string; hre
 /** Etiqueta simples só de leitura (tags). */
 export function Etiqueta({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span data-slot="etiqueta" className={cn("inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-[11px] font-medium text-muted-foreground", className)}>
+    <span data-slot="etiqueta" className={cn("inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-xs font-medium text-muted-foreground", className)}>
       {children}
     </span>
   );
@@ -490,7 +490,7 @@ export function ItemPasso({
         <div className={cn("text-[13px] leading-snug transition-colors duration-300 texto-pre", feito && "text-muted-foreground line-through decoration-muted-foreground/50")}>
           {texto}
         </div>
-        {meta && <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">{meta}</div>}
+        {meta && <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">{meta}</div>}
       </div>
     </div>
   );
@@ -515,7 +515,7 @@ export function Campo({
         {lado}
       </div>
       {children}
-      {dica && <span className="text-[11px] leading-snug text-muted-foreground">{dica}</span>}
+      {dica && <span className="text-xs leading-snug text-muted-foreground">{dica}</span>}
     </div>
   );
 }

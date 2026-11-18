@@ -105,7 +105,7 @@ function Linha({ no, ativaId, recolhidas, arrastando, proibidas, acoes, aoAbrir,
 function FimDaRaiz({ ligado }: { ligado: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: "fim-da-raiz", disabled: !ligado });
   return (
-    <div ref={setNodeRef} className={cn("mt-1 min-h-8 flex-1 rounded-md border border-dashed border-transparent px-2 py-1.5 text-[11px] text-muted-foreground transition-colors", ligado && "border-border", isOver && "border-primary/60 bg-primary/8 text-foreground")}>
+    <div ref={setNodeRef} className={cn("mt-1 min-h-8 flex-1 rounded-md border border-dashed border-transparent px-2 py-1.5 text-xs text-muted-foreground transition-colors", ligado && "border-border", isOver && "border-primary/60 bg-primary/8 text-foreground")}>
       {ligado && "Soltar aqui leva para a raiz"}
     </div>
   );
@@ -228,7 +228,7 @@ export function Explorador({
                   <IconePagina pagina={{ icone: m.icone }} className="mt-0.5 size-4" />
                   <span className="min-w-0">
                     <span className="block text-[13px]">{m.nome}</span>
-                    <span className="block text-[11px] leading-snug text-muted-foreground">{m.descricao}</span>
+                    <span className="block text-xs leading-snug text-muted-foreground">{m.descricao}</span>
                   </span>
                 </DropdownMenuItem>
               ))}
@@ -240,7 +240,7 @@ export function Explorador({
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-3">
         {busca.trim() ? (
           <div data-slot="resultados-paginas">
-            <p className="px-2 py-1.5 text-[11px] text-muted-foreground sem-selecao">
+            <p className="px-2 py-1.5 text-xs text-muted-foreground sem-selecao">
               {achadas.length === 0 ? "Nenhuma página com esse texto." : `${achadas.length} ${achadas.length === 1 ? "página" : "páginas"}`}
             </p>
             {achadas.slice(0, 40).map((a) => (
@@ -254,7 +254,7 @@ export function Explorador({
                 {a.trechos.map((t, i) => (
                   <button key={i} type="button" data-slot="trecho-achado" onClick={() => aoAbrir(a.pagina.id, t.indiceDoTitulo)}
                     className="ml-5 block w-[calc(100%-1.25rem)] rounded-md border-l px-2 py-1 text-left outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/40">
-                    {t.secao && <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground"><Hash className="size-3" /><span className="truncate"><Destaque texto={t.secao} termo={busca} /></span></span>}
+                    {t.secao && <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground"><Hash className="size-3" /><span className="truncate"><Destaque texto={t.secao} termo={busca} /></span></span>}
                     <span className="line-clamp-2 text-xs leading-snug text-muted-foreground [&_mark]:text-foreground"><Destaque texto={t.trecho} termo={busca} /></span>
                   </button>
                 ))}
@@ -276,7 +276,7 @@ export function Explorador({
 
               <div className="flex h-6 items-center px-2 sem-selecao">
                 <h3 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Páginas</h3>
-                <span className="ml-1.5 text-[11px] text-muted-foreground tabular-nums">{ativas.length}</span>
+                <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">{ativas.length}</span>
                 {comFilhas.length > 0 && (
                   <Dica texto={comFilhas.every((id) => fechadas.has(id)) ? "Abrir tudo" : "Recolher tudo"}>
                     <Button variant="ghost" size="icon-sm" className="ml-auto size-5" aria-label="Recolher ou abrir tudo"
