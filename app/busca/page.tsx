@@ -24,6 +24,7 @@ import { Segmentado } from "@/components/ui/controles";
 import { Kbd } from "@/components/ui/diversos";
 import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { paraTextoPlano } from "@/lib/texto-rico";
+import { textoDoChecklist } from "@/lib/checklist";
 import { LinkDoc, Pessoa, Registro, STATUS_ABERTOS, Tarefa, Time, dataCurta, semAcento, type Pagina as PaginaDeConhecimento } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -173,7 +174,7 @@ function Conteudo() {
     const palavras = palavrasDe(n);
     const tem = (s: string) => { const x = semAcento(s); return palavras.every((w) => x.includes(w)); };
     const quantas = (s: string) => { const x = semAcento(s); return palavras.filter((w) => x.includes(w)).length; };
-    const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""}`));
+    const tarefas = dados!.tarefas.filter((t) => tem(`${t.titulo} ${t.descricao} ${t.tags.join(" ")} ${t.panoramaIA?.texto ?? ""} ${textoDoChecklist(t)}`));
     const registros = dados!.tarefas.flatMap((t) =>
       t.registros
         .map((reg) => {
@@ -348,9 +349,10 @@ function Conteudo() {
             <Secao titulo="Tarefas" icone={<ListTodo />} contagem={r.tarefas.length}>
               <ListaResultados>
                 {r.tarefas.slice(0, limite).map((t) => {
-                  const noTexto = [t.descricao, t.panoramaIA?.texto ?? ""].find((c) => c && palavrasDe(n).some((w) => semAcento(c).includes(w)));
+                  const doChecklist = textoDoChecklist(t);
+                  const noTexto = [t.descricao, t.panoramaIA?.texto ?? "", doChecklist].find((c) => c && palavrasDe(n).some((w) => semAcento(c).includes(w)));
                   const fonte = noTexto ?? t.descricao;
-                  const doPanorama = Boolean(noTexto) && noTexto !== t.descricao;
+                  const rotuloDaFonte = !noTexto || noTexto === t.descricao ? "" : noTexto === doChecklist ? "Checklist" : "Panorama";
                   return (
                     <Resultado key={t.id} tipo="tarefa">
                       <MenuContextoTarefa tarefa={t}>
@@ -364,7 +366,7 @@ function Conteudo() {
                             <h3 className="mt-1.5 text-sm leading-snug font-medium"><Destaque texto={t.titulo} termo={termo} /></h3>
                             {fonte && (
                               <p className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground [&_mark]:text-foreground">
-                                {doPanorama && <RotuloCampo>Panorama</RotuloCampo>}
+                                {rotuloDaFonte && <RotuloCampo>{rotuloDaFonte}</RotuloCampo>}
                                 <Destaque texto={trecho(fonte, termo)} termo={termo} />
                               </p>
                             )}

@@ -15,6 +15,11 @@ checa() { # nome esperado obtido
   if [[ "$3" == *"$2"* ]]; then echo "ok   $1"; else echo "FALHA $1 -> esperado '$2', veio '$3'"; FALHAS=$((FALHAS+1)); fi
 }
 J='Content-Type: application/json'
+# No Git Bash (Windows) o curl e o servidor são programas do Windows: um caminho que vai DENTRO de um argumento
+# (-F "arquivo=@...") ou de um JSON precisa estar no formato deles (C:/...), senão o arquivo não é achado.
+# Fora do Windows fica como está. (Argumento que é só o caminho, como --data-binary @arquivo, o Git Bash converte sozinho.)
+nativo() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+TMPN="$(nativo "$TMP")"
 
 checa "estado configurado via env" '"origem":"env"' "$(curl -s $B/api/estado)"
 checa "cria tarefa" '"rev":1' "$(curl -s -X PUT $B/api/tarefas/t1 -H "$J" -d '{"tarefa":{"id":"t1","titulo":"A","campoFuturo":"x"},"revEsperada":null}')"
@@ -71,7 +76,8 @@ checa "modelo removido vai para a lixeira" 'Outro' "$(cat "$TMP/dados/_lixeira/"
 checa "exportar inclui modelos" '"modelos": {' "$(curl -s $B/api/exportar)"
 # ---------- páginas de conhecimento ----------
 checa "dados trazem páginas vazias" '"paginas":{"rev":0,"items":[]}' "$(curl -s $B/api/dados)"
-R=$(curl -s -X PUT $B/api/paginas -H "$J" -d '{"items":[{"id":"pg1","titulo":"Processo de exceção","texto":"# Passo a passo\n\nver ![print](arquivos/2026/a-print.png) e [Tarefa](nexo:tarefa/t9)","campoFuturo":"x"},{"id":"pg2","titulo":"Outra","texto":"apagar"}],"revEsperada":0}')
+# o corpo vai pela entrada padrão: como argumento, o curl do Windows trocaria os acentos pela página de código da máquina
+R=$(printf '%s' '{"items":[{"id":"pg1","titulo":"Processo de exceção","texto":"# Passo a passo\n\nver ![print](arquivos/2026/a-print.png) e [Tarefa](nexo:tarefa/t9)","campoFuturo":"x"},{"id":"pg2","titulo":"Outra","texto":"apagar"}],"revEsperada":0}' | curl -s -X PUT $B/api/paginas -H "$J" --data-binary @-)
 checa "cria páginas" '"rev":1' "$R"
 checa "página preserva campo desconhecido" '"campoFuturo":"x"' "$R"
 checa "página: espelho em markdown" '# Processo de exceção' "$(cat "$TMP/dados/markdown/paginas/"*--pg1.md 2>/dev/null)"
@@ -164,7 +170,7 @@ checa "vídeo: não toca arquivo que não é vídeo" 'não é um vídeo' "$(curl
 # vídeo num caminho do computador: o caminho vem da página gravada, nunca do pedido
 cp "$TMP/video.bin" "$TMP/local.webm"
 RP=$(curl -s $B/api/dados | sed 's/.*"paginas":{"rev":\([0-9-]*\).*/\1/')
-curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgvid1\",\"titulo\":\"Video local\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMP/local.webm\",\"capitulos\":[{\"t\":30,\"titulo\":\"Meio\"}]}},{\"id\":\"pgvid2\",\"titulo\":\"Aponta para segredo\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMP/dados/nexo.json\"}},{\"id\":\"pgvid3\",\"titulo\":\"Sem video\"}],\"revEsperada\":$RP}" >/dev/null
+curl -s -X PUT $B/api/paginas -H "$J" -d "{\"items\":[{\"id\":\"pgvid1\",\"titulo\":\"Video local\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMPN/local.webm\",\"capitulos\":[{\"t\":30,\"titulo\":\"Meio\"}]}},{\"id\":\"pgvid2\",\"titulo\":\"Aponta para segredo\",\"tipo\":\"video\",\"video\":{\"caminho\":\"$TMPN/dados/nexo.json\"}},{\"id\":\"pgvid3\",\"titulo\":\"Sem video\"}],\"revEsperada\":$RP}" >/dev/null
 checa "vídeo local: toca pelo id da página" 'video/webm' "$(curl -s -D - -o /dev/null "$B/api/midia?pagina=pgvid1")"
 checa "vídeo local: recusa arquivo que não é vídeo, mesmo gravado na página" 'não é um vídeo' "$(curl -s "$B/api/midia?pagina=pgvid2")"
 checa "vídeo local: página sem vídeo" 'não aponta' "$(curl -s "$B/api/midia?pagina=pgvid3")"
@@ -320,7 +326,7 @@ checa "link: status desconhecido vira sem status" '"estado":null' "$R"
 # (Até a 3.14 os cabeçalhos das telas passavam por cima dos da rota e o sandbox se perdia em produção.)
 sobe() { # nome conteudo -> caminho codificado do anexo
   printf '%s' "$2" > "$TMP/$1"
-  curl -s -X POST $B/api/arquivos -F "arquivo=@$TMP/$1;filename=$1" | sed 's/.*"arquivo":"\([^"]*\)".*/\1/' | sed 's|/|%2F|g'
+  curl -s -X POST $B/api/arquivos -F "arquivo=@$TMPN/$1;filename=$1" | sed 's/.*"arquivo":"\([^"]*\)".*/\1/' | sed 's|/|%2F|g'
 }
 cab() { curl -s -D - -o /dev/null "$B/api/arquivos?p=$1" | tr -d '\r' | tr 'A-Z' 'a-z'; }
 SVG=$(sobe desenho.svg '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
@@ -346,5 +352,72 @@ checa "anexo: baixar o PDF continua em sandbox" 'content-security-policy: sandbo
 checa "telas: continuam com a política completa" "script-src 'self'" "$(curl -s -D - -o /dev/null $B/links | tr -d '\r')"
 checa "telas: continuam sem poder ser embutidas" "frame-ancestors 'none'" "$(curl -s -D - -o /dev/null $B/links | tr -d '\r')"
 checa "resto da API: continua com a política das telas" "frame-ancestors 'none'" "$(curl -s -D - -o /dev/null $B/api/dados | tr -d '\r')"
+
+# ---------- 3.17: checklist próprio da tarefa ----------
+R=$(curl -s -X PUT $B/api/tarefas/ck1 -H "$J" -d '{"tarefa":{"id":"ck1","titulo":"Com checklist","checklist":[{"id":"a","texto":"  Pedir   acesso ","feito":true,"feitoEm":"2026-11-20T10:00:00.000Z","campoFuturo":"x"},{"id":"a","texto":"Repetido"},{"id":"../x","texto":"Id ruim"},{"texto":"   "},"solto"]},"revEsperada":null}')
+checa "checklist: texto aparado, feito e campo desconhecido preservados" '"id":"a","texto":"Pedir acesso","feito":true,"feitoEm":"2026-11-20T10:00:00.000Z","campoFuturo":"x"' "$R"
+checa "checklist: id repetido ganha outro e o item continua" '"texto":"Repetido","feito":false' "$R"
+checa "checklist: id inválido não é gravado" 'ok' "$(echo "$R" | grep -q '\.\./x' && echo vazou || echo ok)"
+checa "checklist: item sem texto fica de fora" '3' "$(echo "$R" | grep -o '"texto":"' | wc -l | tr -d ' ')"
+checa "checklist: aparece no espelho em Markdown" '- [x] Pedir acesso' "$(cat "$TMP/dados/markdown/"*--ck1.md)"
+R=$(curl -s -X PUT $B/api/tarefas/ck1 -H "$J" -d '{"tarefa":{"id":"ck1","titulo":"Renomeada"},"revEsperada":1}')
+checa "checklist: gravar a tarefa sem o campo não apaga o checklist (mescla com o disco)" '"texto":"Pedir acesso"' "$R"
+checa "tarefa sem checklist abre com a lista vazia" '"checklist":[]' "$(curl -s -X PUT $B/api/tarefas/ck2 -H "$J" -d '{"tarefa":{"id":"ck2","titulo":"Sem checklist"},"revEsperada":null}')"
+
+# ---------- 3.17: importar um arquivo exportado ----------
+imp() { curl -s -X POST "$B/api/importar$1" -H 'Content-Type: text/plain; charset=utf-8' --data-binary "@$2"; }
+curl -s $B/api/exportar >"$TMP/export.json"
+R=$(imp "" "$TMP/export.json")
+checa "importar: o próprio export pode ser importado" '"importavel":true' "$R"
+checa "importar: o próprio export não tem nada de novo nem de diferente" 'ok' "$(echo "$R" | grep -Eq '"entram":[1-9]|"conflitos":[1-9]' && echo diferente || echo ok)"
+checa "importar: sem nada a trazer, não grava nem tira foto" '"foto":null,"entraram":0,"trocados":0' "$(imp "?aplicar=1&modo=arquivo" "$TMP/export.json")"
+cat >"$TMP/novo.json" <<'EOF'
+{"exportadoEm":"2026-11-23T12:00:00.000Z","schema":1,
+ "tarefas":[
+  {"id":"imp1","titulo":"Veio do arquivo","campoFuturo":"fica","criadaEm":"2026-11-01T10:00:00.000Z","atualizadaEm":"2026-11-01T10:00:00.000Z"},
+  {"id":"ck1","titulo":"Checklist no arquivo","criadaEm":"2020-01-01T10:00:00.000Z","atualizadaEm":"2020-01-01T10:00:00.000Z"},
+  {"id":"../fora","titulo":"Sai da pasta"}],
+ "categorias":{"rev":1,"items":[{"id":"cimp","nome":"Categoria importada"}]}}
+EOF
+LIXO_ANTES=$(ls "$TMP/dados/_lixeira" | wc -l | tr -d ' ')
+R=$(imp "" "$TMP/novo.json")
+checa "importar: prévia conta o que entra e o que está diferente" '"grupo":"tarefas","noArquivo":2,"entram":1,"exemplosDeEntrada":["Veio do arquivo"],"conflitos":1,"maisNovosNoArquivo":0' "$R"
+checa "importar: item com id que sairia da pasta fica de fora" '"ignorados":1' "$R"
+checa "importar: a prévia não grava nada" 'ok' "$([ -e "$TMP/dados/tarefas/imp1.json" ] && echo gravou || echo ok)"
+R=$(imp "?aplicar=1&modo=manter" "$TMP/novo.json")
+checa "importar (manter): entra o que faltava e o diferente fica como está aqui" '"entraram":2,"trocados":0,"mantidos":1' "$R"
+FOTO=$(echo "$R" | sed 's/.*"foto":"\([^"]*\)".*/\1/')
+checa "importar: tira uma foto do estado de antes" 'pre-importacao-' "$FOTO"
+checa "importar: a foto está na pasta de backups" 'tarefas' "$(ls "$TMP/dados/_backups/$FOTO" 2>/dev/null)"
+checa "importar: a tarefa nova foi gravada com o campo desconhecido" '"campoFuturo": "fica"' "$(cat "$TMP/dados/tarefas/imp1.json")"
+checa "importar: a tarefa nova ganhou o espelho em Markdown" 'Veio do arquivo' "$(cat "$TMP/dados/markdown/"*--imp1.md 2>/dev/null)"
+checa "importar (manter): a tarefa que já existia não mudou" 'Renomeada' "$(cat "$TMP/dados/tarefas/ck1.json")"
+checa "importar: nada foi escrito fora da pasta de tarefas" 'ok' "$({ [ -e "$TMP/dados/fora.json" ] || [ -e "$TMP/fora.json" ]; } && echo vazou || echo ok)"
+C=$(cat "$TMP/dados/categorias.json")
+checa "importar: a categoria nova entrou" 'Categoria importada' "$C"
+checa "importar: as categorias que já existiam continuam" 'Categoria renomeada depois' "$C"
+checa "importar: nada vai para a lixeira" "$LIXO_ANTES" "$(ls "$TMP/dados/_lixeira" | wc -l | tr -d ' ')"
+checa "importar: modo desconhecido vale manter" '"trocados":0' "$(imp "?aplicar=1&modo=apagar-tudo" "$TMP/novo.json")"
+checa "importar (recente): o lado mexido por último fica, e aqui é mais novo" '"trocados":0' "$(imp "?aplicar=1&modo=recente" "$TMP/novo.json")"
+R=$(imp "?aplicar=1&modo=arquivo" "$TMP/novo.json")
+checa "importar (arquivo): troca o que estava diferente" '"entraram":0,"trocados":1,"mantidos":0' "$R"
+FOTO2=$(echo "$R" | sed 's/.*"foto":"\([^"]*\)".*/\1/')
+T=$(cat "$TMP/dados/tarefas/ck1.json")
+checa "importar (arquivo): a tarefa passou a ser a do arquivo" 'Checklist no arquivo' "$T"
+checa "importar (arquivo): a revisão sobe além da que estava aqui" '"rev": 3' "$T"
+checa "importar: aba com dado velho recebe 409" '409' "$(curl -s -o /dev/null -w '%{http_code}' -X PUT $B/api/tarefas/ck1 -H "$J" -d '{"tarefa":{"id":"ck1","titulo":"aba velha"},"revEsperada":2}')"
+checa "importar: cada importação que grava tem a sua foto" 'ok' "$([ "$FOTO" != "$FOTO2" ] && [ -d "$TMP/dados/_backups/$FOTO2" ] && echo ok || echo mesma)"
+checa "importar tem volta: a foto aparece na lista de backups" "$FOTO2" "$(curl -s $B/api/backup)"
+curl -s -X POST $B/api/backup/restaurar -H "$J" -d "{\"nome\":\"$FOTO2\"}" >/dev/null
+checa "importar tem volta: restaurar a foto devolve a tarefa de antes" 'Renomeada' "$(cat "$TMP/dados/tarefas/ck1.json")"
+printf '{ quebrado' >"$TMP/ruim.json"
+checa "importar: arquivo que não é JSON é recusado" 'JSON válido' "$(imp "" "$TMP/ruim.json")"
+printf '[1,2,3]' >"$TMP/ruim.json"
+checa "importar: JSON que não é um export é recusado" 'não parece um export' "$(imp "?aplicar=1&modo=arquivo" "$TMP/ruim.json")"
+printf '{"schema":99,"tarefas":[{"id":"futuro1","titulo":"De uma versão mais nova"}]}' >"$TMP/futuro.json"
+checa "importar: export de versão mais nova aparece como não importável" '"importavel":false' "$(imp "" "$TMP/futuro.json")"
+checa "importar: export de versão mais nova é recusado" 'versão mais nova' "$(imp "?aplicar=1&modo=arquivo" "$TMP/futuro.json")"
+checa "importar: export recusado não grava nada" 'ok' "$([ -e "$TMP/dados/tarefas/futuro1.json" ] && echo gravou || echo ok)"
+checa "importar: CSRF, recusa pedido vindo de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/importar?aplicar=1&modo=arquivo" -H 'Origin: https://evil.example' --data-binary "@$TMP/novo.json")"
 
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }

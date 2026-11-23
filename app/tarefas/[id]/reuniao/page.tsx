@@ -16,6 +16,7 @@ import { useConfirmar } from "@/components/Raiz";
 import { PromptModal } from "@/components/PromptModal";
 import { TranscricaoDaReuniao } from "@/components/reuniao/TranscricaoDaReuniao";
 import { AvatarPessoa, Campo, ChipsInput, ItemPasso, Pagina, Painel, Vazio, copiarTexto } from "@/components/comum";
+import { SemCadastro } from "@/components/pessoas/SemCadastro";
 import { EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { Button } from "@/components/ui/button";
@@ -339,6 +340,7 @@ export default function PaginaReuniao() {
               </Campo>
               <Campo rotulo={<span className="inline-flex items-center gap-1.5"><Users className="size-3.5" /> Participantes</span>} className="basis-72">
                 <ChipsInput valor={r.participantes} mudar={(v) => mudar({ participantes: v })} sugestoes={nomes} placeholder="Nome e Enter" />
+                <SemCadastro nomes={r.participantes} />
               </Campo>
             </div>
             <EditorRico

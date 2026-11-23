@@ -1,3 +1,4 @@
+import { checklistEmLinha } from "./checklist";
 import { meusNomes } from "./lembretes";
 import {
   type Categoria, type Registro, type Tarefa, formatarData, nomeStatus, ordenarRegistros, passosAbertos, semAcento, tipoInfo,
@@ -37,6 +38,8 @@ function cabecalhoTarefa(t: Tarefa, cat?: Categoria) {
     `Status atual: ${nomeStatus(t.status)} | Prioridade: ${t.prioridade}/10${t.prazo ? ` | Prazo: ${formatarData(t.prazo)}` : ""}`,
   ];
   if (t.descricao) L.push(`Descrição: ${t.descricao}`);
+  // checklist próprio da tarefa (3.17): o que ela precisa para ficar pronta, com o que já foi feito
+  if (t.checklist?.length) L.push(`Checklist da tarefa: ${checklistEmLinha(t)}`);
   return L.join("\n");
 }
 

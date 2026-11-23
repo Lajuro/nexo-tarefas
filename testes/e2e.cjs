@@ -2,7 +2,7 @@
 //
 // Pré-requisito: o pacote "playwright" acessível pelo Node (global ou NODE_PATH)
 // e um navegador: o Chromium do Playwright (npx playwright install chromium) ou
-// o Google Chrome instalado (usado sozinho se o Chromium não existir).
+// o Google Chrome instalado (usado sozinho se o Chromium não existir) ou, sem os dois, o Microsoft Edge.
 //
 // Rode SEMPRE com uma pasta de dados VAZIA e descartável (nunca os dados reais):
 //   npm run build
@@ -28,8 +28,9 @@
 // perigoso barrado), páginas de conhecimento (citar com @, quem aponta para cá), links e documentos como
 // material de trabalho (um link em várias tarefas, status de chamado, trava, página e folha ligadas à tarefa,
 // folha que vira página, Ctrl + clique num link do editor), arquivos vistos por dentro do app (planilha, CSV,
-// Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar) e
-// tema escuro (pelo menu "Mais").
+// Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar),
+// as novidades da 3.17 (checklist da tarefa, e-mail colado no registro, participante cadastrado pelo campo,
+// filtro por tag em tarefas e páginas, importar um arquivo exportado) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -85,7 +86,12 @@ async function abrirNavegador() {
   try {
     return await chromium.launch({ args });
   } catch {
-    return await chromium.launch({ args, channel: "chrome" });
+    try {
+      return await chromium.launch({ args, channel: "chrome" });
+    } catch {
+      // máquina com Windows e sem Chrome: o Edge serve (é o navegador em que o app roda no dia a dia)
+      return await chromium.launch({ args, channel: "msedge" });
+    }
   }
 }
 
@@ -292,6 +298,9 @@ async function main() {
     await d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]").fill("anotação que não pode sumir");
     // um campo que começa recolhido: abre à mão, escreve, e o rascunho tem que trazer de volta no lugar certo
     await d.locator("[data-slot=editor-campos-botao]").click();
+    // Ao abrir a seção, o app leva o foco para o Resumo um instante depois. O fill() escreve no campo que tem o foco
+    // naquela hora: sem esperar, o texto às vezes caía no Resumo e a etapa falhava de vez em quando.
+    await pg.waitForFunction(() => document.activeElement?.getAttribute("aria-label") === "Resumo");
     await d.getByPlaceholder("Uma decisão por linha").fill("decisão que também não pode sumir");
     await d.locator("[data-slot=rascunho-estado]").waitFor();
     await pg.keyboard.press("Escape");
@@ -1635,7 +1644,8 @@ async function main() {
     }
     await pg.locator("[data-slot=copiar-status]").click();
     const texto = await pg.evaluate(() => navigator.clipboard.readText());
-    afirmar(/^Status das frentes em \d\d\/\d\d\/\d\d\n/.test(texto), "o status copiado não começa pelo título com a data");
+    // \r?\n: no Windows a área de transferência devolve as quebras de linha como CRLF
+    afirmar(/^Status das frentes em \d\d\/\d\d\/\d\d\r?\n/.test(texto), "o status copiado não começa pelo título com a data");
     const comTarefa = d.categorias.find((c) => comAberta.has(c.id));
     afirmar(!comTarefa || texto.includes(`\n${comTarefa.nome}: `), "o status copiado não traz a frente que tem tarefa aberta");
     // o cartão leva para a categoria
@@ -2471,6 +2481,157 @@ async function main() {
     // nada do que não tinha a tag foi tocado: as outras tags continuam onde estavam
     const fim = await dados();
     afirmar(tarefa(fim, a.id).categoriaId === cat(fim, "Fluxo sem sair").id || ids.includes(a.id), "a categoria da primeira tarefa mudou sem ninguém pedir");
+  });
+
+  // ---------- 3.17 ----------
+  await etapa("3.17: checklist da tarefa, e-mail colado, participante cadastrado, filtro por tag e importar um export", async () => {
+    const J = { "Content-Type": "application/json" };
+    const tarefa = (d, id) => d.tarefas.find((t) => t.id === id);
+    const itens = (d, id) => (tarefa(d, id).checklist || []).map((i) => `${i.feito ? "x" : " "} ${i.texto}`).join("|");
+    const aviso = (texto) => pg.locator("[data-sonner-toast]", { hasText: texto }).first();
+    const contador = (n) => pg.locator("[data-slot=contador-tarefas]", { hasText: new RegExp(`^${n} de `) }).waitFor();
+
+    // duas tarefas e uma página com tags, criadas pela API para a etapa não depender do que as outras deixaram
+    for (const t of [
+      { id: "e2e317a", titulo: "Tarefa do checklist 317", tags: ["tag317", "outra317"] },
+      { id: "e2e317b", titulo: "Outra com a tag 317", tags: ["TAG317"] },
+    ]) {
+      afirmar((await pg.request.put(`${B}/api/tarefas/${t.id}`, { headers: J, data: { tarefa: t, revEsperada: null } })).ok(), "não consegui criar a tarefa da etapa");
+    }
+    const pags = (await dados()).paginas;
+    afirmar(
+      (await pg.request.put(`${B}/api/paginas`, { headers: J, data: { items: [...pags.items, { id: "pg317", titulo: "Página com a tag 317", texto: "texto", tags: ["tag317"] }], revEsperada: pags.rev } })).ok(),
+      "não consegui criar a página da etapa",
+    );
+
+    // ---- checklist: Enter adiciona, colar uma lista cria um item por linha, marcar, editar no lugar e tirar com Desfazer ----
+    await pg.goto(`${B}/tarefas/e2e317a`);
+    await pg.locator("[data-slot=comecar-checklist]").click();
+    const novo = pg.locator("[data-slot=novo-item-do-checklist]");
+    await novo.fill("Pedir os acessos");
+    await novo.press("Enter");
+    await ateOsDados((d) => itens(d, "e2e317a") === "  Pedir os acessos", "o primeiro item do checklist não foi gravado");
+    await pg.evaluate(() => navigator.clipboard.writeText("- Rodar o scan\n- [x] Agendar a abertura\n\n2. Treinar o squad"));
+    await novo.focus();
+    await pg.keyboard.press("Control+V");
+    await ateOsDados((d) => itens(d, "e2e317a") === "  Pedir os acessos|  Rodar o scan|x Agendar a abertura|  Treinar o squad", "a lista colada não virou um item por linha");
+    await pg.getByRole("checkbox", { name: "Marcar como feito: Pedir os acessos" }).click();
+    await pg.locator("[data-slot=progresso-do-checklist]", { hasText: "2 de 4" }).waitFor();
+    await pg.locator("[data-slot=texto-do-item]", { hasText: "Rodar o scan" }).click();
+    await pg.getByLabel("Texto do item").fill("Rodar o primeiro scan");
+    await pg.getByLabel("Texto do item").press("Enter");
+    await ateOsDados((d) => itens(d, "e2e317a").includes("  Rodar o primeiro scan"), "a edição do item não foi gravada");
+    await pg.getByRole("button", { name: "Ações do item: Treinar o squad" }).click();
+    await pg.locator("[data-slot=tirar-item]").click();
+    await ateOsDados((d) => tarefa(d, "e2e317a").checklist.length === 3, "o item não saiu do checklist");
+    await aviso("Item tirado do checklist").getByRole("button", { name: "Desfazer" }).click();
+    await ateOsDados((d) => itens(d, "e2e317a") === "x Pedir os acessos|  Rodar o primeiro scan|x Agendar a abertura|  Treinar o squad", "desfazer não devolveu o item");
+    afirmar(tarefa(await dados(), "e2e317a").registros.every((r) => r.proximosPassos.length === 0), "item do checklist virou passo");
+
+    // ---- e-mail colado: preenche título, data, hora e participantes; o texto entra sem virar formatação ----
+    await pg.locator('[data-slot=registrar][data-tipo=reuniao]').click();
+    await dialogo().locator("[data-slot=editor-registro]").waitFor();
+    await pg.locator("[data-slot=colar-email-botao]").click();
+    await pg.locator("[data-slot=colar-email]").getByLabel("Texto do e-mail").fill(
+      "De: Otto Teste <otto.teste@exemplo.local>\nEnviada em: quinta-feira, 19 de novembro de 2026 14:32\nPara: Prado, Zuleica <zuleica.prado@exemplo.local>\nAssunto: RES: Acesso ao repositório 317\n\nOi.\n\n# não é título\n- nem lista\nLiberamos **até sexta**. <script>window.__vazou = 1</script>\n",
+    );
+    const lido = pg.locator("[data-slot=email-reconhecido]");
+    await lido.getByText("Acesso ao repositório 317").waitFor();
+    afirmar((await lido.innerText()).includes("19/11/26 14:32"), "a data do e-mail não foi lida");
+    afirmar((await lido.innerText()).includes("Otto Teste, Zuleica Prado"), "as pessoas do e-mail não foram lidas (ou “Sobrenome, Nome” não foi desinvertido)");
+    await pg.locator("[data-slot=trazer-email]").click();
+    await pg.locator("[data-slot=colar-email]").waitFor({ state: "detached" });
+    const ed = pg.locator("[data-slot=editor-registro]");
+    await ed.locator("[data-slot=campo-chips] [data-slot=chip]", { hasText: "Zuleica Prado" }).waitFor();
+    afirmar((await ed.locator("[data-foco-inicial]").inputValue()) === "Acesso ao repositório 317", "o assunto não virou o título");
+    const anot = ed.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]");
+    await anot.getByText("# não é título").waitFor();
+    afirmar((await anot.locator("h1, h2, h3, ul, ol, script").count()) === 0, "o texto do e-mail virou formatação no editor");
+    afirmar((await anot.innerText()).includes("<script>window.__vazou = 1</script>"), "a marcação do e-mail não ficou como texto");
+    afirmar(!(await pg.evaluate(() => "__vazou" in window)), "script do e-mail foi executado");
+
+    // ---- quem não está no cadastro entra com um clique, sem sair do registro ----
+    const semCadastro = ed.locator('[data-slot=cadastrar-participante][data-nome="Zuleica Prado"]');
+    await semCadastro.click();
+    await ateOsDados((d) => d.pessoas.items.some((p) => p.nome === "Zuleica Prado" && p.origem === "registros"), "a pessoa não foi para o cadastro");
+    await semCadastro.waitFor({ state: "detached" });
+    await aviso("Zuleica Prado agora está no cadastro de pessoas").waitFor();
+    await ed.locator('[data-slot=cadastrar-participante][data-nome="Otto Teste"]').waitFor();
+    await dialogo().getByRole("button", { name: "Salvar registro" }).click();
+    await pg.locator("[data-slot=editor-registro]").waitFor({ state: "detached" });
+    await ateOsDados((d) => {
+      const r = tarefa(d, "e2e317a").registros.find((x) => x.titulo === "Acesso ao repositório 317");
+      return r && r.tipo === "nota" && r.data === "2026-11-19" && r.hora === "14:32" && r.participantes.join("|") === "Otto Teste|Zuleica Prado" && r.anotacoes.includes("\\# não é título") && r.anotacoes.includes("&lt;script>");
+    }, "o registro com o e-mail não foi gravado como esperado");
+    afirmar((await pg.locator("[data-slot=timeline] script").count()) === 0, "a linha do tempo desenhou marcação do e-mail");
+
+    // ---- filtro por tag na lista de tarefas: uma tag, duas (precisa ter as duas), tirar pela etiqueta ----
+    await pg.goto(`${B}/tarefas?status=todas`);
+    await pg.locator("[data-slot=filtro-de-tags]").click();
+    await pg.locator("[data-slot=opcao-de-tag]", { hasText: /^tag317/i }).click();
+    await contador(2);
+    afirmar(new URL(pg.url()).searchParams.getAll("tag").length === 1, "a tag escolhida não foi para o endereço");
+    await pg.locator("[data-slot=opcao-de-tag]", { hasText: "outra317" }).click();
+    await contador(1);
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=filtro-de-tags][data-ativas='2']").waitFor();
+    await pg.getByRole("button", { name: "Tirar o filtro tag outra317" }).click();
+    await contador(2);
+    // da aba Tags, "Ver na lista" abre a lista já filtrada
+    await pg.goto(`${B}/categorias?aba=tags&tag=tag317`);
+    await pg.locator("[data-slot=ver-na-lista]").first().click();
+    await pg.waitForURL(/\/tarefas\?.*tag=tag317/i);
+    await contador(2);
+    // páginas: /paginas?tag= abre a Lista filtrada, e a tag da linha tira o filtro
+    await pg.goto(`${B}/paginas?tag=tag317`);
+    await pg.locator("[data-slot=lista-de-paginas] [data-slot=filtro-de-tags][data-ativas='1']").waitFor();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=linha-de-pagina]").length === 1);
+    afirmar((await pg.locator("[data-slot=linha-de-pagina]").innerText()).includes("Página com a tag 317"), "a lista de páginas não filtrou pela tag");
+    await pg.locator("[data-slot=linha-de-pagina] [data-slot=tag][data-ativa]").click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=linha-de-pagina]").length > 1);
+
+    // ---- importar um export: entra o que falta, o diferente fica como está (padrão) e nada é apagado ----
+    const antes = await dados();
+    const lixoAntes = (await (await pg.request.get(`${B}/api/lixeira`)).json()).itens.length;
+    const arquivo = JSON.parse(await (await pg.request.get(`${B}/api/exportar`)).text());
+    const doArquivo = arquivo.tarefas.find((t) => t.id === "e2e317a");
+    doArquivo.titulo = "Título que veio do arquivo";
+    doArquivo.atualizadaEm = "2020-01-01T00:00:00.000Z";
+    arquivo.tarefas.push(
+      { id: "e2e317novo", titulo: "Só existe no arquivo 317", criadaEm: "2026-11-01T10:00:00.000Z", atualizadaEm: "2026-11-01T10:00:00.000Z" },
+      { id: "../fora317", titulo: "Sai da pasta" },
+    );
+    const entregar = async () => {
+      await pg.locator("[data-slot=importar-export]").click();
+      await pg.locator("[data-slot=importar-exportacao] input[type=file]").setInputFiles({ name: "nexo-export-317.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(arquivo)) });
+    };
+    await pg.goto(`${B}/configuracoes`);
+    await entregar();
+    await pg.locator("[data-slot=previa-importacao][data-entram='1'][data-conflitos='1']").waitFor();
+    await pg.locator("[data-slot=previa-importacao]").getByText("ficou de fora").waitFor();
+    afirmar(!tarefa(await dados(), "e2e317novo"), "a prévia da importação gravou alguma coisa");
+    await pg.locator("[data-slot=confirmar-importacao]").click();
+    await pg.locator("[data-slot=importar-exportacao]").waitFor({ state: "detached" });
+    await ateOsDados(
+      (d) => tarefa(d, "e2e317novo") && tarefa(d, "e2e317a").titulo === "Tarefa do checklist 317" && d.tarefas.length === antes.tarefas.length + 1,
+      "importar (manter o daqui) não trouxe a tarefa nova ou mexeu na que já existia",
+    );
+    // de novo, agora escolhendo ficar com o do arquivo
+    await entregar();
+    await pg.locator("[data-slot=previa-importacao][data-entram='0'][data-conflitos='1']").waitFor();
+    await pg.locator("[data-slot=modo-da-importacao]").getByText("O do arquivo").click();
+    await pg.locator("[data-slot=modo-da-importacao] [role=status]", { hasText: "1 item daqui é trocado" }).waitFor();
+    await pg.locator("[data-slot=confirmar-importacao]").click();
+    await pg.locator("[data-slot=importar-exportacao]").waitFor({ state: "detached" });
+    await ateOsDados((d) => tarefa(d, "e2e317a").titulo === "Título que veio do arquivo" && tarefa(d, "e2e317a").checklist.length === 4, "importar (o do arquivo) não trocou a tarefa");
+    const fim = await dados();
+    afirmar(antes.tarefas.every((t) => tarefa(fim, t.id)), "importar tirou uma tarefa que estava aqui");
+    afirmar((await (await pg.request.get(`${B}/api/lixeira`)).json()).itens.length === lixoAntes, "importar mandou alguma coisa para a lixeira");
+    const fotos = (await (await pg.request.get(`${B}/api/backup`)).json()).backups.filter((n) => n.startsWith("pre-importacao-"));
+    afirmar(fotos.length === 2, "cada importação que grava deveria ter deixado a sua foto");
+    // a foto aparece na lista de backups, como "antes de importar"
+    await pg.locator("[data-slot=lista-backups]").click();
+    await pg.locator("[data-slot=backup]", { hasText: "antes de importar" }).first().waitFor();
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

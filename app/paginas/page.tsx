@@ -17,6 +17,7 @@ import { MapaDePaginas } from "@/components/paginas/MapaDePaginas";
 import { QuadroPaginas } from "@/components/paginas/QuadroPaginas";
 import { IconePagina, useAcoesDePagina } from "@/components/paginas/pecas";
 import { GaleriaDeVideos } from "@/components/paginas/video/GaleriaDeVideos";
+import { normalizarTagsDoFiltro } from "@/components/tarefas/filtros";
 import { Button } from "@/components/ui/button";
 import { Segmentado } from "@/components/ui/controles";
 import { Dica } from "@/components/ui/popover";
@@ -72,6 +73,9 @@ function Conteudo() {
   const mudarArea = useCallback((fn: (a: AreaDePaginas) => Partial<AreaDePaginas>) => setBruta((atual: unknown) => { const a = normalizarArea(atual); return { ...a, ...fn(a) }; }), [setBruta]);
   const [irPara, setIrPara] = useState<{ id: string; titulo?: number; tempo?: number; vez: number } | null>(null);
   const tempoPedido = params.get("t");
+  // filtro por tag da visão Lista (3.17). É filtro de momento: vale enquanto a tela está aberta.
+  const tagPedida = params.get("tag");
+  const [tagsDaLista, setTagsDaLista] = useState<string[]>([]);
 
   const paginas = useMemo(() => dados?.paginas?.items ?? [], [dados?.paginas]);
   const porId = useMemo(() => new Map(paginas.map((p) => [p.id, p])), [paginas]);
@@ -120,9 +124,14 @@ function Conteudo() {
     } else if (catPedida) {
       router.replace("/paginas");
       void nova("branco", { categoriaId: catPedida });
+    } else if (tagPedida) {
+      // /paginas?tag=<nome> (aba Tags): abre a Lista já filtrada por aquela tag
+      setTagsDaLista(normalizarTagsDoFiltro([tagPedida]));
+      mudarArea(() => ({ visao: "lista" }));
+      router.replace("/paginas");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedida, catPedida, !!dados]);
+  }, [pedida, catPedida, tagPedida, !!dados]);
 
   // Alt+seta: página anterior ou próxima entre as abas, como num editor de código
   useEffect(() => {
@@ -162,7 +171,7 @@ function Conteudo() {
       {area.visao === "quadro" ? (
         <QuadroPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
       ) : area.visao === "lista" ? (
-        <ListaPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} />
+        <ListaPaginas paginas={paginas} categorias={dados.categorias.items} acoes={acoes} aoAbrir={abrir} tags={tagsDaLista} aoMudarTags={setTagsDaLista} />
       ) : area.visao === "mapa" ? (
         <MapaDePaginas dados={dados} aoAbrir={abrir} />
       ) : area.visao === "videos" ? (

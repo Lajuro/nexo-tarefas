@@ -14,7 +14,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FileText, LayoutTemplate, ListTodo, Merge, PencilLine, Tag, Tags, Trash2, UserRound, type LucideIcon } from "lucide-react";
+import { FileText, LayoutTemplate, ListFilter, ListTodo, Merge, PencilLine, Tag, Tags, Trash2, UserRound, type LucideIcon } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { hrefLink } from "@/components/LinkForm";
@@ -97,12 +97,18 @@ function LinhaDaTag({ tag, ativa, aoEscolher }: { tag: TagDoInventario; ativa: b
   );
 }
 
-function Grupo({ icone: Icone, titulo, n, children }: { icone: LucideIcon; titulo: string; n: number; children: React.ReactNode }) {
+function Grupo({ icone: Icone, titulo, n, children, naLista }: { icone: LucideIcon; titulo: string; n: number; children: React.ReactNode; naLista?: string }) {
   if (!n) return null;
   return (
     <section data-slot="itens-da-tag" data-onde={titulo}>
       <h4 className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase sem-selecao">
         <Icone className="size-3.5" /> {titulo} <span className="font-normal tabular-nums">{n}</span>
+        {/* a mesma lista, na tela dela, onde dá para ordenar, selecionar e agir em lote (3.17) */}
+        {naLista && (
+          <Link href={naLista} data-slot="ver-na-lista" className="ml-auto inline-flex items-center gap-1 rounded px-1 text-xs font-medium tracking-normal text-primary normal-case outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40">
+            <ListFilter className="size-3.5" /> Ver na lista
+          </Link>
+        )}
       </h4>
       <ul className="flex flex-col">{children}</ul>
     </section>
@@ -211,7 +217,7 @@ function DetalheDaTag({ tag, inventario, aoMudarNome }: { tag: TagDoInventario; 
         )}
 
         <div className="flex flex-col gap-3 border-t pt-3">
-          <Grupo icone={ListTodo} titulo="Tarefas" n={itens.tarefas.length}>
+          <Grupo icone={ListTodo} titulo="Tarefas" n={itens.tarefas.length} naLista={`/tarefas?status=todas&tag=${encodeURIComponent(tag.nome)}`}>
             {itens.tarefas.map((t) => (
               <li key={t.id}><Link href={`/tarefas/${t.id}`} className={ITEM}><IconeStatus status={t.status} /><span className="min-w-0 flex-1 truncate">{t.titulo}</span></Link></li>
             ))}
@@ -226,7 +232,7 @@ function DetalheDaTag({ tag, inventario, aoMudarNome }: { tag: TagDoInventario; 
               </li>
             ))}
           </Grupo>
-          <Grupo icone={FileText} titulo="Páginas" n={itens.paginas.length}>
+          <Grupo icone={FileText} titulo="Páginas" n={itens.paginas.length} naLista={`/paginas?tag=${encodeURIComponent(tag.nome)}`}>
             {itens.paginas.map((p) => (
               <li key={p.id}>
                 <Link href={`/paginas?p=${p.id}`} className={ITEM}>

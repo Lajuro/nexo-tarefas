@@ -3,6 +3,7 @@
 
 import { ehFocoHoje } from "@/lib/acoes";
 import { aberta, dataLocal, ultimaAtividade } from "@/lib/lembretes";
+import { chaveDaTag, limparTag, temATag } from "@/lib/tags";
 import { STATUS, type Status, type Tarefa, diasAte, hojeISO, passosAbertos, semAcento } from "@/lib/tipos";
 
 export type Ordem = "prioridade" | "prazo" | "atividade" | "titulo";
@@ -64,11 +65,61 @@ export interface Filtros {
   categoria: string;
   status: FiltroStatus;
   especial: Especial;
+  /** Tags escolhidas (3.17): a tarefa precisa ter todas. Vazio ou ausente = não filtra por tag. */
+  tags?: string[];
 }
 
-/** Texto, categoria e filtro especial. O status fica de fora (o quadro trata status por coluna). */
+/** Quantas tags o filtro aceita de uma vez (o endereço e a visão salva são entrada não confiável). */
+export const MAX_TAGS_NO_FILTRO = 8;
+
+/** As tags de um filtro como vieram do endereço ou do navegador: nomes limpos, sem repetir, com teto. */
+export function normalizarTagsDoFiltro(v: unknown): string[] {
+  const out: string[] = [];
+  for (const x of Array.isArray(v) ? v : []) {
+    const nome = limparTag(x);
+    if (!nome || out.some((t) => chaveDaTag(t) === chaveDaTag(nome))) continue;
+    out.push(nome);
+    if (out.length >= MAX_TAGS_NO_FILTRO) break;
+  }
+  return out;
+}
+
+/** Os dois filtros têm as mesmas tags, em qualquer ordem e grafia de maiúsculas? */
+export function mesmasTags(a: readonly string[] | undefined, b: readonly string[] | undefined) {
+  const [x, y] = [(a ?? []).map(chaveDaTag).sort(), (b ?? []).map(chaveDaTag).sort()];
+  return x.length === y.length && x.every((t, i) => t === y[i]);
+}
+
+/** A lista com a tag posta, ou sem ela se já estava (o clique num filtro de tag). */
+export function comTagAlternada(tags: readonly string[], tag: string): string[] {
+  return temATag(tags, tag) ? tags.filter((t) => chaveDaTag(t) !== chaveDaTag(tag)) : normalizarTagsDoFiltro([...tags, tag]);
+}
+
+/** As tags que aparecem numa lista de itens, com quantos itens têm cada uma, da mais usada para a menos. */
+export function tagsEmUso(itens: readonly { tags?: string[] }[]): { nome: string; n: number }[] {
+  const mapa = new Map<string, { nome: string; n: number }>();
+  for (const item of itens) {
+    const vistas = new Set<string>();
+    for (const bruta of item.tags ?? []) {
+      const chave = chaveDaTag(bruta);
+      if (!chave || vistas.has(chave)) continue;
+      vistas.add(chave);
+      const e = mapa.get(chave);
+      if (e) e.n += 1;
+      else mapa.set(chave, { nome: limparTag(bruta), n: 1 });
+    }
+  }
+  return [...mapa.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/** O item tem todas as tags pedidas? (lista vazia: passa) */
+export const temTodasAsTags = (item: { tags?: string[] }, tags: readonly string[] | undefined) =>
+  !tags?.length || tags.every((tag) => temATag(item.tags, tag));
+
+/** Texto, categoria, tags e filtro especial. O status fica de fora (o quadro trata status por coluna). */
 export function passaSemStatus(t: Tarefa, f: Filtros, textoNormalizado: string) {
   if (f.categoria && (f.categoria === SEM_CATEGORIA ? t.categoriaId : t.categoriaId !== f.categoria)) return false;
+  if (!temTodasAsTags(t, f.tags)) return false;
   if (f.especial === "atrasadas" && !atrasada(t)) return false;
   if (f.especial === "foco" && !(aberta(t) && ehFocoHoje(t))) return false;
   if (f.especial === "mes" && !concluidaNoMes(t)) return false;
@@ -134,6 +185,8 @@ export interface VisaoSalva {
   especial: Especial;
   ordem: Ordem;
   visao: Visao;
+  /** Tags do filtro (3.17). Visão guardada antes disso não tem o campo: vale como nenhuma. */
+  tags: string[];
 }
 
 export const MAX_VISOES = 20;
@@ -157,6 +210,7 @@ export function normalizarVisoes(x: unknown): VisaoSalva[] {
       especial: ehEspecial(o.especial) ? o.especial : "",
       ordem: ehOrdem(o.ordem) ? o.ordem : "prioridade",
       visao: ehVisao(o.visao) ? o.visao : "grade",
+      tags: normalizarTagsDoFiltro(o.tags),
     });
     if (out.length >= MAX_VISOES) break;
   }

@@ -4,6 +4,7 @@
 // A resposta colada de volta é entrada não confiável: só é mostrada pelo leitor de Markdown, e os
 // links das citações são calculados aqui a partir das fontes, nunca lidos do texto.
 
+import { checklistEmLinha, textoDoChecklist } from "./checklist";
 import { quemSouEu } from "./prompts";
 import { type Fala, emTrechos, formatarTempo } from "./transcricao";
 import { resumoDoEstado, tarefasDoLink } from "./links";
@@ -168,12 +169,13 @@ function candidatas(dados: Dados, categoriaId: string | null): Candidata[] {
       t.prazo ? `Prazo: ${formatarData(t.prazo)}` : "",
       t.esperando ? `Aguardando ${[t.esperando.quem, t.esperando.oQue].filter(Boolean).join(": ")} desde ${formatarData(t.esperando.desde)}` : "",
       t.tags.length ? `Tags: ${t.tags.join(", ")}` : "",
+      t.checklist?.length ? `Checklist: ${checklistEmLinha(t)}` : "",
     ].filter(Boolean);
     const corpoTarefa = [...cab, paraTextoPlano(t.descricao), t.panoramaIA?.texto ? `Panorama (${formatarData(t.panoramaIA.geradoEm)}): ${paraTextoPlano(t.panoramaIA.texto)}` : ""].filter(Boolean).join("\n");
     out.push({
       tipo: "tarefa", chave: `tarefa:${t.id}`, titulo: `Tarefa: ${t.titulo}`, contexto: cat ? `categoria "${cat}"` : "", data: (t.atualizadaEm || t.criadaEm || "").slice(0, 10) || null,
       rota: `/tarefas/${t.id}`, interno: hrefInterno("tarefa", t.id), corpo: corpoTarefa, peso: 1,
-      busca: [paraTextoPlano(t.descricao), paraTextoPlano(t.panoramaIA?.texto ?? ""), t.esperando?.quem ?? "", t.esperando?.oQue ?? "", t.tags.join(" ")].join("\n"),
+      busca: [paraTextoPlano(t.descricao), paraTextoPlano(t.panoramaIA?.texto ?? ""), t.esperando?.quem ?? "", t.esperando?.oQue ?? "", t.tags.join(" "), textoDoChecklist(t)].join("\n"),
     });
     for (const r of t.registros) {
       const { corpo, busca } = textosDoRegistro(r);

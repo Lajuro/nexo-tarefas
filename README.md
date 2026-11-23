@@ -79,6 +79,28 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.17: checklist na tarefa, e-mail colado, filtro por tag e importação
+
+Cinco coisas que estavam na lista de pedidos, todas sem mudar o formato dos dados (nenhuma migração).
+
+- **Checklist da tarefa.** Na página da tarefa, abaixo de Pendências, o painel **Checklist** é a lista do que a tarefa precisa para ficar pronta. Digite e aperte Enter. Colar uma lista de várias linhas cria um item por linha (a marca de lista, como `- ` ou `1.`, sai sozinha, e `[x]` entra como feito). Clique no texto para editar; o "..." de cada item move para cima, para baixo ou tira (com Desfazer). O cartão da tarefa mostra o progresso (`1/3`).
+  - O checklist não é a mesma coisa que os **passos**. O passo nasce de um registro (o que ficou combinado numa conversa), tem responsável e prazo e aparece em Pendências. O item do checklist é da tarefa em si e só diz feito ou não: ele não gera lembrete nem entra em Pendências.
+  - Ele aparece no espelho em Markdown, na impressão, na busca e nos prompts do Copilot. Ao juntar duas tarefas, o checklist da antiga vai junto.
+- **Colar e-mail num registro.** No editor de registro, ao lado de "Anotações brutas", o botão **Colar e-mail** abre uma janela para colar o texto do e-mail. Copie no Outlook com o cabeçalho (De, Enviada em, Para, Cc, Assunto), como aparece ao responder ou encaminhar. A janela mostra o que reconheceu antes de trazer:
+  - o **assunto** vira o título (sem "RES:" e "ENC:"), se o título estava vazio;
+  - a **data e a hora** viram as do registro, num registro novo e em branco;
+  - quem está em **De, Para e Cc** vira participante. Quem já está no cadastro entra com o nome do cadastro, e você fica de fora (pelos nomes informados em Configurações);
+  - o **texto** vai para o fim das anotações, sem trocar o que você já escreveu. Ele entra como texto puro: um `#` ou um `<script>` do e-mail aparece como está escrito, não vira formatação.
+  - Sem o cabeçalho, o texto entra inteiro nas anotações e você preenche o resto.
+- **Cadastrar a pessoa direto do campo de participantes.** Embaixo do campo, a linha **Sem cadastro** mostra os nomes que ainda não estão no cadastro de pessoas. Um clique cadastra só com o nome, sem sair do registro, e o aviso tem "Completar cadastro" para pôr cargo, e-mail e times. Vale no editor de registro e no modo reunião. O participante continua sendo um nome escrito: nada muda nos registros antigos.
+- **Filtro por tag.** O botão **Tags** nas listas de **Tarefas** e de **Páginas** (visão Lista) abre as tags que existem ali, com a contagem. Marque uma ou mais: a lista mostra só o que tem todas. Em Tarefas o filtro fica no endereço (`/tarefas?tag=pipeline`), aparece como etiqueta removível e entra nas **visões salvas**. Na aba **Tags** de Categorias, **Ver na lista** abre a lista de tarefas ou de páginas já filtrada, e as tags da página e da pessoa viraram links para essa aba.
+- **Importar um arquivo exportado.** Em **Configurações > Proteção dos dados**, **Importar um export...** recebe um `nexo-export-*.json` (o arquivo de "Exportar tudo") e mostra, antes de gravar, o que entra e o que está diferente.
+  - **Importar soma.** O que está no arquivo e não está aqui, entra. Nada do que está aqui é apagado e nada vai para a lixeira.
+  - Quando o mesmo item está nos dois lados com conteúdo diferente, você escolhe uma vez para a importação inteira: **Manter o daqui** (o padrão), **O mais recente** (fica o lado mexido por último) ou **O do arquivo**.
+  - **Tem volta.** Antes de gravar, o app guarda uma foto do estado de agora em `_backups/pre-importacao-*`, que aparece na lista de backups e pode ser restaurada.
+  - Os **anexos** (pasta `arquivos`) não fazem parte do arquivo exportado. Se o export veio de outro computador, copie também a pasta `arquivos`; a janela avisa quantos anexos estão faltando.
+  - Isso é diferente de **Restaurar** um backup: restaurar faz os dados voltarem a ser o que eram, e o que foi criado depois vai para a lixeira.
+
 ## 3.16: criar sem sair de onde está, e um lugar para as tags
 
 Antes, para usar uma categoria que ainda não existia você tinha que largar o que estava fazendo, ir à tela de Categorias, criar e voltar. E as tags não tinham tela nenhuma: se a mesma ideia fosse escrita de dois jeitos, o jeito era abrir item por item.

@@ -2,27 +2,28 @@
 
 // Lista de tarefas com três visões (grade, lista e quadro), filtros e números do topo.
 // O que é preferência (ordem, status, visão) fica em localStorage; o que é filtro de momento
-// (categoria, filtros prontos, status vindo de um link) fica na URL e aparece como etiqueta removível.
+// (categoria, tags, filtros prontos, status vindo de um link) fica na URL e aparece como etiqueta removível.
 
 import { ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowDownUp, Ban, CalendarX, ChevronDown, CircleCheckBig, CircleDashed, ClipboardList, FilterX, Kanban, Layers,
-  LayoutGrid, ListChecks, ListTodo, Plus, Rows3, Search, SearchX, Target, X,
+  LayoutGrid, ListChecks, ListTodo, Plus, Rows3, Search, SearchX, Tag, Target, X,
 } from "lucide-react";
 import { CardTarefa } from "@/components/CardTarefa";
 import { useAcoesTarefa } from "@/components/MenuTarefa";
 import { useNexo } from "@/components/Provider";
 import { BarraDeLote, type Selecao, Selecionavel, useSelecao } from "@/components/tarefas/Lote";
 import { MenuVisoes, useVisoesSalvas } from "@/components/tarefas/Visoes";
+import { FiltroDeTags } from "@/components/tags/FiltroDeTags";
 import { abrirNovaTarefa } from "@/components/Shell";
 import { Estatistica, IconeStatus, Pagina, PontoCor, Vazio, opcoesStatus } from "@/components/comum";
 import { ListaTarefas } from "@/components/tarefas/ListaTarefas";
 import { QuadroTarefas } from "@/components/tarefas/QuadroTarefas";
 import {
   type Especial, type FiltroStatus, type Filtros, NOME_ESPECIAL, ORDENS, type Ordem, SEM_CATEGORIA, type Visao, type VisaoSalva,
-  ehEspecial, ehFiltroStatus, ehOrdem, ehVisao, filtrar, filtrarParaQuadro, numerosDoTopo, ordenar,
+  ehEspecial, ehFiltroStatus, ehOrdem, ehVisao, filtrar, filtrarParaQuadro, normalizarTagsDoFiltro, numerosDoTopo, ordenar, tagsEmUso,
 } from "@/components/tarefas/filtros";
 import { Button } from "@/components/ui/button";
 import { Combobox, type OpcaoCombo } from "@/components/ui/command";
@@ -45,12 +46,13 @@ const ICONE_ESPECIAL: Record<Exclude<Especial, "">, ReactNode> = {
   mes: <CircleCheckBig className="size-3.5 text-sucesso" />,
 };
 
-/** Troca parâmetros da URL sem navegar (o Next mantém o useSearchParams em dia). null remove. */
-function mudarUrl(mudancas: Record<string, string | null>) {
+/** Troca parâmetros da URL sem navegar (o Next mantém o useSearchParams em dia). null remove; lista repete o parâmetro. */
+function mudarUrl(mudancas: Record<string, string | string[] | null>) {
   const p = new URLSearchParams(window.location.search);
   for (const [chave, valor] of Object.entries(mudancas)) {
-    if (valor) p.set(chave, valor);
-    else p.delete(chave);
+    p.delete(chave);
+    if (Array.isArray(valor)) for (const v of valor) p.append(chave, v);
+    else if (valor) p.set(chave, valor);
   }
   const q = p.toString();
   window.history.replaceState(null, "", q ? `${window.location.pathname}?${q}` : window.location.pathname);
@@ -147,8 +149,12 @@ function Tarefas() {
   const pF = parametros.get("f");
   const especial: Especial = ehEspecial(pF) ? pF : "";
   const status = statusDaUrl ?? statusGravado;
+  // ?tag=<nome> (uma ou várias): só as tarefas que têm todas. Vem do botão Tags e da aba Tags de Categorias.
+  const chaveDasTags = parametros.getAll("tag").join("\n");
+  const tags = useMemo(() => normalizarTagsDoFiltro(chaveDasTags ? chaveDasTags.split("\n") : []), [chaveDasTags]);
+  const mudarTags = (lista: string[]) => mudarUrl({ tag: lista.length ? lista : null });
 
-  const filtros: Filtros = useMemo(() => ({ texto, categoria, status, especial }), [texto, categoria, status, especial]);
+  const filtros: Filtros = useMemo(() => ({ texto, categoria, status, especial, tags }), [texto, categoria, status, especial, tags]);
   const selecao = useSelecao();
   const acoesTarefa = useAcoesTarefa();
   const { visoes } = useVisoesSalvas();
@@ -172,7 +178,7 @@ function Tarefas() {
     setOrdem(v.ordem);
     setVisao(v.visao);
     setStatusPref(v.status);
-    mudarUrl({ status: null, cat: v.categoria || null, f: v.especial || null, v: null });
+    mudarUrl({ status: null, cat: v.categoria || null, f: v.especial || null, tag: v.tags.length ? v.tags : null, v: null });
   };
   // /tarefas?v=<id> (vindo da paleta) abre a visão
   const pV = parametros.get("v");
@@ -238,7 +244,7 @@ function Tarefas() {
     return () => window.removeEventListener("keydown", tecla);
   }, [noQuadro, visao, selecao, acoesTarefa]);
   const mostradas = noQuadro ? quadro.visiveis.length : lista.length;
-  const temFiltro = !!texto.trim() || !!categoria || !!especial || status !== "abertas";
+  const temFiltro = !!texto.trim() || !!categoria || !!especial || tags.length > 0 || status !== "abertas";
 
   function escolherStatus(v: string) {
     if (!ehFiltroStatus(v)) return;
@@ -248,7 +254,7 @@ function Tarefas() {
   function limparFiltros() {
     setTexto("");
     if (statusGravado !== "abertas") setStatusPref("abertas");
-    mudarUrl({ status: null, cat: null, f: null });
+    mudarUrl({ status: null, cat: null, f: null, tag: null });
   }
   const alternarEspecial = (e: Exclude<Especial, "">) => mudarUrl({ f: especial === e ? null : e, status: null });
 
@@ -282,6 +288,8 @@ function Tarefas() {
     return ops;
   }, [cats, tarefas, categoria]);
 
+  const opcoesDeTag = useMemo(() => tagsEmUso(tarefas), [tarefas]);
+
   const opcoesDeStatus = useMemo(() => {
     const ops: Opcao[] = [
       { valor: "abertas", rotulo: <><CircleDashed className="size-3.5 shrink-0 text-muted-foreground" /> Só abertas</> },
@@ -307,6 +315,12 @@ function Tarefas() {
           <span className="truncate">{catAtual?.nome ?? "Sem categoria"}</span>
         </ChipFiltro>
       )}
+      {tags.map((t) => (
+        <ChipFiltro key={`tag:${t.toLowerCase()}`} nome={`tag ${t}`} aoRemover={() => mudarTags(tags.filter((x) => x !== t))}>
+          <Tag className="size-3.5 text-muted-foreground" />
+          <span className="truncate">{t}</span>
+        </ChipFiltro>
+      ))}
       {statusDaUrl && !especial && (
         <ChipFiltro key="status" nome={rotuloStatus(statusDaUrl)} aoRemover={() => mudarUrl({ status: null })}>
           {statusDaUrl === "abertas" || statusDaUrl === "todas" ? <CircleDashed className="size-3.5 text-muted-foreground" /> : <IconeStatus status={statusDaUrl} />}
@@ -315,7 +329,7 @@ function Tarefas() {
       )}
     </AnimatePresence>
   );
-  const temChips = !!especial || !!categoria || (!!statusDaUrl && !especial);
+  const temChips = !!especial || !!categoria || tags.length > 0 || (!!statusDaUrl && !especial);
 
   const barra = (
     <div className="@container basis-full">
@@ -360,6 +374,8 @@ function Tarefas() {
         className="w-[172px] text-foreground"
       />
 
+      <FiltroDeTags valor={tags} aoMudar={mudarTags} opcoes={opcoesDeTag} />
+
       <Seletor
         valor={especial ? "__especial" : status}
         aoMudar={escolherStatus}
@@ -386,7 +402,7 @@ function Tarefas() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <MenuVisoes atual={{ texto, categoria, status, especial, ordem, visao }} aoAplicar={aplicarVisao} />
+      <MenuVisoes atual={{ texto, categoria, status, especial, ordem, visao, tags }} aoAplicar={aplicarVisao} />
 
       <div className="ml-auto flex items-center gap-2">
         <span data-slot="contador-tarefas" aria-live="polite" className="px-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums sem-selecao">

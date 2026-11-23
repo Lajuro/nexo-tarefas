@@ -1,6 +1,6 @@
 "use client";
 
-// Coluna lateral da página da tarefa: pendências, links e documentos (Referencias.tsx), pessoas, último panorama e um resumo em números.
+// Coluna lateral da página da tarefa: pendências, checklist (Checklist.tsx), links e documentos (Referencias.tsx), pessoas, último panorama e um resumo em números.
 
 import { ReactNode, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -18,6 +18,7 @@ import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
 import { Tarefa, diasAte, dataCurta, passosAbertos } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
+import { PainelChecklist } from "./Checklist";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
 import { PainelCitacoes } from "@/components/Citacoes";
@@ -249,6 +250,7 @@ export function Lateral({
   return (
     <motion.div data-slot="lateral" variants={lista} initial="escondido" animate="visivel" className={className}>
       <Bloco slot="pendencias-tarefa"><Pendencias tarefa={tarefa} aoIrPara={aoIrPara} /></Bloco>
+      <Bloco slot="checklist-tarefa"><PainelChecklist tarefa={tarefa} /></Bloco>
       <Bloco slot="dependencias"><PainelDependencias tarefa={tarefa} /></Bloco>
       <Bloco slot="links-tarefa"><PainelReferencias tarefa={tarefa} /></Bloco>
       <Pessoas tarefa={tarefa} />

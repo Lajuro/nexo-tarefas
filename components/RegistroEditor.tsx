@@ -2,10 +2,12 @@
 
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown, ClipboardPaste, History, ListChecks, PencilLine, RefreshCw, Undo2, WandSparkles, X } from "lucide-react";
+import { ChevronDown, ClipboardPaste, History, ListChecks, Mail, PencilLine, RefreshCw, Undo2, WandSparkles, X } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useConfirmar } from "./Raiz";
 import { Campo, ChipsInput, IconeTipo, LinhaCampos, Modal, SeletorPrioridade, copiarTexto, opcoesStatus } from "./comum";
+import { SemCadastro } from "./pessoas/SemCadastro";
+import { ColarEmail } from "./tarefa/ColarEmail";
 import { BlocoCopilot, IconeCopiar, PassoCopilot, useCopiado } from "./tarefa/Copilot";
 import { Button } from "@/components/ui/button";
 import { EditorRico } from "@/components/editor/EditorRico";
@@ -18,6 +20,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger, Kbd } from "@/comp
 import { Dica } from "@/components/ui/popover";
 import { aplicarStatus } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
+import { type EmailLido, comEmailNoRegistro } from "@/lib/email";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import { Rascunho, apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
@@ -115,6 +118,7 @@ export function RegistroEditor({
   const [verCampos, setVerCampos] = useState(false);
   const [verAnteriores, setVerAnteriores] = useState(false);
   const [verAtualizar, setVerAtualizar] = useState(false);
+  const [colandoEmail, setColandoEmail] = useState(false);
   const campoResumo = useRef<HTMLTextAreaElement>(null);
   const [copiado, marcarCopiado] = useCopiado();
   const inicial = useRef("");
@@ -323,6 +327,12 @@ export function RegistroEditor({
     }
   }
 
+  /** O e-mail colado entra no registro: título e data só se estavam vazios, participantes somados, texto no fim das anotações. */
+  function trazerEmail(email: EmailLido) {
+    setR((x) => comEmailNoRegistro(x, email, { novo: !registro, cadastro: dados?.pessoas?.items ?? [] }));
+    toast(email.reconheceu ? "E-mail trazido para o registro. Confira o título, a data e os participantes." : "Texto trazido para as anotações.", "info");
+  }
+
   const perguntarDescarte = () =>
     confirmar({
       titulo: "Descartar o que você escreveu?",
@@ -456,8 +466,19 @@ export function RegistroEditor({
             <Realce ativo={noRealce("participantes")}>
               <ChipsInput valor={r.participantes} mudar={(v) => set("participantes", v)} sugestoes={pessoas} placeholder="Nomes" />
             </Realce>
+            {/* quem ainda não está no cadastro de pessoas entra com um clique, sem sair do registro (3.17) */}
+            <SemCadastro nomes={r.participantes} />
           </Campo>
-          <Campo rotulo="Anotações brutas" dica="Escreva do seu jeito, rápido. A IA organiza depois. Dá para colar prints (Ctrl V) e usar / para listas, tarefas e tabelas.">
+          <Campo
+            rotulo="Anotações brutas"
+            dica="Escreva do seu jeito, rápido. A IA organiza depois. Dá para colar prints (Ctrl V) e usar / para listas, tarefas e tabelas."
+            lado={
+              // o e-mail colado preenche título, data e participantes e vai para o fim das anotações (3.17)
+              <Button variant="ghost" size="sm" data-slot="colar-email-botao" className="-my-1 h-6 px-1.5 text-xs text-muted-foreground" onClick={() => setColandoEmail(true)}>
+                <Mail /> Colar e-mail
+              </Button>
+            }
+          >
             <EditorRico
               data-slot="anotacoes"
               valor={r.anotacoes}
@@ -672,6 +693,7 @@ export function RegistroEditor({
           </Recolhivel>
         </div>
       </div>
+      <ColarEmail aberto={colandoEmail} fechar={() => setColandoEmail(false)} aoTrazer={trazerEmail} />
     </Modal>
   );
 }

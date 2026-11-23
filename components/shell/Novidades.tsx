@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.16";
+export const VERSAO_NOVIDADES = "3.17";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,14 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.17", icone: ListChecks, titulo: "Checklist na tarefa, e-mail colado, filtro por tag e importação", texto: "A tarefa ganhou um checklist próprio, com o progresso no cartão. No registro, o botão Colar e-mail lê o cabeçalho do Outlook e preenche título, data e participantes. Quem ainda não está no cadastro de pessoas entra com um clique, direto do campo de participantes. As listas de tarefas e de páginas filtram por tag. E um arquivo exportado pode voltar para o app, em Configurações, sem apagar nada do que já está aqui.", href: "/tarefas", rotulo: "Abrir as tarefas",
+    pontos: [
+      "Checklist da tarefa: na página da tarefa, abaixo de Pendências. Enter adiciona, e colar uma lista de várias linhas cria um item por linha. O cartão da tarefa mostra quantos já foram feitos.",
+      "Colar e-mail: no registro, ao lado de \"Anotações brutas\". Copie o e-mail no Outlook com o cabeçalho (De, Enviada em, Para, Assunto). O assunto vira título, a data vira a data do registro, as pessoas viram participantes e o texto vai para as anotações.",
+      "Participante sem cadastro: embaixo do campo aparece \"Sem cadastro\" com os nomes. Um clique põe a pessoa no cadastro, sem sair do registro. Vale também no modo reunião.",
+      "Filtro por tag: o botão Tags nas listas de tarefas e de páginas. Escolha uma ou mais; a lista mostra só o que tem todas. Na aba Tags, \"Ver na lista\" abre a lista já filtrada.",
+      "Importar um export: em Configurações, \"Importar um export...\" mostra o que entra e o que está diferente antes de gravar. Nada daqui é apagado, e antes de gravar o app guarda uma foto do estado de agora.",
+    ] },
   { versao: "3.16", icone: Tags, titulo: "Criar sem sair de onde está, e um lugar para as tags", texto: "Onde se escolhe uma categoria agora dá para criar a que falta, digitando o nome ali mesmo (na tarefa, no link, na página, no modelo, na pessoa, no time e nas ações em lote). O mesmo vale para a tarefa nos seletores de tarefa. A setinha ao lado de Nova tarefa e a paleta criam categoria, página, folha, link, pessoa, time e modelo de qualquer tela. As tags ganharam uma tela (aba Tags, em Categorias) para ver todas, renomear, juntar as repetidas e tirar as que não servem mais, e todo campo de tag passou a sugerir as tags do app inteiro.", href: "/categorias?aba=tags", rotulo: "Abrir as tags",
     pontos: [
       "Categoria que ainda não existe: digite o nome onde você escolhe a categoria e clique em Criar. Vale na tarefa, no link, na página, no modelo, na pessoa, no time e nas ações em lote.",
@@ -133,7 +141,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Agora dá para criar categoria, tarefa, página e link sem sair de onde você está, e as tags ganharam uma tela para renomear e juntar.",
+          description: "A tarefa ganhou um checklist próprio, o registro aceita um e-mail colado, as listas filtram por tag e um arquivo exportado pode voltar para o app.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

@@ -2,6 +2,7 @@
 //   atualizarTarefa(t.id, (x) => comFoco(x, true))
 // Assim toda tela muda a tarefa do mesmo jeito (e os marcos da timeline nunca são esquecidos).
 
+import { comChecklistRecebido } from "./checklist";
 import { type Registro, type Status, type Tarefa, agoraISO, formatarData, hojeISO, nomeStatus, normalizarRegistro, normalizarTarefa, novoId } from "./tipos";
 
 /** Muda o status e registra um marco na timeline (o marco de "concluida" é o card verde do fim). */
@@ -202,7 +203,7 @@ export function semRegistroMovido(t: Tarefa, registroId: string): Tarefa {
 
 /**
  * Junta `origem` dentro de `destino`: os registros (menos os marcos, que contam a história da
- * outra tarefa) e as tags vêm para cá, e um marco registra a junção com a descrição que a outra
+ * outra tarefa), as tags e os itens do checklist vêm para cá, e um marco registra a junção com a descrição que a outra
  * tinha. Prazo e follow-up só são herdados se o destino não tiver os seus.
  * Pode rodar duas vezes sem duplicar nada (o marco tem id fixo).
  */
@@ -222,6 +223,8 @@ export function comTarefaJuntada(destino: Tarefa, origem: Tarefa): Tarefa {
     ...destino,
     registros: [...destino.registros, ...vindos, ...marco],
     tags: [...new Set([...destino.tags, ...origem.tags])],
+    // o checklist da outra vem para o fim do daqui (3.17)
+    checklist: comChecklistRecebido(destino, origem),
     prazo: destino.prazo ?? origem.prazo,
     lembrarEm: destino.lembrarEm ?? origem.lembrarEm ?? null,
   };

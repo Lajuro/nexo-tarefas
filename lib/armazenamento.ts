@@ -7,6 +7,10 @@ import {
   agoraISO, hojeISO, slugify, normalizarCategoria, normalizarItemDaJornada, normalizarLink, normalizarModelo, normalizarNota, normalizarPagina, normalizarPessoa, normalizarTarefa,
   normalizarAssunto, normalizarTime,
 } from "./tipos";
+import {
+  type ArquivoExportado, type DadosDaqui, type GrupoDaPrevia, type ModoDeImportacao, type ResumoDoGrupo,
+  colecaoComPlano, gruposTravados, lerExportacao, planoDaImportacao, previaDaImportacao, resumoDaPrevia,
+} from "./importar-dados";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
 import { tarefaParaMarkdown } from "./markdown";
 
@@ -27,7 +31,7 @@ import { tarefaParaMarkdown } from "./markdown";
   arquivos/AAAA/...      -> documentos anexados (nunca são sobrescritos)
   markdown/*.md          -> espelho legível das tarefas (gerado, pode apagar)
   _backups/AAAA-MM-DD/   -> foto diária dos JSON (mantém as últimas 45)
-  _backups/pre-migracao-xx e manual-xx -> nunca são apagadas automaticamente
+  _backups/pre-migracao-xx, pre-restauracao-xx, pre-importacao-xx e manual-xx -> nunca são apagadas automaticamente
   _lixeira/              -> nada é apagado de verdade, vem pra cá
 
   O código do app NUNCA fica nessa pasta, e a configuração (qual pasta usar)
@@ -509,7 +513,7 @@ async function escreverMarkdown(dir: string, t: Tarefa) {
 // ---------- restaurar um backup ----------
 
 /** Nomes de pasta que o app cria em _backups. Qualquer outra coisa não é restaurada por aqui. */
-const NOME_DE_BACKUP = /^(\d{4}-\d{2}-\d{2}|(manual|pre-migracao|pre-restauracao)-[a-zA-Z0-9-]{1,80})$/;
+const NOME_DE_BACKUP = /^(\d{4}-\d{2}-\d{2}|(manual|pre-migracao|pre-restauracao|pre-importacao)-[a-zA-Z0-9-]{1,80})$/;
 
 async function pastaDoBackup(dir: string, nome: string): Promise<string> {
   if (typeof nome !== "string" || !NOME_DE_BACKUP.test(nome)) throw new Error("Nome de backup inválido.");
@@ -690,6 +694,148 @@ export async function restaurarBackup(nome: string) {
   if (backup.colecoes.has("paginas")) await espelharPaginas(backup.colecoes.get("paginas")!.items.map((p) => normalizarPagina(p as Partial<Pagina>)));
 
   return { backup: nome, foto, tarefas: restauradas.length, paraLixeira: paraLixeira.length, colecoes: colecoesRestauradas };
+}
+
+// ---------- importar um arquivo exportado (nexo-export-*.json) ----------
+
+/** O que está na pasta hoje, como está no disco, para comparar com o arquivo. Coleção ilegível vem como null. */
+async function lerDaqui(dir: string): Promise<DadosDaqui> {
+  const tarefas: Record<string, unknown>[] = [];
+  const pastaTarefas = path.join(dir, "tarefas");
+  for (const nome of (await fs.readdir(pastaTarefas)).filter((n) => n.endsWith(".json")).sort()) {
+    const id = nome.replace(/\.json$/, "");
+    try {
+      const t = await lerJson<Record<string, unknown> | null>(path.join(pastaTarefas, nome), null);
+      // cópia de conflito do OneDrive ("t1-NOMEDOPC.json") não é a tarefa: vale o arquivo com o nome certo
+      if (t && typeof t.id === "string" && nome === `${t.id}.json`) tarefas.push(t);
+    } catch {
+      // arquivo de tarefa ilegível: conta como "está aqui e é diferente", para só ser trocado se o usuário escolher
+      if (ID_VALIDO.test(id)) tarefas.push({ id, ilegivel: true });
+    }
+  }
+  const aqui = { tarefas } as DadosDaqui;
+  for (const c of COLECOES) {
+    try {
+      const col = await lerJson<Colecao<Record<string, unknown>> | null>(path.join(dir, `${c}.json`), null);
+      aqui[c] = col && Array.isArray(col.items) ? col.items : [];
+    } catch {
+      aqui[c] = null;
+    }
+  }
+  return aqui;
+}
+
+/** Dá para importar este arquivo com esta versão do app? Devolve o motivo quando não dá. */
+function porQueNaoImporta(arquivo: ArquivoExportado, previa: GrupoDaPrevia[]): string | null {
+  if (arquivo.schema !== null && arquivo.schema > SCHEMA_APP) return "Este arquivo foi exportado por uma versão mais nova do Nexo. Atualize o app antes de importar.";
+  if (arquivo.schema !== null && arquivo.schema < SCHEMA_APP) return "Este arquivo é de um formato de dados mais antigo. Abra os dados originais com esta versão do Nexo e exporte de novo.";
+  const travados = gruposTravados(previa);
+  if (travados.length) return `Nesta pasta, ${travados.map((g) => `${g}.json`).join(", ")} não ${travados.length === 1 ? "pôde ser lido" : "puderam ser lidos"}. Restaure um backup antes de importar.`;
+  return null;
+}
+
+/** Quantos anexos os links do arquivo citam e não estão na pasta arquivos/ (o export não leva os anexos). */
+async function anexosQueFaltam(dir: string, arquivo: ArquivoExportado): Promise<number> {
+  const base = path.resolve(dir, "arquivos");
+  let faltam = 0;
+  for (const l of arquivo.grupos.links.slice(0, 20_000)) {
+    const rel = typeof l.arquivo === "string" ? l.arquivo : "";
+    if (!rel) continue;
+    const alvo = path.resolve(base, rel);
+    if (!alvo.startsWith(base + path.sep) || !existsSync(alvo)) faltam++;
+  }
+  return faltam;
+}
+
+export interface PreviaDeImportar {
+  exportadoEm: string | null;
+  schema: number | null;
+  importavel: boolean;
+  motivo: string | null;
+  /** Itens do arquivo deixados de fora por não terem um id que sirva. */
+  ignorados: number;
+  grupos: ResumoDoGrupo[];
+  anexosQueFaltam: number;
+}
+
+/** O que mudaria se este arquivo fosse importado. Só lê. */
+export async function previaDeImportar(texto: string): Promise<PreviaDeImportar> {
+  const { dir } = await pastaPronta();
+  const arquivo = lerExportacao(texto);
+  const previa = previaDaImportacao(arquivo, await lerDaqui(dir));
+  const motivo = porQueNaoImporta(arquivo, previa);
+  return {
+    exportadoEm: arquivo.exportadoEm,
+    schema: arquivo.schema,
+    importavel: !motivo,
+    motivo,
+    ignorados: arquivo.ignorados,
+    grupos: resumoDaPrevia(previa),
+    anexosQueFaltam: await anexosQueFaltam(dir, arquivo),
+  };
+}
+
+/**
+ * Traz para a pasta o que está num arquivo exportado.
+ * - Importar soma: o que não existe aqui entra; nada daqui é apagado nem vai para a lixeira.
+ * - Mesmo id nos dois lados com conteúdo diferente: o `modo` decide (manter o daqui, o mais recente, ou o do arquivo).
+ * - O arquivo é lido e conferido inteiro antes da primeira escrita, e antes dela o estado de agora vai para
+ *   _backups/pre-importacao-<carimbo> (nunca é podado): importar também tem volta, por "Restaurar".
+ * - A revisão do que é gravado sobe além da atual, para uma aba aberta com dados velhos receber 409.
+ * - Anexos (arquivos/) não fazem parte do export: os links continuam apontando para o caminho de sempre.
+ */
+export async function importarExportacao(texto: string, modo: ModoDeImportacao) {
+  const dir = await paraEscrita();
+  const arquivo = lerExportacao(texto);
+  const aqui = await lerDaqui(dir);
+  const motivo = porQueNaoImporta(arquivo, previaDaImportacao(arquivo, aqui));
+  if (motivo) throw new Error(motivo);
+
+  const plano = planoDaImportacao(arquivo, aqui, modo);
+  const entraram = plano.reduce((n, p) => n + p.entram.length, 0);
+  const trocados = plano.reduce((n, p) => n + p.trocam.length, 0);
+  const mantidos = plano.reduce((n, p) => n + p.mantidos, 0);
+  if (!entraram && !trocados) return { foto: null, entraram, trocados, mantidos, ignorados: arquivo.ignorados };
+
+  // snapshot() não copia de novo se a pasta já existe: duas importações no mesmo segundo ganhariam a mesma foto,
+  // e a segunda ficaria sem a volta dela. Por isso o nome é sempre de uma pasta que ainda não existe.
+  let nomeDaFoto = `pre-importacao-${carimbo()}`;
+  for (let n = 2; existsSync(path.join(dir, "_backups", nomeDaFoto)); n++) nomeDaFoto = `pre-importacao-${carimbo()}-${n}`;
+  const foto = path.basename(await snapshot(dir, nomeDaFoto));
+  const revDe = async (arq: string) => {
+    try {
+      return Number((await lerJson<{ rev?: unknown } | null>(arq, null))?.rev) || 0;
+    } catch {
+      return 0; // ilegível hoje: o usuário escolheu trocar pelo do arquivo, e o que estava aqui ficou na foto
+    }
+  };
+
+  const gravadas: Tarefa[] = [];
+  let paginasMudaram = false;
+  for (const p of plano) {
+    if (!p.entram.length && !p.trocam.length) continue;
+    if (p.grupo === "tarefas") {
+      for (const bruta of [...p.entram, ...p.trocam]) {
+        const arq = path.join(dir, "tarefas", `${bruta.id as string}.json`);
+        const t = normalizarTarefa({ ...bruta, rev: Math.max(Number(bruta.rev) || 0, await revDe(arq)) + 1 } as Partial<Tarefa>);
+        await escreverAtomico(arq, json(t));
+        gravadas.push(t);
+      }
+      continue;
+    }
+    const arq = path.join(dir, `${p.grupo}.json`);
+    const atual = await lerJson<Colecao<Record<string, unknown>>>(arq, { rev: 0, items: [] });
+    const items = colecaoComPlano(Array.isArray(atual.items) ? atual.items : [], p);
+    await escreverAtomico(arq, json({ ...atual, rev: (Number(atual.rev) || 0) + 1, items }));
+    if (p.grupo === "paginas") {
+      paginasMudaram = true;
+      await espelharPaginas(items.map((x) => normalizarPagina(x as Partial<Pagina>)));
+    }
+  }
+
+  // espelhos em Markdown (conveniência: falha aqui não desfaz nada)
+  for (const t of gravadas) await escreverMarkdown(dir, t).catch(() => {});
+  return { foto, entraram, trocados, mantidos, ignorados: arquivo.ignorados, paginas: paginasMudaram };
 }
 
 // ---------- verificação de integridade (só leitura) ----------

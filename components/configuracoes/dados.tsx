@@ -4,7 +4,7 @@
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  ArchiveRestore, ChevronRight, CircleAlert, CircleCheckBig, Copy, DatabaseBackup, Download, FileJson, FileText, FolderOpen, History, Info, LoaderCircle,
+  ArchiveRestore, ChevronRight, CircleAlert, CircleCheckBig, Copy, DatabaseBackup, Download, FileJson, FileText, FileUp, FolderOpen, History, Info, LoaderCircle,
   Lock, RefreshCw, RotateCcw, ShieldCheck, Stethoscope, Trash2, TriangleAlert,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
@@ -13,10 +13,13 @@ import { Campo, Contador, Modal, NumeroAnimado, Painel, copiarTexto, formatarTam
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger, Table, TBody, Td, Th, THead, Tr } from "@/components/ui/diversos";
-import type { PreviaDoBackup } from "@/lib/armazenamento";
+import { AreaArquivo } from "@/components/ui/chips";
+import { Segmentado } from "@/components/ui/controles";
+import type { PreviaDeImportar, PreviaDoBackup } from "@/lib/armazenamento";
+import { type GrupoImportavel, MAX_BYTES_DA_IMPORTACAO, type ModoDeImportacao, trocasNoResumo } from "@/lib/importar-dados";
 import type { Achado, Verificacao } from "@/lib/integridade";
 import { dataRelativa } from "@/lib/lembretes";
-import { dataCurta } from "@/lib/tipos";
+import { dataCurta, formatarDataHora } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 export type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
@@ -151,6 +154,11 @@ const GARANTIAS: { icone: ReactNode; titulo: string; texto: ReactNode }[] = [
     texto: <>Qualquer backup da lista abaixo pode ser restaurado pelo app, com prévia do que muda. Antes, o estado de agora é guardado em <code>_backups/pre-restauracao-*</code>.</>,
   },
   {
+    icone: <FileUp />,
+    titulo: "Importar soma, não apaga",
+    texto: <>Um arquivo exportado pode voltar para o app: o que falta entra, o que já está aqui fica, e você escolhe o que fazer com o que está diferente. Antes, o estado de agora vai para <code>_backups/pre-importacao-*</code>.</>,
+  },
+  {
     icone: <Trash2 />,
     titulo: "Nada é apagado de verdade",
     texto: <>Tarefas e itens removidos vão para <code>_lixeira</code>. Registros removidos ficam guardados dentro da própria tarefa.</>,
@@ -169,6 +177,7 @@ function tipoBackup(nome: string): { rotulo: string; variante: "secondary" | "in
   if (nome.startsWith("manual-")) return { rotulo: "manual", variante: "info" };
   if (nome.startsWith("pre-migracao-")) return { rotulo: "antes de migração", variante: "alerta" };
   if (nome.startsWith("pre-restauracao-")) return { rotulo: "antes de restaurar", variante: "alerta" };
+  if (nome.startsWith("pre-importacao-")) return { rotulo: "antes de importar", variante: "alerta" };
   return { rotulo: "diário", variante: "secondary" };
 }
 
@@ -179,7 +188,7 @@ async function pedir<T>(url: string, init?: RequestInit): Promise<T> {
   return j as T;
 }
 
-const NOME_COLECAO: Record<string, string> = { categorias: "Categorias", links: "Links e docs", pessoas: "Pessoas", times: "Times", notas: "Folhas do bloco de notas", modelos: "Modelos de tarefa", paginas: "Páginas", jornada: "Rotina e ponto (dias)" };
+const NOME_COLECAO: Record<string, string> = { categorias: "Categorias", links: "Links e docs", pessoas: "Pessoas", times: "Times", notas: "Folhas do bloco de notas", modelos: "Modelos de tarefa", paginas: "Páginas", jornada: "Rotina e ponto (dias)", assuntos: "Assuntos para falar" };
 
 /** Janela que mostra o que muda antes de restaurar um backup. Só restaura com a confirmação. */
 function RestaurarBackup({ nome, fechar, aoRestaurar }: { nome: string | null; fechar: () => void; aoRestaurar: () => void }) {
@@ -279,6 +288,182 @@ function RestaurarBackup({ nome, fechar, aoRestaurar }: { nome: string | null; f
   );
 }
 
+const NOME_DO_GRUPO: Record<GrupoImportavel, string> = {
+  tarefas: "Tarefas", categorias: "Categorias", links: "Links e docs", pessoas: "Pessoas", times: "Times", notas: "Folhas do bloco de notas",
+  modelos: "Modelos de tarefa", paginas: "Páginas", jornada: "Rotina e ponto (dias)", assuntos: "Assuntos para falar",
+};
+
+const MODOS: { valor: ModoDeImportacao; rotulo: string; explica: (trocam: number, ficam: number) => string }[] = [
+  { valor: "manter", rotulo: "Manter o daqui", explica: (_t, ficam) => `${plural(ficam, "item diferente fica", "itens diferentes ficam")} como está aqui. O arquivo só acrescenta o que falta.` },
+  { valor: "recente", rotulo: "O mais recente", explica: (trocam, ficam) => `Em cada item diferente fica o lado mexido por último: ${plural(trocam, "é trocado", "são trocados")} pelo do arquivo e ${plural(ficam, "fica", "ficam")} como está aqui.` },
+  { valor: "arquivo", rotulo: "O do arquivo", explica: (trocam) => `${plural(trocam, "item daqui é trocado", "itens daqui são trocados")} pelo que está no arquivo.` },
+];
+
+function plural(n: number, um: string, varios: string) {
+  return `${n} ${n === 1 ? um : varios}`;
+}
+
+/**
+ * Janela de importar um nexo-export-*.json (3.17). Mostra o que entra e o que conflita antes de qualquer gravação.
+ * Importar soma: nada do que está na pasta é apagado. Só importa com a confirmação.
+ */
+function ImportarExportacao({ aberto, fechar, aoImportar }: { aberto: boolean; fechar: () => void; aoImportar: () => void }) {
+  const { recarregar, toast, estado } = useNexo();
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [texto, setTexto] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<PreviaDeImportar | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [modo, setModo] = useState<ModoDeImportacao>("manter");
+  const [importando, setImportando] = useState(false);
+
+  useEffect(() => {
+    if (!aberto) return;
+    setArquivo(null);
+    setTexto(null);
+    setPrevia(null);
+    setErro(null);
+    setModo("manter");
+    setImportando(false);
+  }, [aberto]);
+
+  const escolher = async (f: File | null) => {
+    setArquivo(f);
+    setTexto(null);
+    setPrevia(null);
+    setErro(null);
+    setModo("manter");
+    if (!f) return;
+    try {
+      if (f.size > MAX_BYTES_DA_IMPORTACAO) throw new Error("O arquivo é grande demais para ser um export do Nexo.");
+      const lido = await f.text();
+      const r = await pedir<{ previa: PreviaDeImportar }>("/api/importar", { method: "POST", headers: { "Content-Type": "text/plain; charset=utf-8" }, body: lido });
+      setTexto(lido);
+      setPrevia(r.previa);
+    } catch (e) {
+      setErro((e as Error).message);
+    }
+  };
+
+  const grupos = previa?.grupos.filter((g) => g.noArquivo > 0) ?? [];
+  const comMudanca = grupos.filter((g) => g.entram > 0 || g.conflitos > 0 || g.ilegivelAqui);
+  const semMudanca = grupos.filter((g) => !comMudanca.includes(g));
+  const entram = grupos.reduce((n, g) => n + g.entram, 0);
+  const conflitos = grupos.reduce((n, g) => n + g.conflitos, 0);
+  const trocam = grupos.reduce((n, g) => n + trocasNoResumo(g, modo), 0);
+  const nadaAFazer = !!previa && entram + trocam === 0;
+  const escolhido = MODOS.find((m) => m.valor === modo)!;
+
+  const importar = async () => {
+    if (!texto || !previa?.importavel || importando || nadaAFazer) return;
+    setImportando(true);
+    try {
+      const r = await pedir<{ foto: string | null; entraram: number; trocados: number }>(`/api/importar?aplicar=1&modo=${modo}`, {
+        method: "POST", headers: { "Content-Type": "text/plain; charset=utf-8" }, body: texto,
+      });
+      await recarregar();
+      toast(
+        `Importado: ${plural(r.entraram, "item novo", "itens novos")}${r.trocados ? ` e ${plural(r.trocados, "trocado", "trocados")}` : ""}.` +
+          (r.foto ? ` O estado anterior ficou guardado em _backups/${r.foto}.` : ""),
+      );
+      aoImportar();
+      fechar();
+    } catch (e) {
+      toast((e as Error).message, "erro");
+    }
+    setImportando(false);
+  };
+
+  const exemplos = (titulo: string, itens: string[], total: number) =>
+    itens.length > 0 && (
+      <div>
+        <p className="text-[13px] font-medium">{titulo}</p>
+        <ul className="mt-1 list-disc pl-5 text-xs leading-relaxed text-muted-foreground">
+          {itens.map((t, i) => <li key={i} className="truncate">{t}</li>)}
+          {total > itens.length && <li>e mais {total - itens.length}</li>}
+        </ul>
+      </div>
+    );
+  const tarefas = grupos.find((g) => g.grupo === "tarefas");
+
+  return (
+    <Modal
+      titulo="Importar um arquivo exportado"
+      descricao={<>Traz de volta o que está num <code className="font-mono text-xs">nexo-export-*.json</code>. O que já está aqui não é apagado.</>}
+      aberto={aberto}
+      fechar={() => !importando && fechar()}
+      rodape={
+        <>
+          <Button variant="outline" disabled={importando} onClick={fechar}>Cancelar</Button>
+          <Button data-slot="confirmar-importacao" disabled={!previa?.importavel || nadaAFazer || importando || !!estado?.somenteLeitura} onClick={importar}>
+            {importando ? <LoaderCircle className="animate-spin" /> : <FileUp />} Importar
+          </Button>
+        </>
+      }
+    >
+      <div data-slot="importar-exportacao" className="flex flex-col gap-3">
+        <AreaArquivo arquivo={arquivo} aoMudar={(f) => void escolher(f)} className={previa ? "py-3" : undefined} />
+        {erro && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-[13px] leading-snug text-destructive">{erro}</p>}
+        {arquivo && !previa && !erro && (
+          <p className="flex items-center gap-2 text-[13px] text-muted-foreground"><LoaderCircle className="size-4 animate-spin" /> Conferindo o arquivo...</p>
+        )}
+        {previa && (
+          <div data-slot="previa-importacao" data-entram={entram} data-conflitos={conflitos} className="flex flex-col gap-3">
+            {!previa.importavel && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-[13px] leading-snug text-destructive">{previa.motivo}</p>}
+            <p className="text-[13px] leading-relaxed">
+              {previa.exportadoEm ? <>Exportado em <strong className="tabular-nums">{formatarDataHora(previa.exportadoEm)}</strong>. </> : null}
+              {nadaAFazer && !conflitos
+                ? "Tudo o que está no arquivo já está aqui, igual: não há o que importar."
+                : <>{plural(entram, "item novo entra", "itens novos entram")}{conflitos > 0 && <> e {plural(conflitos, "já existe aqui com conteúdo diferente", "já existem aqui com conteúdo diferente")}</>}.</>}
+            </p>
+            {/* a tabela mostra só o que muda; o que veio igual vira uma linha de texto, para a janela caber na tela */}
+            {comMudanca.length > 0 && (
+              <Table>
+                <THead><Tr><Th>O quê</Th><Th className="text-right">No arquivo</Th><Th className="text-right">Entram</Th><Th className="text-right">Diferentes</Th><Th className="text-right">Iguais</Th></Tr></THead>
+                <TBody>
+                  {comMudanca.map((g) => (
+                    <Tr key={g.grupo} data-slot="grupo-da-importacao" data-grupo={g.grupo}>
+                      <Td>{NOME_DO_GRUPO[g.grupo]}{g.ilegivelAqui && <span className="ml-1.5 text-xs text-destructive">ilegível aqui</span>}</Td>
+                      <Td className="text-right tabular-nums">{g.noArquivo}</Td>
+                      <Td className={cn("text-right tabular-nums", g.entram ? "font-medium text-sucesso" : "text-muted-foreground")}>{g.entram}</Td>
+                      <Td className={cn("text-right tabular-nums", g.conflitos ? "font-medium text-alerta" : "text-muted-foreground")}>{g.conflitos}</Td>
+                      <Td className="text-right text-muted-foreground tabular-nums">{g.iguais}</Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            )}
+            {semMudanca.length > 0 && comMudanca.length > 0 && (
+              <p data-slot="grupos-iguais" className="text-xs leading-relaxed text-muted-foreground">
+                Já estão aqui, iguais: {semMudanca.map((g) => `${NOME_DO_GRUPO[g.grupo].toLowerCase()} (${g.noArquivo})`).join(", ")}.
+              </p>
+            )}
+            {tarefas && exemplos(plural(tarefas.entram, "tarefa nova", "tarefas novas"), tarefas.exemplosDeEntrada, tarefas.entram)}
+            {tarefas && exemplos(plural(tarefas.conflitos, "tarefa diferente nos dois lados", "tarefas diferentes nos dois lados"), tarefas.exemplosDeConflito, tarefas.conflitos)}
+            {conflitos > 0 && (
+              <div data-slot="modo-da-importacao" className="flex flex-col gap-1.5 rounded-lg bg-muted/60 px-3 py-2.5">
+                <p className="text-[13px] font-medium">No que está diferente nos dois lados, o que fica?</p>
+                <Segmentado<ModoDeImportacao> aria-label="O que fica quando o item está diferente nos dois lados" tamanho="sm" valor={modo} aoMudar={setModo}
+                  opcoes={MODOS.map((m) => ({ valor: m.valor, rotulo: m.rotulo }))} />
+                <p role="status" className="text-xs leading-relaxed text-muted-foreground">{escolhido.explica(trocam, conflitos - trocam)}</p>
+              </div>
+            )}
+            {previa.ignorados > 0 && (
+              <p className="text-xs leading-relaxed text-alerta">{plural(previa.ignorados, "item do arquivo ficou de fora", "itens do arquivo ficaram de fora")} por não ter um identificador válido.</p>
+            )}
+            <p className="rounded-lg border bg-muted/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+              Importar tem volta: antes de gravar, o app tira uma foto do estado de agora em <code>_backups/pre-importacao-*</code>, que aparece na lista de backups.
+              {" "}Os anexos (pasta <code>arquivos</code>) não fazem parte do arquivo exportado
+              {previa.anexosQueFaltam > 0
+                ? <>: {plural(previa.anexosQueFaltam, "link do arquivo cita um anexo que não está", "links do arquivo citam anexos que não estão")} nesta pasta. Copie a pasta <code>arquivos</code> de onde o export veio.</>
+                : "."}
+            </p>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 export function PainelProtecao({
   backups: lista, aoFazerBackup, fazendo, aoRestaurar,
 }: {
@@ -293,6 +478,7 @@ export function PainelProtecao({
   const [aberto, setAberto] = useState(false);
   const [recarregando, setRecarregando] = useState(false);
   const [paraRestaurar, setParaRestaurar] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
 
   return (
     <Painel
@@ -336,6 +522,9 @@ export function PainelProtecao({
         <Button asChild variant="outline">
           <a href="/api/exportar" download><Download /> Exportar tudo (JSON)</a>
         </Button>
+        <Button variant="outline" data-slot="importar-export" onClick={() => setImportando(true)}>
+          <FileUp /> Importar um export...
+        </Button>
       </div>
 
       {backups && backups.length > 0 && (
@@ -375,6 +564,8 @@ export function PainelProtecao({
         </Collapsible>
       )}
       <RestaurarBackup nome={paraRestaurar} fechar={() => setParaRestaurar(null)} aoRestaurar={aoRestaurar} />
+      {/* depois de importar, a lista de backups ganha a foto "pre-importacao": aoRestaurar relê a lista */}
+      <ImportarExportacao aberto={importando} fechar={() => setImportando(false)} aoImportar={aoRestaurar} />
     </Painel>
   );
 }

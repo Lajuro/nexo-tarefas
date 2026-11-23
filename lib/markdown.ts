@@ -1,3 +1,4 @@
+import { checklistEmMarkdown } from "./checklist";
 import { type Tarefa, formatarData, nomeStatus, ordenarRegistros, tipoInfo } from "./tipos";
 
 /** No texto, a imagem anexada é "arquivos/AAAA/nome". O espelho mora em markdown/, então o caminho ganha "../". */
@@ -18,6 +19,7 @@ export function tarefaParaMarkdown(t: Tarefa, categoria?: string) {
   if (t.tags.length) L.push(`- **Tags:** ${t.tags.join(", ")}`);
   L.push(`- **Criada em:** ${formatarData(t.criadaEm)}`);
   if (t.descricao) L.push("", t.descricao);
+  if (t.checklist?.length) L.push("", "## Checklist", "", ...checklistEmMarkdown(t));
   if (t.panoramaIA?.texto) L.push("", `## Panorama (IA, ${formatarData(t.panoramaIA.geradoEm)})`, "", t.panoramaIA.texto);
   L.push("", "## Linha do tempo");
   for (const r of ordenarRegistros(t.registros)) {

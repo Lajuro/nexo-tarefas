@@ -12,6 +12,7 @@ import {
   UserRoundMinus, UserRoundPlus, UserRoundX, UsersRound, X,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
+import { LinkDaTag } from "@/components/tags/FiltroDeTags";
 import { PainelCitacoes } from "@/components/Citacoes";
 import { FaixaEspera } from "@/components/Esperando";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
@@ -289,7 +290,7 @@ function Sobre({ p, editar }: { p: Pessoa; editar: () => void }) {
           {p.tags.length > 0 && (
             <>
               <dt className="text-xs font-medium text-muted-foreground sem-selecao">Tags</dt>
-              <dd className="flex flex-wrap gap-1">{p.tags.map((t) => <Etiqueta key={t}>#{t}</Etiqueta>)}</dd>
+              <dd className="flex flex-wrap gap-1">{p.tags.map((t) => <LinkDaTag key={t} tag={t} cerquilha />)}</dd>
             </>
           )}
         </dl>

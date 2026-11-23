@@ -4,13 +4,14 @@
 // O cartão inteiro é um link para a tarefa; o botão direito e o "..." abrem o menu de ações.
 
 import Link from "next/link";
-import { AlarmClock, ListChecks, Target, Users, Link2 } from "lucide-react";
+import { AlarmClock, ListChecks, SquareCheckBig, Target, Users, Link2 } from "lucide-react";
 import { BotaoMenuTarefa, MenuContextoTarefa } from "./MenuTarefa";
 import { useNexo } from "./Provider";
 import { dependenciasDe } from "@/lib/dependencias";
 import { CatTag, IconeStatus, IconeTipo, PrazoTag, PrioBadge, StatusBadge } from "./comum";
 import { Dica } from "@/components/ui/popover";
 import { ehFocoHoje } from "@/lib/acoes";
+import { progressoDoChecklist } from "@/lib/checklist";
 import { dataRelativa } from "@/lib/lembretes";
 import { cn } from "@/lib/utils";
 import {
@@ -44,10 +45,20 @@ function Contadores({ t, aberta, curto }: { t: Tarefa; aberta: boolean; curto?: 
   const chegou = lembrar ? (diasAte(lembrar) ?? 1) <= 0 : false;
   const { dados } = useNexo();
   const esperando = aberta && t.dependeDe?.length ? dependenciasDe(t, dados?.tarefas ?? []).abertas : [];
-  if (!curto && aberta && !reunioes && !pend && !lembrar && !esperando.length)
+  // checklist próprio da tarefa (3.17): "3/5", verde quando tudo foi feito
+  const lista = progressoDoChecklist(t);
+  if (!curto && aberta && !reunioes && !pend && !lembrar && !esperando.length && !lista.total)
     return <span className="text-muted-foreground">Sem passos em aberto</span>;
   return (
     <>
+      {lista.total > 0 && (
+        <Dica texto={`Checklist: ${lista.feitos} de ${lista.total} ${lista.total === 1 ? "item feito" : "itens feitos"}`}>
+          <span data-slot="contador-checklist" className={cn("inline-flex shrink-0 items-center gap-1 tabular-nums", lista.feitos === lista.total && "font-medium text-sucesso")}>
+            <SquareCheckBig className="size-3.5" />
+            {lista.feitos}/{lista.total}
+          </span>
+        </Dica>
+      )}
       {esperando.length > 0 && (
         <Dica texto={`Depende de: ${esperando.map((x) => x.titulo).join(", ")}`}>
           <span data-slot="contador-dependencias" className="inline-flex shrink-0 items-center gap-1 font-medium text-alerta tabular-nums">

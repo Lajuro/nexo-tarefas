@@ -81,12 +81,14 @@ export function CriarAqui() {
   const fechar = () => setPedido((p) => (p ? { ...p, aberto: false } : p));
   const aberto = (tipo: OQueCriar) => !!pedido?.aberto && pedido.tipo === tipo;
   const cat = pedido?.tipo === "categoria" && pedido.id ? dados?.categorias.items.find((c) => c.id === pedido.id) : undefined;
+  // com id, o formulário de pessoa edita (3.17: "Completar cadastro" de quem foi cadastrado pelo campo de participantes)
+  const pessoa = pedido?.tipo === "pessoa" && pedido.id ? dados?.pessoas?.items.find((p) => p.id === pedido.id) : undefined;
 
   return (
     <>
       <CategoriaForm aberto={aberto("categoria")} fechar={fechar} cat={cat} />
       <LinkForm aberto={aberto("link")} fechar={fechar} />
-      <PessoaForm aberto={aberto("pessoa")} fechar={fechar} />
+      <PessoaForm aberto={aberto("pessoa")} fechar={fechar} pessoa={pessoa} />
       <TimeForm aberto={aberto("time")} fechar={fechar} />
     </>
   );

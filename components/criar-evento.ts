@@ -7,7 +7,7 @@ export const EVENTO_CRIAR = "nexo:criar";
 
 export interface PedidoDeCriar { tipo: OQueCriar; id?: string }
 
-/** Abre o formulário de criar (ou, com `id`, de editar uma categoria) por cima de onde o usuário está. */
+/** Abre o formulário de criar (ou, com `id`, de editar uma categoria ou uma pessoa) por cima de onde o usuário está. */
 export function pedirCriar(tipo: OQueCriar, opcoes: { id?: string } = {}) {
   window.dispatchEvent(new CustomEvent<PedidoDeCriar>(EVENTO_CRIAR, { detail: { tipo, id: opcoes.id } }));
 }

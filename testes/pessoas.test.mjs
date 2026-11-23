@@ -64,6 +64,21 @@ await teste("acharPessoa por nome, apelido e e-mail; prefere a ativa", () => {
   assert.equal(P.acharPessoa(ps, "  "), undefined);
 });
 
+await teste("campo de participantes (3.17): quem ainda não está no cadastro, sem repetir e sem o próprio usuário", () => {
+  const ps = [pessoaVelha, pessoaMarina, pessoaFelipe];
+  assert.deepEqual(
+    P.nomesSemCadastro(ps, ["Marina", "  Bruno   Lima ", "bruno lima", "Eu", "", "felipe@exemplo.local", "Marina S.", "Carla", "BRUNO LIMA"]),
+    ["Bruno Lima", "Carla"],
+    "nome, apelido e e-mail de quem já está no cadastro não aparecem",
+  );
+  assert.deepEqual(P.nomesSemCadastro([], ["Ana", "ana"]), ["Ana"]);
+  assert.deepEqual(P.nomesSemCadastro(ps, []), []);
+  assert.equal(P.nomeParaCadastro("  Ana   Costa \n"), "Ana Costa");
+  assert.equal(P.nomeParaCadastro("eu"), "", "o próprio usuário não vira pessoa");
+  assert.equal(P.nomeParaCadastro(null), "");
+  assert.equal(P.nomeParaCadastro("a".repeat(500)).length, 120);
+});
+
 await teste("normalizarPessoa e normalizarTime: padrões, spread e responsáveis viram membros", () => {
   const p = T.normalizarPessoa({ nome: " Ana ", campoFuturo: 1, apelidos: ["A", "A", " "], origem: "xyz" });
   assert.match(p.id, /^pe/);

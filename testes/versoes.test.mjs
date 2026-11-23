@@ -126,6 +126,47 @@ teste("visões salvas: valores hostis viram padrão ou caem fora", () => {
   assert.equal(F.normalizarVisoes(Array.from({ length: 50 }, (_, i) => ({ id: `v${i}`, nome: `n${i}` }))).length, F.MAX_VISOES);
 });
 
+// ---------- filtro por tag (3.17) ----------
+
+const comTags = [
+  T.normalizarTarefa({ id: "t1", titulo: "Adoção", tags: ["Pipeline", "auditoria"] }),
+  T.normalizarTarefa({ id: "t2", titulo: "Gate", tags: ["pipeline"] }),
+  T.normalizarTarefa({ id: "t3", titulo: "Sem tag" }),
+  T.normalizarTarefa({ id: "t4", titulo: "Fechada", status: "concluida", tags: ["auditoria"] }),
+];
+const filtro = (tags, extra = {}) => ({ texto: "", categoria: "", status: "todas", especial: "", tags, ...extra });
+
+teste("filtro por tag: a tarefa precisa ter todas as tags, em qualquer grafia de maiúsculas", () => {
+  const ids = (f) => F.filtrar(comTags, f).map((t) => t.id);
+  assert.deepEqual(ids(filtro(["pipeline"])), ["t1", "t2"]);
+  assert.deepEqual(ids(filtro(["PIPELINE", "Auditoria"])), ["t1"]);
+  assert.deepEqual(ids(filtro(["auditoria"])), ["t1", "t4"]);
+  assert.deepEqual(ids(filtro(["não existe"])), []);
+  assert.deepEqual(ids(filtro([])), ["t1", "t2", "t3", "t4"], "lista vazia não filtra");
+  assert.deepEqual(ids({ texto: "", categoria: "", status: "todas", especial: "" }), ["t1", "t2", "t3", "t4"], "filtro antigo, sem o campo, continua valendo");
+  assert.deepEqual(ids(filtro(["auditoria"], { status: "abertas" })), ["t1"], "soma com os outros filtros");
+  assert.deepEqual(F.filtrarParaQuadro(comTags, filtro(["pipeline"])).visiveis.map((t) => t.id), ["t1", "t2"], "o quadro usa a mesma conta");
+});
+
+teste("filtro por tag: as tags em uso vêm com a contagem, da mais usada para a menos", () => {
+  assert.deepEqual(F.tagsEmUso(comTags), [{ nome: "auditoria", n: 2 }, { nome: "Pipeline", n: 2 }]);
+  assert.deepEqual(F.tagsEmUso([{ tags: ["a", "A", " a "] }, {}]), [{ nome: "a", n: 1 }], "a mesma tag duas vezes no item conta uma");
+});
+
+teste("filtro por tag: o que vem do endereço é limpo, sem repetir e com teto", () => {
+  assert.deepEqual(F.normalizarTagsDoFiltro([" pipeline ", "Pipeline", "", 7, null, "a,b;c", "x".repeat(200)]), ["pipeline", "a b c", "x".repeat(60)]);
+  assert.deepEqual(F.normalizarTagsDoFiltro("pipeline"), []);
+  assert.equal(F.normalizarTagsDoFiltro(Array.from({ length: 40 }, (_, i) => `t${i}`)).length, F.MAX_TAGS_NO_FILTRO);
+  assert.deepEqual(F.comTagAlternada(["pipeline"], "Auditoria"), ["pipeline", "Auditoria"]);
+  assert.deepEqual(F.comTagAlternada(["pipeline", "Auditoria"], "PIPELINE"), ["Auditoria"]);
+  assert.equal(F.mesmasTags(["a", "B"], ["b", "A"]) && !F.mesmasTags(["a"], ["a", "b"]) && F.mesmasTags(undefined, []), true);
+});
+
+teste("visões salvas: a visão antiga abre sem tags e a nova guarda as tags conferidas", () => {
+  const v = F.normalizarVisoes([{ id: "v1", nome: "Antiga" }, { id: "v2", nome: "Com tags", tags: ["pipeline", "Pipeline", { x: 1 }, "auditoria"] }, { id: "v3", nome: "Torta", tags: "texto" }]);
+  assert.deepEqual(v.map((x) => x.tags), [[], ["pipeline", "auditoria"], []]);
+});
+
 teste("avisos do Windows: só booleanos valem e o padrão é desligado", () => {
   assert.deepEqual(N.normalizarNotificacoes(null), { ligado: false, rotina: true, lembretes: true });
   assert.deepEqual(N.normalizarNotificacoes({ ligado: "true", rotina: 0, lembretes: false }), { ligado: false, rotina: true, lembretes: false });

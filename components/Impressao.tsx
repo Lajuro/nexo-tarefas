@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { useNexo } from "./Provider";
 import { TextoRico } from "./tarefa/Texto";
 import { copiarTexto } from "./comum";
+import { checklistDe } from "@/lib/checklist";
 import { aberta } from "@/lib/lembretes";
 import { tarefaParaMarkdown } from "@/lib/markdown";
 import { type Categoria, type Tarefa, formatarData, hojeISO, nomeStatus, ordenarRegistros, passosAbertos, tipoInfo } from "@/lib/tipos";
@@ -52,6 +53,14 @@ function FolhaDaTarefa({ t, cat }: { t: Tarefa; cat?: Categoria | null }) {
         </tbody>
       </table>
       {t.descricao && <section className="mt-4"><TextoRico texto={t.descricao} className="text-[13px]" /></section>}
+      {checklistDe(t).length > 0 && (
+        <section className="mt-5">
+          <h2 className="mb-1 text-base font-semibold">Checklist</h2>
+          <ul className="text-[13px]">
+            {checklistDe(t).map((i) => <li key={i.id}>{i.feito ? "[x]" : "[ ]"} {i.texto}</li>)}
+          </ul>
+        </section>
+      )}
       {abertos.length > 0 && (
         <section className="mt-5">
           <h2 className="mb-1 text-base font-semibold">Próximos passos em aberto</h2>

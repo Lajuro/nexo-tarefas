@@ -1,6 +1,6 @@
 "use client";
 
-// Visões salvas da lista de tarefas: uma combinação de filtros (texto, categoria, status, filtro pronto,
+// Visões salvas da lista de tarefas: uma combinação de filtros (texto, categoria, tags, status, filtro pronto,
 // ordem e jeito de ver) guardada com nome. Ficam no navegador ("nexo:visoesTarefas"), como as outras
 // preferências da lista: perder não custa nada além de salvar de novo. Abrem pelo menu e pela paleta (/tarefas?v=<id>).
 
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import * as M from "@/components/ui/menu";
 import { usePref } from "@/lib/preferencias";
 import { novoId } from "@/lib/tipos";
-import { MAX_VISOES, type VisaoSalva, normalizarVisoes } from "./filtros";
+import { MAX_VISOES, type VisaoSalva, mesmasTags, normalizarVisoes } from "./filtros";
 
 export function useVisoesSalvas() {
   const [bruto, setBruto] = usePref<unknown>("visoesTarefas", []);
@@ -30,7 +30,7 @@ export function useVisoesSalvas() {
 
 /** Os filtros de agora são exatamente os de uma visão salva? (para mostrar o nome dela no botão) */
 export const mesmaVisao = (a: Omit<VisaoSalva, "id" | "nome">, b: VisaoSalva) =>
-  a.texto.trim() === b.texto.trim() && a.categoria === b.categoria && a.status === b.status && a.especial === b.especial && a.ordem === b.ordem && a.visao === b.visao;
+  a.texto.trim() === b.texto.trim() && a.categoria === b.categoria && a.status === b.status && a.especial === b.especial && a.ordem === b.ordem && a.visao === b.visao && mesmasTags(a.tags, b.tags);
 
 export function MenuVisoes({
   atual, aoAplicar,

@@ -111,7 +111,45 @@ export interface Tarefa {
   esperando?: Espera | null;
   /** Ids das tarefas de que esta depende (3.8). As contas (quem segura quem, o que destravou) estão em lib/dependencias.ts. */
   dependeDe?: string[];
+  /** Checklist próprio da tarefa (3.17): o que ela precisa para ficar pronta. As mudanças passam por lib/checklist.ts. */
+  checklist?: ItemDoChecklist[];
   [extra: string]: unknown;
+}
+
+/**
+ * Um item do checklist da tarefa (3.17). Não é um passo: o passo nasce de um registro (uma conversa), tem
+ * responsável e prazo e aparece em Pendências; o item do checklist é da própria tarefa e só diz feito ou não.
+ */
+export interface ItemDoChecklist {
+  id: string;
+  texto: string;
+  feito: boolean;
+  /** Carimbo ISO de quando foi marcado como feito. null = em aberto. */
+  feitoEm?: string | null;
+  [extra: string]: unknown;
+}
+
+export const MAX_ITENS_NO_CHECKLIST = 200;
+export const MAX_TEXTO_DO_ITEM = 500;
+
+/** Lê tarefa.checklist do arquivo: itens com texto, ids válidos e sem repetir, até o teto. */
+export function normalizarChecklist(v: unknown): ItemDoChecklist[] {
+  if (!Array.isArray(v)) return [];
+  const out: ItemDoChecklist[] = [];
+  const vistos = new Set<string>();
+  for (const x of v) {
+    if (!x || typeof x !== "object" || Array.isArray(x)) continue;
+    const item = x as Partial<ItemDoChecklist>;
+    const texto = (typeof item.texto === "string" ? item.texto : "").replace(/\s+/g, " ").trim().slice(0, MAX_TEXTO_DO_ITEM);
+    if (!texto) continue;
+    let id = typeof item.id === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(item.id) ? item.id : novoId("ck");
+    while (vistos.has(id)) id = novoId("ck");
+    vistos.add(id);
+    const feito = item.feito === true;
+    out.push({ ...item, id, texto, feito, feitoEm: feito && typeof item.feitoEm === "string" && item.feitoEm ? item.feitoEm : null });
+    if (out.length >= MAX_ITENS_NO_CHECKLIST) break;
+  }
+  return out;
 }
 
 export interface Categoria {
@@ -602,6 +640,7 @@ export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {
     fixada: t.fixada === true,
     esperando: normalizarEspera(t.esperando),
     dependeDe: normalizarDependencias(t.dependeDe, typeof t.id === "string" ? t.id : undefined),
+    checklist: normalizarChecklist(t.checklist),
   };
 }
 

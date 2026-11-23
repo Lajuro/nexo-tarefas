@@ -4,7 +4,11 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Bookmark, Search } from "lucide-react";
-import { PontoCor, Vazio } from "@/components/comum";
+import { Etiqueta, PontoCor, Vazio } from "@/components/comum";
+import { FiltroDeTags } from "@/components/tags/FiltroDeTags";
+import { comTagAlternada, tagsEmUso, temTodasAsTags } from "@/components/tarefas/filtros";
+import { Dica } from "@/components/ui/popover";
+import { temATag } from "@/lib/tags";
 import { Segmentado } from "@/components/ui/controles";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/diversos";
 import { Input } from "@/components/ui/input";
@@ -17,7 +21,13 @@ import { type AcoesDePagina, BotaoMenuPagina, IconePagina, MenuContextoPagina, S
 type Coluna = "nome" | "categoria" | "estado" | "palavras" | "atualizada";
 type Quais = "ativas" | "arquivadas";
 
-export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas: Pagina[]; categorias: Categoria[]; acoes: AcoesDePagina; aoAbrir: (id: string) => void }) {
+export function ListaPaginas({
+  paginas, categorias, acoes, aoAbrir, tags, aoMudarTags,
+}: {
+  paginas: Pagina[]; categorias: Categoria[]; acoes: AcoesDePagina; aoAbrir: (id: string) => void;
+  /** Tags do filtro (3.17): só as páginas que têm todas. Quem guarda é a tela, para /paginas?tag= abrir já filtrado. */
+  tags: string[]; aoMudarTags: (tags: string[]) => void;
+}) {
   const [filtro, setFiltro] = useState("");
   const [quais, setQuais] = useState<Quais>("ativas");
   const [ordem, setOrdem] = useState<{ por: Coluna; desc: boolean }>({ por: "atualizada", desc: true });
@@ -27,7 +37,7 @@ export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas:
     const ativas = paginas.filter((p) => !p.arquivadaEm);
     const q = semAcento(filtro.trim());
     const base = paginas
-      .filter((p) => (quais === "arquivadas" ? !!p.arquivadaEm : !p.arquivadaEm))
+      .filter((p) => (quais === "arquivadas" ? !!p.arquivadaEm : !p.arquivadaEm) && temTodasAsTags(p, tags))
       .map((p) => ({ p, nome: nomeDaPagina(p), caminho: caminhoDaPagina(ativas, p.id).map(nomeDaPagina).join(" / "), cat: cats.get(p.categoriaId ?? ""), palavras: tamanhoDaLeitura(p.texto).palavras }))
       .filter((l) => !q || semAcento(`${l.nome} ${l.caminho} ${l.cat?.nome ?? ""} ${l.p.tags.join(" ")} ${nomeDoEstado(l.p.estado ?? "rascunho")}`).includes(q));
     const chave = (l: (typeof base)[number]) =>
@@ -37,7 +47,9 @@ export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas:
       const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "pt-BR");
       return (ordem.desc ? -c : c) || a.nome.localeCompare(b.nome, "pt-BR");
     });
-  }, [paginas, filtro, quais, ordem, cats]);
+  }, [paginas, filtro, quais, ordem, cats, tags]);
+  // as tags oferecidas são as das páginas do lado escolhido (ativas ou arquivadas)
+  const opcoesDeTag = useMemo(() => tagsEmUso(paginas.filter((p) => (quais === "arquivadas" ? !!p.arquivadaEm : !p.arquivadaEm))), [paginas, quais]);
 
   const Cabeca = ({ col, children, className }: { col: Coluna; children: React.ReactNode; className?: string }) => (
     <Th className={className} aria-sort={ordem.por === col ? (ordem.desc ? "descending" : "ascending") : "none"}>
@@ -56,11 +68,12 @@ export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas:
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Filtrar por nome, tag, categoria ou estado" aria-label="Filtrar a lista de páginas" className="pl-8" />
         </div>
+        <FiltroDeTags valor={tags} aoMudar={aoMudarTags} opcoes={opcoesDeTag} />
         <Segmentado aria-label="Quais páginas" tamanho="sm" valor={quais} aoMudar={setQuais} opcoes={[{ valor: "ativas", rotulo: "Ativas" }, { valor: "arquivadas", rotulo: "Arquivadas" }]} />
         <span className="ml-auto text-xs text-muted-foreground tabular-nums sem-selecao">{linhas.length} {linhas.length === 1 ? "página" : "páginas"}</span>
       </div>
       {linhas.length === 0 ? (
-        <Vazio compacto titulo={filtro ? "Nenhuma página com esse filtro" : quais === "arquivadas" ? "Nenhuma página arquivada" : "Nenhuma página ainda"} />
+        <Vazio compacto titulo={filtro || tags.length ? "Nenhuma página com esse filtro" : quais === "arquivadas" ? "Nenhuma página arquivada" : "Nenhuma página ainda"} />
       ) : (
         <Table>
           <THead>
@@ -89,7 +102,26 @@ export function ListaPaginas({ paginas, categorias, acoes, aoAbrir }: { paginas:
                   </Td>
                   <Td>{cat ? <span className="inline-flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span> : <span className="text-muted-foreground">sem categoria</span>}</Td>
                   <Td><SeloEstado estado={p.estado ?? "rascunho"} /></Td>
-                  <Td><span className="flex flex-wrap gap-1">{p.tags.slice(0, 4).map((t) => <span key={t} className="rounded bg-muted px-1 text-xs font-medium text-muted-foreground">#{t}</span>)}</span></Td>
+                  <Td>
+                    <span className="flex flex-wrap gap-1">
+                      {p.tags.slice(0, 4).map((t) => {
+                        const ativa = temATag(tags, t);
+                        return (
+                          <Dica key={t} texto={ativa ? "Tirar o filtro desta tag" : `Filtrar por “${t}”`}>
+                            <button type="button" data-slot="tag" data-ativa={ativa || undefined} onClick={(e) => { e.stopPropagation(); aoMudarTags(comTagAlternada(tags, t)); }}
+                              className="max-w-full rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                              <Etiqueta className={cn(
+                                "max-w-full transition-colors hover:bg-accent hover:text-accent-foreground",
+                                ativa && "bg-primary/12 text-primary hover:bg-primary/18 hover:text-primary dark:bg-primary/22 dark:text-foreground",
+                              )}>
+                                <span className="truncate">#{t}</span>
+                              </Etiqueta>
+                            </button>
+                          </Dica>
+                        );
+                      })}
+                    </span>
+                  </Td>
                   <Td className={cn("text-right tabular-nums", !palavras && "text-muted-foreground")}>{palavras}</Td>
                   <Td className="whitespace-nowrap text-muted-foreground">{dataRelativa(p.atualizadaEm)}</Td>
                   <Td><BotaoMenuPagina pagina={p} acoes={acoes} aoAbrir={aoAbrir} /></Td>

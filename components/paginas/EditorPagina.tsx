@@ -14,6 +14,7 @@ import { useNexo } from "@/components/Provider";
 import { SeletorCategoria } from "@/components/categorias/Escolher";
 import { useNomesDasTags } from "@/components/tags/useTags";
 import { ChipsInput, IconeStatus, PontoCor } from "@/components/comum";
+import { LinkDaTag } from "@/components/tags/FiltroDeTags";
 import { type ApiDoEditor, EditorRico } from "@/components/editor/EditorRico";
 import { TextoRico } from "@/components/tarefa/Texto";
 import { useGravacao } from "@/components/useGravacao";
@@ -210,7 +211,7 @@ export function EditorPagina({
                 <>
                   <SeloEstado estado={pagina.estado ?? "rascunho"} />
                   {cat && <span className="inline-flex items-center gap-1.5"><PontoCor cor={cat.cor} />{cat.nome}</span>}
-                  {pagina.tags.map((t) => <span key={t} className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium">#{t}</span>)}
+                  {pagina.tags.map((t) => <LinkDaTag key={t} tag={t} cerquilha />)}
                   {tarefasDaPagina.map((t) => (
                     <Link key={t.id} href={`/tarefas/${t.id}`} data-slot="tarefa-da-pagina"
                       className="inline-flex max-w-56 items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium text-foreground outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35">

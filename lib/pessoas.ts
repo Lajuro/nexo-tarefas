@@ -37,6 +37,30 @@ export function acharPessoa(pessoas: Pessoa[], nome: string): Pessoa | undefined
   return achadas.find((p) => !p.arquivada) ?? achadas[0];
 }
 
+/** O nome como vai para o cadastro: uma linha, sem espaço sobrando, até 120 caracteres. "Eu" e vazio não viram pessoa ("" = não serve). */
+export function nomeParaCadastro(bruto: unknown): string {
+  const nome = (typeof bruto === "string" ? bruto : "").replace(/\s+/g, " ").trim().slice(0, 120);
+  return nome && !nomeEhMeu(nome) ? nome : "";
+}
+
+/**
+ * Dos nomes escritos num campo de participantes, os que ainda não estão no cadastro (3.17): nem como nome, nem
+ * como apelido, nem como e-mail de alguém. Sem repetir (maiúsculas e acento não fazem outro nome) e sem o próprio
+ * usuário. É o que o campo oferece para cadastrar com um clique.
+ */
+export function nomesSemCadastro(pessoas: Pessoa[], nomes: readonly string[]): string[] {
+  const vistos = new Set<string>();
+  const out: string[] = [];
+  for (const bruto of nomes) {
+    const nome = nomeParaCadastro(bruto);
+    const k = chaveNome(nome);
+    if (!k || vistos.has(k)) continue;
+    vistos.add(k);
+    if (!acharPessoa(pessoas, nome)) out.push(nome);
+  }
+  return out;
+}
+
 /** Índice chaveNome -> pessoa, para resolver muitos nomes de uma vez. */
 function indicePessoas(pessoas: Pessoa[]): Map<string, Pessoa> {
   const m = new Map<string, Pessoa>();
