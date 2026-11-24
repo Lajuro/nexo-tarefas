@@ -3,18 +3,20 @@
 import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { CalendarDays, FilterX, ListTodo, PartyPopper, Search, Users, X } from "lucide-react";
+import { CalendarDays, Copy, FilterX, ListTodo, PartyPopper, Search, Users, X } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { Pagina, Vazio } from "@/components/comum";
+import { Pagina, Vazio, copiarTexto } from "@/components/comum";
 import { GrupoPendencias } from "@/components/pendencias/GrupoPendencias";
 import { PainelPrazos, PainelProgresso } from "@/components/pendencias/Lateral";
-import { AGRUPAMENTOS, Agrupamento, Pendencia, agrupar, coletarPendencias, combinaComFiltro, faixaDoPasso } from "@/components/pendencias/agrupar";
+import { AGRUPAMENTOS, Agrupamento, Grupo, Pendencia, agrupar, coletarPendencias, combinaComFiltro, faixaDoPasso } from "@/components/pendencias/agrupar";
+import { AvisoDeRepetidos } from "@/components/tarefa/PassosRepetidos";
 import { Button } from "@/components/ui/button";
 import { CampoSwitch, Segmentado } from "@/components/ui/controles";
 import { Badge } from "@/components/ui/diversos";
 import { Input } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { comPassoAlternado, comPrazoDoPasso } from "@/lib/acoes";
+import { mensagemDePendencias } from "@/lib/passos";
 import { usePref } from "@/lib/preferencias";
 import { Categoria } from "@/lib/tipos";
 
@@ -39,7 +41,21 @@ export default function Pendencias() {
     () => todas.filter((p) => (!soMeus || p.meu) && combinaComFiltro(p, filtro)),
     [todas, soMeus, filtro],
   );
-  const grupos = useMemo(() => agrupar(visiveis, modo), [visiveis, modo]);
+  const cadastro = dados?.pessoas?.items;
+  const grupos = useMemo(() => agrupar(visiveis, modo, cadastro ?? []), [visiveis, modo, cadastro]);
+  // As tarefas que aparecem na lista: é nelas que o aviso de passos repetidos procura.
+  const tarefasNaLista = useMemo(() => [...new Set(visiveis.filter((p) => !p.passo.feito).map((p) => p.tarefa))], [visiveis]);
+  // Cobrança em lote (3.19): por pessoa, cada grupo vira uma mensagem pronta para colar.
+  const gruposDeOutros = useMemo(() => grupos.filter((g) => g.tipo === "pessoa" && !!g.pessoa && g.itens.some((i) => !i.passo.feito)), [grupos]);
+  const mensagemDoGrupo = (g: Grupo) => mensagemDePendencias(g.pessoa ?? "", g.itens.filter((i) => !i.passo.feito));
+  const copiarGrupo = useCallback(async (g: Grupo) => {
+    if (await copiarTexto(mensagemDePendencias(g.pessoa ?? "", g.itens.filter((i) => !i.passo.feito)))) toast.success(`Mensagem para ${g.pessoa} copiada`, { description: "É só colar na conversa." });
+    else toast.error("Não consegui copiar. Tente de novo.");
+  }, []);
+  const copiarTodas = async () => {
+    if (await copiarTexto(gruposDeOutros.map(mensagemDoGrupo).join("\n\n"))) toast.success(`${gruposDeOutros.length} mensagens copiadas`, { description: "Uma por pessoa, separadas por uma linha em branco." });
+    else toast.error("Não consegui copiar. Tente de novo.");
+  };
 
   const nVisiveis = visiveis.filter((p) => !p.passo.feito).length;
   const atrasados = visiveis.filter((p) => !p.passo.feito && faixaDoPasso(p.passo) === "atrasados").length;
@@ -174,6 +190,13 @@ export default function Pendencias() {
                     exit={{ opacity: 0, transition: { duration: 0.1 } }}
                     transition={{ duration: 0.18 }}
                   >
+                    <AvisoDeRepetidos tarefas={tarefasNaLista} className="mb-4" />
+                    {modo === "pessoa" && gruposDeOutros.length > 1 && (
+                      <div data-slot="cobranca-em-lote" className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1 text-xs text-muted-foreground">
+                        <span className="min-w-0 flex-1">{gruposDeOutros.length} pessoas com passos em aberto. Cada grupo tem a sua mensagem pronta.</span>
+                        <Button variant="outline" size="sm" data-slot="copiar-todas" onClick={() => void copiarTodas()}><Copy /> Copiar todas</Button>
+                      </div>
+                    )}
                     <AnimatePresence initial={false}>
                       {grupos.map((g) => (
                         <GrupoPendencias
@@ -185,6 +208,7 @@ export default function Pendencias() {
                           recentes={recentes}
                           aoConcluir={concluir}
                           aoMudarPrazo={mudarPrazo}
+                          aoCopiar={copiarGrupo}
                         />
                       ))}
                     </AnimatePresence>

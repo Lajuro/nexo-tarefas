@@ -28,7 +28,8 @@ import { itemLista, lista as cascata } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
 import { type EntradaPessoa, chaveNome, chavesDaPessoa, plural } from "@/lib/pessoas";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { type Categoria, type Pessoa, type Time, agoraISO, dataCurta, formatarData } from "@/lib/tipos";
+import { mensagemDePendencias } from "@/lib/passos";
+import { type Categoria, type Pessoa, type Time, agoraISO, dataCurta } from "@/lib/tipos";
 import { JuntarComo } from "./ListaPessoas";
 import { ListaPassos } from "./ListaPassos";
 import { PainelFalarCom } from "@/components/Assuntos";
@@ -65,12 +66,7 @@ export function DetalhePessoa({ entrada }: { entrada: EntradaPessoa }) {
   const parecidas = useMemo(() => (p ? [] : pessoasParecidas(nome, ativas)), [p, nome, ativas]);
 
   async function copiarLista() {
-    const texto = [
-      `Pendências com ${nome}:`,
-      ...entrada.passosAbertos.map(({ tarefa: t, registro: r, passo }) =>
-        `- ${passo.texto} (${t.titulo}, desde ${formatarData(r.data, false)}${passo.prazo ? `, prazo ${formatarData(passo.prazo, false)}` : ""})`),
-    ].join("\n");
-    if (await copiarTexto(texto)) toast("Lista copiada. É só colar na conversa.", "info");
+    if (await copiarTexto(mensagemDePendencias(nome, entrada.passosAbertos))) toast("Lista copiada. É só colar na conversa.", "info");
   }
 
   const acoesMenu: AcaoMenu[] = p

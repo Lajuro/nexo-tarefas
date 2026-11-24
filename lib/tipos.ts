@@ -42,6 +42,15 @@ export interface Passo {
   [extra: string]: unknown;
 }
 
+/**
+ * Um passo que foi juntado com outro igual (3.19). Deixou de ser pendência, mas não some: fica guardado no
+ * registro de onde veio, com a data e com qual passo foi juntado, e dá para separar de novo.
+ */
+export interface PassoJuntado extends Passo {
+  juntadoEm: string;
+  juntadoCom?: { registroId: string; passoId: string } | null;
+}
+
 export interface Alteracao<T = string | number | null> {
   de: T;
   para: T;
@@ -58,6 +67,8 @@ export interface Registro {
   resumoIA: string;
   decisoes: string;
   proximosPassos: Passo[];
+  /** Passos deste registro que foram juntados com outro igual da mesma tarefa (3.19). Só existe quando há algum. */
+  passosJuntados?: PassoJuntado[];
   impedimentos: string;
   respostaIABruta?: string;
   /** Folha do bloco de notas de onde este registro nasceu (para voltar ao texto original). */
@@ -594,9 +605,21 @@ export function normalizarPasso(p: Partial<Passo>): Passo {
   };
 }
 
+export function normalizarPassoJuntado(p: Partial<PassoJuntado>): PassoJuntado {
+  const com = p.juntadoCom;
+  return {
+    ...normalizarPasso(p),
+    feito: false,
+    feitoEm: null,
+    juntadoEm: str(p.juntadoEm) || agoraISO(),
+    juntadoCom: com && typeof com === "object" && str(com.registroId) && str(com.passoId) ? { registroId: str(com.registroId), passoId: str(com.passoId) } : null,
+  };
+}
+
 export function normalizarRegistro(r: Partial<Registro>): Registro {
   const tipo = TIPOS_REGISTRO.some((t) => t.id === r.tipo) ? (r.tipo as TipoRegistro) : "nota";
-  return {
+  const juntados = Array.isArray(r.passosJuntados) ? r.passosJuntados.filter((p) => p && typeof p === "object").map(normalizarPassoJuntado) : [];
+  const registro: Registro = {
     ...r,
     id: str(r.id) || novoId("r"),
     tipo,
@@ -616,6 +639,10 @@ export function normalizarRegistro(r: Partial<Registro>): Registro {
     criadoEm: str(r.criadoEm) || agoraISO(),
     atualizadoEm: str(r.atualizadoEm) || agoraISO(),
   };
+  // campo opcional: só vai para o arquivo quando tem algo (registro sem junção fica igual ao de antes)
+  if (juntados.length) registro.passosJuntados = juntados;
+  else delete registro.passosJuntados;
+  return registro;
 }
 
 export function normalizarTarefa(t: Partial<Tarefa>): Tarefa {

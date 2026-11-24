@@ -22,9 +22,10 @@
 //       { "tipo": "passo_concluido", "tarefa": "T1", "tarefaTitulo": "...", "passo": "texto do passo" } ],
 //     "sobras": "o que não coube em lugar nenhum" }
 
+import { abertosEmOrdem, chaveDeRepeticao } from "./passos";
 import { mesmoTexto, quemSouEu, semImagens } from "./prompts";
 import {
-  type Categoria, type FrutoDaNota, type Nota, type Passo, type Registro, STATUS_ABERTOS, TIPOS_REGISTRO, type Tarefa, type TipoRegistro,
+  type Categoria, type FrutoDaNota, type Nota, type Passo, type Pessoa, type Registro, STATUS_ABERTOS, TIPOS_REGISTRO, type Tarefa, type TipoRegistro,
   formatarData, hojeISO, nomeStatus, normalizarPasso, normalizarRegistro, normalizarTarefa, novoId, ordenarRegistros, passosAbertos,
   semAcento, tipoInfo,
 } from "./tipos";
@@ -391,10 +392,55 @@ export function levaTextoInteiro(escolhidas: Proposta[]): boolean {
   return registros.length + tarefasSozinhas.length === 1;
 }
 
-/** O registro como vai ser gravado: ligado à folha de origem e com as anotações originais. */
-export function registroDaProposta(p: PropostaRegistro, nota: Nota, opcoes: { textoInteiro: boolean; data?: string }): Registro {
+/** Para onde uma proposta de registro vai: uma tarefa que já existe ou uma das tarefas novas desta folha. */
+export type DestinoDaProposta = { tarefaId: string } | { novaChave: string };
+
+/**
+ * Os passos das propostas que NÃO precisam ser criados, porque já estão em aberto na tarefa de destino ou porque
+ * duas propostas desta folha trazem o mesmo passo para a mesma tarefa (3.19). Devolve, por chave de proposta,
+ * os ids dos passos que ficam de fora. A prévia mostra isto e a aplicação segue exatamente o mesmo resultado.
+ *
+ * Numa tarefa nova, o passo fica no registro (que tem a data e o contexto da conversa) e sai da nota inicial
+ * da tarefa: era assim que a mesma reunião deixava os mesmos passos duas vezes na lista.
+ */
+export function passosJaEmAberto(
+  escolhidas: Proposta[], destinoDe: (chave: string) => DestinoDaProposta | null, tarefas: Tarefa[], pessoas: Pessoa[] = [],
+): Record<string, string[]> {
+  const porDestino = new Map<string, Set<string>>();
+  const chavesDe = (d: DestinoDaProposta) => {
+    const id = "tarefaId" in d ? `t:${d.tarefaId}` : `n:${d.novaChave}`;
+    let c = porDestino.get(id);
+    if (!c) {
+      const t = "tarefaId" in d ? tarefas.find((x) => x.id === d.tarefaId) : undefined;
+      c = new Set(t ? abertosEmOrdem(t).map((x) => chaveDeRepeticao(x.passo.texto, x.passo.responsavel, pessoas)) : []);
+      porDestino.set(id, c);
+    }
+    return c;
+  };
+  const fora: Record<string, string[]> = {};
+  const conferir = (chave: string, passos: Passo[], ja: Set<string>) => {
+    for (const passo of passos) {
+      const k = passo.feito ? "" : chaveDeRepeticao(passo.texto, passo.responsavel, pessoas);
+      if (!k) continue;
+      if (ja.has(k)) (fora[chave] ??= []).push(passo.id);
+      else ja.add(k);
+    }
+  };
+  for (const p of escolhidas) {
+    const d = p.tipo === "registro" ? destinoDe(p.chave) : null;
+    if (p.tipo === "registro" && d) conferir(p.chave, p.registro.proximosPassos, chavesDe(d));
+  }
+  // depois dos registros: o que já vem num registro que entra na tarefa nova não se repete na nota inicial dela
+  for (const p of escolhidas) if (p.tipo === "tarefa") conferir(p.chave, p.passos, chavesDe({ novaChave: p.chave }));
+  return fora;
+}
+
+/** O registro como vai ser gravado: ligado à folha de origem e com as anotações originais. `semPassos`: ids que ficam de fora (passosJaEmAberto). */
+export function registroDaProposta(p: PropostaRegistro, nota: Nota, opcoes: { textoInteiro: boolean; data?: string; semPassos?: readonly string[] }): Registro {
+  const fora = opcoes.semPassos ?? [];
   return {
     ...p.registro,
+    proximosPassos: fora.length ? p.registro.proximosPassos.filter((x) => !fora.includes(x.id)) : p.registro.proximosPassos,
     data: opcoes.data && dataValida(opcoes.data) ? opcoes.data : p.registro.data,
     notaId: nota.id,
     anotacoes: p.origem === "ia" && opcoes.textoInteiro ? nota.texto : p.registro.anotacoes,
@@ -419,8 +465,12 @@ export function tarefaDaProposta(
     /** Data do marco "Tarefa criada". Use a do registro mais antigo que vai entrar nela, para a
      *  linha do tempo não mostrar uma reunião acontecendo antes de a tarefa existir. */
     dataMarco?: string;
+    /** Ids dos passos que não entram na nota inicial porque já vêm num registro desta folha (passosJaEmAberto). */
+    semPassos?: readonly string[];
   } = {},
 ): Tarefa {
+  const fora = opcoes.semPassos ?? [];
+  const passos = fora.length ? p.passos.filter((x) => !fora.includes(x.id)) : p.passos;
   const t = normalizarTarefa({
     id: novoId("t"), titulo: p.titulo, descricao: p.descricao, categoriaId: p.categoriaId, prioridade: p.prioridade, prazo: p.prazo, status: "a_fazer",
   });
@@ -431,11 +481,11 @@ export function tarefaDaProposta(
     }),
   );
   const texto = opcoes.temRegistros ? "" : opcoes.textoInteiro ? nota.texto : p.trecho;
-  if (p.passos.length || texto)
+  if (passos.length || texto)
     t.registros.push(
       normalizarRegistro({
         id: novoId("r"), tipo: "nota", data: hojeISO(), titulo: nota.titulo ? `Do bloco de notas: ${nota.titulo}` : "Do bloco de notas",
-        anotacoes: texto, proximosPassos: p.passos, notaId: nota.id,
+        anotacoes: texto, proximosPassos: passos, notaId: nota.id,
       }),
     );
   return t;

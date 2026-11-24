@@ -79,6 +79,16 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.19: passos sem repetição e cobrança por pessoa
+
+O mesmo passo não aparece mais duas vezes na mesma tarefa. Nada muda no formato dos dados.
+
+- **Aviso de passos repetidos.** Quando a mesma tarefa tem o mesmo passo anotado mais de uma vez (por exemplo, vindo de uma folha organizada pelo Copilot e da reunião do mesmo dia), aparece "N passos repetidos" no painel **Pendências** da tarefa e na tela de **Pendências**. **Ver e juntar** mostra os pares antes de mexer em qualquer coisa.
+- **Juntar não apaga nada.** Fica o passo do registro mais antigo, com o responsável e o prazo mais cedo dos dois. A cópia fica guardada no registro de onde veio: na linha do tempo, "passos juntados com outros iguais" mostra cada uma, com o botão **Separar**. Juntar e separar têm **Desfazer**.
+- **Parecem o mesmo passo.** Quando um texto está contido em outro ("Enviar o relatório" e "Enviar o relatório ao Bruno"), o app pergunta em vez de juntar: **Juntar** ou **São diferentes**. A resposta fica lembrada.
+- **Daqui para a frente o repetido nem nasce.** Ao preencher um registro com a resposta do Copilot, ao organizar uma folha do bloco de notas e ao encerrar o modo reunião, o passo que já está em aberto na tarefa não é criado de novo. A tela diz quantos ficaram de fora e deixa **criar mesmo assim**.
+- **Cobrança por pessoa.** Em **Pendências**, agrupado **por pessoa**, cada grupo tem **Copiar mensagem**: a lista do que está com aquela pessoa, em todas as tarefas, pronta para colar na conversa. **Copiar todas** junta uma mensagem por pessoa. Quem está no cadastro de pessoas é reconhecido também pelos apelidos, então "Marina" e "Marina Souza" viram um grupo só.
+
 ## 3.18: a tarefa nasce pronta
 
 Duas melhorias para o começo de uma tarefa, sem mudar o formato dos dados.

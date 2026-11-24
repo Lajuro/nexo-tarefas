@@ -161,6 +161,36 @@ teste("rascunho do navegador é entrada não confiável: só entra o que tem a f
   assert.deepEqual([grande.decisoes.length, grande.passos.length, grande.notas.length], [60, 60, 200_000]);
 });
 
+teste("passos sem repetição: o que já está em aberto na tarefa não é criado de novo pela reunião", () => {
+  const t1 = dados.tarefas[0];
+  const cadastro = dados.pessoas.items;
+  const r = {
+    ...R.reuniaoNova(), inicio: Date.now(),
+    passos: [
+      { id: "n1", texto: "liberar acesso.", responsavel: "Marina Souza", prazo: "" }, // já em aberto (p1, da Marina)
+      { id: "n2", texto: "Liberar acesso", responsavel: "", prazo: "" },             // outro dono: é outro passo
+      { id: "n3", texto: "Montar guia", responsavel: "", prazo: "" },                // o antigo já foi feito: entra
+      { id: "n4", texto: "Triagem dos críticos", responsavel: "", prazo: "" },       // já em aberto (p3)
+      { id: "n5", texto: "Reservar a sala", responsavel: "", prazo: "" },
+      { id: "n6", texto: "reservar a sala", responsavel: "Eu", prazo: "" },          // repetido dentro da própria reunião
+    ],
+  };
+  assert.deepEqual(R.passosJaNaTarefa(t1, r, cadastro), ["n1", "n4", "n6"]);
+  const reg = R.registroDaReuniao(r, R.passosJaNaTarefa(t1, r, cadastro));
+  assert.deepEqual(reg.proximosPassos.map((p) => p.id), ["n2", "n3", "n5"]);
+  assert.equal(R.registroDaReuniao(r).proximosPassos.length, 6, "sem a lista, nada é tirado");
+  // o passo antigo foi resolvido nesta reunião: o novo com o mesmo texto é mesmo outro
+  assert.deepEqual(R.passosJaNaTarefa(t1, { ...r, resolvidos: ["r2:p3"] }, cadastro), ["n1", "n6"]);
+  // "Criar mesmo assim" tira o passo da conferência
+  const insistindo = { ...r, passos: r.passos.map((p) => (p.id === "n4" ? { ...p, repetir: true } : p)) };
+  assert.deepEqual(R.passosJaNaTarefa(t1, insistindo, cadastro), ["n1", "n6"]);
+  // e a escolha sobrevive ao rascunho do navegador (só quando é true)
+  const lido = R.normalizarReuniao(JSON.parse(JSON.stringify(insistindo)));
+  assert.equal(lido.passos.find((p) => p.id === "n4").repetir, true);
+  assert.equal("repetir" in lido.passos[0], false);
+  assert.equal("repetir" in R.normalizarReuniao({ inicio: 0, passos: [{ texto: "x", repetir: "sim" }] }).passos[0], false);
+});
+
 teste("reunião em branco não tem conteúdo; qualquer coisa escrita tem", () => {
   assert.equal(R.reuniaoTemConteudo(R.reuniaoNova()), false);
   assert.equal(R.reuniaoTemConteudo({ ...R.reuniaoNova(), titulo: "  ", notas: " \n" }), false);

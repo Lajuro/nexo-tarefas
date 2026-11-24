@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlarmClock, CalendarClock, CalendarDays, CalendarOff, type LucideIcon, Sun, UserRound } from "lucide-react";
+import { AlarmClock, CalendarClock, CalendarDays, CalendarOff, Copy, type LucideIcon, Sun, UserRound } from "lucide-react";
 import { BotaoMenuTarefa, MenuContextoTarefa } from "@/components/MenuTarefa";
 import { AvatarPessoa, CatTag, Contador, PrazoTag, PrioBadge, StatusBadge } from "@/components/comum";
+import { AvisoDeRepetidos } from "@/components/tarefa/PassosRepetidos";
+import { Button } from "@/components/ui/button";
+import { Dica } from "@/components/ui/popover";
 import { suave } from "@/lib/animacoes";
 import { Categoria } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -20,19 +23,21 @@ export const FAIXAS: Record<Faixa, { nome: string; detalhe: string; icone: Lucid
   sem: { nome: "Sem prazo", detalhe: "defina uma data para não cair no esquecimento", icone: CalendarOff, tom: "bg-muted text-muted-foreground" },
 };
 
-function CabecalhoSimples({ icone, titulo, detalhe, n }: { icone: ReactNode; titulo: ReactNode; detalhe?: string; n: number }) {
+function CabecalhoSimples({ icone, titulo, detalhe, n, acao }: { icone: ReactNode; titulo: ReactNode; detalhe?: string; n: number; acao?: ReactNode }) {
   return (
     <header className="flex min-h-11 items-center gap-2.5 border-b px-3.5 py-2">
       {icone}
       <h2 className="min-w-0 truncate text-[13px] font-semibold tracking-tight">{titulo}</h2>
       <Contador n={n} />
       {detalhe && <span className="ml-auto hidden truncate text-xs text-muted-foreground @lg:inline">{detalhe}</span>}
+      {acao && <span className={cn("-my-1 -mr-1.5 flex shrink-0", detalhe ? "ml-auto @lg:ml-0" : "ml-auto")}>{acao}</span>}
     </header>
   );
 }
 
-function Cabecalho({ grupo, cat }: { grupo: Grupo; cat?: Categoria }) {
+function Cabecalho({ grupo, cat, aoCopiar }: { grupo: Grupo; cat?: Categoria; aoCopiar?: (g: Grupo) => void }) {
   const n = grupo.itens.filter((i) => !i.passo.feito).length;
+  const soEsta = useMemo(() => (grupo.tarefa ? [grupo.tarefa] : []), [grupo.tarefa]);
 
   if (grupo.tipo === "tarefa" && grupo.tarefa) {
     const t = grupo.tarefa;
@@ -53,6 +58,7 @@ function Cabecalho({ grupo, cat }: { grupo: Grupo; cat?: Categoria }) {
             </h2>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <AvisoDeRepetidos tarefas={soEsta} curto />
             <PrazoTag prazo={t.prazo} />
             <StatusBadge status={t.status} />
             <PrioBadge p={t.prioridade} />
@@ -90,6 +96,13 @@ function Cabecalho({ grupo, cat }: { grupo: Grupo; cat?: Categoria }) {
       n={n}
       detalhe="dependem desta pessoa"
       icone={<AvatarPessoa nome={grupo.pessoa} />}
+      acao={aoCopiar && n > 0 && (
+        <Dica texto="Copia a lista do que está com esta pessoa, pronta para colar na conversa">
+          <Button variant="ghost" size="sm" data-slot="copiar-mensagem" onClick={() => aoCopiar(grupo)}>
+            <Copy /> Copiar mensagem
+          </Button>
+        </Dica>
+      )}
       titulo={
         <Link
           href={`/pessoas?p=${encodeURIComponent(grupo.pessoa)}`}
@@ -104,7 +117,7 @@ function Cabecalho({ grupo, cat }: { grupo: Grupo; cat?: Categoria }) {
 
 /** Cartão de um grupo de pendências. Some sozinho (com animação) quando o último passo é concluído. */
 export function GrupoPendencias({
-  grupo, modo, termo, categorias, recentes, aoConcluir, aoMudarPrazo,
+  grupo, modo, termo, categorias, recentes, aoConcluir, aoMudarPrazo, aoCopiar,
 }: {
   grupo: Grupo;
   modo: Agrupamento;
@@ -114,6 +127,8 @@ export function GrupoPendencias({
   recentes: ReadonlySet<string>;
   aoConcluir: (p: Pendencia) => void;
   aoMudarPrazo: (p: Pendencia, prazo: string | null) => void;
+  /** Por pessoa: copia a mensagem de cobrança do grupo (3.19). */
+  aoCopiar?: (g: Grupo) => void;
 }) {
   const catDe = (p: Pendencia) => (p.tarefa.categoriaId ? categorias.get(p.tarefa.categoriaId) : undefined);
   return (
@@ -129,7 +144,7 @@ export function GrupoPendencias({
         data-grupo={grupo.chave}
         className="@container mb-4 rounded-xl border bg-card shadow-xs"
       >
-        <Cabecalho grupo={grupo} cat={grupo.tarefa?.categoriaId ? categorias.get(grupo.tarefa.categoriaId) : undefined} />
+        <Cabecalho grupo={grupo} cat={grupo.tarefa?.categoriaId ? categorias.get(grupo.tarefa.categoriaId) : undefined} aoCopiar={aoCopiar} />
         <ul className="flex flex-col p-1.5">
           <AnimatePresence initial={false}>
             {grupo.itens.map((p) => (

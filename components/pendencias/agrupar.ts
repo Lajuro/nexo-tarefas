@@ -2,7 +2,9 @@
 // por tarefa, por prazo ou por pessoa. Nada aqui grava dados.
 
 import { LIMITES, aberta, passoEhMeu } from "@/lib/lembretes";
-import { Passo, Registro, Tarefa, diasAte, semAcento } from "@/lib/tipos";
+import { chaveDoResponsavel } from "@/lib/passos";
+import { acharPessoa } from "@/lib/pessoas";
+import { Passo, Pessoa, Registro, Tarefa, diasAte, semAcento } from "@/lib/tipos";
 
 export type Agrupamento = "tarefa" | "prazo" | "pessoa";
 export const AGRUPAMENTOS: Agrupamento[] = ["tarefa", "prazo", "pessoa"];
@@ -73,7 +75,8 @@ const porPrazoDoPasso = (a: Pendencia, b: Pendencia) =>
 const porTarefa = (a: Tarefa, b: Tarefa) =>
   b.prioridade - a.prioridade || (a.prazo ?? "9999").localeCompare(b.prazo ?? "9999") || a.titulo.localeCompare(b.titulo);
 
-export function agrupar(itens: Pendencia[], modo: Agrupamento): Grupo[] {
+/** `pessoas`: o cadastro. Por pessoa, "Marina" e "Marina Souza" (apelido dela) caem no mesmo grupo, com o nome do cadastro. */
+export function agrupar(itens: Pendencia[], modo: Agrupamento, pessoas: Pessoa[] = []): Grupo[] {
   if (modo === "tarefa") {
     const mapa = new Map<string, Grupo>();
     for (const p of itens) {
@@ -104,10 +107,10 @@ export function agrupar(itens: Pendencia[], modo: Agrupamento): Grupo[] {
       meus.itens.push(p);
       continue;
     }
-    const nome = (p.passo.responsavel ?? "").trim();
-    const chave = semAcento(nome);
+    const escrito = (p.passo.responsavel ?? "").trim();
+    const chave = chaveDoResponsavel(escrito, pessoas);
     let g = outros.get(chave);
-    if (!g) outros.set(chave, (g = { chave: `p:${chave}`, tipo: "pessoa", pessoa: nome, itens: [] }));
+    if (!g) outros.set(chave, (g = { chave: `p:${chave}`, tipo: "pessoa", pessoa: acharPessoa(pessoas, escrito)?.nome ?? escrito, itens: [] }));
     g.itens.push(p);
   }
   const ordenar = (g: Grupo) => ({ ...g, itens: g.itens.sort((a, b) => porPrazoDoPasso(a, b) || porTarefa(a.tarefa, b.tarefa)) });

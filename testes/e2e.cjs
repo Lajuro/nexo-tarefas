@@ -30,7 +30,8 @@
 // folha que vira página, Ctrl + clique num link do editor), arquivos vistos por dentro do app (planilha, CSV,
 // Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar),
 // as novidades da 3.17 (checklist da tarefa, e-mail colado no registro, participante cadastrado pelo campo,
-// filtro por tag em tarefas e páginas, importar um arquivo exportado), as da 3.18 (modelo de tarefa com
+// filtro por tag em tarefas e páginas, importar um arquivo exportado), as da 3.19 (passos repetidos: juntar,
+// desfazer, separar, a prevenção no registro e no modo reunião, e a cobrança por pessoa), as da 3.18 (modelo de tarefa com
 // checklist, tarefa nova a partir de um e-mail) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
@@ -2708,6 +2709,144 @@ async function main() {
       const t = d.tarefas.find((x) => x.titulo === "Demanda 318 que chegou por e-mail");
       return !!t && itens(t) === "" && t.registros.filter((r) => r.tipo === "nota" && r.data === "2026-11-18" && r.participantes.join("|") === "Otto Teste").length === 1;
     }, "a tarefa criada só do e-mail não ficou como esperado");
+  });
+
+  await etapa("3.19: passos sem repetição (juntar, desfazer, separar, prevenção) e cobrança por pessoa", async () => {
+    const J = { "Content-Type": "application/json" };
+    const ID = "e2e319a";
+    const aviso = (texto) => pg.locator("[data-sonner-toast]", { hasText: texto }).first();
+    const tarefa = (d) => d.tarefas.find((t) => t.id === ID);
+    const abertos = (d) => tarefa(d).registros.flatMap((r) => r.proximosPassos.filter((p) => !p.feito).map((p) => p.id)).sort().join(",");
+    const juntados = (d) => tarefa(d).registros.flatMap((r) => (r.passosJuntados || []).map((p) => p.id)).sort().join(",");
+    const passo = (id, texto, extra = {}) => ({ id, texto, feito: false, ...extra });
+
+    // a folha organizada e a reunião do mesmo dia trouxeram os mesmos três passos (o defeito que a versão corrige)
+    const nova = {
+      id: ID, titulo: "Tarefa dos passos 319", status: "em_andamento",
+      registros: [
+        { id: "r319n", tipo: "nota", data: "2026-11-10", titulo: "Folha 319", proximosPassos: [passo("n1", "Validar o layout 319"), passo("n2", "Enviar a planilha 319", { responsavel: "Zuleica Prado" }), passo("n3", "Agendar a revisão 319")] },
+        { id: "r319r", tipo: "reuniao", data: "2026-11-10", titulo: "Reunião 319", proximosPassos: [
+          passo("m1", "Validar o layout 319."), passo("m2", "enviar a planilha 319", { responsavel: "Zuleica Prado" }), passo("m3", "Agendar a revisão 319"),
+          passo("m4", "Agendar a revisão 319 com o time todo"),
+        ] },
+      ],
+    };
+    afirmar((await pg.request.put(`${B}/api/tarefas/${ID}`, { headers: J, data: { tarefa: nova, revEsperada: null } })).ok(), "não consegui criar a tarefa da etapa");
+
+    // ---- o painel Pendências avisa, e a janela mostra os pares antes de juntar ----
+    await pg.goto(`${B}/tarefas/${ID}`);
+    const painel = pg.locator("[data-slot=aviso-repetidos]").first();
+    await painel.getByText("3 passos repetidos e 1 par parecido").waitFor();
+    await painel.locator("[data-slot=abrir-juntar]").click();
+    const janela = dialogo();
+    await janela.locator("[data-slot=juntar-passos]").waitFor();
+    afirmar((await janela.locator("[data-slot=grupo-repetido]").count()) === 3, "a janela não listou os três passos repetidos");
+    afirmar((await janela.locator("[data-slot=par-parecido]").count()) === 1, "a janela não mostrou o par parecido");
+    // texto contido em outro nunca junta sozinho: "São diferentes" tira o par da lista e fica lembrado
+    await janela.locator("[data-slot=sao-diferentes]").click();
+    await janela.locator("[data-slot=par-parecido]").waitFor({ state: "detached" });
+    afirmar(abertos(await dados()) === "m1,m2,m3,m4,n1,n2,n3", "dizer que são diferentes mexeu nos dados");
+    await janela.locator("[data-slot=juntar-repetidos]").click();
+    await ateOsDados((d) => abertos(d) === "m1,m2,m3,m4" && juntados(d) === "n1,n2,n3", "os repetidos não foram juntados (fica o da reunião, sai o da folha)");
+    await pg.locator("[data-slot=juntar-passos]").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=aviso-repetidos]").waitFor({ state: "detached" });
+    const guardado = tarefa(await dados()).registros.find((r) => r.id === "r319n").passosJuntados.find((p) => p.id === "n2");
+    afirmar(guardado.juntadoCom.registroId === "r319r" && guardado.juntadoCom.passoId === "m2" && !!guardado.juntadoEm && guardado.responsavel === "Zuleica Prado", "a cópia juntada não guardou com quem nem quando");
+
+    // ---- juntar tem Desfazer, e depois de desfazer o aviso volta (sem o par dispensado) ----
+    await aviso("3 passos repetidos juntados").getByRole("button", { name: "Desfazer" }).click();
+    await ateOsDados((d) => abertos(d) === "m1,m2,m3,m4,n1,n2,n3" && juntados(d) === "", "desfazer não devolveu os passos");
+    await pg.locator("[data-slot=aviso-repetidos]").first().getByText(/^3 passos repetidos$/).waitFor();
+    await pg.locator("[data-slot=abrir-juntar]").first().click();
+    await dialogo().locator("[data-slot=juntar-repetidos]").click();
+    await ateOsDados((d) => abertos(d) === "m1,m2,m3,m4" && juntados(d) === "n1,n2,n3", "juntar de novo não funcionou");
+
+    // ---- a linha do tempo mostra o que foi juntado, e Separar devolve o passo ----
+    const folha = pg.locator("[data-slot=registro]", { hasText: "Folha 319" });
+    await folha.locator("[data-slot=registro-juntados] button", { hasText: "3 passos juntados com outros iguais" }).click();
+    afirmar((await folha.locator("[data-slot=passo-juntado]").count()) === 3, "a linha do tempo não listou os três passos juntados");
+    await folha.locator("[data-slot=passo-juntado]", { hasText: "Enviar a planilha 319" }).locator("[data-slot=separar-passo]").click();
+    await ateOsDados((d) => abertos(d) === "m1,m2,m3,m4,n2" && juntados(d) === "n1,n3", "separar não devolveu o passo para as pendências");
+    const voltou = tarefa(await dados()).registros.find((r) => r.id === "r319n").proximosPassos.find((p) => p.id === "n2");
+    afirmar(voltou && !("juntadoEm" in voltou) && voltou.responsavel === "Zuleica Prado", "o passo separado não voltou como era");
+    await pg.locator("[data-slot=aviso-repetidos]").first().getByText(/^1 passo repetido$/).waitFor();
+    await pg.locator("[data-slot=abrir-juntar]").first().click();
+    await dialogo().locator("[data-slot=juntar-repetidos]").click();
+    await ateOsDados((d) => abertos(d) === "m1,m2,m3,m4", "o passo separado não foi juntado de novo");
+
+    // ---- prevenção no registro: a resposta do Copilot traz um passo que já está em aberto ----
+    await pg.locator("[data-slot=registrar][data-tipo=atividade]").click();
+    const d = dialogo();
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    await d.getByPlaceholder("Resumo em uma linha").fill("Atividade 319");
+    await d.getByPlaceholder("Cole a resposta aqui...").fill("## RESUMO\nAndou.\n## PRÓXIMOS PASSOS\n- validar o layout 319\n- Passo inédito 319\n## PASSOS CONCLUÍDOS\nNenhum\n");
+    await d.getByRole("button", { name: "Preencher campos com a resposta" }).click();
+    await d.locator("[data-slot=passos-ja-abertos]").getByText("1 passo da resposta já está em aberto nesta tarefa e não foi criado de novo.").waitFor();
+    const acoes = () => d.locator('[data-slot=editor-passo] input[aria-label="Ação"]').evaluateAll((els) => els.map((e) => e.value).join("|"));
+    afirmar((await acoes()) === "Passo inédito 319", "o passo que já estava em aberto entrou de novo no registro: " + (await acoes()));
+    // dá para incluir mesmo assim (e tirar de novo)
+    await d.locator("[data-slot=passos-ja-abertos]").getByRole("button", { name: "Incluir mesmo assim" }).click();
+    await d.locator("[data-slot=passos-ja-abertos]").waitFor({ state: "detached" });
+    afirmar((await acoes()) === "Passo inédito 319|validar o layout 319", "incluir mesmo assim não trouxe o passo: " + (await acoes()));
+    await d.locator("[data-slot=editor-passo]").nth(1).getByRole("button", { name: "Remover passo" }).click();
+    await d.locator("[data-slot=editor-passo]").nth(1).waitFor({ state: "detached" });
+    await d.getByRole("button", { name: "Salvar registro" }).click();
+    await dialogo().waitFor({ state: "detached" }).catch(() => {});
+    await ateOsDados((x) => {
+      const reg = tarefa(x).registros.find((r) => r.titulo === "Atividade 319");
+      return !!reg && reg.proximosPassos.map((p) => p.texto).join("|") === "Passo inédito 319";
+    }, "o registro da atividade não ficou só com o passo novo");
+    afirmar((await pg.locator("[data-slot=aviso-repetidos]").count()) === 0, "o registro novo criou um passo repetido");
+
+    // ---- prevenção no modo reunião: o passo que já está em aberto é avisado e não é criado de novo ----
+    await pg.goto(`${B}/tarefas/${ID}/reuniao`);
+    await pg.locator("[data-slot=reuniao]").waitFor();
+    const novoPasso = pg.locator("[data-slot=novo-passo]");
+    await novoPasso.fill("Validar o layout 319");
+    await novoPasso.press("Enter");
+    await novoPasso.fill("Passo da reunião 319");
+    await novoPasso.press("Enter");
+    await novoPasso.fill("agendar a revisão 319");
+    await novoPasso.press("Enter");
+    afirmar((await pg.locator("[data-slot=passo-capturado]").count()) === 3, "os passos da reunião não foram capturados");
+    afirmar((await pg.locator("[data-slot=passo-ja-aberto]").count()) === 2, "a reunião não avisou dos passos que já estão em aberto");
+    // um deles o usuário quer mesmo de novo
+    await pg.locator("[data-slot=passo-capturado]", { hasText: "agendar a revisão 319" }).getByRole("button", { name: "Criar mesmo assim" }).click();
+    await pg.locator("[data-slot=passo-capturado]", { hasText: "agendar a revisão 319" }).locator("[data-slot=passo-ja-aberto]").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=encerrar-reuniao]").click();
+    await pg.locator("[data-slot=ata]").waitFor();
+    await aviso("1 passo já estava em aberto na tarefa e não foi repetido").waitFor();
+    const reuniao = tarefa(await dados()).registros.at(-1);
+    afirmar(
+      reuniao.tipo === "reuniao" && reuniao.proximosPassos.map((p) => p.texto).join("|") === "Passo da reunião 319|agendar a revisão 319",
+      "a reunião gravou o passo que já estava em aberto: " + reuniao.proximosPassos.map((p) => p.texto).join("|"),
+    );
+    // o que foi pedido de novo virou repetido de verdade: limpa pela tela de Pendências, no cabeçalho da tarefa
+    await pg.goto(B + "/pendencias");
+    await pg.getByRole("radio", { name: "Por tarefa" }).click();
+    const grupo = pg.locator("[data-slot=grupo-pendencias]", { hasText: "Tarefa dos passos 319" });
+    await grupo.locator("[data-slot=aviso-repetidos]", { hasText: "1 repetido" }).click();
+    await dialogo().locator("[data-slot=juntar-repetidos]").click();
+    await ateOsDados((x) => tarefa(x).registros.at(-1).proximosPassos.map((p) => p.texto).join("|") === "Passo da reunião 319", "juntar pelo cabeçalho do grupo não funcionou");
+    await grupo.locator("[data-slot=aviso-repetidos]").waitFor({ state: "detached" });
+
+    // ---- cobrança em lote: por pessoa, cada grupo tem a mensagem pronta ----
+    await pg.getByRole("radio", { name: "Por pessoa" }).click();
+    await pg.locator("[data-slot=lista-pendencias][data-agrupamento=pessoa]").waitFor();
+    const daZuleica = pg.locator("[data-slot=grupo-pendencias]", { hasText: "Zuleica Prado" });
+    await daZuleica.locator("[data-slot=copiar-mensagem]").click();
+    await aviso("Mensagem para Zuleica Prado copiada").waitFor();
+    const msg = (await pg.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
+    afirmar(msg.startsWith("Pendências com Zuleica Prado:\n- "), "a mensagem de cobrança não começa pelo nome: " + msg);
+    afirmar(/- enviar a planilha 319 \(Tarefa dos passos 319, desde [^)]+\)/.test(msg), "a mensagem não trouxe o passo com a tarefa e a data: " + msg);
+    if (await pg.locator("[data-slot=copiar-todas]").count()) {
+      await pg.locator("[data-slot=copiar-todas]").click();
+      await aviso("mensagens copiadas").waitFor();
+      const todas = (await pg.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
+      afirmar(todas.includes("Pendências com Zuleica Prado:") && todas.split("Pendências com ").length > 2 && todas.includes("\n\nPendências com "), "copiar todas não juntou uma mensagem por pessoa");
+    }
+    await pg.getByRole("radio", { name: "Por tarefa" }).click();
+    await pg.locator("[data-slot=lista-pendencias][data-agrupamento=tarefa]").waitFor();
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

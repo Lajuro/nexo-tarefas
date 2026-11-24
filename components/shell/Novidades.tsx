@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, Merge, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.18";
+export const VERSAO_NOVIDADES = "3.19";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,14 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.19", icone: Merge, titulo: "Passos sem repetição e cobrança por pessoa", texto: "O mesmo passo não aparece mais duas vezes na mesma tarefa. Ao preencher um registro com a resposta do Copilot, ao organizar uma folha do bloco de notas e ao encerrar o modo reunião, o passo que já está em aberto na tarefa não é criado de novo: a tela avisa e deixa incluir mesmo assim. Os repetidos que já existem aparecem com um aviso e o botão Juntar, e nada se perde: a cópia fica guardada no registro e dá para separar. Em Pendências, por pessoa, cada grupo tem a mensagem de cobrança pronta para copiar.", href: "/pendencias", rotulo: "Abrir as Pendências",
+    pontos: [
+      "Aviso de repetidos: no painel Pendências da tarefa e na tela de Pendências aparece \"N passos repetidos\". \"Ver e juntar\" mostra os pares antes de mexer em qualquer coisa.",
+      "Juntar não apaga: fica o passo do registro mais antigo (a idade continua certa), com o responsável e o prazo mais cedo dos dois. A cópia fica guardada no registro de onde veio, e a linha do tempo mostra \"juntado com...\" com o botão Separar. Tem Desfazer.",
+      "Parecem o mesmo passo: um texto contido em outro (\"Enviar o relatório\" e \"Enviar o relatório ao Bruno\") nunca junta sozinho. Você escolhe Juntar ou \"São diferentes\", e a escolha fica lembrada.",
+      "Daqui para a frente: a resposta do Copilot no registro, as propostas do bloco de notas e o modo reunião não criam de novo um passo que já está em aberto na tarefa. A tela diz quantos ficaram de fora e deixa criar mesmo assim.",
+      "Cobrança por pessoa: em Pendências, agrupado por pessoa, cada grupo tem \"Copiar mensagem\" com tudo o que está com ela, e \"Copiar todas\" junta uma mensagem por pessoa. \"Marina\" e \"Marina Souza\" viram um grupo só quando o cadastro diz que são a mesma pessoa.",
+    ] },
   { versao: "3.18", icone: SquarePen, titulo: "A tarefa nasce pronta: do modelo com checklist ou de um e-mail", texto: "O modelo de tarefa agora guarda também um checklist, e a tarefa criada por ele já nasce com a lista do que precisa para ficar pronta. E a nova tarefa pode partir de um e-mail colado: o assunto vira o título e o e-mail entra como o primeiro registro da linha do tempo, na data em que foi enviado.", href: "/configuracoes", rotulo: "Ver os modelos",
     pontos: [
       "Modelo com checklist: ao editar um modelo, o campo \"Checklist de sempre\" recebe um item por linha. Salvar uma tarefa como modelo leva o checklist dela.",
@@ -148,7 +156,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "O modelo de tarefa agora guarda um checklist, e a nova tarefa pode partir de um e-mail colado, que vira o primeiro registro dela.",
+          description: "O mesmo passo não aparece mais duas vezes na mesma tarefa: os repetidos ganham Juntar (sem perder nada), e Pendências copia a cobrança de cada pessoa.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

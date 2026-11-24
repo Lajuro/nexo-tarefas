@@ -331,6 +331,60 @@ teste("tarefaDaProposta: com registros da folha não repete o texto numa nota in
   assert.equal(N.tarefaDaProposta(semPassos, nota, { temRegistros: true, dataMarco: "ontem" }).registros[0].data, T.hojeISO());
 });
 
+// ---------- passos sem repetição (3.19) ----------
+const cadastro = [T.normalizarPessoa({ id: "pe1", nome: "Marina Souza", apelidos: ["Marina"] })];
+teste("passosJaEmAberto: o que já está em aberto na tarefa de destino fica de fora", () => {
+  const r = ler({ itens: [{ tipo: "registro", tarefa: "T1", titulo: "Alinhamento", passos: [
+    { texto: "enviar documentação de integração para o squad." },
+    { texto: "Liberar acesso ao repositório de checkout", responsavel: "Marina Souza" },
+    { texto: "Passo já feito" },
+    { texto: "Marcar a homologação" },
+  ] }] });
+  const [reg] = r.propostas;
+  const fora = N.passosJaEmAberto(r.propostas, () => ({ tarefaId: "ta" }), tarefas, cadastro);
+  const ids = reg.registro.proximosPassos.map((p) => p.id);
+  assert.deepEqual(fora[reg.chave], [ids[0], ids[1]], "passo feito não impede criar de novo; passo novo entra");
+  // sem o cadastro, "Marina Souza" não é reconhecida como a "Marina" do passo antigo: entra
+  assert.deepEqual(N.passosJaEmAberto(r.propostas, () => ({ tarefaId: "ta" }), tarefas, [])[reg.chave], [ids[0]]);
+  // o registro aplicado segue a prévia
+  const aplicado = N.registroDaProposta(reg, nota, { textoInteiro: false, semPassos: fora[reg.chave] });
+  assert.deepEqual(aplicado.proximosPassos.map((p) => p.texto), ["Passo já feito", "Marcar a homologação"]);
+  assert.equal(N.registroDaProposta(reg, nota, { textoInteiro: false }).proximosPassos.length, 4, "sem a lista, nada é tirado");
+  // sem destino, nada a conferir
+  assert.deepEqual(N.passosJaEmAberto(r.propostas, () => null, tarefas, cadastro), {});
+});
+teste("passosJaEmAberto: tarefa nova e reunião da mesma folha não repetem os passos (o defeito da 3.18)", () => {
+  const r = ler({ itens: [
+    { tipo: "tarefa", ref: "N1", titulo: "Migrar o cadastro", passos: [{ texto: "Validar o layout" }, { texto: "Agendar a revisão" }, { texto: "Só da tarefa" }] },
+    { tipo: "registro", tarefa: "N1", registroTipo: "reuniao", titulo: "Reunião de início", passos: [{ texto: "Validar o layout." }, { texto: "agendar a revisão" }, { texto: "Agendar a revisão" }] },
+  ] });
+  const [tar, reg] = r.propostas;
+  const destino = (chave) => (chave === reg.chave ? { novaChave: tar.chave } : null);
+  const fora = N.passosJaEmAberto(r.propostas, destino, tarefas, cadastro);
+  // os passos ficam no registro da reunião (tem data e contexto) e saem da nota inicial da tarefa
+  assert.equal(fora[tar.chave].length, 2);
+  assert.equal(fora[reg.chave].length, 1, "o repetido dentro do próprio registro também sai");
+  const t = N.tarefaDaProposta(tar, nota, { temRegistros: true, semPassos: fora[tar.chave] });
+  const comReg = N.comRegistroDaNota(t, N.registroDaProposta(reg, nota, { textoInteiro: true, semPassos: fora[reg.chave] }));
+  const abertos = comReg.registros.flatMap((x) => x.proximosPassos).map((p) => p.texto);
+  assert.deepEqual(abertos.sort(), ["Só da tarefa", "Validar o layout.", "agendar a revisão"].sort());
+  // se todos os passos da tarefa nova já vêm no registro, a nota inicial nem é criada
+  const tudo = N.tarefaDaProposta(tar, nota, { temRegistros: true, semPassos: tar.passos.map((p) => p.id) });
+  assert.deepEqual(tudo.registros.map((x) => x.tipo), ["marco"]);
+  // só a tarefa marcada (o registro ficou de fora): nada sai dela
+  assert.deepEqual(N.passosJaEmAberto([tar], destino, tarefas, cadastro), {});
+});
+teste("passosJaEmAberto: dois registros da folha indo para a mesma tarefa", () => {
+  const r = ler({ itens: [
+    { tipo: "registro", tarefa: "T2", titulo: "Primeira conversa", passos: [{ texto: "Montar o roteiro" }] },
+    { tipo: "registro", tarefa: "T2", titulo: "Segunda conversa", passos: [{ texto: "montar o roteiro" }, { texto: "Reservar a sala" }] },
+  ] });
+  const [a, b] = r.propostas;
+  const fora = N.passosJaEmAberto(r.propostas, () => ({ tarefaId: "tb" }), tarefas, cadastro);
+  assert.equal(fora[a.chave], undefined);
+  assert.deepEqual(fora[b.chave], [b.registro.proximosPassos[0].id]);
+});
+
 // ---------- aplicação ----------
 teste("comRegistroDaNota acrescenta uma vez só", () => {
   const p = ler(MINIMO).propostas[0];

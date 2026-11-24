@@ -4,12 +4,17 @@
 
 import { type PassoAberto, aberta, passosAbertosDe } from "./lembretes";
 import { acharPessoa, chavesDaPessoa, chaveNome } from "./pessoas";
+import { separarPassosNovos } from "./passos";
 import { type RespostaInterpretada, mesmoTexto } from "./prompts";
 import { assuntosCom, idsDeAssuntos } from "./assuntos";
 import { paraTextoPlano } from "./texto-rico";
-import { type AssuntoParaFalar, type Dados, type Registro, type Tarefa, formatarData, hojeISO, normalizarRegistro, novoId, ordenarRegistros } from "./tipos";
+import { type AssuntoParaFalar, type Dados, type Pessoa, type Registro, type Tarefa, formatarData, hojeISO, normalizarRegistro, novoId, ordenarRegistros } from "./tipos";
 
-export interface PassoNovo { id: string; texto: string; responsavel: string; prazo: string }
+export interface PassoNovo {
+  id: string; texto: string; responsavel: string; prazo: string;
+  /** O passo já está em aberto na tarefa, mas o usuário pediu para criar outro mesmo assim (3.19). */
+  repetir?: boolean;
+}
 
 /** O que está sendo capturado na reunião em andamento. */
 export interface Reuniao {
@@ -50,6 +55,7 @@ export function normalizarReuniao(x: unknown): Reuniao | null {
         texto: String(p.texto).slice(0, 500),
         responsavel: typeof p.responsavel === "string" ? p.responsavel.slice(0, 120) : "",
         prazo: typeof p.prazo === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.prazo) ? p.prazo : "",
+        ...(p.repetir === true ? { repetir: true } : {}),
       })),
     impedimentos: typeof r.impedimentos === "string" ? r.impedimentos.slice(0, 20_000) : "",
     resolvidos: textos(r.resolvidos, 200),
@@ -122,8 +128,20 @@ export function textoDaPauta(tarefa: Tarefa, pauta: Pauta): string {
 /** Minutos de reunião até agora (0 se o relógio não foi ligado). */
 const minutosDe = (r: Reuniao, fim = Date.now()) => (r.inicio > 0 ? Math.max(1, Math.round((fim - r.inicio) / 60_000)) : 0);
 
-/** O registro que a reunião vira na linha do tempo. */
-export function registroDaReuniao(r: Reuniao): Registro {
+/**
+ * Os passos capturados na reunião que já estão em aberto na tarefa (3.19): eles não são criados de novo ao
+ * salvar. Não conta o passo antigo que foi marcado como resolvido nesta reunião (aí o novo é mesmo outro), nem
+ * o que o usuário mandou criar mesmo assim. Devolve os ids dos passos da reunião.
+ */
+export function passosJaNaTarefa(t: Tarefa, r: Reuniao, pessoas: Pessoa[] = []): string[] {
+  const resolvidos = new Set(r.resolvidos);
+  const semResolvidos: Tarefa = { ...t, registros: t.registros.map((reg) => ({ ...reg, proximosPassos: reg.proximosPassos.filter((p) => !resolvidos.has(`${reg.id}:${p.id}`)) })) };
+  const candidatos = r.passos.filter((p) => p.texto.trim() && !p.repetir);
+  return separarPassosNovos(semResolvidos, candidatos, pessoas).jaExistiam.map((p) => p.id);
+}
+
+/** O registro que a reunião vira na linha do tempo. `semPassos`: ids dos passos que ficam de fora (passosJaNaTarefa). */
+export function registroDaReuniao(r: Reuniao, semPassos: readonly string[] = []): Registro {
   const d = new Date(r.inicio || Date.now());
   const p2 = (n: number) => String(n).padStart(2, "0");
   return normalizarRegistro({
@@ -135,7 +153,7 @@ export function registroDaReuniao(r: Reuniao): Registro {
     participantes: r.participantes.map((p) => p.trim()).filter(Boolean),
     anotacoes: r.notas,
     decisoes: r.decisoes.map((x) => x.trim()).filter(Boolean).map((x) => `- ${x}`).join("\n"),
-    proximosPassos: r.passos.filter((p) => p.texto.trim()).map((p) => ({ id: p.id, texto: p.texto.trim(), feito: false, responsavel: p.responsavel.trim(), prazo: p.prazo || null })),
+    proximosPassos: r.passos.filter((p) => p.texto.trim() && !semPassos.includes(p.id)).map((p) => ({ id: p.id, texto: p.texto.trim(), feito: false, responsavel: p.responsavel.trim(), prazo: p.prazo || null })),
     impedimentos: r.impedimentos.trim(),
   });
 }

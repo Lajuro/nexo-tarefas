@@ -21,6 +21,7 @@ import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { Registro, STATUS, Status, TIPOS_REGISTRO, Tarefa, TipoRegistro, diasAte, dataCurta, hojeISO, nomeStatus, tipoInfo } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { PassoDaTarefa } from "./Passos";
+import { PassosJuntadosDoRegistro } from "./PassosRepetidos";
 import { TextoRico } from "./Texto";
 
 const ehStatus = (s: unknown): s is Status => STATUS.some((x) => x.id === s);
@@ -187,6 +188,8 @@ function CardRegistro({
           </div>
         </div>
       )}
+
+      <PassosJuntadosDoRegistro tarefa={tarefa} registro={r} />
 
       {r.impedimentos && (
         <div data-slot="registro-impedimentos" className="mx-4 mt-3.5 rounded-lg border border-alerta/30 bg-alerta/[0.07] px-3 py-2.5 dark:bg-alerta/10">

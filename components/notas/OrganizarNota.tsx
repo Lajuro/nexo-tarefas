@@ -22,8 +22,8 @@ import { Badge } from "@/components/ui/diversos";
 import { Textarea } from "@/components/ui/input";
 import { comPassoAlternado } from "@/lib/acoes";
 import {
-  LeituraNotas, Proposta, PropostaTarefa, apelidosDasTarefas, comRegistroDaNota, frutoDe, interpretarNotas, levaTextoInteiro, promptNotas,
-  registroDaProposta, tarefaDaProposta,
+  LeituraNotas, Proposta, PropostaTarefa, apelidosDasTarefas, comRegistroDaNota, frutoDe, interpretarNotas, levaTextoInteiro, passosJaEmAberto,
+  promptNotas, registroDaProposta, tarefaDaProposta,
 } from "@/lib/notas";
 import { FrutoDaNota, Nota, Passo, Tarefa, agoraISO, dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -31,20 +31,25 @@ import { cn } from "@/lib/utils";
 /** Destino de um registro: id de tarefa existente, ou "nova:<chave da proposta de tarefa nova>". */
 const NOVA = "nova:";
 
-function ListaPassos({ passos }: { passos: Passo[] }) {
+/** `fora`: ids dos passos que não serão criados porque já estão em aberto na tarefa de destino (3.19). `motivo`: o que dizer ao lado deles. */
+function ListaPassos({ passos, fora = [], motivo = "já em aberto" }: { passos: Passo[]; fora?: readonly string[]; motivo?: string }) {
   if (!passos.length) return null;
   return (
     <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-muted-foreground">
-      {passos.map((p) => (
-        <li key={p.id} className="flex gap-1.5">
-          <span aria-hidden>•</span>
-          <span className="min-w-0">
-            <span className="text-foreground">{p.texto}</span>
-            {p.responsavel ? ` · ${p.responsavel}` : ""}
-            {p.prazo ? ` · até ${dataCurta(p.prazo)}` : ""}
-          </span>
-        </li>
-      ))}
+      {passos.map((p) => {
+        const repetido = fora.includes(p.id);
+        return (
+          <li key={p.id} data-slot="passo-da-previa" data-repetido={repetido || undefined} className="flex gap-1.5">
+            <span aria-hidden>•</span>
+            <span className="min-w-0">
+              <span className={repetido ? "line-through decoration-muted-foreground/50" : "text-foreground"}>{p.texto}</span>
+              {p.responsavel ? ` · ${p.responsavel}` : ""}
+              {p.prazo ? ` · até ${dataCurta(p.prazo)}` : ""}
+              {repetido && <span className="ml-1.5 rounded bg-muted px-1 py-px text-[11px] whitespace-nowrap">{motivo}</span>}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -57,6 +62,8 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
   const [destinos, setDestinos] = useState<Record<string, string>>({});
   const [datas, setDatas] = useState<Record<string, string>>({});
   const [arquivar, setArquivar] = useState(true);
+  /** Criar também os passos que já estão em aberto na tarefa de destino (o padrão é não repetir). */
+  const [repetir, setRepetir] = useState(false);
   const [aplicando, setAplicando] = useState(false);
   const [jaCopiou, setJaCopiou] = useState(false);
   const [copiado, marcarCopiado] = useCopiado();
@@ -69,6 +76,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
     setDestinos({});
     setDatas({});
     setArquivar(true);
+    setRepetir(false);
     setAplicando(false);
     setJaCopiou(false);
   }, [nota?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -153,6 +161,17 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
     return !!d && (!d.startsWith(NOVA) || marcadas.has(d.slice(NOVA.length)));
   };
   const aplicaveis = propostas.filter((p) => marcadas.has(p.chave) && (p.tipo !== "registro" || destinoValido(p.chave)));
+  // Passos que já estão em aberto na tarefa de destino (ou que duas propostas trazem iguais): não são criados de novo.
+  const repetidos = passosJaEmAberto(
+    aplicaveis,
+    (chave) => {
+      const d = destinos[chave];
+      return !d ? null : d.startsWith(NOVA) ? { novaChave: d.slice(NOVA.length) } : { tarefaId: d };
+    },
+    tarefas, dados?.pessoas?.items ?? [],
+  );
+  const quantosRepetidos = Object.values(repetidos).reduce((n, ids) => n + ids.length, 0);
+  const fora: Record<string, string[]> = repetir ? {} : repetidos;
 
   async function aplicar() {
     if (!nota || aplicando || !aplicaveis.length) return;
@@ -167,7 +186,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
       const dela = aplicaveis.filter((r) => r.tipo === "registro" && destinos[r.chave] === NOVA + p.chave);
       // O marco "Tarefa criada" leva a data do registro mais antigo que vai entrar nela.
       const dataMarco = dela.map((r) => datas[r.chave]).filter(Boolean).sort()[0];
-      const t = await criarTarefa(tarefaDaProposta(p, nota, { textoInteiro, temRegistros: dela.length > 0, dataMarco }));
+      const t = await criarTarefa(tarefaDaProposta(p, nota, { textoInteiro, temRegistros: dela.length > 0, dataMarco, semPassos: fora[p.chave] }));
       if (t) { criadas.set(p.chave, t); frutos.push(frutoDe(p, t)); feitas.add(p.chave); }
     }
     // 2. registros e passos concluídos
@@ -176,7 +195,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
         const d = destinos[p.chave];
         const idTarefa = d.startsWith(NOVA) ? criadas.get(d.slice(NOVA.length))?.id : d;
         if (!idTarefa) continue; // a tarefa nova não foi criada: o registro fica na prévia
-        const registro = registroDaProposta(p, nota, { textoInteiro, data: datas[p.chave] });
+        const registro = registroDaProposta(p, nota, { textoInteiro, data: datas[p.chave], semPassos: fora[p.chave] });
         const t = await atualizarTarefa(idTarefa, (x) => comRegistroDaNota(x, registro));
         if (t) { frutos.push(frutoDe(p, t)); feitas.add(p.chave); }
       } else if (p.tipo === "passo_concluido") {
@@ -314,7 +333,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                           {sobra && <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground texto-pre">{p.trecho}</p>}
                           {p.registro.decisoes && <p className="mt-1.5 text-xs leading-snug text-muted-foreground texto-pre"><span className="font-medium text-foreground">Decisões:</span> {p.registro.decisoes}</p>}
                           {p.registro.impedimentos && <p className="mt-1.5 text-xs leading-snug text-muted-foreground texto-pre"><span className="font-medium text-destructive">Impedimentos:</span> {p.registro.impedimentos}</p>}
-                          <ListaPassos passos={p.registro.proximosPassos} />
+                          <ListaPassos passos={p.registro.proximosPassos} fora={marcada ? fora[p.chave] : undefined} />
                         </>
                       )}
                       {p.tipo === "tarefa" && (
@@ -330,7 +349,7 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                           </div>
                           {p.categoriaCitada && <p className="mt-1.5 text-xs text-alerta">A IA sugeriu a categoria “{p.categoriaCitada}”, que não existe. A tarefa entra sem categoria.</p>}
                           {p.descricao && <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground texto-pre">{p.descricao}</p>}
-                          <ListaPassos passos={p.passos} />
+                          <ListaPassos passos={p.passos} fora={marcada ? fora[p.chave] : undefined} motivo="já vem no registro" />
                         </>
                       )}
                       {p.tipo === "passo_concluido" && (
@@ -346,6 +365,18 @@ export function OrganizarNota({ nota, fechar }: { nota: Nota | null; fechar: () 
                   </article>
                 );
               })}
+              {quantosRepetidos > 0 && (
+                <div data-slot="passos-repetidos-na-previa" role="status" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-dashed px-3.5 py-2.5 text-xs leading-snug text-muted-foreground">
+                  <span className="min-w-0 flex-1 basis-60">
+                    {repetir
+                      ? (quantosRepetidos === 1 ? "1 passo repetido vai ser criado mesmo assim." : `${quantosRepetidos} passos repetidos vão ser criados mesmo assim.`)
+                      : (quantosRepetidos === 1
+                        ? "1 passo não será criado de novo: já está em aberto na tarefa de destino ou vem em outro item desta folha."
+                        : `${quantosRepetidos} passos não serão criados de novo: já estão em aberto na tarefa de destino ou vêm em outro item desta folha.`)}
+                  </span>
+                  <CampoSwitch marcado={repetir} aoMudar={setRepetir}>Criar mesmo assim</CampoSwitch>
+                </div>
+              )}
               {leitura.avisos.length > 0 && (
                 <ul data-slot="avisos-leitura" className="flex flex-col gap-0.5 text-xs leading-snug text-muted-foreground">
                   {leitura.avisos.map((a, i) => <li key={i} className="flex gap-1.5"><TriangleAlert className="mt-px size-3 shrink-0 text-alerta" /> {a}</li>)}

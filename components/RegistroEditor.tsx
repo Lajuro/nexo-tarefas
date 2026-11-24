@@ -22,6 +22,7 @@ import { aplicarStatus } from "@/lib/acoes";
 import { itemRemovivel } from "@/lib/animacoes";
 import { type EmailLido, comEmailNoRegistro } from "@/lib/email";
 import { nomesConhecidos } from "@/lib/pessoas";
+import { separarPassosNovos } from "@/lib/passos";
 import { interpretarResposta, mesmoTexto, promptRegistro } from "@/lib/prompts";
 import { Rascunho, apagarRascunho, gravarRascunho, lerRascunho } from "@/lib/rascunhos";
 import {
@@ -113,6 +114,8 @@ export function RegistroEditor({
   const [jaCopiou, setJaCopiou] = useState(false);
   const [preenchido, setPreenchido] = useState<null | { ok: boolean; texto: string }>(null);
   const [realce, setRealce] = useState<{ campos: CampoIA[]; passos: string[] }>({ campos: [], passos: [] });
+  /** Passos da resposta do Copilot que já estão em aberto em outro registro da tarefa: ficam de fora, e dá para incluir mesmo assim (3.19). */
+  const [jaAbertos, setJaAbertos] = useState<{ texto: string; responsavel: string }[]>([]);
   const [focarPasso, setFocarPasso] = useState<string | null>(null);
   // Seções da direita abertas à mão (3.11). Com conteúdo elas abrem sozinhas, isto é só o clique do usuário.
   const [verCampos, setVerCampos] = useState(false);
@@ -162,6 +165,7 @@ export function RegistroEditor({
     setSalvando(false);
     setJaCopiou(false);
     setPreenchido(null);
+    setJaAbertos([]);
     setRealce({ campos: [], passos: [] });
     setFocarPasso(null);
     setVerCampos(false);
@@ -230,9 +234,13 @@ export function RegistroEditor({
 
   function preencher() {
     const res = interpretarResposta(colado);
-    const novosPassos = res.passos
-      .filter((p) => !r.proximosPassos.some((q) => mesmoTexto(q.texto, p.texto)))
-      .map((p) => normalizarPasso({ texto: p.texto, responsavel: p.responsavel }));
+    // O que já está em aberto em outro registro desta tarefa não é criado de novo: é o mesmo passo, e duas
+    // linhas iguais na lista de pendências só atrapalham. Fica avisado logo abaixo, com "Incluir mesmo assim".
+    const { entram, jaExistiam } = separarPassosNovos(
+      tarefa, res.passos.filter((p) => !r.proximosPassos.some((q) => mesmoTexto(q.texto, p.texto))), dados?.pessoas?.items ?? [], r.id,
+    );
+    const novosPassos = entram.map((p) => normalizarPasso({ texto: p.texto, responsavel: p.responsavel }));
+    setJaAbertos(jaExistiam.map((p) => ({ texto: p.texto, responsavel: p.responsavel ?? "" })));
     const novasPessoas = res.participantes.filter((p) => !r.participantes.includes(p));
     setR((x) => ({
       ...x,
@@ -270,6 +278,15 @@ export function RegistroEditor({
         ? `Campos preenchidos${ids.length ? ` e ${ids.length} passo(s) antigo(s) marcados para concluir` : ""}. Revise antes de salvar.`
         : "Não achei as seções do formato. Coloquei tudo no resumo.",
     });
+  }
+
+  function incluirJaAbertos() {
+    const novos = jaAbertos.map((p) => normalizarPasso({ texto: p.texto, responsavel: p.responsavel }));
+    setR((x) => ({ ...x, proximosPassos: [...x.proximosPassos, ...novos] }));
+    setJaAbertos([]);
+    setRealce({ campos: [], passos: novos.map((p) => p.id) });
+    if (relogioRealce.current) clearTimeout(relogioRealce.current);
+    relogioRealce.current = setTimeout(() => setRealce({ campos: [], passos: [] }), 2400);
   }
 
   function mudarPasso(i: number, campo: keyof Passo, v: string | boolean | null) {
@@ -374,6 +391,7 @@ export function RegistroEditor({
     setPrazo(tarefa.prazo ?? "");
     setConcluir([]);
     setPreenchido(null);
+    setJaAbertos([]);
     setRecuperado(null);
   }
 
@@ -513,6 +531,7 @@ export function RegistroEditor({
                 onChange={(e) => {
                   setColado(e.target.value);
                   setPreenchido(null);
+                  setJaAbertos([]);
                 }}
                 placeholder="Cole a resposta aqui..."
                 aria-label="Resposta do Copilot"
@@ -615,6 +634,23 @@ export function RegistroEditor({
                       <span className="text-xs text-muted-foreground">O que ficou combinado de fazer, com quem e até quando.</span>
                     )}
                   </div>
+                  {jaAbertos.length > 0 && (
+                    <div data-slot="passos-ja-abertos" role="status" className="mt-2 rounded-lg border border-dashed px-3 py-2 text-xs leading-snug text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="min-w-0 flex-1 basis-56">
+                          {jaAbertos.length === 1
+                            ? "1 passo da resposta já está em aberto nesta tarefa e não foi criado de novo."
+                            : `${jaAbertos.length} passos da resposta já estão em aberto nesta tarefa e não foram criados de novo.`}
+                        </span>
+                        <Button variant="link" size="sm" className="h-auto shrink-0 p-0" onClick={incluirJaAbertos}>Incluir mesmo assim</Button>
+                      </div>
+                      <ul className="mt-1 flex flex-col gap-0.5">
+                        {jaAbertos.map((p, i) => (
+                          <li key={i} className="flex gap-1.5"><span aria-hidden>•</span><span className="min-w-0">{p.texto}{p.responsavel ? ` · ${p.responsavel}` : ""}</span></li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
 

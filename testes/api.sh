@@ -371,6 +371,15 @@ checa "modelo: checklist só de texto, aparado e sem vazios" '"checklist":["Scan
 checa "modelo antigo, sem checklist, ganha a lista vazia" '"checklist":[]' "$R"
 checa "modelo com checklist preserva campo desconhecido" '"campoFuturo":"x"' "$R"
 
+# ---------- 3.19: passos juntados (campo opcional do registro) ----------
+R=$(curl -s -X PUT $B/api/tarefas/pj1 -H "$J" -d '{"tarefa":{"id":"pj1","titulo":"Com passos juntados","registros":[{"id":"rj1","tipo":"nota","data":"2026-11-20","titulo":"Origem","proximosPassos":[{"id":"pa","texto":"Fica"}],"passosJuntados":[{"id":"pb","texto":"Fica","feito":true,"juntadoEm":"2026-11-21T10:00:00.000Z","juntadoCom":{"registroId":"rj1","passoId":"pa"},"campoFuturo":"x"},"solto",{"id":"pc","texto":"Sem destino","juntadoCom":{"registroId":7}}]},{"id":"rj2","tipo":"nota","data":"2026-11-21","titulo":"Sem juncao","passosJuntados":[]}]},"revEsperada":null}')
+checa "passos juntados: vão e voltam com a data, o destino e o campo desconhecido" '"id":"pb","texto":"Fica","feito":false,"juntadoEm":"2026-11-21T10:00:00.000Z","juntadoCom":{"registroId":"rj1","passoId":"pa"},"campoFuturo":"x"' "$R"
+checa "passos juntados: destino malformado vira nulo, sem derrubar o passo" '"id":"pc","texto":"Sem destino","juntadoCom":null' "$R"
+checa "passos juntados: o que não é passo fica de fora" '2' "$(echo "$R" | grep -o '"juntadoEm":' | wc -l | tr -d ' ')"
+checa "passos juntados: registro sem junção não ganha o campo" '1' "$(echo "$R" | grep -o '"passosJuntados":' | wc -l | tr -d ' ')"
+checa "passos juntados: ficam no arquivo da tarefa" '"juntadoEm": "2026-11-21T10:00:00.000Z"' "$(cat "$TMP/dados/tarefas/pj1.json")"
+checa "passos juntados: não contam como pendência no espelho em Markdown" '1' "$(grep -c -- '- \[ \] Fica' "$TMP/dados/markdown/"*--pj1.md)"
+
 # ---------- 3.17: importar um arquivo exportado ----------
 imp() { curl -s -X POST "$B/api/importar$1" -H 'Content-Type: text/plain; charset=utf-8' --data-binary "@$2"; }
 curl -s $B/api/exportar >"$TMP/export.json"

@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { PainelChecklist } from "./Checklist";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
 import { PassoDaTarefa } from "./Passos";
+import { AvisoDeRepetidos } from "./PassosRepetidos";
 import { PainelCitacoes } from "@/components/Citacoes";
 import { PainelDependencias } from "./Dependencias";
 import { PainelReferencias } from "./Referencias";
@@ -41,9 +42,12 @@ function Nada({ children, icone }: { children: ReactNode; icone?: ReactNode }) {
 
 function Pendencias({ tarefa, aoIrPara }: { tarefa: Tarefa; aoIrPara: (registroId: string) => void }) {
   const abertos = passosAbertos(tarefa);
+  const soEsta = useMemo(() => [tarefa], [tarefa]);
   return (
     <Painel titulo="Pendências" icone={<ListChecks />} contagem={abertos.length} corpoClassName="py-2.5">
       {abertos.length === 0 && <Nada icone={<CircleCheck className="text-sucesso" />}>Nenhum passo em aberto.</Nada>}
+      {/* o mesmo passo anotado duas vezes: avisa e deixa juntar, sem perder nada (3.19) */}
+      <AvisoDeRepetidos tarefas={soEsta} className="mb-2" />
       <AnimatePresence initial={false}>
         {abertos.map(({ registro, passo }) => (
           <motion.div key={passo.id} {...itemRemovivel} layout={false} className="-mx-1 overflow-hidden px-1">

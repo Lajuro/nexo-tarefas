@@ -30,7 +30,7 @@ import { nomesConhecidos } from "@/lib/pessoas";
 import { promptPrepararReuniao } from "@/lib/prompts";
 import { apagarReuniao, gravarReuniao, lerReuniao } from "@/lib/rascunhos";
 import { chaveDoAssunto, comAssuntoResolvido, idsDeAssuntos } from "@/lib/assuntos";
-import { type Reuniao, comReuniao, montarPauta, registroDaReuniao, reuniaoNova, reuniaoTemConteudo, textoDaAta, textoDaPauta } from "@/lib/reuniao";
+import { type Reuniao, comReuniao, montarPauta, passosJaNaTarefa, registroDaReuniao, reuniaoNova, reuniaoTemConteudo, textoDaAta, textoDaPauta } from "@/lib/reuniao";
 import { paraTextoPlano } from "@/lib/texto-rico";
 import { dataCurta, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -153,6 +153,9 @@ export default function PaginaReuniao() {
     mudar({ resolvidos: feito ? [...new Set([...r.resolvidos, chave])] : r.resolvidos.filter((x) => x !== chave) });
 
   const temConteudo = reuniaoTemConteudo(r);
+  // Passo capturado que já está em aberto na tarefa: não é criado de novo ao salvar (dá para pedir que seja).
+  const cadastro = dados?.pessoas?.items ?? [];
+  const jaNaTarefa = passosJaNaTarefa(tarefa, r, cadastro);
 
   const encerrar = async () => {
     if (!temConteudo || salvando) return;
@@ -163,7 +166,8 @@ export default function PaginaReuniao() {
       decisoes: decisao.trim() ? [...r.decisoes, decisao.trim()] : r.decisoes,
       passos: passo.trim() ? [...r.passos, { id: novoId("p"), texto: passo.trim(), responsavel: "", prazo: "" }] : r.passos,
     };
-    const registro = registroDaReuniao(final);
+    const repetidos = passosJaNaTarefa(tarefa, final, cadastro);
+    const registro = registroDaReuniao(final, repetidos);
     const assuntos = dados?.assuntos?.items ?? [];
     const ata = textoDaAta(tarefa, final, Date.now(), assuntos);
     const ok = await atualizarTarefa(tarefa.id, (t) => comReuniao(t, final, registro));
@@ -175,7 +179,11 @@ export default function PaginaReuniao() {
     salvo.current = true;
     apagarReuniao(tarefa.id);
     setDepois({ ata, registroId: registro.id });
-    toast("Reunião registrada na linha do tempo.");
+    toast(
+      repetidos.length
+        ? `Reunião registrada. ${repetidos.length === 1 ? "1 passo já estava em aberto na tarefa e não foi repetido" : `${repetidos.length} passos já estavam em aberto na tarefa e não foram repetidos`}.`
+        : "Reunião registrada na linha do tempo.",
+    );
   };
 
   const descartar = async () => {
@@ -396,6 +404,13 @@ export default function PaginaReuniao() {
                       <SeletorData prazo valor={p.prazo} placeholder="Prazo" aria-label="Prazo do passo" className="h-7 w-40 text-xs"
                         aoMudar={(v) => mudar({ passos: r.passos.map((x) => (x.id === p.id ? { ...x, prazo: v } : x)) })} />
                     </div>
+                    {jaNaTarefa.includes(p.id) && (
+                      <p data-slot="passo-ja-aberto" role="status" className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-snug text-muted-foreground">
+                        <span>Já está em aberto na tarefa: não será criado de novo.</span>
+                        <Button variant="link" size="sm" className="h-auto p-0"
+                          onClick={() => mudar({ passos: r.passos.map((x) => (x.id === p.id ? { ...x, repetir: true } : x)) })}>Criar mesmo assim</Button>
+                      </p>
+                    )}
                     </div>
                   </motion.div>
                 ))}
