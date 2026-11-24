@@ -364,6 +364,13 @@ R=$(curl -s -X PUT $B/api/tarefas/ck1 -H "$J" -d '{"tarefa":{"id":"ck1","titulo"
 checa "checklist: gravar a tarefa sem o campo não apaga o checklist (mescla com o disco)" '"texto":"Pedir acesso"' "$R"
 checa "tarefa sem checklist abre com a lista vazia" '"checklist":[]' "$(curl -s -X PUT $B/api/tarefas/ck2 -H "$J" -d '{"tarefa":{"id":"ck2","titulo":"Sem checklist"},"revEsperada":null}')"
 
+# ---------- 3.18: checklist nos modelos de tarefa ----------
+revModelos() { curl -s $B/api/dados | sed 's/.*"modelos":{"rev":\([0-9-]*\).*/\1/'; }
+R=$(curl -s -X PUT $B/api/modelos -H "$J" -d "{\"items\":[{\"id\":\"mo1\",\"nome\":\"Levar a ferramenta a um squad\"},{\"id\":\"mock\",\"nome\":\"Com checklist\",\"checklist\":[\"  Scan   rodando \",\"\",7,\"Squad treinado\"],\"campoFuturo\":\"x\"}],\"revEsperada\":$(revModelos)}")
+checa "modelo: checklist só de texto, aparado e sem vazios" '"checklist":["Scan rodando","Squad treinado"]' "$R"
+checa "modelo antigo, sem checklist, ganha a lista vazia" '"checklist":[]' "$R"
+checa "modelo com checklist preserva campo desconhecido" '"campoFuturo":"x"' "$R"
+
 # ---------- 3.17: importar um arquivo exportado ----------
 imp() { curl -s -X POST "$B/api/importar$1" -H 'Content-Type: text/plain; charset=utf-8' --data-binary "@$2"; }
 curl -s $B/api/exportar >"$TMP/export.json"

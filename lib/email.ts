@@ -13,7 +13,7 @@
 
 import { interpretarColagem, nomeDoEmail } from "./importar-pessoas";
 import { acharPessoa, chaveNome, nomeParaCadastro } from "./pessoas";
-import { type Pessoa, type Registro, dataReal, formatarData, horaValida, semAcento } from "./tipos";
+import { type Pessoa, type Registro, dataReal, formatarData, hojeISO, horaValida, normalizarRegistro, semAcento } from "./tipos";
 
 /** Teto do texto colado que é lido (um e-mail com uma conversa longa embaixo passa disso raramente). */
 export const MAX_EMAIL = 200_000;
@@ -284,4 +284,22 @@ export function comEmailNoRegistro(r: Registro, email: EmailLido, opcoes: { novo
     participantes,
     anotacoes: r.anotacoes.trim() ? `${r.anotacoes.replace(/\s+$/, "")}\n\n${bloco}` : bloco,
   };
+}
+
+// ---------- do e-mail para uma tarefa nova (3.18) ----------
+
+/** "E-mail de Marina Souza, 19/11/26 14:32": uma linha para dizer de que e-mail se trata. Sem cabeçalho: "Texto colado". */
+export function resumoDoEmail(email: EmailLido): string {
+  if (!email.reconheceu) return "Texto colado";
+  const quando = email.data ? `${formatarData(email.data)}${email.hora ? ` ${email.hora}` : ""}` : "";
+  return [email.de ? `E-mail de ${email.de.nome}` : "E-mail", quando].filter(Boolean).join(", ");
+}
+
+/**
+ * O registro com que uma tarefa nasce de um e-mail: uma nota na data do e-mail (é quando a demanda chegou, e por
+ * isso ela aparece antes do marco "Tarefa criada"), com quem estava nele e o texto nas anotações.
+ */
+export function registroDoEmail(email: EmailLido, cadastro: Pessoa[] = []): Registro {
+  const r = comEmailNoRegistro(normalizarRegistro({ tipo: "nota", data: hojeISO() }), email, { novo: true, cadastro });
+  return r.titulo.trim() ? r : { ...r, titulo: email.reconheceu ? "E-mail que originou a tarefa" : "Texto colado ao criar a tarefa" };
 }

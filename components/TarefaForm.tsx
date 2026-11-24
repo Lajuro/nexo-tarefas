@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LayoutTemplate } from "lucide-react";
+import { ChevronDown, LayoutTemplate, Mail, X } from "lucide-react";
 import { useNexo } from "./Provider";
 import { useNomesDasTags } from "./tags/useTags";
 import { useFecharComCuidado } from "./Raiz";
+import { ColarEmail } from "./tarefa/ColarEmail";
 import { ComboCategoria } from "./tarefas/ComboCategoria";
 import { Campo, ChipsInput, LinhaCampos, Modal, PontoCor, SeletorPrioridade, opcoesStatus } from "./comum";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,8 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { Seletor } from "@/components/ui/select";
 import { aplicarStatus } from "@/lib/acoes";
-import { porUso, registroDosPassos } from "@/lib/modelos";
+import { type EmailLido, registroDoEmail, resumoDoEmail } from "@/lib/email";
+import { checklistDoModelo, porUso, registroDosPassos } from "@/lib/modelos";
 import { usePref } from "@/lib/preferencias";
 import { comOcorrenciaAtendida, ocorrenciaDevida } from "@/lib/recorrencia";
 import {
@@ -50,6 +52,11 @@ export function TarefaForm({
   // Modelo escolhido (só em tarefa nova) e os passos dele, que dá para desmarcar antes de salvar.
   const [modeloId, setModeloId] = useState("");
   const [passosModelo, setPassosModelo] = useState<{ texto: string; ligado: boolean }[]>([]);
+  // O checklist do modelo (3.18), que também dá para desmarcar item por item antes de salvar.
+  const [checklistModelo, setChecklistModelo] = useState<{ texto: string; ligado: boolean }[]>([]);
+  // E-mail de onde a tarefa nasce (3.18, só em tarefa nova): vira o primeiro registro dela ao salvar.
+  const [email, setEmail] = useState<EmailLido | null>(null);
+  const [colandoEmail, setColandoEmail] = useState(false);
   const [salvando, setSalvando] = useState(false);
   // Trava síncrona: Enter no título e Ctrl+Enter podem chegar juntos antes de o estado "salvando" virar.
   const gravando = useRef(false);
@@ -72,6 +79,9 @@ export function TarefaForm({
     setTags(tarefa?.tags ?? []);
     setModeloId("");
     setPassosModelo([]);
+    setChecklistModelo([]);
+    setEmail(null);
+    setColandoEmail(false);
     setSalvando(false);
     gravando.current = false;
     // Ao editar, abre se algum campo de dentro tem valor; ao criar, segue a última escolha.
@@ -92,7 +102,9 @@ export function TarefaForm({
     if (m.id === modeloId && !semDesfazer) {
       setModeloId("");
       setPassosModelo([]);
-      setTitulo("");
+      setChecklistModelo([]);
+      // o título que veio de um e-mail colado não é do modelo: fica
+      setTitulo(email?.assunto ?? "");
       setDescricao("");
       setCategoriaId(categoriaInicial ?? "");
       setPrioridade(5);
@@ -102,6 +114,7 @@ export function TarefaForm({
     }
     setModeloId(m.id);
     setPassosModelo(m.passos.map((texto) => ({ texto, ligado: true })));
+    setChecklistModelo((m.checklist ?? []).map((texto) => ({ texto, ligado: true })));
     setTitulo(m.titulo);
     setDescricao(m.descricao);
     // categoria do modelo só vale se ainda existir e não estiver arquivada
@@ -128,9 +141,16 @@ export function TarefaForm({
   const partida = { titulo: tarefa?.titulo ?? modelo?.titulo ?? "", descricao: tarefa?.descricao ?? modelo?.descricao ?? "", tags: tarefa?.tags ?? modelo?.tags ?? [] };
   const sujo = aberto && (
     titulo !== partida.titulo || descricao !== partida.descricao ||
-    tags.join("\n") !== partida.tags.join("\n") || novaCat.trim() !== ""
+    tags.join("\n") !== partida.tags.join("\n") || novaCat.trim() !== "" || !!email
   );
   const tentarFechar = useFecharComCuidado(sujo, fechar);
+
+  /** O e-mail colado fica guardado para virar o primeiro registro; o assunto vira o título se ele ainda estava vazio. */
+  function usarEmail(lido: EmailLido) {
+    setEmail(lido);
+    if (!titulo.trim() && lido.assunto) setTitulo(lido.assunto);
+    setTimeout(() => campoTitulo.current?.focus(), 60);
+  }
 
   // O que está guardado em "Mais opções", para o botão recolhido não esconder nada que já tem valor.
   const resumoMais = [
@@ -204,13 +224,19 @@ export function TarefaForm({
       liberar();
       if (r) fechar();
     } else {
-      const base = normalizarTarefa({ id: novoId("t"), ...campos, status });
+      const base = normalizarTarefa({
+        id: novoId("t"), ...campos, status,
+        // o checklist do modelo, só com os itens que ficaram marcados
+        checklist: modelo ? checklistDoModelo(checklistModelo.filter((i) => i.ligado).map((i) => i.texto)) : [],
+      });
       base.registros.push(
         normalizarRegistro({
           tipo: "marco", data: hojeISO(), titulo: "Tarefa criada",
           anotacoes: descricao, alteracoes: { status: { de: "", para: status } },
         }),
       );
+      // O e-mail de onde a tarefa nasceu é o primeiro registro dela (na data do e-mail).
+      if (email) base.registros.push(registroDoEmail(email, dados?.pessoas?.items ?? []));
       // Os passos do modelo entram num registro próprio: é ele que os faz aparecer em Pendências.
       const passos = modelo ? registroDosPassos(modelo, passosModelo.filter((p) => p.ligado).map((p) => p.texto)) : null;
       if (passos) base.registros.push(passos);
@@ -277,7 +303,18 @@ export function TarefaForm({
           </div>
         )}
 
-        <Campo rotulo="Título" dica={tarefa ? undefined : "A tarefa é a demanda inteira. Reuniões e atividades entram depois, como registros na linha do tempo dela."}>
+        <Campo
+          rotulo="Título"
+          dica={tarefa ? undefined : "A tarefa é a demanda inteira. Reuniões e atividades entram depois, como registros na linha do tempo dela."}
+          lado={
+            // a demanda chegou por e-mail: o assunto vira o título e o e-mail vira o primeiro registro (3.18)
+            !tarefa && !email && (
+              <Button variant="ghost" size="sm" data-slot="tarefa-de-email" className="-my-1 h-6 px-1.5 text-xs text-muted-foreground" onClick={() => setColandoEmail(true)}>
+                <Mail /> A partir de um e-mail
+              </Button>
+            )
+          }
+        >
           <Input
             ref={campoTitulo}
             autoFocus
@@ -294,6 +331,18 @@ export function TarefaForm({
               }
             }}
           />
+          {email && (
+            <div data-slot="email-da-tarefa" className="flex items-center gap-2 rounded-lg bg-muted/60 py-1 pr-1 pl-2.5 text-xs">
+              <Mail className="size-3.5 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate">
+                <span className="font-medium">{resumoDoEmail(email)}</span>
+                <span className="text-muted-foreground"> entra como o primeiro registro da tarefa</span>
+              </span>
+              <Dica texto="Não usar este e-mail">
+                <Button variant="ghost" size="icon-sm" className="size-6 shrink-0" aria-label="Não usar este e-mail" onClick={() => setEmail(null)}><X /></Button>
+              </Dica>
+            </div>
+          )}
         </Campo>
 
         <LinhaCampos>
@@ -384,7 +433,32 @@ export function TarefaForm({
             </ul>
           </Campo>
         )}
+
+        {modelo && checklistModelo.length > 0 && (
+          <Campo
+            rotulo="Checklist que vem do modelo"
+            dica="Desmarque o que não vale para esta tarefa. Os marcados viram o checklist dela, tudo em aberto."
+            lado={<span className="text-xs text-muted-foreground tabular-nums">{checklistModelo.filter((i) => i.ligado).length} de {checklistModelo.length}</span>}
+          >
+            <ul data-slot="checklist-do-modelo" className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-2">
+              {checklistModelo.map((item, i) => {
+                const idCampo = `checklist-modelo-${i}`;
+                return (
+                  <li key={i} className="flex items-start gap-2">
+                    <Checkbox id={idCampo} checked={item.ligado} className="mt-px"
+                      onCheckedChange={(v) => setChecklistModelo((l) => l.map((x, j) => (j === i ? { ...x, ligado: v === true } : x)))} />
+                    <label htmlFor={idCampo} className={cn("cursor-pointer text-[13px] leading-snug", !item.ligado && "text-muted-foreground line-through decoration-muted-foreground/50")}>{item.texto}</label>
+                  </li>
+                );
+              })}
+            </ul>
+          </Campo>
+        )}
       </div>
+      {!tarefa && (
+        <ColarEmail aberto={colandoEmail} fechar={() => setColandoEmail(false)} aoTrazer={usarEmail} acao="Usar na tarefa"
+          observacao="O assunto vira o título, se ele estiver vazio, e o e-mail entra como o primeiro registro da tarefa, na data em que foi enviado." />
+      )}
     </Modal>
   );
 }

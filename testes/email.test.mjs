@@ -203,5 +203,27 @@ teste("texto sem cabeçalho só acrescenta as anotações", () => {
   assert.equal(r.anotacoes, "\\# só um texto\ncolado");
 });
 
+// ---------- tarefa nova a partir de um e-mail (3.18) ----------
+
+teste("tarefa a partir de um e-mail: o primeiro registro é uma nota na data do e-mail, com as pessoas e o texto", () => {
+  const r = E.registroDoEmail(E.lerEmail(OUTLOOK), cadastro);
+  assert.deepEqual([r.tipo, r.titulo, r.data, r.hora], ["nota", "Gate do pipeline no squad de Pagamentos", "2026-11-19", "14:32"]);
+  assert.deepEqual(r.participantes, ["Marina Souza", "Bruno de Lima", "Ana Costa", "Felipe Arquitetura"]);
+  assert.match(r.anotacoes, /^\*\*E-mail: Gate do pipeline/);
+  assert.ok(T.ID_VALIDO.test(r.id) && r.proximosPassos.length === 0);
+  assert.equal(E.resumoDoEmail(E.lerEmail(OUTLOOK)), "E-mail de Marina Souza, 19/11/26 14:32");
+});
+
+teste("tarefa a partir de um texto sem cabeçalho: o registro tem título próprio e a data de hoje", () => {
+  const lido = E.lerEmail("só um texto\ncolado");
+  const r = E.registroDoEmail(lido);
+  assert.deepEqual([r.tipo, r.titulo, r.data, r.participantes.length, r.anotacoes], ["nota", "Texto colado ao criar a tarefa", T.hojeISO(), 0, "só um texto\ncolado"]);
+  assert.equal(E.resumoDoEmail(lido), "Texto colado");
+  // e-mail com cabeçalho mas sem assunto nem data
+  const semAssunto = E.lerEmail("De: Marina Souza\nPara: Bruno Lima\n\nOi.");
+  assert.equal(E.registroDoEmail(semAssunto).titulo, "E-mail que originou a tarefa");
+  assert.equal(E.resumoDoEmail(semAssunto), "E-mail de Marina Souza");
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);

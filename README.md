@@ -79,6 +79,13 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.18: a tarefa nasce pronta
+
+Duas melhorias para o começo de uma tarefa, sem mudar o formato dos dados.
+
+- **Modelo com checklist.** O modelo de tarefa agora guarda também um checklist. Em **Configurações > Modelos de tarefa**, ao criar ou editar um modelo, o campo **Checklist de sempre** recebe um item por linha. "Salvar como modelo", no menu de uma tarefa, já leva o checklist dela. Em **Nova tarefa**, ao escolher o modelo, o checklist aparece para você desmarcar o que não vale desta vez, como já era com os passos; a tarefa nasce com os itens marcados, todos em aberto.
+- **Tarefa a partir de um e-mail.** Em **Nova tarefa**, ao lado do título, **A partir de um e-mail** abre a janela de colar o e-mail (com o cabeçalho do Outlook: De, Enviada em, Para, Assunto). O assunto vira o título, se ele estiver vazio. Ao salvar, o e-mail vira o primeiro registro da tarefa: uma nota com a data e a hora em que foi enviado, as pessoas como participantes e o texto nas anotações. A linha do tempo passa a começar por onde a demanda chegou. Antes de salvar, o "x" ao lado do e-mail desiste dele.
+
 ## 3.17: checklist na tarefa, e-mail colado, filtro por tag e importação
 
 Cinco coisas que estavam na lista de pedidos, todas sem mudar o formato dos dados (nenhuma migração).

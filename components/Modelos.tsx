@@ -18,7 +18,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
 import { SeletorData } from "@/components/ui/data";
 import { Seletor } from "@/components/ui/select";
-import { modeloDaTarefa, passosDoTexto, porUso } from "@/lib/modelos";
+import { checklistDoTexto, modeloDaTarefa, passosDoTexto, porUso } from "@/lib/modelos";
 import { comOcorrenciaAtendida, proximaOcorrencia, textoDaRepeticao } from "@/lib/recorrencia";
 import { Modelo, type RepeticaoDoModelo, agoraISO, dataCurta, hojeISO, normalizarModelo, normalizarRepeticao, novoId } from "@/lib/tipos";
 
@@ -58,6 +58,7 @@ export function ModeloForm() {
   const [prioridade, setPrioridade] = useState(5);
   const [tags, setTags] = useState<string[]>([]);
   const [passos, setPassos] = useState("");
+  const [checklist, setChecklist] = useState("");
   const [prazo, setPrazo] = useState("");
   const [repetir, setRepetir] = useState<RepeticaoDoModelo | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -83,6 +84,7 @@ export function ModeloForm() {
     setPrioridade(m.prioridade);
     setTags(m.tags);
     setPassos(m.passos.join("\n"));
+    setChecklist((m.checklist ?? []).join("\n"));
     setPrazo(m.prazoEmDias ? String(m.prazoEmDias) : "");
     setRepetir(m.repetir ?? null);
     setSalvando(false);
@@ -94,12 +96,13 @@ export function ModeloForm() {
   const fechar = () => setPedido(null);
   const sujo = aberto && (
     nome !== base!.nome || quando !== base!.quando || titulo !== base!.titulo || descricao !== base!.descricao ||
-    passos !== base!.passos.join("\n") || tags.join("\n") !== base!.tags.join("\n")
+    passos !== base!.passos.join("\n") || checklist !== (base!.checklist ?? []).join("\n") || tags.join("\n") !== base!.tags.join("\n")
   );
   const tentarFechar = useFecharComCuidado(sujo, fechar);
 
   const todasTags = useNomesDasTags();
   const listaPassos = passosDoTexto(passos);
+  const listaChecklist = checklistDoTexto(checklist);
 
   async function salvar() {
     if (!base || !nome.trim() || salvando) return;
@@ -116,6 +119,7 @@ export function ModeloForm() {
       prioridade,
       tags,
       passos: listaPassos,
+      checklist: listaChecklist,
       prazoEmDias: Number.isFinite(dias) && dias > 0 ? dias : null,
       repetir: normalizarRepeticao(repetir),
       atualizadoEm: agora,
@@ -167,6 +171,12 @@ export function ModeloForm() {
         <Campo rotulo="Passos de sempre" dica="Um por linha. Entram na tarefa nova como próximos passos em aberto." lado={<span className="text-xs text-muted-foreground tabular-nums">{plural(listaPassos.length, "passo", "passos")}</span>}>
           <Textarea rows={6} value={passos} onChange={(e) => setPassos(e.target.value)} aria-label="Passos de sempre"
             placeholder={"Agendar a conversa de abertura\nPedir os acessos\nRodar a primeira análise"} />
+        </Campo>
+
+        {/* 3.18: o checklist com que a tarefa nasce. Passo é o que se combina com alguém; checklist é o que a entrega precisa ter. */}
+        <Campo rotulo="Checklist de sempre" dica="Um item por linha. A tarefa nova nasce com este checklist, tudo em aberto. Diferente dos passos, ele não tem responsável nem prazo." lado={<span className="text-xs text-muted-foreground tabular-nums">{plural(listaChecklist.length, "item", "itens")}</span>}>
+          <Textarea rows={3} value={checklist} onChange={(e) => setChecklist(e.target.value)} aria-label="Checklist de sempre"
+            placeholder={"Scan rodando na pipeline\nGate configurado\nSquad treinado"} />
         </Campo>
 
         <LinhaCampos>
@@ -299,7 +309,7 @@ export function PainelModelos({ usar }: { usar: (modeloId: string) => void }) {
                     <span className="truncate">
                       {[
                         m.repetir ? `${textoDaRepeticao(m.repetir)} (próxima: ${dataCurta(proximaOcorrencia(m.repetir, hojeISO()))})` : "",
-                        m.quando, plural(m.passos.length, "passo", "passos"), m.usos ? `usado ${plural(m.usos, "vez", "vezes")}` : "ainda não usado",
+                        m.quando, plural(m.passos.length, "passo", "passos"), m.checklist?.length ? `checklist de ${plural(m.checklist.length, "item", "itens")}` : "", m.usos ? `usado ${plural(m.usos, "vez", "vezes")}` : "ainda não usado",
                       ].filter(Boolean).join(" · ")}
                     </span>
                   </p>

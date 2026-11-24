@@ -30,7 +30,8 @@
 // folha que vira página, Ctrl + clique num link do editor), arquivos vistos por dentro do app (planilha, CSV,
 // Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar),
 // as novidades da 3.17 (checklist da tarefa, e-mail colado no registro, participante cadastrado pelo campo,
-// filtro por tag em tarefas e páginas, importar um arquivo exportado) e tema escuro (pelo menu "Mais").
+// filtro por tag em tarefas e páginas, importar um arquivo exportado), as da 3.18 (modelo de tarefa com
+// checklist, tarefa nova a partir de um e-mail) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
 const fs = require("fs");
@@ -1157,6 +1158,10 @@ async function main() {
     await pg.locator(`[data-slot=coluna-de-paginas][data-estado=publicada] [data-slot=cartao-de-pagina][data-id="${guia.id}"]`).waitFor();
 
     // lista: filtra, ordena e abre
+    // O dnd-kit engole qualquer clique da página nos 50 ms depois de soltar um cartão (é como ele evita o clique
+    // do próprio arrasto). Ninguém clica tão rápido, mas o teste clicava: numa máquina rápida, o "Lista" abaixo
+    // caía nessa janela e a visão não trocava. Espera a janela passar.
+    await pg.waitForTimeout(150);
     await pg.getByRole("radio", { name: "Lista" }).click();
     await pg.locator("[data-slot=lista-de-paginas]").waitFor();
     afirmar((await pg.locator("[data-slot=linha-de-pagina]").count()) === 4, "a lista não mostra todas as páginas");
@@ -2632,6 +2637,77 @@ async function main() {
     // a foto aparece na lista de backups, como "antes de importar"
     await pg.locator("[data-slot=lista-backups]").click();
     await pg.locator("[data-slot=backup]", { hasText: "antes de importar" }).first().waitFor();
+  });
+
+  // ---------- 3.18 ----------
+  await etapa("3.18: modelo com checklist e tarefa nova a partir de um e-mail", async () => {
+    const itens = (t) => (t.checklist || []).map((i) => `${i.feito ? "x" : " "} ${i.texto}`).join("|");
+    const colarEmail = async (texto, assunto) => {
+      await pg.locator("[data-slot=tarefa-de-email]").click();
+      await pg.getByLabel("Texto do e-mail").fill(texto);
+      await pg.locator("[data-slot=email-reconhecido]").getByText(assunto).waitFor();
+      await pg.locator("[data-slot=trazer-email]", { hasText: "Usar na tarefa" }).click();
+      await pg.locator("[data-slot=colar-email]").waitFor({ state: "detached" });
+    };
+
+    // ---- o modelo ganha um checklist: um item por linha, sem marca de lista e sem repetir ----
+    await pg.goto(`${B}/configuracoes`);
+    await pg.locator("[data-slot=novo-modelo]").click();
+    const fm = dialogo();
+    await fm.getByLabel("Nome do modelo").fill("Modelo 318 com checklist");
+    await fm.getByLabel("Título sugerido").fill("Onboarding 318 do squad ...");
+    await fm.getByLabel("Passos de sempre").fill("Agendar a abertura 318");
+    await fm.getByLabel("Checklist de sempre").fill("- Scan rodando 318\n- Gate configurado 318\n\n- scan RODANDO 318\nSquad treinado 318");
+    await fm.locator("[data-slot=salvar-modelo]").click();
+    await ateOsDados(
+      (d) => (d.modelos.items.find((m) => m.nome === "Modelo 318 com checklist")?.checklist || []).join("|") === "Scan rodando 318|Gate configurado 318|Squad treinado 318",
+      "o checklist do modelo não foi gravado como esperado",
+    );
+    const linha = pg.locator("[data-slot=modelo]", { hasText: "Modelo 318 com checklist" });
+    await linha.getByText("checklist de 3 itens").waitFor();
+
+    // ---- tarefa pelo modelo: um item desmarcado fica de fora, e o e-mail colado vira o primeiro registro ----
+    await linha.locator("[data-slot=usar-modelo]").click();
+    await dialogo().locator("[data-slot=form-tarefa]").waitFor();
+    await pg.locator("[data-slot=checklist-do-modelo] label", { hasText: "Gate configurado 318" }).click();
+    await colarEmail("De: Otto Teste <otto.teste@exemplo.local>\nEnviada em: 18/11/2026 09:15\nPara: Zuleica Prado\nAssunto: ENC: Pedido 318 de onboarding\n\nPrecisamos entrar na Ferramenta X.", "Pedido 318 de onboarding");
+    await pg.locator("[data-slot=email-da-tarefa]", { hasText: "E-mail de Otto Teste, 18/11/26 09:15" }).waitFor();
+    const titulo = pg.getByLabel("Título da tarefa");
+    afirmar((await titulo.inputValue()) === "Onboarding 318 do squad ...", "o assunto do e-mail passou por cima do título que o modelo já tinha posto");
+    await titulo.fill("Onboarding 318 do squad Cartões");
+    await titulo.press("Enter");
+    await pg.waitForURL(/\/tarefas\/t[a-z0-9]+$/);
+    await ateOsDados((d) => {
+      const t = d.tarefas.find((x) => x.titulo === "Onboarding 318 do squad Cartões");
+      const doEmail = t?.registros.find((r) => r.titulo === "Pedido 318 de onboarding");
+      return (
+        !!doEmail && itens(t) === "  Scan rodando 318|  Squad treinado 318" &&
+        doEmail.tipo === "nota" && doEmail.data === "2026-11-18" && doEmail.hora === "09:15" && doEmail.participantes.join("|") === "Otto Teste|Zuleica Prado" &&
+        doEmail.anotacoes.includes("Precisamos entrar na Ferramenta X.") &&
+        t.registros.some((r) => r.proximosPassos.some((p) => p.texto === "Agendar a abertura 318")) &&
+        t.registros.some((r) => r.tipo === "marco" && r.titulo === "Tarefa criada")
+      );
+    }, "a tarefa do modelo não nasceu com o checklist escolhido, os passos e o e-mail como registro");
+    await pg.locator("[data-slot=progresso-do-checklist]", { hasText: "0 de 2" }).waitFor();
+
+    // ---- sem modelo: o assunto do e-mail vira o título, e dá para desistir do e-mail antes de salvar ----
+    await pg.goto(B + "/tarefas");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    await pg.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+    await pg.keyboard.press("n");
+    await dialogo().locator("[data-slot=form-tarefa]").waitFor();
+    const email = "De: Otto Teste <otto.teste@exemplo.local>\nEnviada em: 18/11/2026 09:15\nAssunto: RES: Demanda 318 que chegou por e-mail\n\nSegue o pedido.";
+    await colarEmail(email, "Demanda 318 que chegou por e-mail");
+    afirmar((await titulo.inputValue()) === "Demanda 318 que chegou por e-mail", "o assunto do e-mail não virou o título da tarefa");
+    await pg.getByRole("button", { name: "Não usar este e-mail" }).click();
+    await pg.locator("[data-slot=email-da-tarefa]").waitFor({ state: "detached" });
+    await colarEmail(email, "Demanda 318 que chegou por e-mail");
+    await titulo.press("Enter");
+    await pg.waitForURL(/\/tarefas\/t[a-z0-9]+$/);
+    await ateOsDados((d) => {
+      const t = d.tarefas.find((x) => x.titulo === "Demanda 318 que chegou por e-mail");
+      return !!t && itens(t) === "" && t.registros.filter((r) => r.tipo === "nota" && r.data === "2026-11-18" && r.participantes.join("|") === "Otto Teste").length === 1;
+    }, "a tarefa criada só do e-mail não ficou como esperado");
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

@@ -1,6 +1,7 @@
 // Modelos de tarefa: o esqueleto de uma demanda que se repete. Funções puras (a tela está em components/Modelos.tsx).
 
-import { type Modelo, type Registro, type Tarefa, agoraISO, hojeISO, normalizarModelo, normalizarRegistro, novoId } from "./tipos";
+import { itensDoTexto } from "./checklist";
+import { type ItemDoChecklist, MAX_ITENS_NO_CHECKLIST, type Modelo, type Registro, type Tarefa, agoraISO, hojeISO, normalizarModelo, normalizarRegistro, novoId } from "./tipos";
 
 const MAX_PASSOS = 40;
 
@@ -36,7 +37,31 @@ export function modeloDaTarefa(t: Tarefa): Modelo {
     prioridade: t.prioridade,
     tags: t.tags,
     passos,
+    // o checklist da tarefa vira o checklist do modelo, sem o "feito" (cada tarefa nova começa do zero)
+    checklist: (t.checklist ?? []).map((i) => i.texto),
   });
+}
+
+/**
+ * Os itens de checklist de um texto com um por linha (o campo do formulário do modelo): sem a marca de lista,
+ * sem linhas vazias e sem repetir.
+ */
+export function checklistDoTexto(texto: string): string[] {
+  const vistos = new Set<string>();
+  const out: string[] = [];
+  for (const { texto: item } of itensDoTexto(texto)) {
+    const chave = item.toLowerCase();
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    out.push(item);
+    if (out.length >= MAX_ITENS_NO_CHECKLIST) break;
+  }
+  return out;
+}
+
+/** O checklist com que a tarefa nasce a partir dos itens escolhidos do modelo: todos em aberto, cada um com id próprio. */
+export function checklistDoModelo(itens: string[]): ItemDoChecklist[] {
+  return checklistDoTexto(itens.join("\n")).map((texto) => ({ id: novoId("ck"), texto, feito: false, feitoEm: null }));
 }
 
 /** Registro que leva os passos do modelo para a tarefa nova (é ele que faz os passos aparecerem em Pendências). */

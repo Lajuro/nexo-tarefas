@@ -16,7 +16,14 @@ import { Textarea } from "@/components/ui/input";
 import { type EmailLido, lerEmail, participantesDoEmail } from "@/lib/email";
 import { formatarData } from "@/lib/tipos";
 
-export function ColarEmail({ aberto, fechar, aoTrazer }: { aberto: boolean; fechar: () => void; aoTrazer: (email: EmailLido) => void }) {
+export function ColarEmail({
+  aberto, fechar, aoTrazer, acao = "Trazer para o registro",
+  observacao = "O texto vai para o fim das anotações. O que você já escreveu no registro não é trocado.",
+}: {
+  aberto: boolean; fechar: () => void; aoTrazer: (email: EmailLido) => void;
+  /** O rótulo do botão de confirmar e a frase do que acontece com o texto (a nova tarefa usa outros, 3.18). */
+  acao?: string; observacao?: string;
+}) {
   const { dados, toast } = useNexo();
   const [texto, setTexto] = useState("");
   useEffect(() => { if (aberto) setTexto(""); }, [aberto]);
@@ -47,7 +54,7 @@ export function ColarEmail({ aberto, fechar, aoTrazer }: { aberto: boolean; fech
         <>
           <Button variant="outline" onClick={tentarFechar}>Cancelar</Button>
           <Button data-slot="trazer-email" disabled={!temTexto} onClick={() => { aoTrazer(email); fechar(); }}>
-            <Mail /> Trazer para o registro
+            <Mail /> {acao}
           </Button>
         </>
       }
@@ -79,12 +86,12 @@ export function ColarEmail({ aberto, fechar, aoTrazer }: { aberto: boolean; fech
         ) : (
           <p data-slot="email-sem-cabecalho" role="status" className="flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
             <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-alerta" />
-            Não achei o cabeçalho do e-mail (De, Para, Assunto). O texto entra inteiro nas anotações, e você preenche o título e os participantes.
+            Não achei o cabeçalho do e-mail (De, Para, Assunto). O texto entra inteiro nas anotações, e você preenche o título.
           </p>
         )}
         {temTexto && (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            O texto vai para o fim das anotações. O que você já escreveu no registro não é trocado.
+            {observacao}
             {email.cortado && " O texto colado é maior do que o Nexo lê de uma vez: o final fica de fora."}
           </p>
         )}

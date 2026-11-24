@@ -303,6 +303,8 @@ export interface Modelo {
   tags: string[];
   /** Próximos passos que toda tarefa deste modelo começa tendo. */
   passos: string[];
+  /** Itens do checklist com que toda tarefa deste modelo nasce (3.18). Só os textos: na tarefa, todos começam em aberto. */
+  checklist?: string[];
   /** Prazo sugerido, em dias a partir da criação (null = sem prazo). */
   prazoEmDias?: number | null;
   /** Quantas tarefas já nasceram dele. */
@@ -810,6 +812,7 @@ export function normalizarModelo(m: Partial<Modelo>): Modelo {
     prioridade: Number.isFinite(prio) ? Math.min(10, Math.max(1, Math.round(prio))) : 5,
     tags: arrStr(m.tags),
     passos: arrStr(m.passos).map((p) => p.trim()).filter(Boolean),
+    checklist: arrStr(m.checklist).map((p) => p.replace(/\s+/g, " ").trim().slice(0, MAX_TEXTO_DO_ITEM)).filter(Boolean).slice(0, MAX_ITENS_NO_CHECKLIST),
     prazoEmDias: m.prazoEmDias != null && Number.isFinite(dias) && dias > 0 ? Math.min(3650, Math.round(dias)) : null,
     usos: Number.isFinite(Number(m.usos)) ? Math.max(0, Math.round(Number(m.usos))) : 0,
     repetir: normalizarRepeticao(m.repetir),

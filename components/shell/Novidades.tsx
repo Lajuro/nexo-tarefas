@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.17";
+export const VERSAO_NOVIDADES = "3.18";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,13 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.18", icone: SquarePen, titulo: "A tarefa nasce pronta: do modelo com checklist ou de um e-mail", texto: "O modelo de tarefa agora guarda também um checklist, e a tarefa criada por ele já nasce com a lista do que precisa para ficar pronta. E a nova tarefa pode partir de um e-mail colado: o assunto vira o título e o e-mail entra como o primeiro registro da linha do tempo, na data em que foi enviado.", href: "/configuracoes", rotulo: "Ver os modelos",
+    pontos: [
+      "Modelo com checklist: ao editar um modelo, o campo \"Checklist de sempre\" recebe um item por linha. Salvar uma tarefa como modelo leva o checklist dela.",
+      "Na nova tarefa, o checklist do modelo aparece para você desmarcar o que não vale desta vez, como já era com os passos.",
+      "Tarefa a partir de um e-mail: em Nova tarefa, ao lado do título, \"A partir de um e-mail\". Cole o e-mail com o cabeçalho do Outlook. O assunto vira o título, se ele estiver vazio.",
+      "O e-mail vira o primeiro registro da tarefa, com a data e a hora em que foi enviado e as pessoas como participantes. Assim a linha do tempo começa por onde a demanda chegou.",
+    ] },
   { versao: "3.17", icone: ListChecks, titulo: "Checklist na tarefa, e-mail colado, filtro por tag e importação", texto: "A tarefa ganhou um checklist próprio, com o progresso no cartão. No registro, o botão Colar e-mail lê o cabeçalho do Outlook e preenche título, data e participantes. Quem ainda não está no cadastro de pessoas entra com um clique, direto do campo de participantes. As listas de tarefas e de páginas filtram por tag. E um arquivo exportado pode voltar para o app, em Configurações, sem apagar nada do que já está aqui.", href: "/tarefas", rotulo: "Abrir as tarefas",
     pontos: [
       "Checklist da tarefa: na página da tarefa, abaixo de Pendências. Enter adiciona, e colar uma lista de várias linhas cria um item por linha. O cartão da tarefa mostra quantos já foram feitos.",
@@ -141,7 +148,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "A tarefa ganhou um checklist próprio, o registro aceita um e-mail colado, as listas filtram por tag e um arquivo exportado pode voltar para o app.",
+          description: "O modelo de tarefa agora guarda um checklist, e a nova tarefa pode partir de um e-mail colado, que vira o primeiro registro dela.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

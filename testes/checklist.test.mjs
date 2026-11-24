@@ -166,5 +166,40 @@ teste("juntar duas tarefas traz o checklist da outra, sem duplicar se rodar de n
   assert.deepEqual(textos(A.comTarefaJuntada(junta, origem)), ["  Do destino", "x Da origem"]);
 });
 
+// ---------- checklist nos modelos de tarefa (3.18) ----------
+
+const Mo = await import("../lib/modelos.ts");
+
+teste("modelo antigo, sem o campo, abre com o checklist vazio; o que vem do arquivo é conferido", () => {
+  assert.deepEqual(T.normalizarModelo({ id: "mo1", nome: "Antigo" }).checklist, []);
+  const m = T.normalizarModelo({ id: "mo2", nome: "Torto", checklist: ["  Scan   rodando ", "", 7, null, "a".repeat(5000), { x: 1 }] });
+  assert.deepEqual([m.checklist.length, m.checklist[0], m.checklist[1].length], [2, "Scan rodando", T.MAX_TEXTO_DO_ITEM]);
+  assert.deepEqual(T.normalizarModelo({ nome: "x", checklist: "não é lista" }).checklist, []);
+  assert.equal(T.normalizarModelo({ nome: "x", checklist: Array.from({ length: 500 }, (_, i) => `item ${i}`) }).checklist.length, T.MAX_ITENS_NO_CHECKLIST);
+});
+
+teste("salvar uma tarefa como modelo leva o checklist dela, sem o que já foi feito", () => {
+  const m = Mo.modeloDaTarefa(tarefa([{ id: "a", texto: "Scan rodando na pipeline", feito: true, feitoEm: "2026-11-20T10:00:00.000Z" }, { id: "b", texto: "Squad treinado" }]));
+  assert.deepEqual(m.checklist, ["Scan rodando na pipeline", "Squad treinado"]);
+  assert.deepEqual(Mo.modeloDaTarefa(tarefa()).checklist, []);
+});
+
+teste("o campo do formulário do modelo: um item por linha, sem marca de lista, sem vazio e sem repetir", () => {
+  assert.deepEqual(Mo.checklistDoTexto("- Scan rodando\n\n1. Gate configurado\n  scan RODANDO  \n[x] Squad treinado"), ["Scan rodando", "Gate configurado", "Squad treinado"]);
+  assert.deepEqual(Mo.checklistDoTexto(""), []);
+});
+
+teste("a tarefa criada pelo modelo nasce com os itens escolhidos, todos em aberto e com id próprio", () => {
+  const itens = Mo.checklistDoModelo(["Scan rodando", "Squad treinado"]);
+  assert.deepEqual(itens.map((i) => [i.texto, i.feito, i.feitoEm]), [["Scan rodando", false, null], ["Squad treinado", false, null]]);
+  assert.equal(new Set(itens.map((i) => i.id)).size, 2);
+  // é o que o formulário grava: passa pela leitura do campo sem mudar nada
+  const t = T.normalizarTarefa({ id: "t9", titulo: "Do modelo", checklist: itens });
+  assert.deepEqual(t.checklist, itens);
+  assert.deepEqual(Mo.checklistDoModelo([]), []);
+  // duas tarefas do mesmo modelo não dividem ids
+  assert.notEqual(Mo.checklistDoModelo(["Scan rodando"])[0].id, Mo.checklistDoModelo(["Scan rodando"])[0].id);
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);
