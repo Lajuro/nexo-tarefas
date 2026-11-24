@@ -34,7 +34,8 @@
 // as novidades da 3.17 (checklist da tarefa, e-mail colado no registro, participante cadastrado pelo campo,
 // filtro por tag em tarefas e páginas, importar um arquivo exportado), as da 3.19 (passos repetidos: juntar,
 // desfazer, separar, a prevenção no registro e no modo reunião, e a cobrança por pessoa), as da 3.20 (perfis de uso), as da 3.21
-// (próxima ação, reunião como campo do bloco da rotina, reuniões de hoje com pauta e modo reunião), as da 3.18 (modelo de tarefa com
+// (próxima ação, reunião como campo do bloco da rotina, reuniões de hoje com pauta e modo reunião), as da 3.22 (boas-vindas,
+// primeiros passos, holofote e ajuda de cada tela; o exemplo em pasta separada é coberto pelo testes/api.sh), as da 3.18 (modelo de tarefa com
 // checklist, tarefa nova a partir de um e-mail) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
@@ -116,9 +117,11 @@ async function main() {
     permissions: ["clipboard-read", "clipboard-write"],
     locale: "pt-BR",
   });
-  // Desliga o ritual automático (o próprio ritual é testado pela tecla D).
+  // Desliga o ritual automático (o próprio ritual é testado pela tecla D) e as boas-vindas (3.22), que abririam
+  // por cima da primeira etapa porque a pasta começa vazia. As boas-vindas têm uma etapa só delas, noutro navegador.
   await ctx.addInitScript((v) => {
     try {
+      localStorage.setItem("nexo:boasVindas", JSON.stringify("feito"));
       if (!sessionStorage.getItem("e2e-rotina")) {
         localStorage.setItem("nexo:rotina", v);
         sessionStorage.setItem("e2e-rotina", "1");
@@ -181,6 +184,72 @@ async function main() {
     await pg.keyboard.press("Escape");
     await pg.locator("[role=dialog][data-state=open]").waitFor({ state: "detached" }).catch(() => {});
   };
+
+  // ---------- boas-vindas e primeiros passos (3.22): com a pasta ainda vazia, num navegador que nunca viu o app ----------
+  await etapa("3.22: boas-vindas (perfil, nomes, por onde começar) e primeiros passos com mostrar onde", async () => {
+    // sem nenhuma preferência: é assim que o app encontra quem está chegando (sem tarefas, o ritual do dia não abre sozinho)
+    const ctxB = await navegador.newContext({ viewport: { width: 1440, height: 900 }, locale: "pt-BR" });
+    const b = await ctxB.newPage();
+    b.setDefaultTimeout(T);
+    const errosB = [];
+    b.on("pageerror", (e) => errosB.push(String(e)));
+    try {
+      await b.goto(B + "/");
+      const bv = b.locator("[data-slot=boas-vindas]");
+      await bv.waitFor();
+      afirmar((await bv.getAttribute("data-etapa")) === "0", "as boas-vindas não começaram pela primeira pergunta");
+      // 1. como você trabalha: os cinco perfis, e escolher já arruma o app por trás
+      afirmar((await bv.locator("[data-slot=boas-vindas-perfil]").count()) === 5, "as boas-vindas não mostraram os cinco perfis");
+      await bv.locator("[data-slot=boas-vindas-perfil][data-perfil=reunioes]").click();
+      await b.waitForFunction(() => JSON.parse(localStorage.getItem("nexo:perfis") || "{}").ativo === "reunioes");
+      afirmar((await bv.locator("[data-slot=boas-vindas-perfil][data-perfil=reunioes]").getAttribute("aria-checked")) === "true", "o perfil escolhido não ficou marcado");
+      await bv.locator("[data-slot=boas-vindas-perfil][data-perfil=completo]").click();
+      await b.waitForFunction(() => JSON.parse(localStorage.getItem("nexo:perfis") || "{}").ativo === "completo");
+      await b.locator("[data-slot=boas-vindas-continuar]").click();
+      // 2. como você aparece: o nome da saudação entra também nos nomes dos passos
+      await b.locator("[data-slot=boas-vindas][data-etapa='1']").waitFor();
+      await b.getByLabel("Seu nome na saudação").fill("Ana");
+      await b.locator("[data-slot=boas-vindas-continuar]").click();
+      await b.locator("[data-slot=boas-vindas][data-etapa='2']").waitFor();
+      afirmar(JSON.parse(await b.evaluate(() => localStorage.getItem("nexo:meusNomes"))).includes("Ana"), "o nome não entrou em como você aparece nos passos");
+      // 3. por onde começar: neste servidor a pasta é fixada por variável, então o exemplo avisa que não está disponível
+      const exemplo = b.locator("[data-slot=boas-vindas-exemplo]");
+      afirmar(await exemplo.isDisabled(), "o exemplo devia estar desligado com a pasta fixada por variável");
+      afirmar((await exemplo.innerText()).includes("NEXO_DATA_DIR"), "o exemplo desligado não explicou o motivo");
+      await b.locator("[data-slot=boas-vindas-meus-dados]").click();
+      await bv.waitFor({ state: "detached" });
+      await b.locator("[data-slot=pagina] h1", { hasText: /, Ana$/ }).waitFor();
+
+      // os primeiros passos aparecem na tela Hoje, calculados dos dados (pasta vazia: nada feito)
+      const pp = b.locator("[data-slot=primeiros-passos]");
+      await pp.waitFor();
+      afirmar((await pp.locator("[data-slot=primeiros-passos-contagem]").innerText()) === "0 de 6", "os primeiros passos não começaram em 0 de 6");
+      afirmar((await pp.locator("[data-slot=passo-inicial]").count()) === 6 && (await pp.locator("[data-slot=passo-inicial][data-feito]").count()) === 0, "os seis primeiros passos não vieram em aberto");
+      // "Mostrar onde" acende o lugar, sem travar a tela, e Entendi devolve o foco ao que foi mostrado
+      await pp.locator("[data-slot=passo-inicial][data-id=tarefa]").getByRole("button", { name: "Mostrar onde" }).click();
+      await b.locator("[data-slot=holofote][data-achou]").waitFor();
+      afirmar((await b.locator("[data-slot=holofote-balao]").innerText()).includes("Nova tarefa"), "o holofote não explicou o que mostrou");
+      await b.locator("[data-slot=holofote-entendi]").click();
+      await b.locator("[data-slot=holofote]").waitFor({ state: "detached" });
+      afirmar(await b.evaluate(() => document.activeElement?.getAttribute("data-slot") === "nova-tarefa"), "ao fechar o holofote, o foco não foi para o que ele mostrou");
+      // outro alvo fica em outra tela: o holofote leva até lá
+      await pp.locator("[data-slot=passo-inicial][data-id=categoria]").getByRole("button", { name: "Mostrar onde" }).click();
+      await b.waitForURL(/\/categorias$/);
+      await b.locator("[data-slot=holofote][data-achou]").waitFor();
+      await b.keyboard.press("Escape");
+      await b.locator("[data-slot=holofote]").waitFor({ state: "detached" });
+      // recarregar não traz as boas-vindas de volta, e dispensar esconde os primeiros passos
+      await b.goto(B + "/");
+      await pp.waitFor();
+      afirmar((await b.locator("[data-slot=boas-vindas]").count()) === 0, "as boas-vindas apareceram de novo depois de concluídas");
+      await pp.locator("[data-slot=dispensar-primeiros-passos]").click();
+      await pp.waitFor({ state: "detached" });
+      afirmar((await dados()).tarefas.length === 0 && (await dados()).categorias.length === 0, "as boas-vindas gravaram alguma coisa na pasta de dados");
+      afirmar(errosB.length === 0, "erro de página nas boas-vindas: " + errosB.join(" | "));
+    } finally {
+      await ctxB.close();
+    }
+  });
 
   // ---------- categorias ----------
   await etapa("criar 2 categorias", async () => {
@@ -3224,6 +3293,58 @@ async function main() {
     } finally {
       await ctxP.close();
     }
+  });
+
+  await etapa("3.22: ajuda desta tela (tecla ?) e mostrar na tela em cada tela que tem alvo", async () => {
+    const ajuda = pg.locator("[data-slot=ajuda]");
+    const idDaTarefa = (await dados()).tarefas.find((t) => t.status !== "concluida").id;
+    const telas = [["/", "/"], ["/tarefas", "/tarefas"], [`/tarefas/${idDaTarefa}`, "/tarefas/[id]"], ["/rotina", "/rotina"], ["/pendencias", "/pendencias"], ["/categorias", "/categorias"]];
+    let mostrados = 0;
+    for (const [endereco, rota] of telas) {
+      await pg.goto(B + endereco);
+      await pg.locator("[data-slot=pagina]").first().waitFor();
+      await pg.locator("body").click({ position: { x: 700, y: 5 } }).catch(() => {});
+      await pg.evaluate(() => document.activeElement?.blur());
+      await pg.keyboard.press("?");
+      await pg.locator(`[data-slot=ajuda][data-rota="${rota}"]`).waitFor();
+      afirmar((await ajuda.locator("[data-slot=ajuda-como] li").count()) >= 2, `a ajuda de ${rota} não disse como usar`);
+      // todo alvo de "mostrar na tela" existe de verdade nesta tela
+      const botoes = ajuda.locator("[data-slot=ajuda-mostrar] button");
+      const quantos = await botoes.count();
+      afirmar(quantos > 0, `a ajuda de ${rota} devia ter o que mostrar na tela`);
+      for (let i = 0; i < quantos; i++) {
+        const rotulo = await botoes.nth(i).innerText();
+        await botoes.nth(i).click();
+        await pg.locator("[data-slot=holofote-balao]").waitFor();
+        afirmar((await pg.locator("[data-slot=holofote][data-achou]").count()) === 1, `"${rotulo.trim()}" não foi achado na tela ${rota}`);
+        await pg.locator("[data-slot=holofote-entendi]").click();
+        await pg.locator("[data-slot=holofote]").waitFor({ state: "detached" });
+        mostrados++;
+      }
+      // a ajuda não trava a tela: a mesma tecla fecha
+      await pg.evaluate(() => document.activeElement?.blur());
+      await pg.keyboard.press("?");
+      await ajuda.waitFor({ state: "detached" });
+    }
+    afirmar(mostrados >= 10, "poucos alvos de mostrar na tela foram conferidos: " + mostrados);
+    // os atalhos gerais, os desta tela e o glossário
+    await pg.goto(B + "/tarefas");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("?");
+    await ajuda.waitFor();
+    afirmar((await ajuda.locator("[data-slot=ajuda-atalhos] li").count()) >= 20, "a lista de atalhos gerais veio curta");
+    await ajuda.getByText("Atalhos desta tela").waitFor();
+    await ajuda.locator("[data-slot=ajuda-glossario]").click();
+    await ajuda.getByText("Lembrete de voltar").waitFor();
+    // com a ajuda aberta os atalhos continuam valendo (N abre a nova tarefa)
+    await pg.evaluate(() => document.activeElement?.blur());
+    await pg.keyboard.press("n");
+    await dialogo().locator("[data-slot=form-tarefa]").waitFor();
+    await pg.keyboard.press("Escape");
+    await pg.locator("[data-slot=form-tarefa]").waitFor({ state: "detached" });
+    await ajuda.getByRole("button", { name: "Fechar", exact: true }).last().click();
+    await ajuda.waitFor({ state: "detached" });
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

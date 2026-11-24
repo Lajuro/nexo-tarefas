@@ -27,7 +27,9 @@ export type ItemLixeira = { arquivo: string; titulo: string; tipo: string };
 // ---------- Pasta de dados ----------
 
 export function PainelPasta() {
-  const { estado, dados, configurarPasta, toast } = useNexo();
+  const { estado, dados, configurarPasta, toast, entrarNoExemplo, sairDoExemplo } = useNexo();
+  const [trocandoExemplo, setTrocandoExemplo] = useState(false);
+  const noExemplo = Boolean(estado?.exemplo);
   const confirmar = useConfirmar();
   const atual = estado?.dataDir ?? "";
   const [dir, setDir] = useState(atual);
@@ -77,7 +79,7 @@ export function PainelPasta() {
             value={dir}
             onChange={(e) => setDir(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && mudou && !fixada && trocar()}
-            disabled={fixada}
+            disabled={fixada || noExemplo}
             placeholder="C:\Users\voce\OneDrive\Nexo"
           />
         </Campo>
@@ -92,6 +94,27 @@ export function PainelPasta() {
           >
             <Copy /> Copiar caminho
           </Button>
+        </div>
+
+        {/* Dados de exemplo (3.22): numa pasta separada, para ver o app cheio sem misturar com os dados de verdade. */}
+        <div data-slot="painel-do-exemplo" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-dashed px-3 py-2.5">
+          <p className="min-w-0 flex-1 basis-64 text-xs leading-snug text-muted-foreground">
+            {noExemplo ? (
+              <>Você está vendo os <strong className="font-medium text-foreground">dados de exemplo</strong>. Os seus continuam em <code>{estado?.pastaReal}</code>, sem nenhuma mudança.</>
+            ) : fixada ? (
+              "Os dados de exemplo não estão disponíveis com a pasta fixada por variável de ambiente."
+            ) : (
+              "Quer ver o app cheio antes de pôr as suas tarefas? Os dados de exemplo ficam numa pasta separada: nada se mistura com os seus, e você volta com um clique."
+            )}
+          </p>
+          {noExemplo ? (
+            <Button data-slot="config-sair-do-exemplo" disabled={trocandoExemplo} onClick={async () => { setTrocandoExemplo(true); await sairDoExemplo(); setTrocandoExemplo(false); }}>Usar meus dados</Button>
+          ) : (
+            <Button variant="outline" data-slot="config-abrir-exemplo" disabled={fixada || trocandoExemplo}
+              onClick={async () => { setTrocandoExemplo(true); await entrarNoExemplo(); setTrocandoExemplo(false); }}>
+              {trocandoExemplo ? <LoaderCircle className="animate-spin" /> : null} Conhecer com um exemplo
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-4 divide-x overflow-hidden rounded-lg border bg-muted/30">

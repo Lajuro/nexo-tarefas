@@ -19,6 +19,7 @@ import { CapturaRapida } from "@/components/hoje/CapturaRapida";
 import { FocoHoje } from "@/components/hoje/FocoHoje";
 import { AguardandoRetorno, BloqueadasEParadas, ProgressoDoDia } from "@/components/hoje/Laterais";
 import { PrecisaDeVoce } from "@/components/hoje/PrecisaDeVoce";
+import { PrimeirosPassos, usePrimeirosPassos } from "@/components/hoje/PrimeirosPassos";
 import { ProximaAcao } from "@/components/hoje/ProximaAcao";
 import { ReunioesDeHoje, useReunioesDeHoje } from "@/components/hoje/ReunioesDeHoje";
 import { Semana } from "@/components/hoje/Semana";
@@ -40,6 +41,8 @@ export default function Hoje() {
   const mostra = (id: BlocoHoje) => !telaHoje.ocultos.includes(id);
   // As reuniões marcadas na rotina de hoje (3.21): o bloco só existe em dia que tem reunião.
   const reunioes = useReunioesDeHoje();
+  // Primeiros passos (3.22): só para quem passou pelas boas-vindas, e só enquanto falta algum.
+  const primeiros = usePrimeirosPassos();
   const temReunioes = mostra("reunioes") && reunioes.length > 0;
   const titulo = telaHoje.nome ? `${saudacao(agora)}, ${telaHoje.nome}` : saudacao(agora);
 
@@ -86,6 +89,7 @@ export default function Hoje() {
   if (tarefas.length === 0) {
     return (
       <Pagina titulo={titulo} descricao={dataLonga(hoje)} acoes={acoes}>
+        {primeiros.visivel && <div className="@container mb-4"><PrimeirosPassos /></div>}
         <CapturaRapida />
         <Vazio titulo="Seu dia começa aqui" icone={<Sunrise />} className="mt-4">
           <p>
@@ -139,6 +143,12 @@ export default function Hoje() {
         {mostra("proxima") && (
           <motion.div variants={itemLista} data-bloco="proxima">
             <ProximaAcao />
+          </motion.div>
+        )}
+
+        {primeiros.visivel && (
+          <motion.div variants={itemLista} data-bloco="primeiros-passos">
+            <PrimeirosPassos />
           </motion.div>
         )}
 

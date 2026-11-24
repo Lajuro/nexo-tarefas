@@ -79,6 +79,20 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.22: o Nexo se ensina
+
+Para quem está chegando e para quem esqueceu onde fica alguma coisa. Nada muda no formato dos dados.
+
+- **Ajuda desta tela.** Aperte **?** em qualquer tela (ou use o menu Mais). Um painel ao lado explica para que a tela serve, como usar em poucos passos e quais são os atalhos. Ele não trava o app: você lê e usa ao mesmo tempo, e a mesma tecla fecha.
+- **Mostrar na tela.** Os botões da ajuda acendem o lugar de cada coisa, com uma explicação curta. Se o lugar não aparece (o perfil em uso pode ter escondido), o Nexo diz isso em vez de apontar para o nada.
+- **Boas-vindas.** Depois de escolher a pasta de dados, o Nexo faz três perguntas: como você trabalha (o perfil de uso), como você aparece (o nome da saudação e os nomes pelos quais é citado nos passos) e por onde quer começar.
+- **Primeiros passos.** Seis coisas na tela Hoje, cada uma com **Mostrar onde**: criar uma tarefa, registrar uma conversa, concluir um passo, escolher o foco, planejar o dia e criar uma categoria. A lista é calculada dos seus dados: ninguém precisa marcar nada. Some quando tudo foi feito, e dá para esconder.
+- **Conhecer com um exemplo.** Em **Configurações > Pasta de dados** (e nas boas-vindas), abre oito tarefas de mentira, com reuniões, prazos e rotina, para ver o app cheio.
+  - O exemplo fica numa **pasta separada**. Seus dados não são lidos, escritos nem movidos.
+  - Uma faixa no topo avisa que é o exemplo. **Usar meus dados** volta com um clique.
+  - O que você criar dentro do exemplo fica só no exemplo.
+  - Se a pasta de dados está fixada pela variável `NEXO_DATA_DIR`, o exemplo não fica disponível.
+
 ## 3.21: próxima ação e reuniões do dia
 
 A tela Hoje passou a responder, logo no topo, à pergunta "o que eu faço agora?". Nada muda no formato dos dados.

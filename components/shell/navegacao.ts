@@ -100,6 +100,8 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["P"], descricao: "Trocar de perfil de uso (no menu, 1 a 9 escolhe)" },
   { teclas: ["Ctrl", "B"], descricao: "Recolher ou abrir a barra lateral" },
   { teclas: ["Ctrl", "Enter"], descricao: "Salvar o formulário aberto" },
+  { teclas: ["Ctrl", "Z"], descricao: "Desfazer a última ação (fora de um campo de texto)" },
+  { teclas: ["F11"], descricao: "Tela cheia" },
   { teclas: ["Esc"], descricao: "Fechar janelas e menus" },
-  { teclas: ["?"], descricao: "Ver esta lista de atalhos" },
+  { teclas: ["?"], descricao: "Ajuda desta tela e esta lista de atalhos" },
 ];

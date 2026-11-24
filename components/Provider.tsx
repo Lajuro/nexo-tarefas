@@ -5,7 +5,7 @@ import { toast as sonner } from "sonner";
 import { useHoje } from "./useHoje";
 import { oferecerDesfazer } from "./desfazer";
 import { definirMeusNomes } from "@/lib/lembretes";
-import { usePref } from "@/lib/preferencias";
+import { porPrefsDeLado, trazerPrefsDeVolta, usePref } from "@/lib/preferencias";
 import { AssuntoParaFalar, Categoria, Dados, EstadoApp, ItemDaJornada, LinkDoc, Modelo, Nota, Pagina, Pessoa, Tarefa, Time, normalizarTarefa } from "@/lib/tipos";
 
 type Toast = { texto: string; tipo: "ok" | "erro" | "info" };
@@ -47,6 +47,10 @@ interface Ctx {
   enviarMidia: (f: File, aoProgresso?: (parte: number) => void) => Promise<{ arquivo: string; nomeArquivo: string; tamanho: number } | null>;
   toast: (texto: string, tipo?: Toast["tipo"]) => void;
   configurarPasta: (dir: string) => Promise<boolean>;
+  /** Passa a mostrar os dados de exemplo (numa pasta separada; os dados de verdade não são tocados). */
+  entrarNoExemplo: () => Promise<boolean>;
+  /** Volta do exemplo para os dados de verdade. */
+  sairDoExemplo: () => Promise<boolean>;
   /** Quantas gravações estão em andamento agora (para o indicador "Salvando..."). */
   gravando: number;
   /** Carimbo ISO da última gravação que deu certo nesta sessão. */
@@ -399,11 +403,32 @@ export function Provider({ children }: { children: ReactNode }) {
     [recarregar, toast],
   );
 
+  // Dados de exemplo (3.22): o servidor troca a pasta que o app mostra; aqui as preferências que falam de dados
+  // (recentes, lembretes adiados...) são postas de lado na ida e devolvidas na volta.
+  const trocarExemplo = useCallback(
+    async (acao: "entrar" | "sair") => {
+      try {
+        await req("/api/exemplo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao }) });
+        if (acao === "entrar") porPrefsDeLado();
+        else trazerPrefsDeVolta();
+        await recarregar();
+        toast(acao === "entrar" ? "Você está no exemplo. Mexa à vontade: nada daqui vai para os seus dados." : "De volta aos seus dados.", "info");
+        return true;
+      } catch (e) {
+        toast((e as Error).message, "erro");
+        return false;
+      }
+    },
+    [recarregar, toast],
+  );
+  const entrarNoExemplo = useCallback(() => trocarExemplo("entrar"), [trocarExemplo]);
+  const sairDoExemplo = useCallback(() => trocarExemplo("sair"), [trocarExemplo]);
+
   return (
     <Contexto.Provider
       value={{
         estado, dados, erro, recarregar, criarTarefa, atualizarTarefa, atualizarComVolta, dadosAtuais, excluirTarefa, restaurarTarefa,
-        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, salvarAssuntos, enviarArquivo, enviarMidia, toast, configurarPasta, gravando, ultimaGravacao,
+        salvarCategorias, salvarLinks, salvarPessoas, salvarTimes, salvarNotas, salvarModelos, salvarPaginas, salvarJornada, salvarAssuntos, enviarArquivo, enviarMidia, toast, configurarPasta, entrarNoExemplo, sairDoExemplo, gravando, ultimaGravacao,
       }}
     >
       {children}

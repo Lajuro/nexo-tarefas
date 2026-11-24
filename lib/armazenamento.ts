@@ -11,6 +11,7 @@ import {
   type ArquivoExportado, type DadosDaqui, type GrupoDaPrevia, type ModoDeImportacao, type ResumoDoGrupo,
   colecaoComPlano, gruposTravados, lerExportacao, planoDaImportacao, previaDaImportacao, resumoDaPrevia,
 } from "./importar-dados";
+import { gerarExemplo } from "./exemplo";
 import { MIGRACOES, SCHEMA_APP } from "./migracoes";
 import { tarefaParaMarkdown } from "./markdown";
 
@@ -53,17 +54,33 @@ export class ErroSomenteLeitura extends Error {}
 
 // ---------- configuração ----------
 
-async function lerConfig(): Promise<{ dataDir?: string }> {
+/** O que fica em ~/.nexo/config.json. `exemplo` só existe enquanto o usuário está vendo os dados de exemplo (3.22). */
+interface Config { dataDir?: string; exemplo?: { dir?: string; desde?: string } | null; [k: string]: unknown }
+
+async function lerConfig(): Promise<Config> {
   try {
-    return JSON.parse(await fs.readFile(CONFIG_FILE, "utf8"));
+    const c = JSON.parse(await fs.readFile(CONFIG_FILE, "utf8"));
+    return c && typeof c === "object" && !Array.isArray(c) ? c : {};
   } catch {
     return {};
   }
 }
 
+/** A pasta do exemplo em uso, se houver: só vale com uma pasta de dados de verdade já escolhida, e sempre dentro de ~/.nexo. */
+function pastaDoExemplo(cfg: Config): string | null {
+  const dir = cfg.exemplo && typeof cfg.exemplo === "object" ? cfg.exemplo.dir : null;
+  if (!cfg.dataDir || typeof dir !== "string" || !dir) return null;
+  const resolvida = path.resolve(dir);
+  // o config é um arquivo que o usuário pode editar: uma pasta de exemplo fora de ~/.nexo não é pasta de exemplo
+  return resolvida.startsWith(path.resolve(CONFIG_DIR) + path.sep) && path.basename(resolvida).startsWith("exemplo-") ? resolvida : null;
+}
+
 export async function obterDataDir(): Promise<{ dir: string | null; origem: EstadoApp["origem"] }> {
   if (process.env.NEXO_DATA_DIR) return { dir: process.env.NEXO_DATA_DIR, origem: "env" };
   const cfg = await lerConfig();
+  // vendo o exemplo: o app lê e grava na pasta do exemplo; a pasta de verdade continua guardada no config, intocada
+  const exemplo = pastaDoExemplo(cfg);
+  if (exemplo) return { dir: exemplo, origem: "config" };
   return cfg.dataDir ? { dir: cfg.dataDir, origem: "config" } : { dir: null, origem: null };
 }
 
@@ -87,9 +104,49 @@ export async function definirDataDir(dirBruto: string) {
   await fs.unlink(teste);
   await fs.mkdir(CONFIG_DIR, { recursive: true });
   const cfg = await lerConfig();
-  await escreverAtomico(CONFIG_FILE, JSON.stringify({ ...cfg, dataDir: dir }, null, 2));
+  // escolher uma pasta é "usar os meus dados": se o app estava no exemplo, sai dele
+  const { exemplo: _exemplo, ...semExemplo } = cfg;
+  await escreverAtomico(CONFIG_FILE, JSON.stringify({ ...semExemplo, dataDir: dir }, null, 2));
   preparos.clear();
   return dir;
+}
+
+// ---------- dados de exemplo (3.22) ----------
+
+/**
+ * Passa a mostrar os dados de exemplo. Eles são montados numa pasta NOVA e separada (~/.nexo/exemplo-<carimbo>),
+ * com o importador da 3.17, e o config passa a apontar para ela. A pasta de dados de verdade não é lida, escrita
+ * nem movida: só o endereço dela continua guardado no config, para a volta.
+ */
+export async function entrarNoExemplo() {
+  if (process.env.NEXO_DATA_DIR) throw new Error("O exemplo não está disponível com a pasta fixada pela variável NEXO_DATA_DIR.");
+  const cfg = await lerConfig();
+  if (!cfg.dataDir) throw new Error("Escolha a pasta dos seus dados antes de abrir o exemplo.");
+  if (pastaDoExemplo(cfg)) return;
+  const dir = path.join(CONFIG_DIR, `exemplo-${carimbo()}`);
+  await fs.mkdir(dir, { recursive: true });
+  await escreverAtomico(CONFIG_FILE, JSON.stringify({ ...cfg, exemplo: { dir, desde: agoraISO() } }, null, 2));
+  preparos.clear();
+  try {
+    await pastaPronta();
+    await importarExportacao(JSON.stringify(gerarExemplo(hojeISO())), "arquivo");
+  } catch (e) {
+    // não deu para montar o exemplo: volta para os dados de verdade, como se nada tivesse acontecido
+    await escreverAtomico(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+    preparos.clear();
+    throw e;
+  }
+}
+
+/** Volta para os dados de verdade. A pasta do exemplo fica onde está: o app não apaga pasta nenhuma. */
+export async function sairDoExemplo() {
+  // com a pasta fixada por variável o exemplo nem abre: não há o que desfazer, e o config não é deste servidor
+  if (process.env.NEXO_DATA_DIR) return;
+  const cfg = await lerConfig();
+  if (!cfg.exemplo) return;
+  const { exemplo: _exemplo, ...resto } = cfg;
+  await escreverAtomico(CONFIG_FILE, JSON.stringify(resto, null, 2));
+  preparos.clear();
 }
 
 // ---------- escrita segura ----------
@@ -246,6 +303,8 @@ export async function listarBackups() {
 
 export async function estadoApp(): Promise<EstadoApp> {
   const { dir, origem } = await obterDataDir();
+  const cfg = origem === "config" ? await lerConfig() : {};
+  const noExemplo = !!dir && pastaDoExemplo(cfg) === dir;
   const base: EstadoApp = {
     configurado: Boolean(dir),
     dataDir: dir,
@@ -255,6 +314,8 @@ export async function estadoApp(): Promise<EstadoApp> {
     schemaDados: null,
     somenteLeitura: false,
     erro: null,
+    exemplo: noExemplo,
+    pastaReal: noExemplo ? cfg.dataDir ?? null : null,
   };
   if (!dir) return base;
   try {

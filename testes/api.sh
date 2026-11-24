@@ -444,4 +444,54 @@ checa "importar: export de versão mais nova é recusado" 'versão mais nova' "$
 checa "importar: export recusado não grava nada" 'ok' "$([ -e "$TMP/dados/tarefas/futuro1.json" ] && echo gravou || echo ok)"
 checa "importar: CSRF, recusa pedido vindo de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/importar?aplicar=1&modo=arquivo" -H 'Origin: https://evil.example' --data-binary "@$TMP/novo.json")"
 
+# ---------- 3.22: dados de exemplo numa pasta separada ----------
+# O exemplo depende do arquivo de configuração (sem NEXO_DATA_DIR), então este trecho sobe um segundo servidor com a
+# pasta do usuário trocada por uma temporária (HOME no Linux e no Mac, USERPROFILE no Windows). Se o servidor não
+# nascer "sem pasta escolhida", a troca não funcionou e NADA é tentado: o teste nunca toca o ~/.nexo de verdade.
+kill -- -$PID 2>/dev/null; sleep 1
+CASA="$TMP/casa"; mkdir -p "$CASA"
+P2=3298; B2="http://127.0.0.1:$P2"
+HOME="$CASA" USERPROFILE="$(nativo "$CASA")" node_modules/.bin/next start -p $P2 -H 127.0.0.1 >"$TMP/server2.log" 2>&1 &
+PID=$!
+for _ in $(seq 1 40); do curl -s "$B2/api/estado" >/dev/null && break; sleep 0.5; done
+E=$(curl -s $B2/api/estado)
+if [[ "$E" != *'"configurado":false'* ]]; then
+  echo "FALHA exemplo: o servidor de teste não nasceu sem pasta escolhida (a pasta do usuário não foi trocada). Nada foi tentado."; FALHAS=$((FALHAS+1))
+else
+  exemplo() { curl -s -X POST $B2/api/exemplo -H "$J" -d "{\"acao\":\"$1\"}"; }
+  checa "exemplo: sem a pasta dos dados escolhida, não abre" 'Escolha a pasta' "$(exemplo entrar)"
+  curl -s -X POST $B2/api/config -H "$J" -d "{\"dataDir\":\"$TMPN/reais\"}" >/dev/null
+  curl -s -X PUT $B2/api/tarefas/real1 -H "$J" -d '{"tarefa":{"id":"real1","titulo":"Tarefa de verdade"},"revEsperada":null}' >/dev/null
+  checa "exemplo: antes de entrar, o estado diz que não é exemplo" '"exemplo":false' "$(curl -s $B2/api/estado)"
+  R=$(exemplo entrar)
+  checa "exemplo: entrar passa a mostrar o exemplo" '"exemplo":true' "$R"
+  checa "exemplo: a pasta dele fica junto da configuração, com nome de exemplo" '.nexo/exemplo-' "$(echo "$R" | tr '\\' '/' | tr -s '/')"
+  checa "exemplo: o estado guarda onde estão os dados de verdade" 'reais' "$(echo "$R" | sed 's/.*"pastaReal":"\([^"]*\)".*/\1/')"
+  D=$(curl -s $B2/api/dados)
+  checa "exemplo: mostra as tarefas de exemplo" 'Onboarding do squad de Pagamentos' "$D"
+  checa "exemplo: tem a reunião do dia na rotina" '"reuniao":{"participantes":["Marina Souza","Bruno Lima"]' "$D"
+  checa "exemplo: não mostra a tarefa de verdade" 'ok' "$(echo "$D" | grep -q 'Tarefa de verdade' && echo vazou || echo ok)"
+  curl -s -X PUT $B2/api/tarefas/noexemplo1 -H "$J" -d '{"tarefa":{"id":"noexemplo1","titulo":"Criada no exemplo"},"revEsperada":null}' >/dev/null
+  checa "exemplo: o que é criado nele não vai para a pasta de verdade" '1' "$(ls "$TMP/reais/tarefas" | wc -l | tr -d ' ')"
+  checa "exemplo: a tarefa de verdade continua igual no disco" 'Tarefa de verdade' "$(cat "$TMP/reais/tarefas/real1.json")"
+  DIR1=$(echo "$R" | sed 's/.*"dataDir":"\([^"]*\)".*/\1/')
+  checa "exemplo: entrar de novo não cria outra pasta" "$DIR1" "$(exemplo entrar | sed 's/.*"dataDir":"\([^"]*\)".*/\1/')"
+  checa "exemplo: ação desconhecida é recusada" 'Ação desconhecida' "$(exemplo apagar)"
+  checa "exemplo: CSRF, recusa pedido vindo de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST $B2/api/exemplo -H "$J" -H 'Origin: https://evil.example' -d '{"acao":"sair"}')"
+  R=$(exemplo sair)
+  checa "exemplo: sair volta para os dados de verdade" '"exemplo":false' "$R"
+  checa "exemplo: a pasta em uso volta a ser a de verdade" 'reais' "$(echo "$R" | sed 's/.*"dataDir":"\([^"]*\)".*/\1/')"
+  D=$(curl -s $B2/api/dados)
+  checa "exemplo: os dados de verdade estão como antes" 'Tarefa de verdade' "$D"
+  checa "exemplo: nada do exemplo ficou nos dados de verdade" 'ok' "$(echo "$D" | grep -q 'Onboarding do squad\|Criada no exemplo' && echo vazou || echo ok)"
+  checa "exemplo: a pasta do exemplo continua lá (o app não apaga pasta)" '1' "$(ls -d "$CASA"/.nexo/exemplo-* 2>/dev/null | wc -l | tr -d ' ')"
+  checa "exemplo: sair sem estar no exemplo não muda nada" '"exemplo":false' "$(exemplo sair)"
+  exemplo entrar >/dev/null
+  R=$(curl -s -X POST $B2/api/config -H "$J" -d "{\"dataDir\":\"$TMPN/reais\"}")
+  checa "exemplo: escolher uma pasta de dados sai do exemplo" '"exemplo":false' "$R"
+  # o config é um arquivo que o usuário pode editar: uma "pasta de exemplo" fora da pasta de configuração não vale
+  printf '{"dataDir":"%s","exemplo":{"dir":"%s"}}' "$TMPN/reais" "$TMPN/reais/../fora" >"$CASA/.nexo/config.json"
+  checa "exemplo: pasta de exemplo fora da pasta de configuração é ignorada" '"exemplo":false' "$(curl -s $B2/api/estado)"
+fi
+
 echo; [ $FALHAS -eq 0 ] && echo "Tudo certo." || { echo "$FALHAS falha(s)."; exit 1; }

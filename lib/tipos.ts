@@ -580,6 +580,13 @@ export interface EstadoApp {
   schemaDados: number | null;
   somenteLeitura: boolean;
   erro: string | null;
+  /**
+   * O app está mostrando os dados de exemplo (3.22), numa pasta separada da pasta de dados de verdade.
+   * Ausente em resposta de versão antiga: trate como false.
+   */
+  exemplo?: boolean;
+  /** No exemplo: a pasta de dados de verdade, para a faixa dizer para onde "Usar meus dados" volta. */
+  pastaReal?: string | null;
 }
 
 export const CORES = [

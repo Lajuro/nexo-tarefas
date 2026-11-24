@@ -89,7 +89,7 @@ function Conteudo() {
             Mostrar arquivadas
             {arquivadas > 0 && <span className="ml-1 tabular-nums opacity-70">({arquivadas})</span>}
           </CampoSwitch>
-          <Button onClick={nova}><Plus /> Nova categoria</Button>
+          <Button data-slot="nova-categoria" onClick={nova}><Plus /> Nova categoria</Button>
         </>
       }
     >

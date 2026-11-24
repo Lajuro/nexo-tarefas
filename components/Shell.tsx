@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, HardDrive, Loader2, Lock, TriangleAlert, X } from "lucide-react";
+import { Check, FlaskConical, HardDrive, Loader2, Lock, TriangleAlert, X } from "lucide-react";
 import { useNexo } from "./Provider";
 import { TarefaForm } from "./TarefaForm";
 import { PlanejarDia } from "./rotina/PlanejarDia";
@@ -19,7 +19,10 @@ import { Lateral } from "./shell/Lateral";
 import { Paleta } from "./shell/Paleta";
 import { abrirPerfis, telaInicial, useIniciarPerfis } from "./shell/Perfis";
 import { Personalizar } from "./shell/Personalizar";
-import { Carregando, JanelaAtalhos, Onboarding, TelaErro } from "./shell/Telas";
+import { Carregando, Onboarding, TelaErro } from "./shell/Telas";
+import { Ajuda } from "./shell/Ajuda";
+import { BoasVindas } from "./shell/BoasVindas";
+import { Holofote } from "./shell/Holofote";
 import { NAV, ehAcompanhar, nomeDaRota } from "./shell/navegacao";
 import { AbasAcompanhar } from "./shell/Acompanhar";
 import { Button } from "@/components/ui/button";
@@ -65,10 +68,16 @@ export function abrirPaleta() {
   window.dispatchEvent(new CustomEvent("nexo:paleta"));
 }
 
-/** Há janela, menu ou lista aberta? O que está saindo (animação de fechar, data-state="closed") não conta. */
+/**
+ * Há janela, menu ou lista aberta? O que está saindo (animação de fechar, data-state="closed") não conta.
+ * O painel de ajuda e o balão do holofote também não: eles existem para a pessoa ler e usar a tela ao mesmo
+ * tempo, então os atalhos continuam valendo com eles abertos.
+ */
 const temAlgoAberto = () =>
   !!document.querySelector(
-    ['[role="dialog"]', '[role="alertdialog"]', '[role="menu"]', '[role="listbox"]', '[data-slot="popover"]'].map((s) => `${s}:not([data-state="closed"])`).join(","),
+    ['[role="dialog"]', '[role="alertdialog"]', '[role="menu"]', '[role="listbox"]', '[data-slot="popover"]']
+      .map((s) => `${s}:not([data-state="closed"]):not([data-slot="ajuda"]):not([data-slot="holofote-balao"])`)
+      .join(","),
   );
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -93,6 +102,13 @@ export function Shell({ children }: { children: ReactNode }) {
     else document.documentElement.requestFullscreen().catch(() => {});
   }, []);
 
+  // Vendo os dados de exemplo (3.22): a marca no <html> desliga os avisos do Windows (lib/notificar.ts).
+  const noExemplo = !!estado?.exemplo;
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-exemplo", noExemplo);
+    return () => document.documentElement.removeAttribute("data-exemplo");
+  }, [noExemplo]);
+
   useEffect(() => {
     const aoMudar = () => setCheia(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", aoMudar);
@@ -111,6 +127,8 @@ export function Shell({ children }: { children: ReactNode }) {
     const abrirRitual = () => setRitual(true);
     const abrirFechamento = () => setFechamento(true);
     const abrirPal = () => setPaleta(true);
+    // a ajuda desta tela também abre por evento (a janela de novidades usa)
+    const abrirAjuda = () => setAtalhos(true);
     const teclas = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       if ((e.ctrlKey || e.metaKey) && k === "k") {
@@ -164,19 +182,22 @@ export function Shell({ children }: { children: ReactNode }) {
         abrirPerfis();
       } else if (e.key === "?") {
         e.preventDefault();
-        setAtalhos(true);
+        // a mesma tecla abre e fecha a ajuda
+        setAtalhos((a) => !a);
       }
     };
     window.addEventListener("nexo:nova-tarefa", abrirNova);
     window.addEventListener("nexo:planejar-dia", abrirRitual);
     window.addEventListener("nexo:fechar-dia", abrirFechamento);
     window.addEventListener("nexo:paleta", abrirPal);
+    window.addEventListener("nexo:ajuda", abrirAjuda);
     window.addEventListener("keydown", teclas);
     return () => {
       window.removeEventListener("nexo:nova-tarefa", abrirNova);
       window.removeEventListener("nexo:planejar-dia", abrirRitual);
       window.removeEventListener("nexo:fechar-dia", abrirFechamento);
       window.removeEventListener("nexo:paleta", abrirPal);
+      window.removeEventListener("nexo:ajuda", abrirAjuda);
       window.removeEventListener("keydown", teclas);
     };
   }, [router, setRecolhida, toast]);
@@ -271,7 +292,10 @@ export function Shell({ children }: { children: ReactNode }) {
       <Impressao />
       <Confete />
       <Personalizar />
-      <JanelaAtalhos aberto={atalhos} fechar={() => setAtalhos(false)} />
+      {/* a tecla ? abre a ajuda desta tela, com os atalhos dentro (3.22) */}
+      <Ajuda aberta={atalhos} fechar={() => setAtalhos(false)} />
+      <Holofote />
+      <BoasVindas />
       <Novidades />
       <Paleta
         aberta={paleta}
@@ -295,12 +319,26 @@ export function Shell({ children }: { children: ReactNode }) {
 
 /** Faixas de aviso: somente leitura (dados de versão mais nova) e arquivos com problema. */
 function Avisos() {
-  const { estado, dados } = useNexo();
+  const { estado, dados, sairDoExemplo } = useNexo();
   const [dispensado, setDispensado] = useState("");
+  const [saindo, setSaindo] = useState(false);
   const avisos = dados?.avisos ?? [];
   const chave = avisos.join("|");
   return (
     <>
+      {estado?.exemplo && (
+        // Fixa enquanto durar o exemplo: ninguém pode confundir estes dados com os de verdade.
+        <div role="status" data-slot="faixa-do-exemplo" className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-info/30 bg-info/10 px-4 py-1.5 text-[13px]">
+          <FlaskConical className="size-4 shrink-0 text-info" />
+          <span className="min-w-0 flex-1">
+            Você está no <strong>exemplo</strong>. Mexa à vontade: nada daqui vai para os seus dados, e o que você criar aqui fica só no exemplo.
+          </span>
+          <Button size="sm" data-slot="sair-do-exemplo" disabled={saindo}
+            onClick={async () => { setSaindo(true); await sairDoExemplo(); setSaindo(false); }}>
+            {saindo ? "Voltando..." : "Usar meus dados"}
+          </Button>
+        </div>
+      )}
       {estado?.somenteLeitura && (
         <div role="alert" className="flex shrink-0 items-center gap-2 border-b border-destructive/25 bg-destructive/10 px-4 py-2 text-[13px] text-destructive">
           <Lock className="size-4 shrink-0" />

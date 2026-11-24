@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.21";
+export const VERSAO_NOVIDADES = "3.22";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,16 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.22", icone: LifeBuoy, titulo: "O Nexo se ensina: ajuda em cada tela, mostrar onde e um exemplo para conhecer", texto: "A tecla ? agora abre a ajuda da tela em que você está: para que ela serve, como usar em poucos passos, os atalhos e botões que acendem cada lugar na própria tela. Quem está chegando ganha uma tela de boas-vindas e uma lista de primeiros passos. E dá para conhecer o app cheio com dados de exemplo, que ficam numa pasta separada e nunca se misturam com os seus.", href: "/configuracoes", rotulo: "Abrir a ajuda desta tela",
+    acao: () => setTimeout(() => window.dispatchEvent(new Event("nexo:ajuda")), 200),
+    pontos: [
+      "Ajuda desta tela: aperte ? em qualquer tela (ou o menu Mais). Um painel ao lado explica a tela, sem travar o app: a mesma tecla fecha.",
+      "Mostrar na tela: os botões da ajuda acendem o lugar de cada coisa, com uma explicação curta. Você continua usando o app por baixo.",
+      "Dados de exemplo: em Configurações, \"Conhecer com um exemplo\" abre oito tarefas de mentira, com reuniões, prazos e rotina. Elas ficam numa pasta separada. Uma faixa avisa que é o exemplo, e \"Usar meus dados\" volta com um clique.",
+      "Para quem está chegando: depois de escolher a pasta, o Nexo pergunta como você trabalha (o perfil), como você aparece nos passos e se quer começar com os seus dados ou com o exemplo.",
+      "Primeiros passos: seis coisas na tela Hoje (criar uma tarefa, registrar uma conversa, concluir um passo, escolher o foco, planejar o dia, criar uma categoria), cada uma com \"Mostrar onde\". Só aparece para quem passou pelas boas-vindas.",
+      "A lista de atalhos ficou dentro da ajuda e ganhou os que faltavam (Ctrl Z, F11, P). Com a ajuda aberta, os atalhos continuam valendo.",
+    ] },
   { versao: "3.21", icone: Navigation, titulo: "Próxima ação e reuniões do dia", texto: "A tela Hoje agora começa com a Próxima ação: uma coisa a fazer, o motivo em uma linha e um botão. O Nexo olha a rotina, os prazos e o seu foco e escolhe por uma ordem fixa, que começa pela reunião que está acontecendo. E um bloco da rotina pode ser marcado como reunião, com participantes e a tarefa a que ela serve: a tela Hoje mostra as reuniões do dia com a pauta pronta e o botão de começar.", href: "/", rotulo: "Ver a tela Hoje",
     pontos: [
       "Próxima ação: no topo da tela Hoje. Um título, o porquê e um botão (abrir a tarefa, concluir o passo, entrar no modo reunião, planejar ou fechar o dia). Logo abaixo, as três seguintes.",
@@ -175,7 +185,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "A tela Hoje agora começa pela Próxima ação: uma coisa a fazer, com o motivo e um botão. E a rotina passa a marcar reuniões, com pauta pronta e aviso 15 minutos antes.",
+          description: "A tecla ? agora abre a ajuda da tela em que você está, com botões que mostram onde fica cada coisa. E dá para conhecer o app com dados de exemplo, sem misturar com os seus.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

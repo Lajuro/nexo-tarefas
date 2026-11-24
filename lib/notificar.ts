@@ -48,6 +48,8 @@ export async function pedirPermissao(): Promise<boolean> {
 export function notificar(tipo: "rotina" | "lembretes", titulo: string, corpo: string, opcoes: { tag?: string; rota?: string; sempre?: boolean } = {}): boolean {
   const p = normalizarNotificacoes(lerPref("notificacoes", NOTIFICACOES_PADRAO));
   if (!p.ligado || !p[tipo] || permissaoDeNotificacao() !== "granted") return false;
+  // nos dados de exemplo (3.22) nada vai para o Windows: um "prazo vencido" de mentira não pode parecer de verdade
+  if (document.documentElement.hasAttribute("data-exemplo")) return false;
   if (!opcoes.sempre && document.visibilityState === "visible" && document.hasFocus()) return false;
   try {
     const n = new Notification(titulo, { body: corpo, tag: opcoes.tag, icon: "/icon.svg", silent: false });

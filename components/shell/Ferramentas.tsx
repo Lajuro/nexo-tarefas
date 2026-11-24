@@ -531,7 +531,7 @@ export function MenuMais({ cheia, telaCheia, abrirAtalhos, ocultas }: {
           </DropdownMenuItem>
         )}
         {comAtalhos && (
-          <DropdownMenuItem data-slot="mais-atalhos" onSelect={abrirAtalhos}><Keyboard /> Atalhos de teclado <MenuAtalho>?</MenuAtalho></DropdownMenuItem>
+          <DropdownMenuItem data-slot="mais-atalhos" onSelect={() => setTimeout(abrirAtalhos, 80)}><Keyboard /> Ajuda desta tela e atalhos <MenuAtalho>?</MenuAtalho></DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem data-slot="mais-personalizar" onSelect={() => personalizar("superior")}><SlidersHorizontal /> Personalizar as barras...</DropdownMenuItem>

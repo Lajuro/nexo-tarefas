@@ -30,7 +30,7 @@ export const NOME_FERRAMENTA: Record<IdFerramenta, { nome: string; descricao: st
   anotar: { nome: "Anotar rápido", descricao: "Cria uma tarefa ou uma folha do bloco de notas de qualquer tela (atalho A)." },
   busca: { nome: "Campo de busca", descricao: "Aparece com a barra lateral recolhida (aberta, a busca já está nela). O atalho Ctrl K continua valendo sem ele." },
   telaCheia: { nome: "Tela cheia", descricao: "Item de tela cheia no menu Mais. A tecla F11 continua valendo sem ele." },
-  ajuda: { nome: "Atalhos", descricao: "Item da lista de atalhos de teclado no menu Mais. A tecla ? continua valendo sem ele." },
+  ajuda: { nome: "Atalhos", descricao: "Item da ajuda desta tela e dos atalhos de teclado no menu Mais. A tecla ? continua valendo sem ele." },
 };
 
 export const LARGURA_LATERAL = { padrao: 244, minima: 208, maxima: 400, recolhida: 56 };

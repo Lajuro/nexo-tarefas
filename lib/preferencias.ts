@@ -27,6 +27,59 @@ export function gravarPref<T>(chave: string, valor: T) {
   } catch {}
 }
 
+export function removerPref(chave: string) {
+  try {
+    localStorage.removeItem(PREFIXO + chave);
+  } catch {}
+  try {
+    window.dispatchEvent(new CustomEvent(EVENTO, { detail: { chave } }));
+  } catch {}
+}
+
+/**
+ * Preferências que falam de DADOS (tarefas abertas por último, lembretes adiados, sugestões dispensadas, avisos já
+ * dados). Ao entrar nos dados de exemplo (3.22) elas são postas de lado, para o exemplo começar limpo e para o que
+ * for feito nele não sujar o que é dos dados de verdade; ao sair, voltam como estavam.
+ */
+export const PREFS_DOS_DADOS = ["recentes", "lembretesAdiados", "proximaAcaoDispensadas", "jornadaAvisados"] as const;
+const GUARDADAS = "antesDoExemplo";
+
+export function porPrefsDeLado() {
+  try {
+    // já guardadas (entrou duas vezes): não passa por cima do que é dos dados de verdade
+    if (localStorage.getItem(PREFIXO + GUARDADAS) === null) {
+      const guardado: Record<string, string> = {};
+      for (const k of PREFS_DOS_DADOS) {
+        const v = localStorage.getItem(PREFIXO + k);
+        if (v !== null) guardado[k] = v;
+      }
+      localStorage.setItem(PREFIXO + GUARDADAS, JSON.stringify(guardado));
+    }
+  } catch {}
+  for (const k of PREFS_DOS_DADOS) removerPref(k);
+}
+
+export function trazerPrefsDeVolta() {
+  let guardado: Record<string, unknown> = {};
+  try {
+    const bruto = localStorage.getItem(PREFIXO + GUARDADAS);
+    if (bruto === null) return;
+    const lido = JSON.parse(bruto);
+    if (lido && typeof lido === "object" && !Array.isArray(lido)) guardado = lido;
+  } catch {}
+  for (const k of PREFS_DOS_DADOS) {
+    const v = guardado[k];
+    try {
+      if (typeof v === "string") localStorage.setItem(PREFIXO + k, v);
+      else localStorage.removeItem(PREFIXO + k);
+      window.dispatchEvent(new CustomEvent(EVENTO, { detail: { chave: k } }));
+    } catch {}
+  }
+  try {
+    localStorage.removeItem(PREFIXO + GUARDADAS);
+  } catch {}
+}
+
 /**
  * Como um useState, mas lembrado entre visitas.
  * `carregado` vira true depois da primeira leitura (use para não piscar o valor padrão,

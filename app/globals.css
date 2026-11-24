@@ -811,7 +811,8 @@ html[data-vt="perfil"]::view-transition-new(root) {
   transition: padding-right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @media (min-width: 1180px) {
-  html[data-personalizando] [data-slot="app"] {
+  html[data-personalizando] [data-slot="app"],
+  html[data-ajudando] [data-slot="app"] {
     padding-right: 384px;
   }
 }

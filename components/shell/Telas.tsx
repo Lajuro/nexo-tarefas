@@ -8,11 +8,8 @@ import { useNexo } from "@/components/Provider";
 import { Campo } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Kbd } from "@/components/ui/diversos";
 import { suave } from "@/lib/animacoes";
-import { ATALHOS } from "./navegacao";
 import { Logo } from "./Logo";
-import { Modal } from "@/components/comum";
 
 function Palco({ children }: { children: React.ReactNode }) {
   return (
@@ -102,24 +99,3 @@ export function TelaErro({ mensagem, pasta, tentar }: { mensagem: string; pasta:
   );
 }
 
-export function JanelaAtalhos({ aberto, fechar }: { aberto: boolean; fechar: () => void }) {
-  return (
-    <Modal titulo="Atalhos de teclado" descricao="O Nexo foi feito para usar sem tirar a mão do teclado." aberto={aberto} fechar={fechar}>
-      <ul className="flex flex-col">
-        {ATALHOS.map((a) => (
-          <li key={a.descricao} className="flex items-center justify-between gap-4 border-b py-2 text-[13px] last:border-0">
-            <span>{a.descricao}</span>
-            <span className="flex shrink-0 items-center gap-1">
-              {a.teclas.map((t, i) => (
-                <span key={t + i} className="flex items-center gap-1">
-                  {i > 0 && a.teclas[0] === "G" && <span className="text-xs text-muted-foreground">depois</span>}
-                  <Kbd>{t}</Kbd>
-                </span>
-              ))}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </Modal>
-  );
-}
