@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Dica } from "@/components/ui/popover";
 import { itemLista, lista } from "@/lib/animacoes";
 import { dataRelativa } from "@/lib/lembretes";
-import { type Frente, type ItemPrazo, type Saude, colunaDoPrazo, montarRadar, nomeSaude, textoDoRadar } from "@/lib/radar";
+import { type Frente, type ItemPrazo, type Saude, colunaDoPrazo, montarRadar, nomeSaude, textoDaEspera, textoDoRadar } from "@/lib/radar";
 import { dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
@@ -101,6 +101,13 @@ function CartaoFrente({ f, aoCopiar }: { f: Frente; aoCopiar: () => void }) {
           ))}
           {f.concluidas30 > 0 && <span><span className="text-sm font-semibold tabular-nums text-sucesso">{f.concluidas30}</span> {f.concluidas30 === 1 ? "concluída" : "concluídas"} no mês</span>}
         </div>
+
+        {textoDaEspera(f.espera) && (
+          <p data-slot="espera-media" className="text-xs leading-snug text-muted-foreground">
+            <Hourglass aria-hidden className="mr-1 inline size-3 align-[-2px]" />
+            Espera média por tarefa: {textoDaEspera(f.espera)}
+          </p>
+        )}
 
         <div className="mt-auto flex items-end gap-3 pt-1">
           <div className="w-28 shrink-0"><Movimento semanas={f.semanas} /></div>

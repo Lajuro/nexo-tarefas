@@ -23,7 +23,7 @@ import { type TelaHoje, TELA_HOJE_PADRAO, normalizarTelaHoje } from "./tela-hoje
 
 /** As telas em que o app pode abrir: só as do menu (lista fechada; um código colado nunca escolhe um endereço). */
 export const INICIOS = [
-  "/", "/tarefas", "/rotina", "/pendencias", "/notas", "/paginas", "/perguntar", "/categorias", "/pessoas", "/links", "/radar", "/diario", "/revisao",
+  "/", "/tarefas", "/rotina", "/pendencias", "/notas", "/paginas", "/perguntar", "/categorias", "/pessoas", "/links", "/radar", "/diario", "/decisoes", "/revisao",
   "/relatorios", "/conquistas",
 ] as const;
 export type Inicio = (typeof INICIOS)[number];
@@ -176,7 +176,7 @@ export const PERFIS_PRONTOS: readonly PerfilPronto[] = [
     }),
   },
   {
-    id: "gestao", nome: "Gestão", descricao: "Planejamento e status: Radar, Relatórios e o que está esperando alguém.",
+    id: "gestao", nome: "Gestão", descricao: "Planejamento e status: Radar, Decisões, Relatórios e o que está esperando alguém.",
     arranjo: arranjo({
       moldura: { ocultos: ["/conquistas", "/perguntar", "/notas", "/rotina"], secoesOcultas: ["foco"], ferramentasOcultas: ["foco"], acompanharSeparado: true },
       hoje: { primeiro: "precisa", ocultos: ["captura"], laterais: ["aguardando", "bloqueadas", "rotina", "progresso"] },

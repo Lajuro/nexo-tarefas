@@ -52,8 +52,8 @@ export interface Moldura {
   ferramentasOcultas: IdFerramenta[];
   barraStatus: boolean;
   /**
-   * Radar, Diário, Revisão semanal, Relatórios e Conquistas como cinco itens no menu (como até a 3.8).
-   * Padrão (false): um item só, "Acompanhar", e as cinco telas trocam por abas no topo.
+   * Radar, Diário, Decisões, Revisão semanal, Relatórios e Conquistas como itens soltos no menu (como até a 3.8).
+   * Padrão (false): um item só, "Acompanhar", e as telas trocam por abas no topo.
    */
   acompanharSeparado: boolean;
 }

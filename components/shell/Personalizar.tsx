@@ -117,7 +117,7 @@ function AbaLateral() {
       <Bloco titulo={GRUPO_ACOMPANHAR}
         ajuda={`${TELAS_ACOMPANHAR.map((n) => n.nome).join(", ").replace(/, ([^,]*)$/, " e $1")}. Juntas, viram um item só no menu e trocam por abas no topo da tela. As abas e os atalhos valem dos dois jeitos.`}>
         <CampoSwitch marcado={moldura.acompanharSeparado} aoMudar={(v) => mudarMoldura({ acompanharSeparado: v })}>
-          Mostrar as cinco telas separadas no menu
+          Mostrar as telas de acompanhar separadas no menu
         </CampoSwitch>
       </Bloco>
 

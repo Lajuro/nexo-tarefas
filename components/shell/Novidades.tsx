@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, Gavel, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.22";
+export const VERSAO_NOVIDADES = "3.23";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,15 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.23", icone: Gavel, titulo: "Acompanhar de verdade: decisões num lugar só, tempo em cada status e o resumo pronto, sem IA", texto: "A tela Decisões, em Acompanhar, junta o que foi decidido em todas as tarefas, com quando e com quem, e leva ao registro de cada uma. A tarefa mostra há quanto tempo está no status de agora e quanto ficou em cada um; o Radar e os Relatórios mostram quanto as tarefas esperam por terceiros. E Relatórios ganhou \"Copiar resumo\" e \"Preparar o 1:1\": texto simples, montado só com os seus registros, sem passar pelo Copilot.", href: "/decisoes", rotulo: "Abrir Decisões",
+    pontos: [
+      "Decisões: uma aba nova em Acompanhar (G depois I). Tudo o que está no campo Decisões dos registros, por mês, com busca, categoria, quem estava e período. O nome da tarefa leva ao registro, e Copiar gera o texto para uma ata.",
+      "Na tarefa: o botão do martelo, na barra da linha do tempo, mostra só os registros com decisão. Na categoria: o painel \"Decisões da categoria\".",
+      "Tempo em cada status: no resumo da tarefa, \"Em andamento há 8 dias\" e uma barra com quanto ela ficou a fazer, em andamento, aguardando e bloqueada. Quando falta histórico, o app diz que a conta é estimada.",
+      "Espera média: o Radar mostra, por categoria, quanto cada tarefa esperou por terceiros e ficou bloqueada (só com três tarefas de histórico completo). Relatórios mostra o mesmo para o período.",
+      "Copiar resumo, em Relatórios: o período em texto simples (concluído, o que andou, o que travou, decisões, seus próximos passos), pronto para um e-mail de status.",
+      "Preparar o 1:1: o mesmo material arrumado para a conversa (o que andou, o que travou, o que precisa de decisão, o que vem agora), com prévia antes de copiar.",
+    ] },
   { versao: "3.22", icone: LifeBuoy, titulo: "O Nexo se ensina: ajuda em cada tela, mostrar onde e um exemplo para conhecer", texto: "A tecla ? agora abre a ajuda da tela em que você está: para que ela serve, como usar em poucos passos, os atalhos e botões que acendem cada lugar na própria tela. Quem está chegando ganha uma tela de boas-vindas e uma lista de primeiros passos. E dá para conhecer o app cheio com dados de exemplo, que ficam numa pasta separada e nunca se misturam com os seus.", href: "/configuracoes", rotulo: "Abrir a ajuda desta tela",
     acao: () => setTimeout(() => window.dispatchEvent(new Event("nexo:ajuda")), 200),
     pontos: [
@@ -185,7 +194,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "A tecla ? agora abre a ajuda da tela em que você está, com botões que mostram onde fica cada coisa. E dá para conhecer o app com dados de exemplo, sem misturar com os seus.",
+          description: "Decisões de todas as tarefas num lugar só, o tempo que cada tarefa ficou em cada status, e o resumo do período pronto para copiar, sem IA.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

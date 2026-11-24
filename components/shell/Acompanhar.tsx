@@ -1,9 +1,9 @@
 "use client";
 
-// "Acompanhar" (3.9): Radar, Diário, Revisão semanal, Relatórios e Conquistas são telas de olhar para trás e
+// "Acompanhar" (3.9; Decisões entrou na 3.23): Radar, Diário, Decisões, Revisão semanal, Relatórios e Conquistas são telas de olhar para trás e
 // para longe, visitadas bem menos que as do dia a dia. No menu elas viram um item só, e no topo de cada uma
 // aparece esta faixa de abas para trocar entre elas. As rotas e os atalhos (G F, G D, G S, G R, G Q) não mudaram.
-// Quem preferir as cinco separadas no menu liga isso em Personalizar > Lateral (moldura.acompanharSeparado).
+// Quem preferir as telas separadas no menu liga isso em Personalizar > Lateral (moldura.acompanharSeparado).
 // A última aba usada é preferência do navegador ("nexo:acompanharAba"): o item do menu abre nela.
 
 import Link from "next/link";
@@ -50,7 +50,7 @@ export function useDestinoAcompanhar() {
   return valida ? (ultima as string) : ABA_PADRAO;
 }
 
-/** Faixa de abas no topo das cinco telas de acompanhar. Montada pelo Shell, acima da tela. */
+/** Faixa de abas no topo das telas de acompanhar. Montada pelo Shell, acima da tela. */
 export function AbasAcompanhar() {
   const pathname = usePathname();
   const abas = useAbas(pathname);

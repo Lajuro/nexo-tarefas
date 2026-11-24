@@ -163,5 +163,30 @@ teste("dados vazios ou antigos não quebram", () => {
   assert.equal(R.nomeSaude("risco"), "Em risco");
 });
 
+teste("espera média da frente (3.23): só com três tarefas de histórico confiável, e entra no texto de status", () => {
+  const marco = (id, data, de, para) => ({ id, tipo: "marco", data, titulo: para, criadoEm: meioDia(data), alteracoes: { status: { de, para } } });
+  // cada uma nasce em 01/11, espera N dias por terceiros e volta a andar
+  const comEspera = (id, dias) =>
+    tarefa({
+      id, titulo: `Tarefa ${id}`, categoriaId: "c-dia", status: "em_andamento", criadaEm: meioDia("2026-11-01"),
+      registros: [marco(`${id}a`, "2026-11-01", "", "a_fazer"), marco(`${id}b`, "2026-11-02", "a_fazer", "aguardando"), marco(`${id}c`, `2026-11-${String(2 + dias).padStart(2, "0")}`, "aguardando", "em_andamento")],
+    });
+  const base = { ...dados, tarefas: [comEspera("e1", 2), comEspera("e2", 4), comEspera("e3", 6)] };
+  const agora = meioDia(HOJE);
+  const f = R.montarRadar(base, HOJE, agora).frentes.find((x) => x.id === "c-dia");
+  assert.deepEqual([f.espera.aguardando, f.espera.tarefasAguardando, f.espera.bloqueada, f.espera.estimadas], [4, 3, null, 0]);
+  assert.equal(R.textoDaEspera(f.espera), "4 dias aguardando retorno (3 tarefas)");
+  assert.match(R.textoDoRadar(R.montarRadar(base, HOJE, agora), ["c-dia"]), /- Espera média por tarefa: 4 dias aguardando retorno \(3 tarefas\)\./);
+  // com duas tarefas a média não aparece: diria mais sobre uma tarefa do que sobre o assunto
+  const poucas = R.montarRadar({ ...dados, tarefas: base.tarefas.slice(0, 2) }, HOJE, agora).frentes.find((x) => x.id === "c-dia");
+  assert.equal(poucas.espera.aguardando, null);
+  assert.equal(R.textoDaEspera(poucas.espera), "");
+  assert.doesNotMatch(R.textoDoRadar(R.montarRadar({ ...dados, tarefas: base.tarefas.slice(0, 2) }, HOJE, agora), ["c-dia"]), /Espera média/);
+  // tarefa sem os marcos (de antes de eles existirem) fica de fora da média, contada como estimada
+  const antiga = tarefa({ id: "e4", titulo: "Antiga", categoriaId: "c-dia", status: "aguardando", criadaEm: meioDia("2026-10-01") });
+  const comAntiga = R.montarRadar({ ...dados, tarefas: [...base.tarefas, antiga] }, HOJE, agora).frentes.find((x) => x.id === "c-dia");
+  assert.deepEqual([comAntiga.espera.aguardando, comAntiga.espera.estimadas], [4, 1]);
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);

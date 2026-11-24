@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  CalendarRange, Check, CheckCheck, ChevronRight, CircleCheck, ClipboardCopy, Layers, NotebookText, Users,
+  CalendarRange, Check, CheckCheck, ChevronRight, CircleCheck, ClipboardCopy, Handshake, Hourglass, Layers, NotebookText, Users,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { MenuContextoTarefa } from "@/components/MenuTarefa";
 import {
-  AvatarPessoa, Campo, Contador, Estatistica, Pagina, PontoCor, Secao, StatusBadge, TipoBadge, Vazio, copiarTexto,
+  AvatarPessoa, Campo, Contador, Estatistica, Modal, Pagina, PontoCor, Secao, StatusBadge, TipoBadge, Vazio, copiarTexto,
 } from "@/components/comum";
+import { useHoje } from "@/components/useHoje";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Segmentado } from "@/components/ui/controles";
@@ -22,6 +23,9 @@ import { itemLista, lista } from "@/lib/animacoes";
 import { dataLocal, dataRelativa } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { promptRelatorio } from "@/lib/prompts";
+import { textoDaEspera } from "@/lib/radar";
+import { resumoDoPeriodo, textoDoResumo, textoDoUmAUm } from "@/lib/resumo-periodo";
+import { mediaDeEspera } from "@/lib/tempo-status";
 import { paraTextoPlano } from "@/lib/texto-rico";
 import { Categoria, Registro, Tarefa, dataCurta, hojeISO } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -70,6 +74,8 @@ export default function Relatorios() {
   const [foco, setFoco] = useState("");
   const [ver, setVer] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [umAUm, setUmAUm] = useState(false);
+  const hoje = useHoje();
 
   const p = { ...PREF_PADRAO, ...pref };
   const [inicio, fim] = intervalo(p);
@@ -108,6 +114,17 @@ export default function Relatorios() {
     };
   }, [tarefas, itens, inicio, fim]);
 
+  // Sem IA (3.23): o resumo do período em texto simples e o mesmo material arrumado para o 1:1. Só o que está nos registros.
+  // O dia entra nas dependências para "há N dias" andar com o app aberto de um dia para o outro.
+  const resumo = useMemo(() => resumoDoPeriodo(tarefas, inicio, fim, new Date()), [tarefas, inicio, fim, hoje]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sobre = cat ? (catPorId.get(cat)?.nome ?? "") : "";
+  const temResumo = itens.length > 0 || resumo.numeros.passos > 0 || resumo.concluidas.length > 0 || resumo.travou.length > 0 || resumo.proximos.length > 0;
+  // Quanto as tarefas que andaram no período esperaram por terceiros ou ficaram bloqueadas (a mesma conta do Radar).
+  const espera = useMemo(() => {
+    const ids = new Set(itens.map((i) => i.t.id));
+    return textoDaEspera(mediaDeEspera(tarefas.filter((t) => ids.has(t.id)), new Date()));
+  }, [tarefas, itens, hoje]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const grupos = useMemo(() => {
     const mapa = new Map<string, Item[]>();
     for (const i of itens) {
@@ -139,6 +156,17 @@ export default function Relatorios() {
     } else toast("Não consegui copiar. Abra a prévia do prompt e copie o texto por lá.", "erro");
   };
 
+  const copiarResumo = async () => {
+    if (await copiarTexto(textoDoResumo(resumo, sobre))) toast("Resumo do período copiado, em texto simples.");
+    else toast("Não consegui copiar automaticamente.", "erro");
+  };
+  const copiarUmAUm = async () => {
+    if (await copiarTexto(textoDoUmAUm(resumo, sobre))) {
+      toast("Roteiro do 1:1 copiado.");
+      setUmAUm(false);
+    } else toast("Não consegui copiar. Selecione o texto e copie.", "erro");
+  };
+
   const opcoesCategoria = categorias.map((c) => ({
     valor: c.id,
     rotulo: c.nome,
@@ -156,7 +184,17 @@ export default function Relatorios() {
   return (
     <Pagina
       titulo="Relatórios"
-      descricao="Junte tudo o que aconteceu num período e peça um relatório ao Copilot. Ótimo para 1:1 e status semanal."
+      descricao="Tudo o que aconteceu num período: copie o resumo pronto, prepare o 1:1 ou peça um relatório ao Copilot."
+      acoes={
+        <>
+          <Dica texto="Monta o roteiro da conversa: o que andou, o que travou, o que precisa de decisão e o que vem agora">
+            <Button variant="outline" data-slot="preparar-1a1" disabled={!temResumo} onClick={() => setUmAUm(true)}><Handshake /> Preparar o 1:1</Button>
+          </Dica>
+          <Dica texto="Copia o resumo do período em texto simples, sem IA: concluído, o que andou, o que travou, decisões e próximos passos">
+            <Button variant="outline" data-slot="copiar-resumo" disabled={!temResumo} onClick={copiarResumo}><ClipboardCopy /> Copiar resumo</Button>
+          </Dica>
+        </>
+      }
     >
       <section data-slot="painel-relatorio" className="rounded-xl border bg-card shadow-xs">
         <div className="flex flex-col gap-3.5 p-4">
@@ -246,6 +284,26 @@ export default function Relatorios() {
         <Estatistica rotulo="Passos concluídos" valor={numeros.passos} icone={<CheckCheck className="max-xl:hidden" />} />
         <Estatistica rotulo="Tarefas concluídas" valor={numeros.concluidas} tom="sucesso" icone={<CircleCheck className="max-xl:hidden" />} />
       </div>
+
+      {espera && (
+        <p data-slot="espera-do-periodo" className="mt-3 text-xs leading-snug text-muted-foreground">
+          <Hourglass aria-hidden className="mr-1 inline size-3 align-[-2px]" />
+          Espera média das tarefas que andaram no período: {espera}.
+        </p>
+      )}
+
+      <Modal
+        aberto={umAUm}
+        fechar={() => setUmAUm(false)}
+        largo
+        titulo="Preparar o 1:1"
+        descricao={`O que os seus registros dizem sobre ${inicio === fim ? dataCurta(inicio) : `${dataCurta(inicio)} a ${dataCurta(fim)}`}${sobre ? `, em ${sobre}` : ""}. Sem IA: nada é inventado nem resumido por conta própria.`}
+        rodape={<><Button variant="outline" onClick={() => setUmAUm(false)}>Fechar</Button><Button data-slot="copiar-1a1" onClick={copiarUmAUm}><ClipboardCopy /> Copiar</Button></>}
+      >
+        <pre data-slot="texto-1a1" tabIndex={0} className="max-h-[56vh] overflow-auto rounded-lg border bg-muted/30 p-3.5 font-sans text-[13px] leading-relaxed outline-none texto-pre focus-visible:ring-[3px] focus-visible:ring-ring/35">
+          {textoDoUmAUm(resumo, sobre)}
+        </pre>
+      </Modal>
 
       <Secao
         titulo="O que entra no período"

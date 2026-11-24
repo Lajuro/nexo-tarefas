@@ -93,6 +93,7 @@ export const AJUDA: AjudaDaTela[] = [
     mostrar: [
       { rotulo: "Registrar uma reunião", alvo: { rota: "/tarefas/[id]", seletor: "[data-slot=registrar][data-tipo=reuniao]", titulo: "Registrar", texto: "Cada conversa vira um registro na linha do tempo, com resumo, decisões, próximos passos e impedimentos." } },
       { rotulo: "O checklist", alvo: { rota: "/tarefas/[id]", seletor: "[data-slot=checklist-tarefa]", titulo: "Checklist", texto: "O que a entrega precisa ter. Enter adiciona, e colar uma lista cria um item por linha." } },
+      { rotulo: "Só o que foi decidido", alvo: { rota: "/tarefas/[id]", seletor: "[data-slot=so-decisoes]", titulo: "Só com decisão", texto: "Mostra só os registros em que algo foi decidido. Vale junto com os filtros ao lado." } },
     ],
     atalhos: [{ teclas: ["Ctrl", "Enter"], descricao: "Salvar o registro aberto" }],
   },
@@ -205,7 +206,7 @@ export const AJUDA: AjudaDaTela[] = [
   {
     rota: "/radar", titulo: "Radar",
     paraQue: "A saúde de cada categoria e os prazos, num olhar: o que está em dia, o que pede atenção e o que travou.",
-    como: ["Veja cada categoria com o que está aberto, atrasado e parado.", "Copie o status de uma categoria para mandar.", "Use a linha de prazos para ver o que vence nas próximas semanas."],
+    como: ["Veja cada categoria com o que está aberto, atrasado e parado.", "Copie o status de uma categoria para mandar.", "Use a linha de prazos para ver o que vence nas próximas semanas.", "A espera média diz quanto cada tarefa da categoria ficou aguardando terceiros ou bloqueada. Só aparece com três tarefas de histórico completo."],
     mostrar: [],
     atalhos: [],
   },
@@ -213,6 +214,18 @@ export const AJUDA: AjudaDaTela[] = [
     rota: "/diario", titulo: "Diário",
     paraQue: "O que aconteceu, dia a dia: registros, passos concluídos e tarefas fechadas, na ordem em que foram feitos.",
     como: ["Role pelos dias, do mais recente para o mais antigo.", "Clique num item para ir à tarefa."],
+    mostrar: [],
+    atalhos: [],
+  },
+  {
+    rota: "/decisoes", titulo: "Decisões",
+    paraQue: "O que foi decidido, quando e com quem, em todas as tarefas, num lugar só. Responde \"quando decidimos isso?\" sem abrir tarefa por tarefa.",
+    como: [
+      "As decisões aparecem sozinhas: vêm do campo Decisões de cada registro (uma por linha) e dos registros do tipo Decisão.",
+      "Filtre por texto, categoria, quem estava e período.",
+      "Clique no nome da tarefa para ir ao registro em que a decisão foi tomada.",
+      "Copie o que está no filtro, em texto simples, para colar num e-mail ou numa ata.",
+    ],
     mostrar: [],
     atalhos: [],
   },
@@ -226,7 +239,12 @@ export const AJUDA: AjudaDaTela[] = [
   {
     rota: "/relatorios", titulo: "Relatórios",
     paraQue: "O que foi feito num período, pronto para virar status report: entregas, reuniões, pendências e impedimentos.",
-    como: ["Escolha o período.", "Confira os números e a lista do que andou.", "Copie o prompt para o Copilot escrever o relatório com base só nos seus registros."],
+    como: [
+      "Escolha o período e, se quiser, uma categoria.",
+      "Copiar resumo leva o período em texto simples, sem IA: concluído, o que andou, o que travou, decisões e seus próximos passos.",
+      "Preparar o 1:1 arruma o mesmo material para a conversa e mostra antes de copiar.",
+      "Para um relatório redigido, copie o prompt e cole no Copilot: ele escreve com base só nos seus registros.",
+    ],
     mostrar: [],
     atalhos: [],
   },

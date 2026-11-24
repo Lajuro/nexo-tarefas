@@ -7,7 +7,8 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { ChevronRight, CircleCheck, ListChecks, RefreshCw, Users } from "lucide-react";
 import { useNexo } from "@/components/Provider";
-import { AvatarPessoa, ChipPessoa, Painel, copiarTexto } from "@/components/comum";
+import { AvatarPessoa, ChipPessoa, Painel, STATUS_VISUAL, copiarTexto } from "@/components/comum";
+import { useHoje } from "@/components/useHoje";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/diversos";
 import { Dica } from "@/components/ui/popover";
@@ -16,7 +17,8 @@ import { formatarMinutos, minutosEmFoco } from "@/lib/acoes";
 import { aberta, dataLocal, dataRelativa, ultimaAtividade } from "@/lib/lembretes";
 import { acharPessoa, pessoasDaCategoria } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
-import { Tarefa, diasAte, dataCurta, passosAbertos } from "@/lib/tipos";
+import { diasEmTexto, tempoPorStatus } from "@/lib/tempo-status";
+import { STATUS, Tarefa, diasAte, dataCurta, nomeStatus, passosAbertos } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { PainelChecklist } from "./Checklist";
 import { IconeCopiar, SeloCopilot, useCopiado } from "./Copilot";
@@ -198,6 +200,52 @@ function Panorama({ tarefa, aoGerar }: { tarefa: Tarefa; aoGerar: () => void }) 
   );
 }
 
+/**
+ * Tempo em cada status (3.23): há quanto tempo a tarefa está no status de agora e, numa barra, quanto ela ficou
+ * em cada um. É conta (lib/tempo-status.ts), tirada dos marcos de mudança de status; quando falta histórico, diz
+ * que é estimativa em vez de mostrar como fato. Só aparece quando a tarefa já tem um dia de vida.
+ */
+function TempoPorStatus({ tarefa }: { tarefa: Tarefa }) {
+  const hoje = useHoje();
+  // o dia entra nas dependências para a conta andar com o app aberto de um dia para o outro
+  const tempo = useMemo(() => tempoPorStatus(tarefa, new Date()), [tarefa, hoje]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (tempo.totalDeDias < 1 || !tempo.trechos.length) return null;
+  const partes = STATUS.filter((s) => (tempo.porStatus[s.id] ?? 0) > 0).map((s) => ({ id: s.id, nome: s.nome, dias: tempo.porStatus[s.id]! }));
+  const ehAberta = aberta(tarefa);
+  return (
+    <div data-slot="tempo-por-status" data-estimado={tempo.estimado || undefined} className="border-t px-3.5 py-2.5">
+      <p className="text-xs leading-snug text-muted-foreground">
+        {ehAberta ? (
+          <>
+            <span data-slot="neste-status" className="font-medium text-foreground">{nomeStatus(tarefa.status)}</span>{" "}
+            {tempo.noStatusAtualHa >= 1 ? `há ${tempo.noStatusAtualHa} ${tempo.noStatusAtualHa === 1 ? "dia" : "dias"}` : "desde hoje"}
+          </>
+        ) : (
+          "Tempo em cada status"
+        )}
+      </p>
+      <div aria-hidden className="mt-2 flex h-1.5 gap-px overflow-hidden rounded-full bg-muted">
+        {partes.map((p) => (
+          <span key={p.id} className={cn("h-full min-w-1", STATUS_VISUAL[p.id].ponto)} style={{ flexGrow: p.dias, flexBasis: 0 }} />
+        ))}
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {partes.map((p) => (
+          <li key={p.id} data-slot="tempo-no-status" data-status={p.id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span aria-hidden className={cn("size-2 rounded-full", STATUS_VISUAL[p.id].ponto)} />
+            {p.nome}: <span className="tabular-nums text-foreground">{diasEmTexto(p.dias)}</span>
+          </li>
+        ))}
+      </ul>
+      {tempo.estimado && (
+        <p data-slot="tempo-estimado" className="mt-1.5 text-xs leading-snug text-muted-foreground">
+          Conta estimada: falta parte do histórico de mudanças de status desta tarefa.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Resumo({ tarefa }: { tarefa: Tarefa }) {
   const criada = dataLocal(tarefa.criadaEm);
   const ehAberta = aberta(tarefa);
@@ -233,6 +281,7 @@ function Resumo({ tarefa }: { tarefa: Tarefa }) {
           </div>
         )}
       </div>
+      <TempoPorStatus tarefa={tarefa} />
       {/* saiu da faixa de propriedades (3.7) para ela caber numa linha */}
       <p data-slot="prop-criada" className="border-t px-3.5 py-2 text-xs text-muted-foreground tabular-nums">
         Criada em {dataCurta(criada)}

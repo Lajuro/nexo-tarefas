@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, History, Pencil, Plus, Presentation, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
+import { ArrowDownNarrowWide, ArrowLeft, ArrowUpNarrowWide, Check, ChevronDown, Gavel, History, Pencil, Plus, Presentation, SearchX, Sparkles, Target, WandSparkles } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
 import { BotaoMenuTarefa, useAcoesTarefa } from "@/components/MenuTarefa";
@@ -44,6 +44,10 @@ const ROTULO = "hidden @5xl/cabecalho:inline";
 
 const noFiltro = (r: Registro, f: Filtro) =>
   f === "tudo" || (f === "reuniao" ? r.tipo === "reuniao" : f === "marco" ? r.tipo === "marco" : r.tipo !== "reuniao" && r.tipo !== "marco");
+// "Só com decisões" (3.23) corta de outro jeito e cruza com o filtro de tipo: qualquer registro que tenha algo no
+// campo Decisões, mais os do tipo decisão. É um botão de ligar e desligar, e não um quinto filtro, porque a barra
+// da linha do tempo tem que caber numa linha em 1366x768 (3.7).
+const temDecisao = (r: Registro) => r.tipo === "decisao" || !!r.decisoes?.trim();
 
 /** Título que mostra a dica com o texto inteiro só quando não coube nas duas linhas do cabeçalho. */
 function TituloTarefa({ texto }: { texto: string }) {
@@ -82,6 +86,7 @@ function Conteudo() {
   const [editor, setEditor] = useState<{ aberto: boolean; registro?: Registro | null; tipo?: TipoRegistro }>({ aberto: false });
   const [prompt, setPrompt] = useState<null | "panorama" | "reuniao">(null);
   const [filtro, setFiltro] = useState<Filtro>("tudo");
+  const [soDecisoes, setSoDecisoes] = useState(false);
   const [destaque, setDestaque] = useState<string | null>(null);
   // Versões antigas gravaram "1"/"0" nesta chave; Boolean(Number()) entende os dois formatos.
   const [prefRecentes, setPrefRecentes] = usePref<boolean>("recentesPrimeiro", false);
@@ -108,6 +113,7 @@ function Conteudo() {
   const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
   const irPara = useCallback((registroId: string, bloco: ScrollLogicalPosition = "center") => {
     setFiltro("tudo");
+    setSoDecisoes(false);
     setDestaque(registroId);
     if (relogio.current) clearTimeout(relogio.current);
     relogio.current = setTimeout(() => setDestaque(null), 2200);
@@ -154,7 +160,7 @@ function Conteudo() {
   const ehAberta = aberta(tarefa);
   const foco = ehFocoHoje(tarefa);
   const ordenados = ordenarRegistros(tarefa.registros, recentes);
-  const visiveis = ordenados.filter((r) => noFiltro(r, filtro));
+  const visiveis = ordenados.filter((r) => noFiltro(r, filtro) && (!soDecisoes || temDecisao(r)));
 
   const registrar = (tipo: TipoRegistro) => setEditor({ aberto: true, tipo });
 
@@ -261,6 +267,14 @@ function Conteudo() {
                 Linha do tempo <Contador n={tarefa.registros.length} />
               </h2>
               <Segmentado aria-label="Filtrar a linha do tempo" tamanho="sm" valor={filtro} aoMudar={setFiltro} opcoes={FILTROS} />
+              {/* os dois jeitos de ver (só decisões, ordem) formam um par: juntos, ocupam menos da linha */}
+              <div className="flex items-center gap-0.5">
+              <Dica texto={soDecisoes ? "Mostrando só os registros com decisão. Clique para mostrar todos." : "Mostrar só os registros com decisão"}>
+                <Button variant={soDecisoes ? "secondary" : "ghost"} size="icon-sm" data-slot="so-decisoes" aria-pressed={soDecisoes}
+                  aria-label="Só registros com decisão" className={cn(soDecisoes && "text-primary")} onClick={() => setSoDecisoes((v) => !v)}>
+                  <Gavel />
+                </Button>
+              </Dica>
               <Dica texto={recentes ? "Mais recentes primeiro. Clique para mostrar os mais antigos primeiro." : "Mais antigos primeiro. Clique para mostrar os mais recentes primeiro."}>
                 <Button variant="ghost" size="icon-sm" data-slot="ordem" data-recentes={recentes || undefined}
                   aria-label={recentes ? "Ordem: mais recentes primeiro. Inverter" : "Ordem: mais antigos primeiro. Inverter"}
@@ -268,19 +282,20 @@ function Conteudo() {
                   {recentes ? <ArrowUpNarrowWide /> : <ArrowDownNarrowWide />}
                 </Button>
               </Dica>
+              </div>
               <div className="ml-auto flex items-center gap-1.5">
                 <Button size="sm" data-slot="registrar" data-tipo="reuniao" onClick={() => registrar("reuniao")}><Plus /> Reunião</Button>
                 {/* em coluna estreita, impedimento (e depois atividade) ficam só com o ícone, com nome e dica */}
                 <Dica texto="Registrar atividade">
                   <Button size="sm" variant="outline" data-slot="registrar" data-tipo="atividade" aria-label="Atividade"
-                    className="@max-[44rem]/linha:w-7 @max-[44rem]/linha:px-0" onClick={() => registrar("atividade")}>
-                    <IconeTipo tipo="atividade" /> <span className="hidden @[44rem]/linha:inline">Atividade</span>
+                    className="@max-[46.5rem]/linha:w-7 @max-[46.5rem]/linha:px-0" onClick={() => registrar("atividade")}>
+                    <IconeTipo tipo="atividade" /> <span className="hidden @[46.5rem]/linha:inline">Atividade</span>
                   </Button>
                 </Dica>
                 <Dica texto="Registrar impedimento">
                   <Button size="sm" variant="outline" data-slot="registrar" data-tipo="impedimento" aria-label="Impedimento"
-                    className="@max-[47rem]/linha:w-7 @max-[47rem]/linha:px-0" onClick={() => registrar("impedimento")}>
-                    <IconeTipo tipo="impedimento" /> <span className="hidden @[47rem]/linha:inline">Impedimento</span>
+                    className="@max-[51.5rem]/linha:w-7 @max-[51.5rem]/linha:px-0" onClick={() => registrar("impedimento")}>
+                    <IconeTipo tipo="impedimento" /> <span className="hidden @[51.5rem]/linha:inline">Impedimento</span>
                   </Button>
                 </Dica>
                 <DropdownMenu>
@@ -354,17 +369,17 @@ function Conteudo() {
                 <Button onClick={() => registrar("reuniao")}><Plus /> Registrar reunião</Button>
               </Vazio>
             ) : visiveis.length === 0 ? (
-              <Vazio compacto titulo="Nenhum registro deste tipo">
-                <Button variant="outline" size="sm" onClick={() => setFiltro("tudo")}>Mostrar tudo</Button>
+              <Vazio compacto titulo={soDecisoes ? (filtro === "tudo" ? "Nenhuma decisão registrada nesta tarefa" : "Nenhum registro deste tipo com decisão") : "Nenhum registro deste tipo"}>
+                <Button variant="outline" size="sm" onClick={() => { setFiltro("tudo"); setSoDecisoes(false); }}>Mostrar tudo</Button>
               </Vazio>
             ) : (
               <Timeline
-                key={`${recentes}-${filtro}`}
+                key={`${recentes}-${filtro}-${soDecisoes}`}
                 tarefa={tarefa}
                 registros={visiveis}
                 recentes={recentes}
                 destaque={destaque}
-                comNovo={ehAberta && filtro === "tudo"}
+                comNovo={ehAberta && filtro === "tudo" && !soDecisoes}
                 aoRegistrar={registrar}
                 aoEditar={(r) => setEditor({ aberto: true, registro: r })}
                 aoRemover={remover}

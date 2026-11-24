@@ -4,6 +4,7 @@
 
 import { resumoEspera } from "./espera";
 import { LIMITES, aberta, dataLocal } from "./lembretes";
+import { type MediaDeEspera, diasEmTexto, mediaDeEspera } from "./tempo-status";
 import { type Dados, type Tarefa, formatarData, hojeISO } from "./tipos";
 
 export type Saude = "risco" | "parada" | "atencao" | "em_dia" | "sem_abertas";
@@ -49,6 +50,8 @@ export interface Frente {
   diasSemMovimento: number | null;
   /** Movimentos por semana, da mais antiga para a atual. */
   semanas: number[];
+  /** Quanto, em média, cada tarefa da frente esperou por terceiros e ficou bloqueada (3.23). null = poucas tarefas com histórico confiável. */
+  espera: MediaDeEspera;
 }
 
 export interface ItemPrazo {
@@ -98,7 +101,7 @@ function movimentos(t: Tarefa, hoje: string): string[] {
   return out;
 }
 
-function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tarefa[], hoje: string, todas: Tarefa[] = tarefas): Frente {
+function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tarefa[], hoje: string, todas: Tarefa[] = tarefas, agora: Date | string | number = new Date()): Frente {
   const abertas = tarefas.filter(aberta).sort((a, b) => b.prioridade - a.prioridade || a.titulo.localeCompare(b.titulo));
   const atrasadas = abertas.filter((t) => !!t.prazo && t.prazo < hoje);
   const bloqueadas = abertas.filter((t) => t.status === "bloqueada");
@@ -175,12 +178,13 @@ function montarFrente(id: string | null, nome: string, cor: string, tarefas: Tar
     motivos = [`Sem movimento há ${diasSemMovimento} dias`, ...leves];
   } else if (leves.length) saude = "atencao";
 
-  return { id, nome, cor, saude, motivos, abertas, atrasadas, bloqueadas, aguardando, passosAbertos, passosAtrasados, concluidas30, proximoPrazo, ultima, diasSemMovimento, semanas };
+  return { id, nome, cor, saude, motivos, abertas, atrasadas, bloqueadas, aguardando, passosAbertos, passosAtrasados, concluidas30, proximoPrazo, ultima, diasSemMovimento, semanas, espera: mediaDeEspera(tarefas, agora) };
 }
 
 const ORDEM: Saude[] = ["risco", "parada", "atencao", "em_dia", "sem_abertas"];
 
-export function montarRadar(dados: Dados, hoje = hojeISO()): Radar {
+/** `agora` só entra na média de espera (o tempo aguardando ou bloqueada de uma tarefa aberta conta até este instante). */
+export function montarRadar(dados: Dados, hoje = hojeISO(), agora: Date | string | number = new Date()): Radar {
   const cats = dados.categorias.items;
   const conhecidas = new Set(cats.map((c) => c.id));
   const porCat = new Map<string | null, Tarefa[]>();
@@ -194,10 +198,10 @@ export function montarRadar(dados: Dados, hoje = hojeISO()): Radar {
     const tarefas = porCat.get(c.id) ?? [];
     // categoria arquivada só aparece se ainda tiver tarefa aberta (aí é sinal de algo esquecido)
     if (c.arquivada && !tarefas.some(aberta)) continue;
-    frentes.push(montarFrente(c.id, c.nome, c.cor, tarefas, hoje, dados.tarefas));
+    frentes.push(montarFrente(c.id, c.nome, c.cor, tarefas, hoje, dados.tarefas, agora));
   }
   const soltas = porCat.get(null) ?? [];
-  if (soltas.some(aberta)) frentes.push(montarFrente(null, "Sem categoria", "", soltas, hoje, dados.tarefas));
+  if (soltas.some(aberta)) frentes.push(montarFrente(null, "Sem categoria", "", soltas, hoje, dados.tarefas, agora));
   frentes.sort((a, b) => ORDEM.indexOf(a.saude) - ORDEM.indexOf(b.saude) || b.abertas.length - a.abertas.length || a.nome.localeCompare(b.nome));
 
   // ---------- prazos ----------
@@ -230,6 +234,14 @@ export function colunaDoPrazo(radar: Radar, item: ItemPrazo): number {
   return radar.semanas.findIndex((s) => item.data >= s.inicio && item.data <= s.fim);
 }
 
+/** "6,5 dias aguardando retorno (4 tarefas), 2 dias bloqueada (3 tarefas)". Vazio quando não há média que valha. */
+export function textoDaEspera(e: MediaDeEspera): string {
+  return [
+    e.aguardando !== null ? `${diasEmTexto(e.aguardando)} aguardando retorno (${plural(e.tarefasAguardando, "tarefa", "tarefas")})` : "",
+    e.bloqueada !== null ? `${diasEmTexto(e.bloqueada)} bloqueada (${plural(e.tarefasBloqueada, "tarefa", "tarefas")})` : "",
+  ].filter(Boolean).join(", ");
+}
+
 /**
  * Status das frentes em texto simples, para mandar ao gestor. Só o que está nos dados: nada é inventado e não há IA.
  * `ids` limita às frentes escolhidas (null = todas as que têm tarefa aberta ou concluíram algo no mês).
@@ -257,6 +269,7 @@ export function textoDoRadar(radar: Radar, ids: (string | null)[] | null = null)
     for (const t of f.aguardando) L.push(`- Aguardando retorno: ${t.titulo}${resumoEspera(t) ? ` (${resumoEspera(t)})` : ""}`);
     if (f.proximoPrazo) L.push(`- Próximo prazo: ${formatarData(f.proximoPrazo.data)}, ${f.proximoPrazo.tarefa.titulo}`);
     if (f.passosAbertos) L.push(`- ${plural(f.passosAbertos, "próximo passo em aberto", "próximos passos em aberto")}${f.passosAtrasados ? `, ${f.passosAtrasados} com prazo vencido` : ""}.`);
+    if (textoDaEspera(f.espera)) L.push(`- Espera média por tarefa: ${textoDaEspera(f.espera)}.`);
     if (f.ultima) L.push(`- Último movimento: ${formatarData(f.ultima)}${f.diasSemMovimento ? ` (há ${plural(f.diasSemMovimento, "dia", "dias")})` : " (hoje)"}.`);
   }
   return L.join("\n") + "\n";

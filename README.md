@@ -79,6 +79,22 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.23: decisões num lugar só, tempo em cada status e o resumo pronto
+
+Três respostas que antes pediam abrir tarefa por tarefa. Nada muda no formato dos dados: tudo é calculado do que você já registrou.
+
+- **Decisões.** Uma tela nova em **Acompanhar** (`G` depois `I`): o que foi decidido em todas as tarefas, por mês, com quando e com quem.
+  - Aparecem sozinhas: vêm do campo **Decisões** de cada registro (uma por linha) e dos registros do tipo Decisão.
+  - Busque por texto, filtre por categoria, por quem estava e por período.
+  - O nome da tarefa leva ao registro em que a decisão foi tomada. **Copiar** gera um texto simples, bom para uma ata.
+  - Na tarefa, o botão do martelo na linha do tempo mostra só os registros com decisão. Na categoria, o painel **Decisões da categoria**.
+- **Tempo em cada status.** No resumo da tarefa (à direita, embaixo): "Em andamento há 8 dias" e uma barra com quanto ela ficou a fazer, em andamento, aguardando terceiros e bloqueada.
+  - A conta sai das mudanças de status que o Nexo já registra na linha do tempo. Quando falta parte desse histórico, o app avisa que é uma estimativa.
+  - No **Radar**, cada categoria mostra a espera média por tarefa (aguardando e bloqueada). Só aparece com três tarefas de histórico completo.
+- **Copiar resumo**, em **Relatórios**: o período em texto simples, sem passar pelo Copilot. Concluído, o que andou, o que está travado, decisões e os seus próximos passos. Pronto para um e-mail de status.
+- **Preparar o 1:1**, em **Relatórios**: o mesmo material arrumado para a conversa com o gestor (o que andou, o que travou, o que precisa de decisão ou de ajuda, o que vem agora). Abre uma prévia antes de copiar.
+- Os dois textos só repetem o que está nos seus registros: nada é inventado nem resumido por conta própria. Para um relatório redigido, o prompt do Copilot continua lá.
+
 ## 3.22: o Nexo se ensina
 
 Para quem está chegando e para quem esqueceu onde fica alguma coisa. Nada muda no formato dos dados.
@@ -266,8 +282,8 @@ Abra **Personalizar** (o botão ao lado de Configurações, no pé do menu, ou o
 
 ## Novidades da 3.9: menu mais curto
 
-- **Acompanhar**: Radar, Diário, Revisão semanal, Relatórios e Conquistas viraram um item só no menu lateral, **Acompanhar**. Ele abre a última dessas telas que você usou (na primeira vez, o Radar), e no topo de cada uma há abas para trocar entre elas. Os atalhos continuam: `G F` Radar, `G D` Diário, `G S` Revisão, `G R` Relatórios, `G Q` Conquistas. O ponto de "revisão atrasada" aparece no item Acompanhar e na aba Revisão.
-- **Quer as cinco separadas, como antes?** Abra Personalizar (o botão ao lado de Configurações, no pé do menu) > Lateral e ligue "Mostrar as cinco telas separadas no menu". A ordem e os itens que você tinha escondido continuam como estavam.
+- **Acompanhar**: Radar, Diário, Revisão semanal, Relatórios e Conquistas (e, desde a 3.23, Decisões) viraram um item só no menu lateral, **Acompanhar**. Ele abre a última dessas telas que você usou (na primeira vez, o Radar), e no topo de cada uma há abas para trocar entre elas. Os atalhos continuam: `G F` Radar, `G D` Diário, `G S` Revisão, `G R` Relatórios, `G Q` Conquistas. O ponto de "revisão atrasada" aparece no item Acompanhar e na aba Revisão.
+- **Quer as telas separadas, como antes?** Abra Personalizar (o botão ao lado de Configurações, no pé do menu) > Lateral e ligue "Mostrar as telas de acompanhar separadas no menu". A ordem e os itens que você tinha escondido continuam como estavam.
 - **Barra superior com menos botões**: tema, tela cheia e atalhos de teclado agora ficam no botão **...** do canto direito, junto com "Personalizar as barras". F11 e a tecla `?` continuam valendo.
 - **Agenda mostra só o dia**: a hora aparece quando você abre o balão. O ponto vermelho de atraso continua.
 - **Ícones diferentes entre si**: com o menu recolhido (`Ctrl B`), cada tela tem um desenho próprio, e passar o mouse mostra o nome.
@@ -438,7 +454,7 @@ Por segurança, o editor nunca carrega imagem de fora nem executa nada do que fo
 O botão de ajustes no rodapé da barra lateral (ou "Personalizar" na paleta, `Ctrl K`) abre um painel ao lado do app. Tudo muda na hora, enquanto você olha.
 
 - **Aparência**: tema claro, escuro ou do sistema, **cor de destaque** (dez opções), cantos retos, suaves ou redondos, letra (Geist, a do Windows ou serifada), estilo da barra lateral (sólida, vidro ou colorida), fundo das telas (liso, aurora ou pontilhado) e quanto a interface se mexe (completo, sutil ou nenhum).
-- **Barra lateral**: arraste os itens para mudar a ordem, desligue o que não usa, escolha quais seções aparecem (Foco de hoje, Fixadas, Recentes, Assuntos). A largura se ajusta arrastando a borda direita da barra. Clique no título de uma seção para recolher. "Mostrar as cinco telas separadas no menu" troca o item Acompanhar por Radar, Diário, Revisão semanal, Relatórios e Conquistas soltos.
+- **Barra lateral**: arraste os itens para mudar a ordem, desligue o que não usa, escolha quais seções aparecem (Foco de hoje, Fixadas, Recentes, Assuntos). A largura se ajusta arrastando a borda direita da barra. Clique no título de uma seção para recolher. "Mostrar as telas de acompanhar separadas no menu" troca o item Acompanhar por Radar, Diário, Decisões, Revisão semanal, Relatórios e Conquistas soltos.
 - **Barra superior**: escolha as ferramentas que ficam à mão.
   - **Agenda**: o dia. Ao clicar, a hora e os prazos, passos com data e lembretes das próximas duas semanas.
   - **Foco**: quantos passos do foco de hoje já saíram. Ao clicar, você marca passos sem sair da tela em que está.

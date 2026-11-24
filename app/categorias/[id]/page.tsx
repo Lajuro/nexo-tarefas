@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Archive, ArchiveRestore, BookMarked, BookText, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Link2, ListTodo, Pencil, Plus, Sparkles, Users, Printer } from "lucide-react";
+  Archive, ArchiveRestore, BookMarked, BookText, ChevronRight, Ellipsis, ExternalLink, FileText, FolderX, Gavel, Link2, ListTodo, Pencil, Plus, Sparkles, Users, Printer } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { pedirImpressao } from "@/components/Impressao";
 import { CardTarefa } from "@/components/CardTarefa";
@@ -25,11 +25,15 @@ import { Badge, Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/co
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
 import { itemLista, lista } from "@/lib/animacoes";
+import { decisoesDe } from "@/lib/decisoes";
 import { usePref } from "@/lib/preferencias";
 import { pessoasDaCategoria } from "@/lib/pessoas";
 import { promptCategoria } from "@/lib/prompts";
 import { LinkDoc, STATUS, STATUS_ABERTOS, Status, dataCurta } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
+
+/** Quantas decisões o painel da categoria mostra antes de mandar para a tela de Decisões. */
+const MAX_DECISOES = 6;
 
 // Só pinta o número de status que pede algo: bloqueada pede atenção, concluída deu certo (3.10).
 const TOM_DO_STATUS: Record<Status, TomNumero> = {
@@ -82,6 +86,9 @@ export default function PaginaCategoria() {
     () => ts.flatMap((t) => t.registros.filter((r) => r.referencia).map((r) => ({ t, r }))).sort((a, b) => b.r.data.localeCompare(a.r.data)),
     [ts],
   );
+
+  // O que já foi decidido nas tarefas desta categoria (3.23), da mais nova para a mais antiga.
+  const decisoes = useMemo(() => decisoesDe(ts), [ts]);
 
   // Quem pode ajudar neste assunto: ligadas direto, por time ou por participação nos registros.
   const quemAjuda = useMemo(() => (dados ? pessoasDaCategoria(dados, id) : []), [dados, id]);
@@ -290,6 +297,29 @@ export default function PaginaCategoria() {
                 </ul>
               )}
             </Painel>
+
+            {decisoes.length > 0 && (
+              <Painel titulo="Decisões da categoria" icone={<Gavel />} contagem={decisoes.length} corpoClassName="p-1.5"
+                acoes={<Button asChild variant="ghost" size="sm"><Link href={`/decisoes?cat=${encodeURIComponent(cat.id)}`} data-slot="ver-decisoes">Ver todas</Link></Button>}>
+                <ul data-slot="decisoes-da-categoria" className="flex flex-col">
+                  {decisoes.slice(0, MAX_DECISOES).map((d) => (
+                    <li key={d.chave}>
+                      <Link href={`/tarefas/${d.tarefaId}?r=${encodeURIComponent(d.registroId)}`} data-slot="decisao-da-categoria"
+                        className="flex items-start gap-2.5 rounded-lg px-2 py-2 outline-none transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/35">
+                        <span className="w-11 shrink-0 pt-px text-xs text-muted-foreground tabular-nums">{dataCurta(d.data)}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px] leading-snug font-medium [overflow-wrap:anywhere]">{d.texto}</span>
+                          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{d.tarefaTitulo}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {decisoes.length > MAX_DECISOES && (
+                  <p className="px-2 pt-1 pb-1.5 text-xs text-muted-foreground">E mais {decisoes.length - MAX_DECISOES}, em "Ver todas".</p>
+                )}
+              </Painel>
+            )}
 
             <Painel titulo="Quem pode ajudar" icone={<Users />} contagem={quemAjuda.length || undefined} corpoClassName="p-1.5">
               {times.length > 0 && (

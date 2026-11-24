@@ -39,7 +39,7 @@ function teste(nome, fn) {
 }
 
 // Os itens do menu, na ordem original (o mesmo que components/shell/navegacao.ts monta).
-const HREFS = ["/", "/tarefas", "/rotina", "/pendencias", "/notas", "/paginas", "/perguntar", "/categorias", "/pessoas", "/links", "/acompanhar", "/radar", "/diario", "/revisao", "/relatorios", "/conquistas"];
+const HREFS = ["/", "/tarefas", "/rotina", "/pendencias", "/notas", "/paginas", "/perguntar", "/categorias", "/pessoas", "/links", "/acompanhar", "/radar", "/diario", "/decisoes", "/revisao", "/relatorios", "/conquistas"];
 const padrao = P.ARRANJO_PADRAO;
 const com = (parte) => P.normalizarArranjo({ ...padrao, ...parte, moldura: { ...padrao.moldura, ...parte.moldura }, hoje: { ...padrao.hoje, ...parte.hoje } });
 const E0 = P.ESTADO_INICIAL;
@@ -112,7 +112,7 @@ teste("perfis prontos: só citam itens, seções, ferramentas e blocos que exist
     for (const b of hoje.ocultos) assert.ok(H.BLOCOS_HOJE.includes(b), `${p.id}: bloco ${b}`);
     assert.ok(P.INICIOS.includes(inicio), `${p.id}: início ${inicio}`);
     // a tela em que o perfil abre precisa estar à vista no menu dele (ou dentro de Acompanhar, quando junto)
-    const acompanhar = ["/radar", "/diario", "/revisao", "/relatorios", "/conquistas"];
+    const acompanhar = ["/radar", "/diario", "/decisoes", "/revisao", "/relatorios", "/conquistas"];
     const noMenu = acompanhar.includes(inicio) && !moldura.acompanharSeparado ? "/acompanhar" : inicio;
     assert.ok(!moldura.ocultos.includes(noMenu), `${p.id}: abre numa tela que o próprio perfil esconde`);
     // nenhum perfil esconde Hoje nem Tarefas

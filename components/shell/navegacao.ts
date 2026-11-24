@@ -1,7 +1,7 @@
 // Ícones com silhuetas diferentes entre si (3.9): com a barra recolhida, só o ícone diz qual tela é.
 // Evite repetir a "folha com linhas" (FileText, BookText, NotebookPen, ListTodo...) em dois itens.
 import {
-  CalendarClock, ChartColumn, ClipboardCheck, Footprints, History, Library, Link2, type LucideIcon, MessageCircleQuestion, Radar, Settings, Shapes,
+  CalendarClock, ChartColumn, ClipboardCheck, Footprints, Gavel, History, Library, Link2, type LucideIcon, MessageCircleQuestion, Radar, Settings, Shapes,
   SquareKanban, StickyNote, Sun, Telescope, Trophy, Users,
 } from "lucide-react";
 
@@ -39,6 +39,7 @@ export const NAV: { grupo: string; itens: ItemNav[] }[] = [
     itens: [
       { href: "/radar", nome: "Radar", icone: Radar, tecla: "f" },
       { href: "/diario", nome: "Diário", icone: History, tecla: "d" },
+      { href: "/decisoes", nome: "Decisões", icone: Gavel, tecla: "i" },
       { href: "/revisao", nome: "Revisão semanal", icone: ClipboardCheck, tecla: "s" },
       { href: "/relatorios", nome: "Relatórios", icone: ChartColumn, tecla: "r" },
       { href: "/conquistas", nome: "Conquistas", icone: Trophy, tecla: "q" },
@@ -51,15 +52,15 @@ export const GRUPO_ACOMPANHAR = "Acompanhar";
 export const TELAS_ACOMPANHAR: ItemNav[] = NAV.find((g) => g.grupo === GRUPO_ACOMPANHAR)!.itens;
 
 /**
- * O item único do menu no lugar das cinco telas de acompanhar. O `href` é só a chave dele nas preferências
+ * O item único do menu no lugar das telas de acompanhar. O `href` é só a chave dele nas preferências
  * (ordem, itens escondidos): o link de verdade leva à última aba usada.
  */
 export const ITEM_ACOMPANHAR: ItemNav = { href: "/acompanhar", nome: "Acompanhar", icone: Telescope };
 
-/** A tela é uma das cinco de acompanhar? */
+/** A tela é uma das de acompanhar? */
 export const ehAcompanhar = (pathname: string) => TELAS_ACOMPANHAR.some((n) => rotaAtiva(pathname, n.href));
 
-/** Os grupos do menu como o usuário escolheu: as cinco telas de acompanhar juntas num item (padrão) ou separadas. */
+/** Os grupos do menu como o usuário escolheu: as telas de acompanhar juntas num item (padrão) ou separadas. */
 export const gruposDoMenu = (separado: boolean) =>
   separado ? NAV : NAV.map((g) => (g.grupo === GRUPO_ACOMPANHAR ? { ...g, itens: [ITEM_ACOMPANHAR] } : g));
 
@@ -91,6 +92,7 @@ export const ATALHOS: { teclas: string[]; descricao: string }[] = [
   { teclas: ["G", "L"], descricao: "Ir para Links e docs" },
   { teclas: ["G", "F"], descricao: "Ir para o Radar (saúde de cada categoria e prazos)" },
   { teclas: ["G", "D"], descricao: "Ir para o Diário (o que aconteceu, dia a dia)" },
+  { teclas: ["G", "I"], descricao: "Ir para Decisões (o que foi decidido, quando e com quem)" },
   { teclas: ["G", "S"], descricao: "Ir para a Revisão semanal" },
   { teclas: ["G", "R"], descricao: "Ir para Relatórios" },
   { teclas: ["G", "Q"], descricao: "Ir para Conquistas (nível, meta do dia)" },

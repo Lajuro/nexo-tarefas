@@ -1784,7 +1784,7 @@ async function main() {
     // com a gamificação desligada, a aba Conquistas some das abas de Acompanhar
     await pg.goto(B + "/radar");
     await pg.locator("[data-slot=abas-acompanhar]").waitFor();
-    afirmar((await pg.locator("[data-slot=aba-acompanhar]").count()) === 4, "com as conquistas desligadas, as abas deviam ser quatro");
+    afirmar((await pg.locator("[data-slot=aba-acompanhar]").count()) === 5, "com as conquistas desligadas, as abas deviam ser cinco");
     afirmar((await pg.locator("[data-slot=aba-acompanhar][data-href='/conquistas']").count()) === 0, "a aba Conquistas apareceu com a gamificação desligada");
     await pg.goto(B + "/conquistas");
     await pg.locator("[data-slot=ligar-jogo]").click();
@@ -1798,16 +1798,16 @@ async function main() {
     await pg.locator("[data-slot=pagina]").first().waitFor();
     // pelo começo do texto: o item Acompanhar traz "(revisão semanal atrasada)" para leitor de tela
     const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: new RegExp("^" + nome) });
-    // no menu padrão as cinco telas viram um item só
+    // no menu padrão as telas de acompanhar viram um item só
     await nav("Acompanhar").waitFor();
-    for (const nome of ["Radar", "Diário", "Revisão semanal", "Relatórios", "Conquistas"])
+    for (const nome of ["Radar", "Diário", "Decisões", "Revisão semanal", "Relatórios", "Conquistas"])
       afirmar((await nav(nome).count()) === 0, `"${nome}" não devia aparecer solto no menu padrão`);
     // a última aba usada foi Conquistas (a etapa anterior terminou nela): o item abre nela
     await nav("Acompanhar").click();
     await pg.waitForURL("**/conquistas");
     await pg.locator("[data-slot=lateral] [data-slot=nav-item][data-ativo]", { hasText: "Acompanhar" }).waitFor();
     const abas = pg.locator("[data-slot=abas-acompanhar] [data-slot=aba-acompanhar]");
-    afirmar((await abas.allInnerTexts()).map((t) => t.split("\n")[0].trim()).join(",") === "Radar,Diário,Revisão,Relatórios,Conquistas", "as abas de Acompanhar não são as cinco esperadas");
+    afirmar((await abas.allInnerTexts()).map((t) => t.split("\n")[0].trim()).join(",") === "Radar,Diário,Decisões,Revisão,Relatórios,Conquistas", "as abas de Acompanhar não são as seis esperadas");
     afirmar((await pg.locator("[data-slot=aba-acompanhar][aria-current=page]").innerText()).startsWith("Conquistas"), "a aba da tela aberta não ficou marcada");
     // trocar de aba: o item continua marcado e passa a abrir a nova aba
     await pg.locator("[data-slot=aba-acompanhar][data-href='/relatorios']").click();
@@ -1815,7 +1815,7 @@ async function main() {
     await pg.locator("[data-slot=lateral] [data-slot=nav-item][data-ativo]", { hasText: "Acompanhar" }).waitFor();
     await pg.goto(B + "/tarefas");
     await pg.locator("[data-slot=pagina]").first().waitFor();
-    afirmar((await pg.locator("[data-slot=abas-acompanhar]").count()) === 0, "as abas de Acompanhar apareceram fora das cinco telas");
+    afirmar((await pg.locator("[data-slot=abas-acompanhar]").count()) === 0, "as abas de Acompanhar apareceram fora das telas de acompanhar");
     await nav("Acompanhar").click();
     await pg.waitForURL("**/relatorios");
     // os atalhos de cada tela continuam valendo
@@ -1892,7 +1892,7 @@ async function main() {
     await painel.getByRole("radio", { name: "Lateral" }).click();
     await nav("Acompanhar").waitFor();
     afirmar((await nav("Relatórios").count()) === 0, "Relatórios apareceu solto no menu padrão");
-    await painel.getByRole("switch", { name: "Mostrar as cinco telas separadas no menu" }).click();
+    await painel.getByRole("switch", { name: "Mostrar as telas de acompanhar separadas no menu" }).click();
     await nav("Relatórios").waitFor();
     await nav("Acompanhar").waitFor({ state: "detached" });
     afirmar(JSON.parse(await pg.evaluate(() => localStorage.getItem("nexo:moldura"))).acompanharSeparado === true, "a escolha de separar não foi guardada");
@@ -3345,6 +3345,137 @@ async function main() {
     await pg.locator("[data-slot=form-tarefa]").waitFor({ state: "detached" });
     await ajuda.getByRole("button", { name: "Fechar", exact: true }).last().click();
     await ajuda.waitFor({ state: "detached" });
+  });
+
+  await etapa("3.23: decisões (tela, filtros, link de volta, categoria), tempo por status, espera média e resumo sem IA", async () => {
+    const J = { "Content-Type": "application/json" };
+    const p2 = (n) => String(n).padStart(2, "0");
+    // n dias atrás, no fuso de quem roda. Os carimbos são do começo do dia: assim "há 4 dias" não depende da hora do teste.
+    const quando = (n) => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(0, 5, 0, 0); return d; };
+    const dia = (n) => { const d = quando(n); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+    const marco = (id, n, de, para) => ({ id, tipo: "marco", data: dia(n), titulo: para, criadoEm: quando(n).toISOString(), alteracoes: { status: { de, para } } });
+    const CAT = "c323";
+
+    const cats = (await (await pg.request.get(B + "/api/dados")).json()).categorias;
+    afirmar((await pg.request.put(`${B}/api/categorias`, { headers: J, data: { items: [...cats.items, { id: CAT, nome: "Categoria 323", cor: "#3b82f6" }], revEsperada: cats.rev } })).ok(), "não consegui criar a categoria da etapa");
+    // três tarefas que nasceram há 12 dias e esperaram por terceiros 2, 4 e 6 dias; a terceira está bloqueada há 4
+    const tarefas = [
+      {
+        id: "t323a", titulo: "Tarefa 323 alfa", categoriaId: CAT, status: "em_andamento", prioridade: 7, criadaEm: quando(12).toISOString(),
+        registros: [
+          marco("m323a1", 12, "", "a_fazer"), marco("m323a2", 10, "a_fazer", "aguardando"), marco("m323a3", 8, "aguardando", "em_andamento"),
+          {
+            id: "r323a", tipo: "reuniao", data: dia(5), titulo: "Reunião 323", participantes: ["Otto Teste"], criadoEm: quando(5).toISOString(),
+            decisoes: "- Decisão 323 alfa\n- Decisão 323 beta", impedimentos: "Falta a aprovação 323",
+            proximosPassos: [{ id: "p323", texto: "Passo 323 em aberto", feito: false, prazo: dia(-2) }],
+          },
+          { id: "r323b", tipo: "decisao", data: dia(2), titulo: "Decisão 323 gama", criadoEm: quando(2).toISOString() },
+          { id: "r323c", tipo: "atividade", data: dia(1), titulo: "Atividade 323 sem decisão", criadoEm: quando(1).toISOString() },
+        ],
+      },
+      {
+        id: "t323b", titulo: "Tarefa 323 beta", categoriaId: CAT, status: "em_andamento", prioridade: 5, criadaEm: quando(12).toISOString(),
+        registros: [marco("m323b1", 12, "", "a_fazer"), marco("m323b2", 10, "a_fazer", "aguardando"), marco("m323b3", 6, "aguardando", "em_andamento")],
+      },
+      {
+        id: "t323c", titulo: "Tarefa 323 gama", categoriaId: CAT, status: "bloqueada", prioridade: 9, criadaEm: quando(12).toISOString(),
+        registros: [marco("m323c1", 12, "", "a_fazer"), marco("m323c2", 10, "a_fazer", "aguardando"), marco("m323c3", 4, "aguardando", "bloqueada")],
+      },
+    ];
+    for (const t of tarefas) afirmar((await pg.request.put(`${B}/api/tarefas/${t.id}`, { headers: J, data: { tarefa: t, revEsperada: null } })).ok(), `não consegui criar ${t.id}`);
+    // no Windows a área de transferência devolve as quebras de linha como CRLF
+    const copiado = async () => (await pg.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, "\n");
+
+    // ----- a tela de Decisões: é uma das abas de Acompanhar, chega filtrada por ?cat= e tem o atalho G I -----
+    await pg.goto(`${B}/decisoes?cat=${CAT}`);
+    await pg.locator("[data-slot=lista-decisoes]").waitFor();
+    afirmar((await pg.locator("[data-slot=aba-acompanhar][aria-current=page]").innerText()).startsWith("Decisões"), "Decisões não é a aba marcada de Acompanhar");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=total-decisoes]")?.getAttribute("data-total") === "3");
+    const textos = await pg.locator("[data-slot=decisao] p:first-child").allInnerTexts();
+    afirmar(textos.join("|") === "Decisão 323 gama|Decisão 323 alfa|Decisão 323 beta", `as decisões da categoria não são as esperadas, da mais nova para a mais antiga: ${textos.join("|")}`);
+    afirmar((await pg.locator("[data-slot=decisao]", { hasText: "Decisão 323 alfa" }).innerText()).includes("com Otto Teste"), "a decisão não mostra quem estava");
+    // busca: sem acento e sem maiúsculas
+    await pg.getByRole("textbox", { name: "Buscar nas decisões" }).fill("decisao BETA");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=total-decisoes]")?.getAttribute("data-total") === "1");
+    await pg.locator("[data-slot=copiar-decisoes]").click();
+    await pg.waitForFunction(async () => (await navigator.clipboard.readText()).startsWith("Decisões (com o filtro da tela) (1):"));
+    afirmar(/- \d\d\/\d\d: Decisão 323 beta \[Tarefa 323 alfa, com Otto Teste\]/.test(await copiado()), `o texto copiado das decisões não é o esperado: ${await copiado()}`);
+    await pg.getByRole("textbox", { name: "Buscar nas decisões" }).fill("");
+    await pg.waitForFunction(() => document.querySelector("[data-slot=total-decisoes]")?.getAttribute("data-total") === "3");
+    // o nome da tarefa leva ao registro em que a decisão foi tomada
+    await pg.locator("[data-slot=decisao]", { hasText: "Decisão 323 gama" }).locator("[data-slot=decisao-origem]").click();
+    await pg.waitForURL("**/tarefas/t323a?r=r323b");
+    await pg.locator("#reg-r323b").waitFor();
+
+    // ----- a tarefa: tempo em cada status e "só com decisões" na linha do tempo -----
+    const tempo = pg.locator("[data-slot=tempo-por-status]");
+    await tempo.waitFor();
+    afirmar((await tempo.locator("[data-slot=neste-status]").innerText()) === "Em andamento", "o resumo não diz em que status a tarefa está");
+    afirmar((await tempo.innerText()).includes("há 8 dias"), `o resumo não diz há quanto tempo a tarefa está no status: ${await tempo.innerText()}`);
+    afirmar((await tempo.locator("[data-slot=tempo-no-status][data-status=aguardando]").innerText()).includes("2 dias"), "o tempo aguardando terceiros não é de 2 dias");
+    afirmar((await tempo.locator("[data-slot=tempo-no-status][data-status=a_fazer]").innerText()).includes("2 dias"), "o tempo a fazer não é de 2 dias");
+    afirmar((await tempo.locator("[data-slot=tempo-estimado]").count()) === 0, "a conta foi dada como estimada com todos os marcos no lugar");
+    const naLinha = () => pg.locator("[data-slot=tarefa-principal] [data-slot=registro]").count();
+    afirmar((await naLinha()) === 6, `a linha do tempo não tem os seis registros: ${await naLinha()}`);
+    const soDecisoes = pg.locator("[data-slot=so-decisoes]");
+    afirmar((await soDecisoes.getAttribute("aria-pressed")) === "false", "o botão de só decisões nasceu ligado");
+    await soDecisoes.click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=tarefa-principal] [data-slot=registro]").length === 2);
+    afirmar((await soDecisoes.getAttribute("aria-pressed")) === "true", "o botão de só decisões não diz que está ligado");
+    afirmar((await pg.locator("#reg-r323a").count()) === 1 && (await pg.locator("#reg-r323b").count()) === 1, "só com decisões não mostrou a reunião com decisões e o registro do tipo decisão");
+    // cruza com o filtro de tipo: reuniões com decisão é uma só
+    await pg.getByRole("radiogroup", { name: "Filtrar a linha do tempo" }).getByRole("radio", { name: "Reuniões" }).click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=tarefa-principal] [data-slot=registro]").length === 1);
+    await pg.getByRole("radiogroup", { name: "Filtrar a linha do tempo" }).getByRole("radio", { name: "Marcos" }).click();
+    await pg.getByText("Nenhum registro deste tipo com decisão").waitFor();
+    await pg.getByRole("button", { name: "Mostrar tudo" }).click();
+    await pg.waitForFunction(() => document.querySelectorAll("[data-slot=tarefa-principal] [data-slot=registro]").length === 6);
+    afirmar((await soDecisoes.getAttribute("aria-pressed")) === "false", "Mostrar tudo não desligou o só decisões");
+    // a barra da linha do tempo continua numa linha só (3.7)
+    afirmar((await pg.locator("[data-slot=timeline-barra]").evaluate((b) => new Set([...b.children].map((c) => Math.round(c.getBoundingClientRect().top + c.getBoundingClientRect().height / 2))).size)) === 1, "a barra da linha do tempo quebrou em duas linhas");
+
+    // ----- a categoria: o painel de decisões leva à tela já filtrada -----
+    await pg.goto(`${B}/categorias/${CAT}`);
+    await pg.locator("[data-slot=decisoes-da-categoria]").waitFor();
+    afirmar((await pg.locator("[data-slot=decisao-da-categoria]").count()) === 3, "o painel da categoria não tem as três decisões");
+    await pg.locator("[data-slot=ver-decisoes]").click();
+    await pg.waitForURL(`**/decisoes?cat=${CAT}`);
+    await pg.waitForFunction(() => document.querySelector("[data-slot=total-decisoes]")?.getAttribute("data-total") === "3");
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.goto(B + "/tarefas");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    await pg.locator("[data-slot=pagina] h1").first().click();
+    await pg.keyboard.press("g");
+    await pg.keyboard.press("i");
+    await pg.waitForURL("**/decisoes");
+
+    // ----- o Radar: a espera média da categoria -----
+    await pg.goto(B + "/radar");
+    const frente = pg.locator("[data-slot=frente]", { hasText: "Categoria 323" });
+    await frente.waitFor();
+    afirmar((await frente.locator("[data-slot=espera-media]").innerText()).includes("4 dias aguardando retorno (3 tarefas)"), `a espera média da categoria não é a esperada: ${await frente.locator("[data-slot=espera-media]").innerText()}`);
+
+    // ----- Relatórios: o resumo sem IA, o roteiro do 1:1 e a espera do período -----
+    await pg.evaluate((cat) => localStorage.setItem("nexo:relatorio", JSON.stringify({ periodo: "7", inicio: "", fim: "", categoria: cat, agrupar: "dia" })), CAT);
+    await pg.goto(B + "/relatorios");
+    await pg.locator("[data-slot=painel-relatorio]").waitFor();
+    afirmar((await pg.locator("[data-slot=espera-do-periodo]").innerText()).includes("4 dias aguardando retorno (3 tarefas)"), "Relatórios não mostra a espera média das tarefas do período");
+    await pg.locator("[data-slot=copiar-resumo]").click();
+    await pg.waitForFunction(async () => (await navigator.clipboard.readText()).startsWith("Resumo de "));
+    const resumo = await copiado();
+    for (const trecho of ["(Categoria 323)", "Andou (1):", "- Tarefa 323 alfa: 3 registros.", "Travado ou esperando (1):\n- Tarefa 323 gama: bloqueada há 4 dias", "Decisões (3):", ": Decisão 323 gama [Tarefa 323 alfa]", "Meus próximos passos:\n- Passo 323 em aberto (Tarefa 323 alfa, até "])
+      afirmar(resumo.includes(trecho), `o resumo copiado não tem "${trecho}":\n${resumo}`);
+    afirmar(!resumo.includes("—") && !resumo.includes("**"), "o resumo copiado tem travessão ou marcação");
+    await pg.locator("[data-slot=preparar-1a1]").click();
+    const texto1a1 = dialogo().locator("[data-slot=texto-1a1]");
+    await texto1a1.waitFor();
+    const roteiro = await texto1a1.innerText();
+    for (const trecho of ["Para o 1:1, de ", "O que andou:", "O que travou:", "O que precisa de decisão ou de ajuda:", "- Tarefa 323 alfa: Falta a aprovação 323", "Decisões que já foram tomadas:", "O que vem agora:"])
+      afirmar(roteiro.includes(trecho), `o roteiro do 1:1 não tem "${trecho}":\n${roteiro}`);
+    await dialogo().locator("[data-slot=copiar-1a1]").click();
+    await texto1a1.waitFor({ state: "detached" });
+    afirmar((await copiado()).startsWith("Para o 1:1, de "), "o roteiro do 1:1 não foi para a área de transferência");
+    await pg.evaluate(() => localStorage.removeItem("nexo:relatorio"));
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {
