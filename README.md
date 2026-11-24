@@ -16,15 +16,18 @@ Se o `irm | iex` for bloqueado, abra o link do script no navegador, salve como `
 powershell -ExecutionPolicy Bypass -File .\instalar-nexo.ps1
 ```
 
-No Git Bash (mesmo kit do Sonora, com 3 caminhos de download e conferência por hash):
+No Git Bash (três caminhos de download, com conferência por hash):
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/Lajuro/nexo-tarefas/main/scripts/baixar-nexo.sh
-bash baixar-nexo.sh nexo-app --instalar           # primeira vez
-bash baixar-nexo.sh nexo-app --forcar --instalar  # atualizar
+bash baixar-nexo.sh -i nexo-app     # primeira vez: baixa, instala e faz o build
+bash baixar-nexo.sh -fi nexo-app    # atualizar sem perguntar
+bash baixar-nexo.sh -h              # todas as opções
 ```
 
-Sem rede nenhuma: abra `scripts/nexo-offline.sh` no GitHub, copie o conteúdo para um arquivo e rode com `bash` (o projeto inteiro vem embutido).
+Sem rede nenhuma: baixe `scripts/nexo-offline.sh` pelo navegador (o projeto inteiro vem dentro dele) e rode `bash nexo-offline.sh -i nexo-app`.
+
+Os dois scripts do Git Bash perguntam antes de usar uma pasta que já tem arquivos (`-f` pula a pergunta), guardam a versão atual em `<pasta>-anterior` ao atualizar, mantêm o `node_modules` e nunca tocam na pasta de dados. `-n` mostra o que mudaria sem gravar nada. As letras podem ir juntas (`-fi` é `-f -i`).
 
 O script do PowerShell baixa o código (zip ou arquivo por arquivo), guarda a versão anterior em `nexo-app-anterior`, roda `npm install` e `npm run build` e cria o atalho **Nexo** na área de trabalho. Para atualizar, é só rodar o mesmo comando de novo.
 

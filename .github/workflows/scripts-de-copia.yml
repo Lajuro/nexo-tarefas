@@ -24,16 +24,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Gerar scripts
-        run: bash scripts/gerar-scripts-de-copia.sh
-
-      - name: Publicar se mudou
+      # Se quem fez o push já gerou os scripts (o .githooks/pre-push cobra
+      # isso), o carimbo confere e não há nada a fazer.
+      - name: Conferir se os scripts estão em dia
+        id: conferir
         run: |
-          if git diff --quiet; then
-            echo "Scripts já estavam em dia."
-            exit 0
+          if bash scripts/gerar-scripts-de-copia.sh --check; then
+            echo "em_dia=1" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Gerar e publicar
+        if: steps.conferir.outputs.em_dia != '1'
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore: atualiza scripts de cópia sem git"
+          bash scripts/gerar-scripts-de-copia.sh --commit
           git push

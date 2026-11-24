@@ -98,6 +98,9 @@ node testes/passos.test.mjs   # testes dos passos sem repetição: achar repetid
 node testes/email.test.mjs    # testes de colar um e-mail num registro: cabeçalho do Outlook (pt e en), datas, nomes, texto colado que não vira marcação
 node testes/importar.test.mjs # testes de importar um arquivo exportado: arquivo hostil, o que entra, conflitos, os três modos, nunca tirar nada
 NEXO_URL=http://127.0.0.1:3311 node testes/carga.mjs --telas # desempenho com um ano de dados simulados, pasta de dados VAZIA, ver cabeçalho
+bash testes/copia.test.sh     # testes dos scripts de cópia sem git: gerador, --check, gancho de pre-push, nexo-offline.sh e baixar-nexo.sh (sem rede)
+bash scripts/gerar-scripts-de-copia.sh --commit  # gera os scripts de cópia a partir do HEAD e faz o commit deles: ANTES DE TODO PUSH PARA A MAIN (seção 9)
+git config core.hooksPath .githooks              # uma vez por cópia do repositório: liga o gancho que barra push para a main com os scripts de cópia velhos
 ```
 
 Para desenvolver sem sujar dados reais, use pasta descartável:
@@ -105,7 +108,9 @@ Para desenvolver sem sujar dados reais, use pasta descartável:
 HOME=/tmp/nexo-home NEXO_DATA_DIR=/tmp/nexo-dados npm run dev
 ```
 
-**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.cjs` ou ao menos abra no navegador e confira.
+**Antes de entregar qualquer mudança:** `npm run typecheck`, `npm run build` e `bash testes/api.sh` precisam passar. Se mexeu em tela, rode o `testes/e2e.cjs` ou ao menos abra no navegador e confira. Se mexeu em `scripts/`, rode `bash testes/copia.test.sh`.
+
+**Antes de todo push para a `main`: gere os scripts de cópia** (`bash scripts/gerar-scripts-de-copia.sh --commit`, depois do commit das suas mudanças). Sem isso, quem instala sem git recebe uma versão velha. Detalhes e o porquê na seção 9.
 
 ---
 
@@ -835,7 +840,15 @@ postcss.config.mjs        Tailwind CSS v4 via @tailwindcss/postcss
 components.json           configuração do kit Shadcn (estilo, aliases)
 next.config.ts            configuração do Next.js
 scripts/                  instalação/atualização sem git (seção 9)
+  baixar-nexo.sh          instalador do Git Bash pela rede (pacote, API ou lista embutida); os blocos COMUM e MANIFESTO são gerados
+  nexo-offline.sh         instalador do Git Bash sem rede, com o projeto embutido (gerado inteiro, não edite)
+  instalar-nexo.ps1       instalador do PowerShell
+  gerar-scripts-de-copia.sh  monta os dois scripts do Git Bash a partir do HEAD; --check confere, --commit faz o commit
+  copia/comum.sh          a parte de CLI comum aos dois instaladores do Git Bash (colada neles pelo gerador)
+  copia/offline.modelo.sh o modelo do nexo-offline.sh
+.githooks/pre-push        barra push para a main com os scripts de cópia velhos (ligar: git config core.hooksPath .githooks)
 testes/api.sh             testes de fumaça da API e da segurança
+testes/copia.test.sh      testes dos scripts de cópia sem git (bash testes/copia.test.sh, sem rede)
 testes/e2e.cjs            teste ponta a ponta da interface (Playwright para Node)
 testes/semear.mjs         cenário de demonstração numa pasta de dados vazia e descartável (--so-pessoas: só pessoas e times)
 testes/pessoas.test.mjs   testes das funções puras de pessoas e do importador (node testes/pessoas.test.mjs)
@@ -895,14 +908,38 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
    ```powershell
    irm https://raw.githubusercontent.com/Lajuro/nexo-tarefas/main/scripts/instalar-nexo.ps1 | iex
    ```
-2. **Git Bash** (`scripts/baixar-nexo.sh`): mesmo kit já usado com sucesso no projeto Sonora. Tenta pacote tar.gz/zip, depois API + arquivo por arquivo, depois uma **lista de arquivos embutida** no próprio script; confere cada arquivo pelo hash do git.
+2. **Git Bash** (`scripts/baixar-nexo.sh`): tenta o pacote tar.gz/zip, depois API + arquivo por arquivo, depois a **lista de arquivos embutida** no próprio script; nos dois últimos confere cada arquivo pelo hash do git (com git instalado, numa chamada só).
    ```bash
-   bash baixar-nexo.sh nexo-app --instalar          # primeira vez
-   bash baixar-nexo.sh nexo-app --forcar --instalar # atualizar
+   bash baixar-nexo.sh -i nexo-app    # primeira vez: baixa, instala e faz o build
+   bash baixar-nexo.sh -fi nexo-app   # atualizar sem perguntar
    ```
-3. **Offline** (`scripts/nexo-offline.sh`): o projeto inteiro embutido em base64 (tar.gz + SHA-256). Para quando nada de rede funciona: copiar o conteúdo do arquivo e rodar com `bash`.
+3. **Offline** (`scripts/nexo-offline.sh`): o projeto inteiro embutido em base64 (tar.gz + SHA-256). Para quando nada de rede funciona: levar o arquivo para a máquina e rodar com `bash`.
+   ```bash
+   bash nexo-offline.sh -i nexo-app
+   ```
 
-`scripts/gerar-scripts-de-copia.sh` regenera a lista embutida do `baixar-nexo.sh` e o `nexo-offline.sh`. O workflow `.github/workflows/scripts-de-copia.yml` roda isso a cada push na `main` e commita se mudou. Se rodar à mão, faça antes o commit das suas mudanças.
+### Os instaladores do Git Bash (3.24.1)
+Pedido do dono: cara de CLI (cores, passos, perguntas), flags em inglês com letra curta, e perguntar antes de usar uma pasta que já tem arquivos. O CLI é o mesmo nos dois e mora em `scripts/copia/comum.sh`.
+- **Flags** (`-h` mostra todas): `-f, --force`, `-i, --install` (npm install + build), `-y, --yes`, `-n, --dry-run`, `-q, --quiet`, `-v, --version`, `-h, --help`, `--no-backup`, `--no-color` (ou `NO_COLOR=1`). Só no offline: `-l, --list`. Só no baixar: `-r, --ref`, `-m, --method` (`auto`, `archive`, `api`, `manifest`), `-g, --git`, `-k, --insecure`. Letras juntas valem (`-fi`, `-fm archive`, `-rmain`). **Os nomes antigos em português** (`--forcar`, `--instalar`, `--inseguro`, `--metodo`, `--ajuda`, e os modos `zip` e `lista`) **continuam aceitos**, sem aparecer na ajuda, para comando salvo em algum lugar não quebrar.
+- **Pasta de destino** (`analisar_destino` e `confirmar_destino`): nova ou vazia, segue; com o Nexo, pergunta se atualiza (padrão sim); com outra coisa, pergunta se usa mesmo assim (padrão não); com o mesmo conteúdo (no offline, o carimbo bate com o da instalação), diz que já está em dia e não faz nada. A pergunta lê de `/dev/tty`, então funciona com `curl ... | bash`. **Sem terminal, ou com a variável `CI`, nunca pergunta**: para e ensina o `-f`. `-y` responde sim a tudo.
+- **Atualizar não perde nada**: (1) a versão atual vai para `<pasta>-anterior` antes de qualquer mudança (sem `node_modules`, `.next` e `.git`), o mesmo nome que o PowerShell usa; (2) `node_modules` e `.next` ficam onde estão; (3) os arquivos que saíram do Nexo são retirados (uma rota apagada no repositório continuaria sendo compilada na pasta antiga). A lista do que é do Nexo vem do `.nexo-instalacao`, que cada instalação grava na pasta (versão, commit, carimbo, método e os arquivos; está no `.gitignore`). Sem ele (instalação feita por um script antigo ou pelo PowerShell), só sai o que está nas pastas de código (`app components lib scripts testes .github`) e só com a cópia anterior garantida; (4) caminho com `..` ou que passa por um atalho para fora da pasta é ignorado.
+- **A pasta de dados é sagrada** (`conferir_pasta_de_dados`): lê `NEXO_DATA_DIR` ou o `dataDir` do `~/.nexo/config.json` (no Git Bash, também o de `%USERPROFILE%`, com `cygpath`) e recusa instalar numa pasta que contém a pasta de dados, antes de tocar em qualquer coisa. Mesma regra do app e do PowerShell.
+- **`-i`**: confere o Node antes (`>= 20.9`, o que o Next 16 pede), avisa se o Nexo está aberto (no Windows, o build pode falhar com arquivos travados) e, com `-q`, guarda a saída do npm e mostra o fim dela se falhar.
+- **O offline se defende de cópia ruim**: confere o SHA-256 do pacote, avisa logo de cara quando o arquivo foi cortado ao copiar (a última linha é `# fim do nexo-offline.sh`) e aceita fim de linha do Windows (CRLF, reescrito num temporário).
+- **WSL**: avisa que o Nexo ficaria dentro do Linux do WSL (no Windows, o certo é o Git Bash).
+- **Testes**: `bash testes/copia.test.sh` monta um repositório temporário com o estado da pasta e testa o gerador, o gancho num push de verdade e os dois instaladores, sem rede: o GitHub é de mentira (`file://`), o npm é um script falso e as perguntas são respondidas por um terminal simulado (`script`).
+
+### Os scripts de cópia são gerados: sempre antes do push para a `main`
+**Regra: todo push para a `main` leva o `baixar-nexo.sh` e o `nexo-offline.sh` gerados a partir daquele commit.** Os dois são fotos do repositório; se não forem refeitos, quem instala sem git recebe uma versão velha. Foi o que aconteceu da 3.17 à 3.24: o workflow que fazia isso não rodava (a conta do GitHub está bloqueada por cobrança) e ninguém viu.
+1. **Faça o commit** das suas mudanças. O gerador monta a partir do commit, nunca da pasta, e recusa rodar com mudança fora dele.
+2. `bash scripts/gerar-scripts-de-copia.sh --commit` gera os dois e faz o commit `chore: atualiza scripts de cópia sem git` só com eles. Sem `--commit`, gera e mostra o comando (útil para um agente que precisa pôr as linhas de autoria no commit).
+3. `git push`.
+
+- **Gancho de pre-push** (`.githooks/pre-push`): barra o push para a `main` se os scripts não estiverem em dia com o commit enviado, e mostra o comando. **Ligue em cada cópia do repositório, uma vez: `git config core.hooksPath .githooks`** (sessão nova de agente: ligue no começo, junto com o passo 8 da seção 12). Só em emergência: `git push --no-verify`, e gere os scripts logo depois. Push para outras branches não é conferido.
+- **Como "em dia" é medido**: os dois scripts levam o **carimbo do conteúdo** (`CONTEUDO` no offline, `MANIFEST_CONTEUDO` no baixar): um hash de tudo o que está no commit, fora as partes geradas (o próprio `nexo-offline.sh` e os blocos `COMUM` e `MANIFESTO` do `baixar-nexo.sh`). Por isso o carimbo é o mesmo antes e depois do commit dos scripts, e `--check` (`bash scripts/gerar-scripts-de-copia.sh --check [commit]`) só compara textos: rápido e igual em qualquer sistema. **Qualquer arquivo mudado, até um `.md`, deixa os scripts velhos.**
+- **O pacote sai do git** (`git archive` de uma árvore montada com o `baixar-nexo.sh` recém-gerado e sem o offline), não da pasta de trabalho: os mesmos bytes, modos e fins de linha do repositório em qualquer sistema (no Windows, com `core.autocrlf`, a pasta tem CRLF e o pacote não). Gerar de novo o mesmo commit dá os mesmos bytes.
+- **Onde mexer**: o CLI comum está em `scripts/copia/comum.sh` (o gerador cola o que vem depois de `# >>> corpo` dentro dos dois instaladores); o instalador offline é `scripts/copia/offline.modelo.sh`; o resto do `baixar-nexo.sh` é editado nele mesmo, fora dos blocos gerados (o gerador recusa rodar se essa parte tiver mudança fora do commit). Depois de mexer: commit, `bash scripts/gerar-scripts-de-copia.sh --commit` e `bash testes/copia.test.sh`.
+- **Workflow** (`.github/workflows/scripts-de-copia.yml`): a cada push na `main`, roda o `--check` e só gera e faz o commit se os scripts estiverem velhos. **Desde 18/11/2026 ele não roda**: o GitHub não inicia os jobs ("your account is locked due to a billing issue"). A regra acima não depende dele.
 
 ---
 
@@ -993,7 +1030,10 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 - **O espelho em Markdown é gravado mesmo com `categorias.json` ilegível** (sem o nome da categoria). Antes, uma coleção corrompida impedia o espelho de se atualizar.
 - **Pessoas e times são coleções novas e opcionais** (`pessoas.json`, `times.json`). Uma versão antiga do app ignora os arquivos sem perder nada. A importação do Outlook é só por colagem ou arquivo, sem API.
 
+- **3.24.1: instaladores do Git Bash com cara de CLI e scripts de cópia sempre em dia.** O dono notou o `nexo-offline.sh` parado na 3.16 e pediu a regra de gerar antes do push, flags em inglês com letra curta, cores e a pergunta antes de usar uma pasta com arquivos. Decisões: (1) **gerar a partir do commit, não da pasta**: a pasta pode ter CRLF (Windows), arquivo fora do git ou mudança não commitada, e o que vai para o GitHub é o commit; (2) **um carimbo de conteúdo, não uma comparação de bytes**: o gzip e o tar mudam de um sistema para outro, o hash da árvore do git não; com ele o `--check` é barato para rodar em todo push e o workflow não cria commit repetido quando quem fez o push já gerou; (3) **o gancho barra, não gera**: um gancho que faz commit sozinho no meio de um push surpreende; ele para e mostra o comando; (4) **a parte comum mora num arquivo e o gerador a cola nos dois instaladores**: quem baixa leva um arquivo só, e duas cópias mantidas à mão divergem; (5) **os nomes antigos das flags continuam aceitos**, escondidos, para não quebrar comando salvo; (6) **perguntar com padrão seguro**: atualizar o Nexo é sim por padrão (há a cópia anterior), pôr o Nexo numa pasta que não é dele é não; sem terminal, nunca pergunta; (7) **tirar o que saiu do Nexo ao atualizar**, porque uma rota apagada no repositório continuaria compilada na pasta antiga; só com a lista do que foi instalado ou com a cópia anterior garantida; (8) **o PowerShell não mudou**: não havia como rodá-lo no ambiente desta versão, e ele é o caminho principal no Windows (um erro de sintaxe deixaria o dono sem instalar); as melhorias dele foram para o backlog; (9) **`VERSAO_NOVIDADES` não subiu**: o app não mudou.
+
 ### Ideias para as próximas versões (backlog, confirme com o usuário antes)
+- `instalar-nexo.ps1` no nível dos scripts do Git Bash: parâmetros (`-Dir`, `-Ref`, `-SkipBuild`), conferir o Node e se o Nexo está aberto antes do build, conferir os arquivos pelo hash no modo arquivo por arquivo e gravar o `.nexo-instalacao`. Precisa de um PowerShell para testar antes de subir.
 - Fluxo: menu Criar com a barra lateral recolhida; excluir categoria movendo as tarefas dela para outra; tag clicável também dentro dos cartões e dos resultados de busca (hoje o item inteiro é um link); filtro por tag no quadro e no explorador de páginas.
 - Checklist: arrastar para reordenar; transformar um item em passo, com responsável e prazo.
 - E-mail: levar o endereço do remetente para o cadastro ao cadastrar pelo campo de participantes; cabeçalho do Gmail; colar o e-mail direto nas anotações, sem abrir a janela; tarefa a partir de um e-mail também pela captura rápida.
@@ -1017,11 +1057,11 @@ O repositório é **público** de propósito. Três caminhos, do mais simples ao
 1. Leia este arquivo e o trecho de código envolvido.
 2. Se a mudança toca dados gravados: siga a seção 4 (campo opcional + padrão, ou migração).
 3. Implemente em português, no estilo existente, com o kit de `components/ui` e `components/comum.tsx` (seção 13). Dependência nova só com motivo forte.
-4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela).
+4. `npm run typecheck && npm run build && bash testes/api.sh` (e e2e se mexeu em tela; `bash testes/copia.test.sh` se mexeu em `scripts/`).
 5. Atualize este AGENTS.md (seções 5 a 8 e 11) e o README se o comportamento para o usuário mudou. Suba a `version` no `package.json` em mudanças relevantes.
 6. Commits em português, descritivos.
-7. **Toda entrega vai para a `main`**, depois de os testes passarem (pedido do dono). É o que garante que uma sessão nova comece do estado mais recente: sessões diferentes não lembram umas das outras, só enxergam o repositório. Se o workflow dos scripts de cópia não rodar, gere-os à mão (seção 9) e suba junto.
-8. **Antes de começar qualquer trabalho, liste as branches remotas** (`git branch -r` depois de `git fetch`) e veja se alguma tem commits que a `main` não tem. Se tiver, pare e pergunte ao dono antes de trabalhar em cima da `main`: já aconteceu de uma sessão refazer, sobre uma versão antiga, coisas que estavam prontas numa branch ainda não unida.
+7. **Toda entrega vai para a `main`**, depois de os testes passarem (pedido do dono). É o que garante que uma sessão nova comece do estado mais recente: sessões diferentes não lembram umas das outras, só enxergam o repositório. **Antes de todo push para a `main`, gere os scripts de cópia** a partir do commit e suba junto: `bash scripts/gerar-scripts-de-copia.sh --commit` (seção 9). O gancho `.githooks/pre-push` barra o push se esquecer, desde que ligado.
+8. **Antes de começar qualquer trabalho, ligue o gancho de pre-push** (`git config core.hooksPath .githooks`, seção 9) e **liste as branches remotas** (`git branch -r` depois de `git fetch`) e veja se alguma tem commits que a `main` não tem. Se tiver, pare e pergunte ao dono antes de trabalhar em cima da `main`: já aconteceu de uma sessão refazer, sobre uma versão antiga, coisas que estavam prontas numa branch ainda não unida.
 
 ## 13. Interface (design system)
 
