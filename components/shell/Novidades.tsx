@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, Link2, ListChecks, Merge, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.20";
+export const VERSAO_NOVIDADES = "3.21";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,15 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.21", icone: Navigation, titulo: "Próxima ação e reuniões do dia", texto: "A tela Hoje agora começa com a Próxima ação: uma coisa a fazer, o motivo em uma linha e um botão. O Nexo olha a rotina, os prazos e o seu foco e escolhe por uma ordem fixa, que começa pela reunião que está acontecendo. E um bloco da rotina pode ser marcado como reunião, com participantes e a tarefa a que ela serve: a tela Hoje mostra as reuniões do dia com a pauta pronta e o botão de começar.", href: "/", rotulo: "Ver a tela Hoje",
+    pontos: [
+      "Próxima ação: no topo da tela Hoje. Um título, o porquê e um botão (abrir a tarefa, concluir o passo, entrar no modo reunião, planejar ou fechar o dia). Logo abaixo, as três seguintes.",
+      "A ordem: reunião acontecendo, reunião em até 15 minutos, o bloco de agora na rotina, o que está com prazo estourado, o próximo passo do seu foco, escolher um foco, cobrar retorno e, com as horas cumpridas, fechar o dia.",
+      "\"Agora não\" dispensa aquela sugestão por hoje. O Nexo nunca faz nada sozinho: toda mudança é um clique seu e tem Desfazer.",
+      "Reunião na rotina: ao criar ou editar um bloco, ligue \"É uma reunião\" e ponha os participantes e a tarefa. No dia padrão, é a reunião que se repete toda semana.",
+      "Reuniões de hoje: na coluna da direita da tela Hoje, com o horário, quem participa, a Pauta (com Copiar) e Começar, que abre o modo reunião já com os participantes.",
+      "Quinze minutos antes de uma reunião o Nexo avisa. E a tarefa que tem reunião marcada nos próximos sete dias não é cobrada por estar parada.",
+    ] },
   { versao: "3.20", icone: LayoutDashboard, titulo: "Perfis de uso: o app arrumado para o dia que você tem", texto: "O Nexo agora tem perfis de uso, como os espaços de trabalho de um editor de imagem. Cada perfil arruma o menu, as barras, a tela Hoje e a tela em que o app abre para um jeito de trabalhar: Completo, Foco, Reuniões, Gestão e Estudo. Suas tarefas são as mesmas em todos. Cada perfil lembra como você o deixou, dá para voltar ao original e para salvar os seus.", href: "/", rotulo: "Abrir os perfis",
     acao: () => abrirPersonalizar("perfis"),
     pontos: [
@@ -166,7 +175,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Chegaram os perfis de uso: Foco, Reuniões, Gestão e Estudo arrumam o menu, as barras e a tela Hoje para o dia que você tem. Troque pela barra superior ou pela tecla P.",
+          description: "A tela Hoje agora começa pela Próxima ação: uma coisa a fazer, com o motivo e um botão. E a rotina passa a marcar reuniões, com pauta pronta e aviso 15 minutos antes.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

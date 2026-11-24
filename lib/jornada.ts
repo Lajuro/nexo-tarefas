@@ -402,6 +402,50 @@ export function blocoNoInstante(blocos: BlocoDaJornada[], agora: number): Agora 
   return { atual, restante: atual ? emMinutos(atual.fim) - agora : 0, proximo, emQuanto: proximo ? emMinutos(proximo.inicio) - agora : 0 };
 }
 
+// ---------- reuniões (3.21) ----------
+
+/** A tarefa a que a reunião do bloco serve: a escolhida na reunião ou, num bloco de tarefa, a do próprio bloco. */
+export const tarefaDaReuniao = (b: BlocoDaJornada): string | null => (b.reuniao ? b.reuniao.tarefaId || (b.tipo === "tarefa" ? b.tarefaId ?? null : null) : null);
+
+export type MomentoDaReuniao = "depois" | "em-breve" | "agora" | "passou";
+export const MINUTOS_ANTES_DA_REUNIAO = 15;
+
+export interface ReuniaoDoDia {
+  bloco: BlocoDaJornada;
+  tarefaId: string | null;
+  momento: MomentoDaReuniao;
+  /** Minutos até começar (0 se já começou). */
+  emQuanto: number;
+}
+
+/** As reuniões do plano do dia, na ordem do horário, com o momento de cada uma em relação a "agora" (minutos do dia). */
+export function reunioesDoDia(blocos: BlocoDaJornada[], agora: number): ReuniaoDoDia[] {
+  return ordenar(blocos)
+    .filter((b) => !!b.reuniao)
+    .map((bloco) => {
+      const [ini, fim] = [emMinutos(bloco.inicio), emMinutos(bloco.fim)];
+      const momento: MomentoDaReuniao = agora >= fim || bloco.feito ? "passou" : agora >= ini ? "agora" : ini - agora <= MINUTOS_ANTES_DA_REUNIAO ? "em-breve" : "depois";
+      return { bloco, tarefaId: tarefaDaReuniao(bloco), momento, emQuanto: Math.max(0, ini - agora) };
+    });
+}
+
+/**
+ * As tarefas que têm reunião marcada de hoje até daqui a "dias" (contando o dia padrão, que é a reunião que se
+ * repete). Os lembretes "parada" e "sem próximo passo" não valem para elas: o assunto tem data para andar.
+ */
+export function tarefasComReuniaoMarcada(j: Jornada, hoje: string, dias = 7): Set<string> {
+  const out = new Set<string>();
+  for (let n = 0; n <= dias; n++) {
+    const data = somarDiasA(hoje, n);
+    if (j.dias.get(data)?.folga) continue;
+    for (const b of blocosDoDia(j, data).blocos) {
+      const id = tarefaDaReuniao(b);
+      if (id && !b.feito) out.add(id);
+    }
+  }
+  return out;
+}
+
 /** O primeiro horário vago de pelo menos "minutos", a partir de "desde", sem passar de "ate". null se não há. */
 export function proximoVago(blocos: BlocoDaJornada[], desde: number, minutos: number, ate = 23 * 60): { inicio: number; fim: number } | null {
   let cursor = Math.ceil(desde / 15) * 15;
@@ -445,7 +489,7 @@ export interface AvisoDaJornada {
   chave: string;
   titulo: string;
   detalhe: string;
-  tipo: "comeca" | "termina" | "saida" | "pausa";
+  tipo: "comeca" | "termina" | "saida" | "pausa" | "reuniao";
   blocoId?: string;
 }
 
@@ -468,6 +512,17 @@ export function avisosDoMinuto(blocos: BlocoDaJornada[], conta: ContaDoPonto, di
         blocoId: b.id,
         titulo: b.tipo === "pausa" ? `Hora da pausa: ${b.titulo || "Pausa"}` : `Agora: ${b.titulo || "Bloco sem nome"}`,
         detalhe: `Até as ${b.fim} (${duracao(fim - ini)}).`,
+      });
+    }
+    // reunião chegando: dá tempo de abrir a pauta (3.21)
+    if (b.reuniao && !b.feito && naHora(ini - MINUTOS_ANTES_DA_REUNIAO, agora)) {
+      const gente = b.reuniao.participantes;
+      out.push({
+        chave: `reuniao:${b.id}:${b.inicio}`,
+        tipo: "reuniao",
+        blocoId: b.id,
+        titulo: `Reunião em ${ini - agora} min: ${b.titulo || "sem nome"}`,
+        detalhe: `Às ${b.inicio}${gente.length ? `, com ${gente.slice(0, 3).join(", ")}${gente.length > 3 ? ` e mais ${gente.length - 3}` : ""}` : ""}. A pauta está na tela Hoje.`,
       });
     }
     if (fim - ini >= 15 && naHora(fim - MINUTOS_ANTES_DO_FIM, agora) && agora < fim) {

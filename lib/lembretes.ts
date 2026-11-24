@@ -131,7 +131,12 @@ const PESO: Record<Gravidade, number> = { critico: 0, atencao: 1, info: 2 };
 /** Quantos dias o "destravou" continua aparecendo depois que a última dependência fechou. */
 const DIAS_DESTRAVOU = 7;
 
-export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[]; links?: LinkDoc[] } = {}): Lembrete[] {
+/**
+ * `extras.comReuniao`: ids das tarefas com reunião marcada nos próximos dias (3.21, de tarefasComReuniaoMarcada()).
+ * Para elas não saem "parada" nem "sem próximo passo": o assunto tem data para andar, e cobrar movimento antes
+ * da reunião só faria barulho.
+ */
+export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[]; links?: LinkDoc[]; comReuniao?: ReadonlySet<string> } = {}): Lembrete[] {
   const out: Lembrete[] = [];
   const porId = new Map(tarefas.map((x) => [x.id, x]));
   const hoje = hojeISO();
@@ -207,11 +212,11 @@ export function gerarLembretes(tarefas: Tarefa[], extras: { modelos?: Modelo[]; 
       out.push({ ...base, id: `aguardando:${t.id}`, tipo: "aguardando", gravidade: "atencao", dias: parado,
         titulo: t.esperando?.quem ? `Sem retorno de ${t.esperando.quem} há ${dias(parado)}` : `Aguardando retorno há ${dias(parado)}`,
         detalhe: t.esperando?.oQue ? `Esperando: ${t.esperando.oQue}. Hora de cobrar.` : "Hora de cobrar quem ficou de responder." });
-    else if ((t.status === "a_fazer" || t.status === "em_andamento") && parado >= LIMITES.parada)
+    else if ((t.status === "a_fazer" || t.status === "em_andamento") && parado >= LIMITES.parada && !extras.comReuniao?.has(t.id))
       out.push({ ...base, id: `parada:${t.id}`, tipo: "parada", gravidade: "info", dias: parado,
         titulo: `Sem movimento há ${dias(parado)}`, detalhe: "Registre o que aconteceu ou reveja a prioridade." });
 
-    if (abertos === 0 && t.status === "em_andamento")
+    if (abertos === 0 && t.status === "em_andamento" && !extras.comReuniao?.has(t.id))
       out.push({ ...base, id: `sem-passo:${t.id}`, tipo: "sem_proximo_passo", gravidade: "info", dias: parado,
         titulo: "Em andamento sem próximo passo", detalhe: "Defina qual é a próxima ação para não travar." });
   }

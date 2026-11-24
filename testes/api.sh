@@ -380,6 +380,14 @@ checa "passos juntados: registro sem junção não ganha o campo" '1' "$(echo "$
 checa "passos juntados: ficam no arquivo da tarefa" '"juntadoEm": "2026-11-21T10:00:00.000Z"' "$(cat "$TMP/dados/tarefas/pj1.json")"
 checa "passos juntados: não contam como pendência no espelho em Markdown" '1' "$(grep -c -- '- \[ \] Fica' "$TMP/dados/markdown/"*--pj1.md)"
 
+# ---------- 3.21: reunião como campo opcional do bloco da rotina ----------
+RJ=$(curl -s $B/api/dados | sed 's/.*"jornada":{"rev":\([0-9]*\).*/\1/')
+R=$(curl -s -X PUT $B/api/jornada -H "$J" -d "{\"items\":[{\"id\":\"config\"},{\"id\":\"2026-11-18\",\"planejado\":true,\"blocos\":[{\"id\":\"blr1\",\"inicio\":\"09:00\",\"fim\":\"10:00\",\"titulo\":\"Semanal\",\"tipo\":\"atividade\",\"reuniao\":{\"participantes\":[\"  Otto   Teste \",\"otto teste\",7,\"Zuleica Prado\"],\"tarefaId\":\"../x\",\"campoFuturo\":\"y\"}},{\"id\":\"blr2\",\"inicio\":\"12:00\",\"fim\":\"13:00\",\"titulo\":\"Almoco\",\"tipo\":\"pausa\",\"reuniao\":{\"participantes\":[\"Otto\"]}},{\"id\":\"blr3\",\"inicio\":\"14:00\",\"fim\":\"15:00\",\"titulo\":\"Chamados\",\"tipo\":\"atividade\"},{\"id\":\"blr4\",\"inicio\":\"15:00\",\"fim\":\"16:00\",\"titulo\":\"Com tarefa\",\"tipo\":\"atividade\",\"reuniao\":{\"participantes\":[],\"tarefaId\":\"pj1\"}}]}],\"revEsperada\":$RJ}")
+checa "reunião do bloco: participantes limpos e sem repetir, id torto de tarefa não entra, campo desconhecido fica" '"reuniao":{"participantes":["Otto Teste","Zuleica Prado"],"tarefaId":null,"campoFuturo":"y"}' "$R"
+checa "reunião do bloco: guarda a tarefa quando o id tem forma de id" '"reuniao":{"participantes":[],"tarefaId":"pj1"}' "$R"
+checa "reunião do bloco: pausa não é reunião, e bloco comum não ganha o campo" '2' "$(echo "$R" | grep -o '"reuniao":' | wc -l | tr -d ' ')"
+checa "reunião do bloco: fica no arquivo da rotina" '"tarefaId": "pj1"' "$(cat "$TMP/dados/jornada.json")"
+
 # ---------- 3.17: importar um arquivo exportado ----------
 imp() { curl -s -X POST "$B/api/importar$1" -H 'Content-Type: text/plain; charset=utf-8' --data-binary "@$2"; }
 curl -s $B/api/exportar >"$TMP/export.json"

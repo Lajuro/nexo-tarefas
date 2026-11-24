@@ -5,11 +5,12 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { ArrowRight, Copy, Plus, Timer, Trash2 } from "lucide-react";
+import { ArrowRight, Copy, Plus, Presentation, Timer, Trash2 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useCriarTarefa } from "@/components/tarefas/criar";
 import { useFecharComCuidado } from "@/components/Raiz";
-import { Campo, LinhaCampos, Modal } from "@/components/comum";
+import { Campo, ChipsInput, LinhaCampos, Modal } from "@/components/comum";
+import { SemCadastro } from "@/components/pessoas/SemCadastro";
 import { Button } from "@/components/ui/button";
 import { CampoSugestoes } from "@/components/ui/chips";
 import { Combobox } from "@/components/ui/command";
@@ -22,8 +23,9 @@ import {
   DIA_CURTO, NOME_DO_DIA, comEntrada, diaDe, duracao, emHora, emMinutos, esperadoNoDia, lerSaldo, novoBloco, proximoVago, saldoEmTexto,
 } from "@/lib/jornada";
 import { aberta } from "@/lib/lembretes";
+import { nomesConhecidos } from "@/lib/pessoas";
 import { usePref } from "@/lib/preferencias";
-import { agoraISO, normalizarBloco, normalizarPonto } from "@/lib/tipos";
+import { MAX_PARTICIPANTES_DO_BLOCO, agoraISO, normalizarBloco, normalizarPonto } from "@/lib/tipos";
 import type { BlocoDaJornada, PausaDoPonto, TipoDeBloco } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { CampoHora, VISUAL_DO_BLOCO, useJornada } from "./pecas";
@@ -70,10 +72,18 @@ export function BlocoForm({
   const [inicio, setInicio] = useState(base.inicio ?? "09:00");
   const [fim, setFim] = useState(base.fim ?? "10:00");
   const [nota, setNota] = useState(base.nota ?? "");
+  // Reunião (3.21): um campo opcional do bloco, com quem participa e a tarefa a que ela serve.
+  const [ehReuniao, setEhReuniao] = useState(!!base.reuniao);
+  const [participantes, setParticipantes] = useState<string[]>(base.reuniao?.participantes ?? []);
+  const [tarefaDaReuniao, setTarefaDaReuniao] = useState(base.reuniao?.tarefaId ?? "");
   const salvarRef = useRef<() => void>(() => {});
   const hoje = data ?? "";
 
-  const tarefas = useMemo(() => (dados?.tarefas ?? []).filter((t) => aberta(t) || t.id === base.tarefaId), [dados?.tarefas, base.tarefaId]);
+  const tarefas = useMemo(
+    () => (dados?.tarefas ?? []).filter((t) => aberta(t) || t.id === base.tarefaId || t.id === base.reuniao?.tarefaId),
+    [dados?.tarefas, base.tarefaId, base.reuniao?.tarefaId],
+  );
+  const pessoas = useMemo(() => (dados ? nomesConhecidos(dados) : []), [dados]);
   const opcoesTarefa = useMemo(
     () =>
       [...tarefas]
@@ -92,7 +102,8 @@ export function BlocoForm({
 
   const minutos = emMinutos(fim) - emMinutos(inicio);
   const erro = !inicio || !fim ? "Informe o início e o fim." : minutos <= 0 ? "O fim tem que ser depois do início." : tipo === "tarefa" && !tarefaId ? "Escolha a tarefa deste bloco." : "";
-  const sujo = tipo !== (base.tipo ?? "atividade") || tarefaId !== (base.tarefaId ?? "") || titulo !== (base.titulo ?? "") || inicio !== (base.inicio ?? "09:00") || fim !== (base.fim ?? "10:00") || nota !== (base.nota ?? "");
+  const sujo = tipo !== (base.tipo ?? "atividade") || tarefaId !== (base.tarefaId ?? "") || titulo !== (base.titulo ?? "") || inicio !== (base.inicio ?? "09:00") || fim !== (base.fim ?? "10:00") || nota !== (base.nota ?? "") ||
+    ehReuniao !== !!base.reuniao || participantes.join("|") !== (base.reuniao?.participantes ?? []).join("|") || tarefaDaReuniao !== (base.reuniao?.tarefaId ?? "");
   const fecharComCuidado = useFecharComCuidado(!!original && sujo, fechar);
 
   const salvar = () => {
@@ -100,7 +111,9 @@ export function BlocoForm({
     const tarefa = tipo === "tarefa" ? tarefas.find((t) => t.id === tarefaId) : undefined;
     const nome = titulo.trim() || tarefa?.titulo || (tipo === "pausa" ? "Pausa" : "");
     if (!nome) return toast("Dê um nome ao bloco.", "erro");
-    const dadosDoBloco = { tipo, tarefaId: tipo === "tarefa" ? tarefaId : null, titulo: nome, inicio, fim, nota: nota.trim() };
+    // num bloco de tarefa, a tarefa da reunião é a do próprio bloco; pausa não é reunião
+    const reuniao = ehReuniao && tipo !== "pausa" ? { ...base.reuniao, participantes, tarefaId: tipo === "tarefa" ? null : tarefaDaReuniao || null } : undefined;
+    const dadosDoBloco = { tipo, tarefaId: tipo === "tarefa" ? tarefaId : null, titulo: nome, inicio, fim, nota: nota.trim(), reuniao };
     aoSalvar(original ? normalizarBloco({ ...original, ...dadosDoBloco }) : novoBloco(dadosDoBloco));
     fechar();
   };
@@ -195,6 +208,30 @@ export function BlocoForm({
             {minutos > 0 ? duracao(minutos) : "fim antes do início"}
           </span>
         </div>
+
+        {tipo !== "pausa" && (
+          <div data-slot="reuniao-do-bloco" className="flex flex-col gap-3 rounded-lg border px-3 py-2.5">
+            <CampoSwitch marcado={ehReuniao} aoMudar={setEhReuniao}>
+              <span className="inline-flex items-center gap-1.5"><Presentation className="size-3.5 text-muted-foreground" /> É uma reunião</span>
+            </CampoSwitch>
+            {ehReuniao && (
+              <>
+                <Campo rotulo="Participantes" dica={`Quem vai estar. Aparecem na tela Hoje e já entram no modo reunião. Até ${MAX_PARTICIPANTES_DO_BLOCO}.`}>
+                  <ChipsInput valor={participantes} mudar={(v) => setParticipantes(v.slice(0, MAX_PARTICIPANTES_DO_BLOCO))} sugestoes={pessoas} placeholder="Nomes" />
+                  <SemCadastro nomes={participantes} />
+                </Campo>
+                {tipo === "atividade" && (
+                  <Campo rotulo="Tarefa a que a reunião serve" dica="Opcional. Com ela, a tela Hoje mostra a pauta e o botão de começar leva ao modo reunião da tarefa.">
+                    <Combobox aria-label="Tarefa da reunião" valor={tarefaDaReuniao} aoMudar={setTarefaDaReuniao} opcoes={opcoesTarefa} placeholder="Sem tarefa"
+                      buscaPlaceholder="Buscar tarefa ou digitar o nome de uma nova..." vazio="Nenhuma tarefa aberta com esse nome."
+                      criar={(nome) => void criarTarefa(nome).then((id) => id && setTarefaDaReuniao(id))} />
+                  </Campo>
+                )}
+                {!data && <p className="text-xs leading-snug text-muted-foreground">No dia padrão, esta é a reunião que se repete toda semana neste dia.</p>}
+              </>
+            )}
+          </div>
+        )}
 
         <Campo rotulo="Observação" dica="Opcional. Aparece no bloco quando há espaço.">
           <Input aria-label="Observação do bloco" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ex.: fila do squad de Pagamentos primeiro" maxLength={300} />

@@ -67,6 +67,16 @@ teste("gerarLembretes: um lembrete por motivo, do mais grave para o menos, e nad
   assert.deepEqual(pesos, [...pesos].sort((a, b) => a - b), "os mais graves vêm primeiro");
 });
 
+teste("tarefa com reunião marcada não é cobrada por estar parada nem por não ter próximo passo (3.21)", () => {
+  const tipos = (extras) => L.gerarLembretes(tarefas, extras).filter((l) => l.tarefaId === "olho").map((l) => l.tipo).sort();
+  assert.deepEqual(tipos(), ["parada", "sem_proximo_passo"]);
+  assert.deepEqual(tipos({ comReuniao: new Set(["olho"]) }), []);
+  assert.deepEqual(tipos({ comReuniao: new Set(["outra"]) }), ["parada", "sem_proximo_passo"]);
+  // o que é prazo e retorno continua valendo, com reunião ou sem
+  const doFogo = L.gerarLembretes(tarefas, { comReuniao: new Set(["fogo"]) }).filter((l) => l.tarefaId === "fogo").map((l) => l.tipo).sort();
+  assert.deepEqual(doFogo, ["aguardando", "followup", "passo_vencido", "prazo_vencido"]);
+});
+
 teste("o lembrete de voltar usa o nome do glossário (sem \"follow-up\")", () => {
   const l = L.gerarLembretes(tarefas).find((x) => x.tipo === "followup");
   assert.equal(l.titulo, "Lembrete de voltar: é hoje");

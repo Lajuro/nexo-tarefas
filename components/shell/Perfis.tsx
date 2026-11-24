@@ -220,6 +220,7 @@ export function MiniaturaDoArranjo({ arranjo, className }: { arranjo: Arranjo; c
         </div>
         <div className="flex min-h-0 flex-1 gap-[3px] p-[3px]">
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+            {!fora.includes("proxima") && <span className="h-[5px] shrink-0 rounded-[2px] bg-primary/25 ring-1 ring-primary/35" />}
             {!fora.includes("captura") && <span className="h-[4px] shrink-0 rounded-[2px] bg-muted" />}
             {principais.map((b) => <span key={b} className={cn("min-h-0 flex-1 rounded-[2px]", b === "foco" ? "bg-primary/40" : "bg-alerta/40")} />)}
             {!fora.includes("semana") && <span className="h-[5px] shrink-0 rounded-[2px] bg-muted" />}

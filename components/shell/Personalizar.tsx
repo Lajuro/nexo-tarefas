@@ -212,6 +212,10 @@ function AbaHoje() {
           onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()} />
       </Bloco>
 
+      <Bloco titulo="Topo da tela" ajuda="O que orienta o dia, acima de tudo.">
+        <div className="flex flex-col gap-1">{(["proxima", "reunioes"] as const).map(fixo)}</div>
+      </Bloco>
+
       <Bloco titulo="Coluna principal" ajuda="No automático, o que pede atenção vem primeiro; com tudo em dia, o foco sobe.">
         <Segmentado<PrimeiroHoje>
           aria-label="O que vem primeiro na tela Hoje"

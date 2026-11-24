@@ -28,11 +28,13 @@ import { itemRemovivel } from "@/lib/animacoes";
 import { aberta } from "@/lib/lembretes";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { promptPrepararReuniao } from "@/lib/prompts";
+import { useJornada } from "@/components/jornada/pecas";
+import { blocosDoDia } from "@/lib/jornada";
 import { apagarReuniao, gravarReuniao, lerReuniao } from "@/lib/rascunhos";
 import { chaveDoAssunto, comAssuntoResolvido, idsDeAssuntos } from "@/lib/assuntos";
 import { type Reuniao, comReuniao, montarPauta, passosJaNaTarefa, registroDaReuniao, reuniaoNova, reuniaoTemConteudo, textoDaAta, textoDaPauta } from "@/lib/reuniao";
 import { paraTextoPlano } from "@/lib/texto-rico";
-import { dataCurta, novoId } from "@/lib/tipos";
+import { dataCurta, hojeISO, novoId } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -77,11 +79,29 @@ export default function PaginaReuniao() {
 
   const mudar = (parte: Partial<Reuniao>) => setR((x) => ({ ...x, ...parte }));
 
+  // Veio de uma reunião da rotina (?bloco=<id>, 3.21): o título e os participantes do bloco já entram, mas só
+  // numa reunião que ainda não começou a ser escrita. Enquanto a tela está só com o que veio do bloco, nada é
+  // guardado no navegador: abrir para ver a pauta antes da hora não cria rascunho.
+  const { jornada, pronta: jornadaPronta } = useJornada();
+  const semente = useRef<string | null>(null);
+  useEffect(() => {
+    if (!jornadaPronta || semente.current !== null) return;
+    semente.current = "";
+    const blocoId = new URLSearchParams(window.location.search).get("bloco");
+    if (!blocoId || lerReuniao(id)) return;
+    const bloco = blocosDoDia(jornada, hojeISO()).blocos.find((b) => b.id === blocoId);
+    if (!bloco?.reuniao) return;
+    const inicial: Reuniao = { ...reuniaoNova(), titulo: bloco.titulo, participantes: bloco.reuniao.participantes };
+    semente.current = JSON.stringify(inicial);
+    setR(inicial);
+  }, [jornadaPronta, jornada, id]);
+
   // Guarda no navegador a cada mudança. Uma reunião em branco não deixa rastro.
   const salvo = useRef(false);
   useEffect(() => {
     if (salvo.current) return;
-    if (reuniaoTemConteudo(r) || r.inicio > 0) setSemRascunho(!gravarReuniao(id, r));
+    const soDoBloco = !!semente.current && JSON.stringify(r) === semente.current;
+    if ((reuniaoTemConteudo(r) || r.inicio > 0) && !soDoBloco) setSemRascunho(!gravarReuniao(id, r));
     else apagarReuniao(id);
   }, [r, id]);
 

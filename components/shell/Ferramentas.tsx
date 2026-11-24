@@ -14,6 +14,7 @@ import {
   AlarmClock, ArrowRight, CalendarDays, CircleCheckBig, Ellipsis, Flag, Keyboard, ListTodo, Maximize, Minimize, Monitor, Moon, NotebookPen, Palette,
   PenLine, SlidersHorizontal, Sun, Sunrise, Target, Timer,
 } from "lucide-react";
+import { useExecutarComando, useProximaAcao } from "@/components/hoje/ProximaAcao";
 import { useNexo } from "@/components/Provider";
 import { Tema, useTema } from "@/components/Raiz";
 import { useHoje } from "@/components/useHoje";
@@ -202,6 +203,8 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
   const { dados, atualizarTarefa, toast } = useNexo();
   const hoje = useHoje();
   const [aberto, setAberto] = useState(false);
+  const proxima = useProximaAcao();
+  const executar = useExecutarComando();
 
   const focos = useMemo(
     () =>
@@ -248,6 +251,17 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
           <p className="flex-1 text-[13px] font-semibold tracking-tight">Foco de hoje</p>
           {total > 0 && <span className="text-xs text-muted-foreground tabular-nums">{feitos} de {total} {total === 1 ? "passo" : "passos"}</span>}
         </div>
+        {/* a mesma conta do bloco "Próxima ação" da tela Hoje: um lugar só decide o que vem agora (3.21) */}
+        {proxima.agora && (
+          <div data-slot="foco-proxima-acao" className="flex items-center gap-2.5 border-b bg-muted/40 px-3.5 py-2">
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold tracking-wide text-muted-foreground uppercase sem-selecao">Próxima ação</span>
+              <span className="block truncate text-[13px] font-medium">{proxima.agora.titulo}</span>
+              <span className="block truncate text-xs text-muted-foreground">{proxima.agora.motivo}</span>
+            </span>
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => { executar(proxima.agora!.comando); setAberto(false); }}>{proxima.agora.rotulo}</Button>
+          </div>
+        )}
         <div className="max-h-[360px] overflow-y-auto p-2">
           {focos.length === 0 ? (
             <div className="px-1.5 py-2">

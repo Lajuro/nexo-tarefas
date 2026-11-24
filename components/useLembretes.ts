@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useNexo } from "./Provider";
 import { useHoje } from "./useHoje";
+import { lerJornada, tarefasComReuniaoMarcada } from "@/lib/jornada";
 import { type GrupoDeLembretes, Lembrete, agruparLembretes, gerarLembretes } from "@/lib/lembretes";
 import { usePref } from "@/lib/preferencias";
 import { hojeISO } from "@/lib/tipos";
@@ -25,8 +26,10 @@ export function useLembretes() {
 
   // `hoje` entra nas dependências: os lembretes mudam quando o dia vira, mesmo sem mudar os dados.
   const hoje = useHoje();
+  // Tarefa com reunião marcada nos próximos sete dias não é cobrada por estar parada (3.21).
+  const comReuniao = useMemo(() => tarefasComReuniaoMarcada(lerJornada(dados?.jornada), hoje), [dados?.jornada, hoje]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? [], { modelos: dados?.modelos?.items ?? [], links: dados?.links.items ?? [] }), [dados?.tarefas, dados?.modelos?.items, dados?.links.items, hoje]);
+  const todos = useMemo(() => gerarLembretes(dados?.tarefas ?? [], { modelos: dados?.modelos?.items ?? [], links: dados?.links.items ?? [], comReuniao }), [comReuniao, dados?.tarefas, dados?.modelos?.items, dados?.links.items, hoje]);
   const ativos = useMemo(() => todos.filter((l) => !(adiados[l.id] && adiados[l.id] > hoje)), [todos, adiados, hoje]);
 
   // Por tarefa: é assim que a interface mostra e conta (uma tarefa com três motivos é uma coisa só).

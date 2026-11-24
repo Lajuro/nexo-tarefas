@@ -480,7 +480,22 @@ export interface BlocoDaJornada {
   nota?: string;
   /** O usuário marcou que cumpriu o bloco. */
   feito?: boolean;
+  /**
+   * O bloco é uma reunião (3.21): quem participa e a tarefa a que ela serve. É um campo opcional, e não um
+   * tipo novo de bloco, de propósito: uma versão antiga trocaria um tipo que não conhece por "atividade" na
+   * primeira gravação da rotina, em todos os dias de uma vez. Um campo a mais ela preserva (faz spread).
+   * Só existe quando o bloco é reunião.
+   */
+  reuniao?: ReuniaoDoBloco;
 }
+
+export interface ReuniaoDoBloco {
+  participantes: string[];
+  /** A tarefa a que a reunião serve (num bloco do tipo "tarefa", a tarefa do próprio bloco vale). */
+  tarefaId?: string | null;
+}
+
+export const MAX_PARTICIPANTES_DO_BLOCO = 20;
 
 export interface PausaDoPonto {
   inicio: string;
@@ -741,7 +756,7 @@ export function normalizarBloco(b: Partial<BlocoDaJornada>): BlocoDaJornada {
   if (fim <= inicio) fim = inicio + 60;
   if (fim > 23 * 60 + 59) fim = 23 * 60 + 59;
   const tipo = TIPOS_DE_BLOCO.includes(b.tipo as TipoDeBloco) ? (b.tipo as TipoDeBloco) : "atividade";
-  return {
+  const bloco: BlocoDaJornada = {
     ...b,
     id: typeof b.id === "string" && ID_VALIDO.test(b.id) ? b.id : novoId("bl"),
     inicio: emHora(inicio),
@@ -752,6 +767,17 @@ export function normalizarBloco(b: Partial<BlocoDaJornada>): BlocoDaJornada {
     nota: str(b.nota).slice(0, 600),
     feito: b.feito === true,
   };
+  // reunião: só num bloco de trabalho (pausa não é reunião), e o campo só vai para o arquivo quando existe
+  const r = b.reuniao as Partial<ReuniaoDoBloco> | null | undefined;
+  if (r && typeof r === "object" && !Array.isArray(r) && tipo !== "pausa") {
+    const vistos = new Set<string>();
+    const participantes = arrStr(r.participantes)
+      .map((p) => p.replace(/\s+/g, " ").trim().slice(0, 120))
+      .filter((p) => p && !vistos.has(p.toLowerCase()) && !!vistos.add(p.toLowerCase()))
+      .slice(0, MAX_PARTICIPANTES_DO_BLOCO);
+    bloco.reuniao = { ...r, participantes, tarefaId: typeof r.tarefaId === "string" && ID_VALIDO.test(r.tarefaId) ? r.tarefaId : null };
+  } else delete bloco.reuniao;
+  return bloco;
 }
 
 const MAX_BLOCOS = 60;

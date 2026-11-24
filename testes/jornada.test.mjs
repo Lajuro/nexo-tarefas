@@ -317,6 +317,82 @@ teste("avisos: bloco que começa, que está acabando, jornada cumprida e pausa q
   assert.deepEqual(J.avisosDoMinuto([], J.contarPonto(c, fechado, SEG, m("17:00")), fechado, 60, m("17:00")), []);
 });
 
+// ---------- reuniões (3.21) ----------
+
+teste("reunião é um campo opcional do bloco: lido com cuidado, e bloco comum não ganha o campo", () => {
+  assert.equal("reuniao" in bloco("09:00", "10:00", "Chamados"), false);
+  assert.equal("reuniao" in bloco("09:00", "10:00", "Chamados", "atividade", { reuniao: null }), false);
+  assert.equal("reuniao" in bloco("09:00", "10:00", "Chamados", "atividade", { reuniao: "sim" }), false);
+  assert.equal("reuniao" in bloco("12:00", "13:00", "Almoço", "pausa", { reuniao: { participantes: ["Marina"] } }), false, "pausa não é reunião");
+  const r = bloco("09:00", "10:00", "Semanal", "atividade", { reuniao: { participantes: ["  Marina  Souza ", "marina souza", 7, "", "Bruno", "x".repeat(300)], tarefaId: "../x", campoFuturo: 1 } }).reuniao;
+  assert.deepEqual(r.participantes, ["Marina Souza", "Bruno", "x".repeat(120)]);
+  assert.equal(r.tarefaId, null, "id que não tem forma de id não entra");
+  assert.equal(r.campoFuturo, 1, "campo desconhecido é preservado");
+  assert.equal(bloco("09:00", "10:00", "Semanal", "atividade", { reuniao: { participantes: [], tarefaId: "t1" } }).reuniao.tarefaId, "t1");
+  const muitos = bloco("09:00", "10:00", "Geral", "atividade", { reuniao: { participantes: Array.from({ length: 60 }, (_, i) => `Pessoa ${i}`) } });
+  assert.equal(muitos.reuniao.participantes.length, T.MAX_PARTICIPANTES_DO_BLOCO);
+});
+
+teste("versão antiga: quem não conhece 'reuniao' e faz spread no bloco não perde o campo", () => {
+  const novo = bloco("09:00", "10:00", "Semanal", "atividade", { reuniao: { participantes: ["Marina"], tarefaId: "t1" } });
+  // a 3.20 lia o bloco assim: spread e os campos que conhecia por cima
+  const { reuniao: _fora, ...conhecidos } = novo;
+  const comoA320 = { ...novo, ...conhecidos };
+  assert.deepEqual(T.normalizarBloco(JSON.parse(JSON.stringify(comoA320))).reuniao, novo.reuniao);
+  // e o dia inteiro vai e volta
+  const d = T.normalizarDiaDaJornada(JSON.parse(JSON.stringify(dia(SEG, { blocos: [novo] }))));
+  assert.deepEqual(d.blocos[0].reuniao, novo.reuniao);
+});
+
+teste("reuniões do dia: a tarefa de cada uma e o momento em relação a agora", () => {
+  const plano = [
+    bloco("14:00", "15:00", "Com o fornecedor", "atividade", { reuniao: { participantes: ["Bruno"], tarefaId: "t2" } }),
+    bloco("09:00", "10:00", "Semanal", "tarefa", { tarefaId: "t1", reuniao: { participantes: ["Marina"] } }),
+    bloco("10:00", "11:00", "Chamados"),
+    bloco("11:00", "11:30", "Café", "atividade", { reuniao: { participantes: [] } }),
+  ];
+  const em = (hora) => J.reunioesDoDia(plano, m(hora)).map((r) => [r.bloco.titulo, r.tarefaId, r.momento, r.emQuanto]);
+  assert.deepEqual(em("08:00"), [["Semanal", "t1", "depois", 60], ["Café", null, "depois", 180], ["Com o fornecedor", "t2", "depois", 360]]);
+  assert.deepEqual(em("08:45").map((x) => x[2]), ["em-breve", "depois", "depois"]);
+  assert.deepEqual(em("09:30").map((x) => x[2]), ["agora", "depois", "depois"]);
+  assert.deepEqual(em("11:20").map((x) => x[2]), ["passou", "agora", "depois"]);
+  assert.deepEqual(em("15:00").map((x) => x[2]), ["passou", "passou", "passou"]);
+  // marcada como feita antes da hora: já passou
+  const feita = [bloco("09:00", "10:00", "Semanal", "atividade", { feito: true, reuniao: { participantes: [] } })];
+  assert.equal(J.reunioesDoDia(feita, m("08:00"))[0].momento, "passou");
+  assert.equal(J.tarefaDaReuniao(bloco("09:00", "10:00", "Chamados", "tarefa", { tarefaId: "t9" })), null, "bloco de tarefa que não é reunião");
+});
+
+teste("tarefas com reunião marcada: de hoje a sete dias, contando o dia padrão e sem contar folga", () => {
+  const reuniao = (tarefaId, extra = {}) => bloco("09:00", "10:00", "Reunião", "atividade", { reuniao: { participantes: [], tarefaId }, ...extra });
+  const c = config({ padrao: { 2: [reuniao("toda-terca")] } }); // 2 = terça
+  const j = jornada([
+    c,
+    dia(SEG, { planejado: true, blocos: [reuniao("hoje"), reuniao("feita", { feito: true })] }),
+    dia("2026-11-19", { planejado: true, blocos: [reuniao("quinta")] }),
+    dia("2026-11-20", { planejado: true, folga: true, blocos: [reuniao("na-folga")] }),
+    dia("2026-11-30", { planejado: true, blocos: [reuniao("longe")] }),
+  ]);
+  assert.deepEqual([...J.tarefasComReuniaoMarcada(j, SEG)].sort(), ["hoje", "quinta", "toda-terca"]);
+  assert.deepEqual([...J.tarefasComReuniaoMarcada(j, SEG, 0)], ["hoje"]);
+  assert.equal(J.tarefasComReuniaoMarcada(jornada([config()]), SEG).size, 0);
+});
+
+teste("aviso de reunião: 15 minutos antes, uma vez, com quem participa", () => {
+  const c = config();
+  const d = J.comEntrada(dia(SEG), "08:00", c);
+  const plano = [bloco("10:00", "11:00", "Semanal", "atividade", { reuniao: { participantes: ["Marina", "Bruno", "Carla", "Davi"] } }), bloco("14:00", "15:00", "Chamados")];
+  const em = (hora) => J.avisosDoMinuto(plano, J.contarPonto(c, d, SEG, m(hora)), d, 60, m(hora)).filter((a) => a.tipo === "reuniao");
+  assert.deepEqual(em("09:44"), []);
+  const a = em("09:45");
+  assert.equal(a.length, 1);
+  assert.equal(a[0].titulo, "Reunião em 15 min: Semanal");
+  assert.match(a[0].detalhe, /^Às 10:00, com Marina, Bruno, Carla e mais 1\. A pauta está na tela Hoje\.$/);
+  assert.equal(em("09:47")[0].chave, a[0].chave, "dentro da tolerância, a chave é a mesma (quem mostra avisa uma vez só)");
+  assert.deepEqual(em("09:50"), []);
+  assert.deepEqual(em("13:45"), [], "bloco que não é reunião não avisa antes");
+});
+
 teste("banco de horas: semana, mês e acumulado; dia sem registro e dia sem saída não contam", () => {
   const j = jornada([
     { id: "config", saldoInicialMin: 120 },

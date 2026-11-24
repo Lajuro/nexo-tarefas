@@ -6,7 +6,7 @@
 // muda a duração. Enquanto se arrasta, nada é gravado: só ao soltar.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Presentation } from "lucide-react";
 import { duracao, emColunas, emHora, emMinutos } from "@/lib/jornada";
 import type { BlocoDaJornada, PontoDoDia, Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
@@ -186,9 +186,10 @@ export function LinhaDoDia({
                 data-agora={emCurso || undefined}
                 data-extra={extra || undefined}
                 data-feito={b.feito || undefined}
+                data-reuniao={b.reuniao ? "" : undefined}
                 role="button"
                 tabIndex={0}
-                aria-label={`${b.titulo || v.nome}, das ${emHora(ini)} às ${emHora(fim)}`}
+                aria-label={`${b.reuniao ? "Reunião: " : ""}${b.titulo || v.nome}, das ${emHora(ini)} às ${emHora(fim)}`}
                 onPointerDown={(e) => comecar(e, b, "mover")}
                 onPointerMove={andar}
                 onPointerUp={(e) => soltar(e, b)}
@@ -211,7 +212,7 @@ export function LinhaDoDia({
                 style={{ top: y(ini) + 1, height: altura, left: `calc(${(col.coluna / col.colunas) * 100}% + 2px)`, width: `calc(${100 / col.colunas}% - 4px)` }}
               >
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <v.icone className={cn("size-3 shrink-0", v.texto)} />
+                  {b.reuniao ? <Presentation className={cn("size-3 shrink-0", v.texto)} /> : <v.icone className={cn("size-3 shrink-0", v.texto)} />}
                   <span className={cn("min-w-0 flex-1 truncate text-[13px] leading-tight font-medium", b.feito && "line-through decoration-foreground/40")}>{b.titulo || v.nome}</span>
                   {extra && <span data-slot="selo-extra" className="shrink-0 rounded bg-alerta/15 px-1 text-[11px] font-semibold text-alerta">extra</span>}
                   <span

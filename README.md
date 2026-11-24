@@ -79,6 +79,19 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.21: próxima ação e reuniões do dia
+
+A tela Hoje passou a responder, logo no topo, à pergunta "o que eu faço agora?". Nada muda no formato dos dados.
+
+- **Próxima ação.** Um bloco no topo da tela Hoje com **uma** coisa a fazer, o motivo em uma linha e um botão: abrir a tarefa, concluir o passo, entrar no modo reunião, planejar o dia ou fechar o dia. Logo abaixo, as três seguintes.
+- **A ordem é sempre a mesma**, a primeira que valer: a reunião que está acontecendo; a reunião que começa em até 15 minutos; o bloco de agora na sua rotina; o que está com prazo estourado (as tarefas em foco primeiro); o próximo passo seu no foco de hoje; sem foco, planejar o dia ou a melhor sugestão; o que pede atenção, com cobrar retorno primeiro; e, com as horas cumpridas, fechar o dia.
+- **Agora não** dispensa aquela sugestão por hoje, sem mexer em nada. O Nexo **nunca age sozinho**: toda mudança é um clique seu e tem Desfazer.
+- **Reunião na rotina.** Ao criar ou editar um bloco da rotina, ligue **É uma reunião** e informe os participantes e a tarefa a que ela serve. No **dia padrão**, é a reunião que se repete toda semana.
+- **Reuniões de hoje.** Em dia que tem reunião, a coluna da direita da tela Hoje mostra cada uma com o horário, quem participa, a **Pauta** (as pendências da tarefa, as últimas decisões e o que está com cada participante, com Copiar) e **Começar**, que abre o modo reunião já com o título e os participantes.
+- **Aviso 15 minutos antes** de cada reunião, junto com os outros avisos da rotina.
+- A tarefa que tem reunião marcada nos próximos sete dias deixa de aparecer como "parada" ou "sem próximo passo". Prazo vencido e retorno pendente continuam avisando.
+- O balão do **Foco**, na barra superior, mostra a mesma próxima ação.
+
 ## 3.20: perfis de uso
 
 O mesmo app, arrumado para o dia que você tem. Um **perfil** guarda o que aparece no menu, nas barras e na tela Hoje, e em que tela o app abre. Suas tarefas são as mesmas em todos, e nada muda no formato dos dados.

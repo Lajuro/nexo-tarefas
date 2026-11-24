@@ -12,6 +12,8 @@
 // Imprime "ok <passo>" a cada etapa e termina com código 1 se algo falhar,
 // inclusive erro ou aviso do React no console do navegador.
 // NEXO_E2E_FOTOS=<pasta> salva screenshots de cada etapa (opcional).
+// NEXO_E2E_SO=<trecho do nome> roda só as etapas cujo nome contém o trecho (para depurar uma etapa que não depende
+// das anteriores, como as que montam o próprio cenário pela API). Sem a variável, roda tudo, que é o que vale.
 //
 // Cobre: categorias, nova tarefa pelo atalho N ("Mais opções" recolhido, lembrado e aberto ao editar,
 // faixa da prioridade), registro de reunião com o fluxo do Copilot (Copilot na primeira tela, campos
@@ -31,7 +33,8 @@
 // Word, PowerPoint, PDF, Markdown, HTML como texto, ZIP), conquistas (nível, meta do dia, desligar),
 // as novidades da 3.17 (checklist da tarefa, e-mail colado no registro, participante cadastrado pelo campo,
 // filtro por tag em tarefas e páginas, importar um arquivo exportado), as da 3.19 (passos repetidos: juntar,
-// desfazer, separar, a prevenção no registro e no modo reunião, e a cobrança por pessoa), as da 3.18 (modelo de tarefa com
+// desfazer, separar, a prevenção no registro e no modo reunião, e a cobrança por pessoa), as da 3.20 (perfis de uso), as da 3.21
+// (próxima ação, reunião como campo do bloco da rotina, reuniões de hoje com pauta e modo reunião), as da 3.18 (modelo de tarefa com
 // checklist, tarefa nova a partir de um e-mail) e tema escuro (pelo menu "Mais").
 
 const { chromium } = require("playwright");
@@ -137,7 +140,9 @@ async function main() {
     fs.mkdirSync(FOTOS, { recursive: true });
     await pg.screenshot({ path: path.join(FOTOS, `${String(++nFoto).padStart(2, "0")}-${nome}.png`) });
   };
+  const SO = process.env.NEXO_E2E_SO || "";
   const etapa = async (nome, fn) => {
+    if (SO && !nome.includes(SO)) return;
     passoAtual = nome;
     await fn();
     await foto(nome.replace(/[^a-z0-9]+/gi, "-").toLowerCase());
@@ -3026,6 +3031,199 @@ async function main() {
     });
     await pg.reload();
     await pg.locator("[data-slot=seletor-perfil][data-perfil=completo]:not([data-modificado])").waitFor();
+  });
+
+  await etapa("3.21: próxima ação (reunião de agora, passo do foco, Agora não) e reuniões de hoje com pauta e modo reunião", async () => {
+    // Um navegador à parte, com o relógio na mão (como a etapa da rotina): o dia é uma terça a sexta da semana
+    // que vem, às 10:00, para a reunião das 09:30 estar acontecendo de forma determinística.
+    const J = { "Content-Type": "application/json" };
+    const p2 = (n) => String(n).padStart(2, "0");
+    const base = new Date();
+    base.setDate(base.getDate() + 7);
+    while (base.getDay() < 2 || base.getDay() > 5 || base.getDate() === 1) base.setDate(base.getDate() + 1);
+    const dia = `${base.getFullYear()}-${p2(base.getMonth() + 1)}-${p2(base.getDate())}`;
+    const as = (h, m) => { const d = new Date(base); d.setHours(h, m, 0, 0); return d; };
+    const ID = "e2e321a";
+
+    // a tarefa em foco naquele dia, com um passo do usuário, e a rotina do dia com duas reuniões
+    const tarefa = {
+      id: ID, titulo: "Tarefa da próxima ação 321", status: "em_andamento", prioridade: 6, focoEm: dia,
+      registros: [{ id: "r321", tipo: "nota", data: dia, titulo: "Combinado", proximosPassos: [{ id: "p321", texto: "Passo 321 do foco", feito: false }] }],
+    };
+    afirmar((await pg.request.put(`${B}/api/tarefas/${ID}`, { headers: J, data: { tarefa, revEsperada: null } })).ok(), "não consegui criar a tarefa da etapa");
+    const jornada = (await dados()).jornada;
+    const blocos = [
+      { id: "bl321r", tipo: "atividade", titulo: "Reunião 321", inicio: "09:30", fim: "10:30", reuniao: { participantes: ["Otto Teste", "Zuleica Prado"], tarefaId: ID } },
+      { id: "bl321c", tipo: "atividade", titulo: "Café 321", inicio: "15:00", fim: "15:30", reuniao: { participantes: [] } },
+    ];
+    const itens = [...jornada.items.filter((x) => x.id !== dia), { id: dia, tipo: "dia", data: dia, planejado: true, blocos }];
+    afirmar((await pg.request.put(`${B}/api/jornada`, { headers: J, data: { items: itens, revEsperada: jornada.rev } })).ok(), "não consegui montar a rotina da etapa");
+    const gravado = (await dados()).jornada.items.find((x) => x.id === dia).blocos;
+    afirmar(gravado[0].reuniao.tarefaId === ID && gravado[0].reuniao.participantes.join("|") === "Otto Teste|Zuleica Prado" && gravado[1].reuniao.tarefaId === null, "a reunião do bloco não foi gravada como campo do bloco");
+
+    const ctxP = await navegador.newContext({ viewport: { width: 1440, height: 900 }, locale: "pt-BR", permissions: ["clipboard-read", "clipboard-write"] });
+    await ctxP.addInitScript((v) => {
+      try {
+        localStorage.setItem("nexo:rotina", v);
+        localStorage.setItem("nexo:novidadesVistas", JSON.stringify("99.0"));
+      } catch {}
+    }, ROTINA_DESLIGADA);
+    const p = await ctxP.newPage();
+    p.setDefaultTimeout(T);
+    const errosP = [];
+    p.on("pageerror", (e) => errosP.push(String(e)));
+    const proxima = p.locator("[data-slot=proxima-acao]");
+    const titulo = () => p.locator("[data-slot=proxima-acao-titulo]").innerText();
+    try {
+      const em = (trecho) => { passoAtual = "3.21: " + trecho; };
+      em("abrir a tela Hoje com o relógio fixo");
+      await p.clock.setFixedTime(as(10, 0));
+      await p.goto(B + "/");
+      await p.locator("[data-slot=hoje]").waitFor();
+      // Navegador novo: o aviso "O Nexo chegou à versão..." apareceria por 15 segundos por cima dos outros avisos
+      // (e do Desfazer que esta etapa clica). O app marca a versão como vista na primeira abertura; recarregar tira o aviso.
+      await p.waitForFunction(() => !(localStorage.getItem("nexo:novidadesVistas") || "99.0").includes("99.0"));
+      await p.reload();
+      await p.locator("[data-slot=hoje]").waitFor();
+
+      // ---- 1. a reunião que está acontecendo vem antes de tudo ----
+      em("reunião em andamento como próxima ação");
+      await p.locator("[data-slot=proxima-acao][data-tipo=reuniao_agora]").waitFor();
+      afirmar((await titulo()) === "Reunião: Reunião 321", "a próxima ação não é a reunião em andamento: " + (await titulo()));
+      afirmar((await p.locator("[data-slot=proxima-acao-motivo]").innerText()).includes("Começou às 09:30 e vai até as 10:30, com Otto Teste e Zuleica Prado"), "o motivo da próxima ação não diz quando e com quem");
+      afirmar((await p.locator("[data-slot=proxima-acao-botao]").innerText()) === "Entrar no modo reunião", "o botão da reunião em andamento não é o de entrar");
+      // o bloco fica no topo da tela, antes da captura
+      const ordem = await p.evaluate(() => [...document.querySelectorAll("[data-slot=hoje] [data-bloco]")].map((e) => e.dataset.bloco));
+      afirmar(ordem[0] === "proxima" && ordem.includes("reunioes"), "a próxima ação não é o primeiro bloco da tela Hoje (ou faltaram as reuniões): " + ordem.join(","));
+
+      // ---- reuniões de hoje: as duas, a pauta da que tem tarefa e o aviso da que não tem ----
+      em("reuniões de hoje e pauta");
+      const reunioes = p.locator("[data-bloco=reunioes] [data-slot=reuniao-de-hoje]");
+      afirmar((await reunioes.count()) === 2, "o bloco Reuniões de hoje não mostrou as duas reuniões");
+      afirmar((await reunioes.nth(0).getAttribute("data-momento")) === "agora" && (await reunioes.nth(1).getAttribute("data-momento")) === "depois", "o momento de cada reunião veio errado");
+      afirmar((await reunioes.nth(1).innerText()).includes("Sem tarefa"), "a reunião sem tarefa não avisou que falta ligar uma");
+      await reunioes.nth(0).locator("[data-slot=pauta-da-reuniao]").click();
+      const pauta = p.locator("[data-slot=texto-da-pauta]");
+      await pauta.getByText("Pauta: Tarefa da próxima ação 321").waitFor();
+      afirmar((await pauta.innerText()).includes("- Passo 321 do foco"), "a pauta não trouxe o passo em aberto da tarefa");
+      await p.locator("[data-slot=copiar-pauta]").click();
+      await p.waitForFunction(async () => (await navigator.clipboard.readText()).startsWith("Pauta: Tarefa da próxima ação 321"));
+      await p.keyboard.press("Escape");
+      await pauta.waitFor({ state: "detached" });
+
+      // ---- o balão do Foco usa a mesma conta ----
+      em("balão do Foco");
+      await p.locator("[data-slot=ferramenta-foco]").click();
+      await p.locator("[data-slot=foco-proxima-acao]", { hasText: "Reunião: Reunião 321" }).waitFor();
+      await p.keyboard.press("Escape");
+
+      // ---- entrar no modo reunião: o título e os participantes do bloco já vêm, sem criar rascunho antes da hora ----
+      em("modo reunião pelo bloco");
+      await p.locator("[data-slot=proxima-acao-botao]").click();
+      await p.waitForURL(/\/tarefas\/e2e321a\/reuniao\?bloco=bl321r$/);
+      await p.locator("[data-slot=reuniao]").waitFor();
+      await p.waitForFunction(() => document.querySelector('[aria-label="Título da reunião"]')?.value === "Reunião 321");
+      await p.locator("[data-slot=reuniao]").getByText("Otto Teste").first().waitFor();
+      await p.locator("[data-slot=reuniao]").getByText("Zuleica Prado").first().waitFor();
+      await p.waitForTimeout(400);
+      afirmar((await p.evaluate((id) => localStorage.getItem("nexo:reuniao:" + id), ID)) === null, "abrir a reunião pelo bloco criou um rascunho antes de qualquer coisa ser escrita");
+      // escrever qualquer coisa já guarda, com o que veio do bloco
+      await p.locator("[data-slot=novo-passo]").fill("Passo anotado na reunião 321");
+      await p.locator("[data-slot=novo-passo]").press("Enter");
+      await p.waitForFunction((id) => (localStorage.getItem("nexo:reuniao:" + id) || "").includes("Otto Teste"), ID);
+      await p.evaluate((id) => localStorage.removeItem("nexo:reuniao:" + id), ID);
+
+      // ---- "Agora não" dispensa a sugestão por hoje; o passo do foco tem o botão de concluir, com Desfazer ----
+      em("Agora não até o passo do foco");
+      await p.goto(B + "/");
+      await p.locator("[data-slot=proxima-acao][data-tipo=reuniao_agora]").waitFor();
+      let achou = false;
+      for (let i = 0; i < 30 && !achou; i++) {
+        const chave = await proxima.getAttribute("data-chave");
+        if ((await titulo()) === "Passo 321 do foco") { achou = true; break; }
+        await p.locator("[data-slot=agora-nao]").click();
+        await p.waitForFunction((c) => document.querySelector("[data-slot=proxima-acao]")?.getAttribute("data-chave") !== c, chave);
+        if ((await proxima.getAttribute("data-vazio")) !== null) break;
+      }
+      afirmar(achou, "o passo do foco não apareceu como próxima ação depois de dispensar as anteriores");
+      afirmar((await proxima.getAttribute("data-tipo")) === "passo" && (await p.locator("[data-slot=proxima-acao-botao]").innerText()) === "Concluir o passo", "o passo do foco não veio com o botão de concluir");
+      const feito = (d) => d.tarefas.find((t) => t.id === ID).registros[0].proximosPassos[0].feito;
+      await p.locator("[data-slot=proxima-acao-botao]").click();
+      await ateOsDados((d) => feito(d) === true, "concluir pela próxima ação não gravou o passo");
+      // o aviso com "Desfazer" aparece; com o relógio parado deste navegador ele não para de animar, então a volta
+      // é pelo Ctrl Z, que é o mesmo desfazer (o clique no aviso é coberto pelas etapas que não mexem no relógio)
+      await p.locator("[data-sonner-toast]", { hasText: "Passo concluído" }).waitFor();
+      await p.evaluate(() => document.activeElement?.blur());
+      await p.keyboard.press("Control+z");
+      await ateOsDados((d) => feito(d) === false, "desfazer não reabriu o passo concluído pela próxima ação");
+
+      // ---- dispensar tudo não muda nada nas tarefas, e "Mostrar de novo" traz as sugestões de volta ----
+      em("dispensar tudo e mostrar de novo");
+      for (let i = 0; i < 40 && (await proxima.getAttribute("data-vazio")) === null; i++) {
+        const chave = await proxima.getAttribute("data-chave");
+        await p.locator("[data-slot=agora-nao]").click();
+        await p.waitForFunction((c) => document.querySelector("[data-slot=proxima-acao]")?.getAttribute("data-chave") !== c, chave);
+      }
+      await p.locator("[data-slot=proxima-acao][data-vazio]").getByText("Você dispensou as sugestões de agora").waitFor();
+      afirmar(feito(await dados()) === false, "dispensar sugestões mexeu na tarefa");
+      await p.locator("[data-slot=mostrar-sugestoes]").click();
+      await p.locator("[data-slot=proxima-acao][data-tipo=reuniao_agora]").waitFor();
+
+      // ---- o bloco pode ser escondido em Personalizar > Hoje ----
+      em("esconder os blocos em Personalizar");
+      await p.locator("[data-acao=personalizar-hoje]").click();
+      const painel = p.locator("[data-slot=personalizar]");
+      await painel.getByRole("switch", { name: "Mostrar Próxima ação" }).click();
+      await p.locator("[data-bloco=proxima]").waitFor({ state: "detached" });
+      await painel.getByRole("switch", { name: "Mostrar Reuniões de hoje" }).click();
+      await p.locator("[data-bloco=reunioes]").waitFor({ state: "detached" });
+      await painel.getByRole("switch", { name: "Mostrar Próxima ação" }).click();
+      await painel.getByRole("switch", { name: "Mostrar Reuniões de hoje" }).click();
+      await p.locator("[data-bloco=proxima]").waitFor();
+      await p.locator("[data-bloco=reunioes]").waitFor();
+      await painel.getByRole("button", { name: "Pronto" }).click();
+      await painel.waitFor({ state: "detached" });
+
+      // ---- quinze minutos antes da outra reunião, o app avisa e a próxima ação passa a ser prepará-la ----
+      em("aviso de 15 minutos");
+      await p.clock.setFixedTime(as(14, 45));
+      await p.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await p.locator("[data-sonner-toast]", { hasText: "Reunião em 15 min: Café 321" }).waitFor();
+      await p.locator("[data-slot=proxima-acao][data-tipo=reuniao_em_breve]").waitFor();
+      afirmar((await titulo()) === "Preparar a reunião: Café 321", "a próxima ação não passou a ser a reunião que vai começar");
+
+      // ---- o formulário do bloco marca a reunião, com participantes e tarefa ----
+      em("formulário do bloco de reunião");
+      await p.goto(B + "/rotina");
+      await p.locator(`[data-slot=rotina][data-data="${dia}"]`).waitFor();
+      await p.locator("[data-slot=bloco]", { hasText: "Café 321" }).click();
+      const f = p.locator("[data-slot=bloco-form]");
+      await f.waitFor();
+      afirmar((await f.getByRole("switch", { name: "É uma reunião" }).getAttribute("data-state")) === "checked", "o formulário não mostrou que o bloco é uma reunião");
+      const chips = f.locator("[data-slot=reuniao-do-bloco] [data-slot=campo-chips] input").first();
+      await chips.fill("Otto Teste");
+      await chips.press("Enter");
+      // a lista de sugestões de nomes fica aberta enquanto o campo tem foco e cobre o seletor de baixo: sai do campo antes
+      await chips.press("Tab");
+      await f.getByRole("combobox", { name: "Tarefa da reunião" }).click();
+      await p.getByRole("option", { name: /Tarefa da próxima ação 321/ }).click();
+      await p.locator("[data-slot=salvar-bloco]").click();
+      await f.waitFor({ state: "detached" });
+      await ateOsDados((d) => {
+        const b = d.jornada.items.find((x) => x.id === dia)?.blocos.find((x) => x.id === "bl321c");
+        return !!b?.reuniao && b.reuniao.participantes.join("|") === "Otto Teste" && b.reuniao.tarefaId === ID;
+      }, "os participantes e a tarefa da reunião não foram gravados pelo formulário");
+      // desligar "É uma reunião" tira o campo do bloco
+      await p.locator("[data-slot=bloco]", { hasText: "Café 321" }).click();
+      await f.waitFor();
+      await f.getByRole("switch", { name: "É uma reunião" }).click();
+      await p.locator("[data-slot=salvar-bloco]").click();
+      await f.waitFor({ state: "detached" });
+      await ateOsDados((d) => !("reuniao" in (d.jornada.items.find((x) => x.id === dia)?.blocos.find((x) => x.id === "bl321c") ?? { reuniao: 1 })), "desligar a reunião não tirou o campo do bloco");
+      afirmar(errosP.length === 0, "erro de página na etapa da próxima ação: " + errosP.join(" | "));
+    } finally {
+      await ctxP.close();
+    }
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

@@ -191,7 +191,7 @@ export const PERFIS_PRONTOS: readonly PerfilPronto[] = [
         ordem: ["/", "/tarefas", "/notas", "/paginas", "/perguntar", "/links", "/categorias"], ocultos: ["/pendencias", "/rotina", "/pessoas", ACOMPANHAR],
         secoesOcultas: ["foco"], ferramentasOcultas: ["rotina", "agenda", "foco"],
       },
-      hoje: { primeiro: "foco", ocultos: ["aguardando", "bloqueadas", "rotina"] },
+      hoje: { primeiro: "foco", ocultos: ["reunioes", "aguardando", "bloqueadas", "rotina"] },
       inicio: "/paginas",
     }),
   },

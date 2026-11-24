@@ -19,6 +19,8 @@ import { CapturaRapida } from "@/components/hoje/CapturaRapida";
 import { FocoHoje } from "@/components/hoje/FocoHoje";
 import { AguardandoRetorno, BloqueadasEParadas, ProgressoDoDia } from "@/components/hoje/Laterais";
 import { PrecisaDeVoce } from "@/components/hoje/PrecisaDeVoce";
+import { ProximaAcao } from "@/components/hoje/ProximaAcao";
+import { ReunioesDeHoje, useReunioesDeHoje } from "@/components/hoje/ReunioesDeHoje";
 import { Semana } from "@/components/hoje/Semana";
 import { dataLonga, useAgora } from "@/components/hoje/apoio";
 import { itemLista, lista } from "@/lib/animacoes";
@@ -36,6 +38,9 @@ export default function Hoje() {
   // A tela do jeito do usuário (Personalizar > Hoje): o que aparece, em que ordem e o nome na saudação.
   const { telaHoje } = useTelaHoje();
   const mostra = (id: BlocoHoje) => !telaHoje.ocultos.includes(id);
+  // As reuniões marcadas na rotina de hoje (3.21): o bloco só existe em dia que tem reunião.
+  const reunioes = useReunioesDeHoje();
+  const temReunioes = mostra("reunioes") && reunioes.length > 0;
   const titulo = telaHoje.nome ? `${saudacao(agora)}, ${telaHoje.nome}` : saudacao(agora);
 
   const tarefas = useMemo(() => dados?.tarefas ?? [], [dados?.tarefas]);
@@ -105,8 +110,11 @@ export default function Hoje() {
     bloqueadas: { largo: false, conteudo: <BloqueadasEParadas bloqueadas={resumo.bloqueadas} paradas={resumo.paradas} icone={<Ban />} /> },
   };
   const laterais = telaHoje.laterais.filter(mostra);
-  const duasColunas = principais.length > 0 && laterais.length > 0;
-  const nadaAVista = principais.length === 0 && laterais.length === 0 && !mostra("captura") && !mostra("semana");
+  // As reuniões de hoje abrem a coluna da direita, acima dos painéis que o usuário ordena: ficam à vista sem
+  // empurrar "Precisa de você" para baixo.
+  const temColunaDireita = laterais.length > 0 || temReunioes;
+  const duasColunas = principais.length > 0 && temColunaDireita;
+  const nadaAVista = principais.length === 0 && !temColunaDireita && !mostra("captura") && !mostra("semana") && !mostra("proxima");
 
   return (
     <Pagina
@@ -127,6 +135,13 @@ export default function Hoje() {
       acoes={acoes}
     >
       <motion.div data-slot="hoje" variants={lista} initial="escondido" animate="visivel" className="@container flex flex-col gap-4">
+        {/* uma coisa a fazer agora, com o motivo: é por onde o dia anda (3.21) */}
+        {mostra("proxima") && (
+          <motion.div variants={itemLista} data-bloco="proxima">
+            <ProximaAcao />
+          </motion.div>
+        )}
+
         {mostra("captura") && (
           <motion.div variants={itemLista} data-bloco="captura">
             <CapturaRapida />
@@ -140,7 +155,7 @@ export default function Hoje() {
           </Vazio>
         )}
 
-        {(principais.length > 0 || laterais.length > 0) && (
+        {(principais.length > 0 || temColunaDireita) && (
           <div className={cn("mt-2 grid gap-x-6 gap-y-8", duasColunas && "@5xl:grid-cols-[minmax(0,1fr)_20rem]")}>
             {principais.length > 0 && (
               <div className="flex min-w-0 flex-col gap-8">
@@ -152,9 +167,14 @@ export default function Hoje() {
               </div>
             )}
 
-            {laterais.length > 0 && (
+            {temColunaDireita && (
               // Sem a coluna principal, os painéis ocupam a largura toda, lado a lado.
               <aside className={cn("grid min-w-0 content-start items-start gap-4 @xl:grid-cols-2", duasColunas ? "@5xl:grid-cols-1" : "@5xl:grid-cols-3")}>
+                {temReunioes && (
+                  <motion.div variants={itemLista} data-bloco="reunioes" className={cn("min-w-0", duasColunas && "@xl:col-span-2 @5xl:col-span-1")}>
+                    <ReunioesDeHoje reunioes={reunioes} />
+                  </motion.div>
+                )}
                 {laterais.map((id) => (
                   <motion.div key={id} variants={itemLista} data-bloco={id}
                     className={cn("min-w-0", paineis[id].largo && duasColunas && "@xl:col-span-2 @5xl:col-span-1")}>

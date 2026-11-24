@@ -8,7 +8,7 @@ import { useCallback, useMemo } from "react";
 import { usePref } from "./preferencias";
 
 /** Todos os blocos da tela Hoje, na ordem em que aparecem por padrão. */
-export const BLOCOS_HOJE = ["captura", "precisa", "foco", "rotina", "progresso", "aguardando", "bloqueadas", "semana"] as const;
+export const BLOCOS_HOJE = ["proxima", "reunioes", "captura", "precisa", "foco", "rotina", "progresso", "aguardando", "bloqueadas", "semana"] as const;
 export type BlocoHoje = (typeof BLOCOS_HOJE)[number];
 /** Os painéis da coluna da direita: são os que o usuário pode reordenar. */
 export const LATERAIS_HOJE = ["rotina", "progresso", "aguardando", "bloqueadas"] as const;
@@ -17,6 +17,8 @@ export const PRIMEIROS_HOJE = ["auto", "precisa", "foco"] as const;
 export type PrimeiroHoje = (typeof PRIMEIROS_HOJE)[number];
 
 export const NOME_BLOCO_HOJE: Record<BlocoHoje, { nome: string; descricao: string }> = {
+  proxima: { nome: "Próxima ação", descricao: "Uma coisa a fazer agora, com o motivo, e o que vem depois dela." },
+  reunioes: { nome: "Reuniões de hoje", descricao: "As reuniões marcadas na rotina, com a pauta e o botão de começar. Só aparece em dia que tem reunião." },
   captura: { nome: "Captura rápida", descricao: "O campo para anotar uma tarefa e apertar Enter." },
   precisa: { nome: "Precisa de você", descricao: "As tarefas com prazo estourado, passo atrasado, retorno pendente e outros lembretes." },
   foco: { nome: "Foco de hoje", descricao: "As tarefas que você escolheu para hoje, com os passos para marcar." },
