@@ -130,7 +130,7 @@ export function Agenda() {
     <Popover open={aberta_} onOpenChange={setAberta}>
       <Dica texto="Agenda: prazos das próximas duas semanas">
         <PopoverTrigger asChild>
-          <button type="button" data-slot="ferramenta-agenda" aria-label="Agenda" className={cn(ficha, "hidden lg:inline-flex")}>
+          <button type="button" data-slot="ferramenta-agenda" aria-label="Agenda" className={cn(ficha, "hidden @[48rem]/barra:inline-flex")}>
             <CalendarDays className="size-3.5" />
             {/* Só o dia: a hora fica dentro do balão (3.9), para a barra ter espaço para as migalhas. */}
             <span className="first-letter:uppercase">{semPonto(DIA_NAVBAR.format(deISO(hoje)))}</span>
@@ -240,8 +240,8 @@ export function FocoRapido({ planejarDia }: { planejarDia: () => void }) {
             ) : (
               <Target className={cn("size-3.5", focos.length > 0 && "text-primary")} />
             )}
-            <span className="hidden sm:inline">Foco</span>
-            {total > 0 ? <span className="tabular-nums">{feitos}/{total}<span className="hidden xl:inline"> passos</span></span> : focos.length > 0 ? <span className="tabular-nums">{focos.length}</span> : null}
+            <span className="hidden @[24rem]/barra:inline">Foco</span>
+            {total > 0 ? <span className="tabular-nums">{feitos}/{total}<span className="hidden @[64rem]/barra:inline"> passos</span></span> : focos.length > 0 ? <span className="tabular-nums">{focos.length}</span> : null}
           </button>
         </PopoverTrigger>
       </Dica>
@@ -406,7 +406,7 @@ export function AnotarRapido() {
         <PopoverTrigger asChild>
           <button type="button" data-slot="ferramenta-anotar" aria-label="Anotar rápido" className={cn(ficha, "relative")}>
             <PenLine className="size-3.5" />
-            <span className="hidden xl:inline">Anotar</span>
+            <span className="hidden @[64rem]/barra:inline">Anotar</span>
             {temTexto && !aberto && <span aria-label="Tem texto esperando aqui" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-alerta ring-2 ring-background" />}
           </button>
         </PopoverTrigger>

@@ -159,7 +159,7 @@ function CartaoTime({
               {time.arquivado && <Badge variant="outline">Arquivado</Badge>}
             </div>
             <p className="mt-0.5 line-clamp-2 min-h-[2lh] text-xs leading-snug text-muted-foreground">
-              {time.descricao.trim() || <span className="text-muted-foreground/80">Sem descrição</span>}
+              {time.descricao.trim() || <span className="text-muted-foreground">Sem descrição</span>}
             </p>
           </div>
           <BotaoMenu acoes={acoes} rotulo={`Ações do time ${time.nome}`} className="-mt-1 -mr-1.5 opacity-60 group-hover/time:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" />

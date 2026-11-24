@@ -226,7 +226,7 @@ function LinhaLink({
                   {l.descricao ? (
                     <>
                       {l.descricao}
-                      {endereco && <span className="text-muted-foreground/80"> · {endereco}</span>}
+                      {endereco && <span> · {endereco}</span>}
                     </>
                   ) : (
                     endereco

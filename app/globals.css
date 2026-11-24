@@ -32,6 +32,9 @@
   /* Fundo cheio com texto claro por cima (botão primário, selo de foco). No claro é o próprio --primary;
      no escuro é mais fundo que ele, para o texto branco passar de 4,5:1 sem escurecer o text-primary. */
   --primary-solido: var(--primary);
+  /* Texto na cor de destaque sobre o fundo tingido da própria cor (selo "Atividade"). No claro é o --primary;
+     no escuro é mais claro que ele: sobre o tingido, o --primary dava 4,4:1 (3.24). */
+  --primary-texto: var(--primary);
   --secondary: oklch(0.955 calc(0.006 * var(--tinta)) var(--neutro));
   --secondary-foreground: oklch(0.27 calc(0.02 * var(--tinta)) var(--neutro));
   --muted: oklch(0.962 calc(0.005 * var(--tinta)) var(--neutro));
@@ -77,6 +80,7 @@
   --primary: oklch(0.63 calc(0.2 * var(--croma)) var(--matiz));
   --primary-foreground: oklch(0.99 0.005 var(--matiz));
   --primary-solido: oklch(0.52 calc(0.2 * var(--croma)) var(--matiz));
+  --primary-texto: color-mix(in oklch, var(--primary) 68%, var(--foreground));
   --secondary: oklch(0.245 calc(0.016 * var(--tinta)) var(--neutro));
   --secondary-foreground: oklch(0.93 calc(0.006 * var(--tinta)) var(--neutro));
   --muted: oklch(0.232 calc(0.015 * var(--tinta)) var(--neutro));
@@ -104,7 +108,7 @@
   --st-concluida: oklch(0.74 0.16 152);
   --st-cancelada: oklch(0.64 calc(0.01 * var(--tinta)) var(--neutro));
 
-  --marca-texto: oklch(0.55 0.13 90);
+  --marca-texto: oklch(0.47 0.11 90);
   --sombra-cor: 250 50% 2%;
   color-scheme: dark;
 }
@@ -154,6 +158,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-solido: var(--primary-solido);
+  --color-primary-texto: var(--primary-texto);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -246,6 +251,11 @@
     color: inherit;
     border-radius: 3px;
     padding: 0 2px;
+  }
+  /* no escuro o destaque é um mostarda médio: texto secundário por cima dava 4,2:1 (3.24) */
+  .dark mark,
+  .tema-escuro mark {
+    color: var(--foreground);
   }
   code {
     @apply font-mono text-[0.85em] bg-muted rounded px-1 py-0.5;

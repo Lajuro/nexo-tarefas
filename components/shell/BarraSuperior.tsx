@@ -111,7 +111,7 @@ export function BarraSuperior({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <header data-slot="barra-superior" className="flex h-11 shrink-0 items-center gap-1 border-b bg-background px-2">
+        <header data-slot="barra-superior" className="@container/barra flex h-11 shrink-0 items-center gap-1 border-b bg-background px-2">
           <Dica texto={recolhida ? "Abrir a barra lateral" : "Recolher a barra lateral"} atalho="Ctrl B">
             <Button variant="ghost" size="icon" aria-label="Recolher ou abrir a barra lateral" onClick={alternarLateral}>
               {recolhida ? <PanelLeft /> : <PanelLeftClose />}
@@ -148,9 +148,9 @@ export function BarraSuperior({
             <Vaga id="anotar" ocultas={ocultas}><AnotarRapido /></Vaga>
             <Vaga id="busca" ocultas={ocultas}>
               <button type="button" onClick={abrirPaleta} data-slot="busca-topo"
-                className="hidden h-7 items-center gap-2 rounded-md border border-transparent px-2 text-xs text-muted-foreground transition-colors outline-none sem-selecao hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 lg:flex 2xl:w-52 2xl:border-border 2xl:bg-muted/40">
+                className="hidden h-7 items-center gap-2 rounded-md border border-transparent px-2 text-xs text-muted-foreground transition-colors outline-none sem-selecao hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 @[48rem]/barra:flex @[80rem]/barra:w-52 @[80rem]/barra:border-border @[80rem]/barra:bg-muted/40">
                 <Search className="size-3.5" />
-                <span className="hidden flex-1 text-left 2xl:inline">Buscar em tudo</span>
+                <span className="hidden flex-1 text-left @[80rem]/barra:inline">Buscar em tudo</span>
                 <Kbd>/</Kbd>
               </button>
             </Vaga>

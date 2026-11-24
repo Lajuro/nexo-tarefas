@@ -333,8 +333,8 @@ export function SeletorDePerfil() {
             <button type="button" data-slot="seletor-perfil" data-perfil={ativo.id} data-modificado={modificado || undefined} aria-label={`Perfil de uso: ${ativo.nome}. Trocar de perfil.`}
               className="relative inline-flex h-7 max-w-44 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-muted-foreground transition-colors outline-none sem-selecao hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/35 data-[state=open]:bg-accent data-[state=open]:text-foreground [&_svg]:size-4 [&_svg]:shrink-0">
               <Icone />
-              <span className="hidden truncate xl:inline">{ativo.nome}</span>
-              {modificado && <span aria-hidden className="absolute top-1 right-1 size-1.5 rounded-full bg-primary xl:static xl:-ml-0.5" />}
+              <span className="hidden truncate @[64rem]/barra:inline">{ativo.nome}</span>
+              {modificado && <span aria-hidden className="absolute top-1 right-1 size-1.5 rounded-full bg-primary @[64rem]/barra:static @[64rem]/barra:-ml-0.5" />}
             </button>
           </DropdownMenuTrigger>
         </Dica>

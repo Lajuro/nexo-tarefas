@@ -305,7 +305,7 @@ function LinhaPessoa({
               {p.arquivada && <Badge variant="outline">Arquivada</Badge>}
             </div>
             <div className="truncate text-xs text-muted-foreground">
-              {sub ? <Destaque texto={sub} termo={termo} /> : <span className="text-muted-foreground/80">Sem cargo nem área</span>}
+              {sub ? <Destaque texto={sub} termo={termo} /> : <span className="text-muted-foreground">Sem cargo nem área</span>}
             </div>
             {ajuda && (
               <div data-slot="ajuda" className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-foreground/80">
@@ -329,7 +329,7 @@ function LinhaPessoa({
               {cats.length > 3 && <span className="text-xs text-muted-foreground">+{cats.length - 3}</span>}
             </div>
           )}
-          {!timesOrdenados.length && !cats.length && <span className="text-xs text-muted-foreground/80">Sem time nem categoria</span>}
+          {!timesOrdenados.length && !cats.length && <span className="text-xs text-muted-foreground">Sem time nem categoria</span>}
         </div>
 
         <span>

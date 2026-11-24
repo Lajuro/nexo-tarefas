@@ -449,7 +449,7 @@ export function PrazoTag({ prazo, concluida, className }: { prazo: string | null
 
 export const TIPO_VISUAL: Record<TipoRegistro, { icone: LucideIcon; texto: string; fundo: string }> = {
   reuniao: { icone: Users, texto: "text-info", fundo: "bg-info/14" },
-  atividade: { icone: Wrench, texto: "text-primary", fundo: "bg-primary/12" },
+  atividade: { icone: Wrench, texto: "text-primary-texto", fundo: "bg-primary/12" },
   // impedimento pede atenção (como "bloqueada"): âmbar, não vermelho. Marco é do sistema: neutro (3.10).
   impedimento: { icone: OctagonAlert, texto: "text-alerta", fundo: "bg-alerta/14" },
   decisao: { icone: Gavel, texto: "text-sucesso", fundo: "bg-sucesso/14" },

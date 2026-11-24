@@ -239,7 +239,7 @@ export function PainelDaSemana({ jornada, data, hoje, agora, aoIrPara }: { jorna
                   {l.esperado > 0 && <span aria-hidden className="absolute inset-x-0 border-t border-dashed border-foreground/30" style={{ bottom: `${(l.esperado / maior) * 100}%` }} />}
                   <span className={cn("w-full rounded-sm", l.estado === "sem-saida" ? "bg-alerta/60" : l.saldo != null && l.saldo < 0 ? "bg-destructive/55" : "bg-sucesso/70")} style={{ height: `${(l.trabalhado / maior) * 100}%` }} />
                 </span>
-                <span className={cn("text-[11px] capitalize tabular-nums", l.data === hoje ? "font-semibold text-primary" : "text-muted-foreground")}>{DIA_CURTO[l.diaSemana]}</span>
+                <span className={cn("text-[11px] capitalize tabular-nums", l.data === hoje ? "font-semibold text-primary-texto" : "text-muted-foreground")}>{DIA_CURTO[l.diaSemana]}</span>
               </button>
             </Dica>
           ))}

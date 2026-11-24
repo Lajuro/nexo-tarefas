@@ -526,7 +526,7 @@ function LinhaTarefa({ t, cat, foco, ...p }: PropsItem & { t: Tarefa; cat?: Cate
       <IconeStatus status={t.status} className="mr-2.5" />
       <span className="min-w-0 flex-1 truncate">{t.titulo}</span>
       {foco && (
-        <span className="mr-2 ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+        <span className="mr-2 ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary-texto">
           <Crosshair className="size-3" /> Foco
         </span>
       )}

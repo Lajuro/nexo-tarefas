@@ -91,7 +91,7 @@ export function CartaoCategoria({ cat, tarefas, aoEditar }: { cat: Categoria; ta
               </div>
             </div>
 
-            <p className={cn("mt-3 line-clamp-2 min-h-[2.375rem] text-[13px] leading-[1.1875rem] text-muted-foreground", !cat.descricao && "text-muted-foreground/80 italic")}>
+            <p className={cn("mt-3 line-clamp-2 min-h-[2.375rem] text-[13px] leading-[1.1875rem] text-muted-foreground", !cat.descricao && "italic")}>
               {cat.descricao || "Sem descrição"}
             </p>
 

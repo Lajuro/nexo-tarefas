@@ -79,6 +79,14 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.24: acabamento
+
+Uma passada por todas as telas, nos dois temas, medindo o que dá para medir. Nada muda nos dados nem no jeito de usar.
+
+- **Barra superior inteira com um painel ao lado.** Com a Ajuda (`?`) ou o Personalizar aberto, o sino e o menu **...** ficavam cortados. Agora a barra se ajusta ao espaço que sobra: os rótulos viram ícones e nada sai da tela.
+- **Leitura melhor no tema escuro**: o selo "Atividade", o dia de hoje na semana da Rotina, o selo "Foco" da paleta e o destaque do termo na Busca ganharam contraste.
+- **Leitura melhor no tema claro**: o endereço de cada link e os textos "Sem descrição" e "Sem cargo nem área" estavam apagados demais.
+
 ## 3.23: decisões num lugar só, tempo em cada status e o resumo pronto
 
 Três respostas que antes pediam abrir tarefa por tarefa. Nada muda no formato dos dados: tudo é calculado do que você já registrou.

@@ -3337,6 +3337,13 @@ async function main() {
     await ajuda.getByText("Atalhos desta tela").waitFor();
     await ajuda.locator("[data-slot=ajuda-glossario]").click();
     await ajuda.getByText("Lembrete de voltar").waitFor();
+    // com o painel aberto ao lado, a barra superior encolhe e continua inteira: o sino e o "Mais" não ficam cortados (3.24)
+    await pg.waitForFunction(() => {
+      const barra = document.querySelector("[data-slot=barra-superior]");
+      const painel = document.querySelector("[data-slot=ajuda]");
+      const mais = document.querySelector("[data-slot=menu-mais]");
+      return barra && painel && mais && barra.scrollWidth <= barra.clientWidth + 1 && mais.getBoundingClientRect().right <= painel.getBoundingClientRect().left + 1;
+    }).catch(() => { throw new Error("com a ajuda aberta, a barra superior transbordou (o sino ou o menu Mais ficou cortado)"); });
     // com a ajuda aberta os atalhos continuam valendo (N abre a nova tarefa)
     await pg.evaluate(() => document.activeElement?.blur());
     await pg.keyboard.press("n");

@@ -264,7 +264,7 @@ export default function Relatorios() {
                 </motion.span>
               </AnimatePresence>
               {copiado ? "Copiado" : "Copiar prompt"}
-              <span className="rounded-full bg-white/20 px-1.5 text-xs leading-[18px] font-semibold tabular-nums">
+              <span className="rounded-full bg-black/20 px-1.5 text-xs leading-[18px] font-semibold tabular-nums">
                 {plural(itens.length, "registro", "registros")}
               </span>
             </Button>

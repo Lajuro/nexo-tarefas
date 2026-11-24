@@ -166,7 +166,7 @@ export function SessaoFoco() {
                       className={cn("transition-[stroke-dashoffset] duration-1000 ease-linear", estourou ? "stroke-alerta" : "stroke-primary")} />
                   </svg>
                   <span className="tabular-nums">{correndo ? `${estourou ? "+" : ""}${relogio(restante)}` : "Registrar"}</span>
-                  <span className="hidden min-w-0 truncate font-normal text-muted-foreground xl:inline">{tarefa.titulo}</span>
+                  <span className="hidden min-w-0 truncate font-normal text-muted-foreground @[64rem]/barra:inline">{tarefa.titulo}</span>
                 </button>
               </PopoverTrigger>
             </Dica>

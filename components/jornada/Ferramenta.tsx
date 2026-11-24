@@ -105,7 +105,7 @@ export function FerramentaRotina() {
     <Popover open={aberto} onOpenChange={setAberto}>
       <Dica texto={dica}>
         <PopoverTrigger asChild>
-          <button type="button" data-slot="ferramenta-rotina" data-agora={atual ? atual.id : undefined} aria-label="Rotina de hoje" className={cn(ficha, "hidden md:inline-flex")}>
+          <button type="button" data-slot="ferramenta-rotina" data-agora={atual ? atual.id : undefined} aria-label="Rotina de hoje" className={cn(ficha, "hidden @[32rem]/barra:inline-flex")}>
             <CalendarClock className={cn("size-3.5", atual && VISUAL_DO_BLOCO[atual.tipo].texto, !atual && conta.extra > 0 && conta.estado === "aberto" && "text-alerta")} />
             <span className="max-w-32 truncate">{rotulo.nome}</span>
             {rotulo.extra && <span className="tabular-nums text-foreground/80">{rotulo.extra}</span>}
