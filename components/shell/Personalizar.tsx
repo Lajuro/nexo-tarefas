@@ -7,7 +7,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Reorder, useDragControls } from "motion/react";
-import { ClipboardCopy, ClipboardPaste, GripVertical, PanelLeft, PanelTop, Palette, RotateCcw, Sun, X } from "lucide-react";
+import { ClipboardCopy, ClipboardPaste, GripVertical, RotateCcw, X } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useAparencia, useConfirmar, useTema } from "@/components/Raiz";
 import { Modal, copiarTexto } from "@/components/comum";
@@ -15,13 +15,16 @@ import { Button } from "@/components/ui/button";
 import { CampoSwitch, Segmentado, Switch } from "@/components/ui/controles";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dica } from "@/components/ui/popover";
+import { normalizarPerfis, perfisParaLevar } from "@/lib/perfis";
 import { TAMANHO_MAXIMO, lerPersonalizacao, textoDaPersonalizacao } from "@/lib/personalizacao";
+import { gravarPref, lerPref } from "@/lib/preferencias";
 import { BLOCOS_HOJE, LateralHoje, NOME_BLOCO_HOJE, PrimeiroHoje, TAMANHO_DO_NOME, useTelaHoje } from "@/lib/tela-hoje";
 import {
   AbaPersonalizar, FERRAMENTAS, IdSecao, LARGURA_LATERAL, NOME_FERRAMENTA, NOME_SECAO, alternarNa, naOrdem, useMoldura,
 } from "@/lib/moldura";
 import { cn } from "@/lib/utils";
 import { OpcoesAparencia } from "./Aparencia";
+import { AbaPerfis, FaixaDoPerfil, usePerfis } from "./Perfis";
 import { GRUPO_ACOMPANHAR, TELAS_ACOMPANHAR, gruposDoMenu } from "./navegacao";
 
 function Bloco({ titulo, ajuda, children }: { titulo: string; ajuda?: ReactNode; children: ReactNode }) {
@@ -250,7 +253,12 @@ function LevarPersonalizacao() {
   const [erro, setErro] = useState("");
 
   const copiar = async () => {
-    if (await copiarTexto(textoDaPersonalizacao({ tema, aparencia, moldura, hoje: telaHoje }))) toast("Código copiado. No outro computador, abra Personalizar e cole.");
+    const codigo = textoDaPersonalizacao({
+      tema, aparencia, moldura, hoje: telaHoje,
+      // desde a 3.20 os perfis próprios e a tela inicial vão junto (a memória de cada perfil é só deste navegador)
+      perfis: perfisParaLevar(normalizarPerfis(lerPref<unknown>("perfis", null))), inicio: lerPref<unknown>("telaInicial", "/"), lateralRecolhida: lerPref<unknown>("lateralRecolhida", false),
+    });
+    if (await copiarTexto(codigo)) toast("Código copiado. No outro computador, abra Personalizar e cole.");
     else toast("Não consegui copiar automaticamente.", "erro");
   };
   const aplicar = () => {
@@ -260,6 +268,10 @@ function LevarPersonalizacao() {
     mudarAparencia(lido.valor.aparencia);
     mudarMoldura(lido.valor.moldura);
     mudarTelaHoje(lido.valor.hoje);
+    // código da 3.20 em diante: os perfis próprios, o perfil em uso e a tela inicial vêm junto
+    if (lido.valor.perfis) gravarPref("perfis", { ...lido.valor.perfis, memoria: {} });
+    if (lido.valor.inicio) gravarPref("telaInicial", lido.valor.inicio);
+    if (typeof lido.valor.lateralRecolhida === "boolean") gravarPref("lateralRecolhida", lido.valor.lateralRecolhida);
     setColando(false);
     setTexto("");
     toast("Personalização aplicada.");
@@ -270,7 +282,7 @@ function LevarPersonalizacao() {
       <div>
         <h3 className="text-xs font-semibold tracking-tight sem-selecao">Levar para outro computador</h3>
         <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-          A personalização mora no navegador. Copie o código aqui e cole no outro: tema, cores, barras e a tela Hoje vão juntos. Suas tarefas não entram nisso.
+          A personalização mora no navegador. Copie o código aqui e cole no outro: tema, cores, barras, a tela Hoje e os seus perfis vão juntos. Suas tarefas não entram nisso.
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -296,8 +308,7 @@ export function Personalizar() {
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<AbaPersonalizar>("aparencia");
   const { restaurarAparencia } = useAparencia();
-  const { restaurarMoldura } = useMoldura();
-  const { restaurarTelaHoje } = useTelaHoje();
+  const perfis = usePerfis();
   const confirmar = useConfirmar();
 
   useEffect(() => {
@@ -315,16 +326,15 @@ export function Personalizar() {
     return () => document.documentElement.removeAttribute("data-personalizando");
   }, [aberto]);
 
-  const restaurar = async () => {
+  // Duas voltas, cada uma na sua aba: a aparência (cores, cantos, letra) e o perfil em uso (menu, barras, tela Hoje).
+  // Nenhuma das duas apaga o nome da saudação, que é da pessoa.
+  const restaurarAparenciaComPergunta = async () => {
     const ok = await confirmar({
-      titulo: "Voltar tudo ao padrão?",
-      descricao: "Cores, cantos, letra, barra lateral, barra superior e a tela Hoje voltam a ser como vieram. Suas tarefas e anotações não mudam.",
+      titulo: "Voltar a aparência ao padrão?",
+      descricao: "Cores, cantos, letra, fundo e movimento voltam a ser como vieram. O menu, as barras e a tela Hoje são do perfil em uso e não mudam aqui.",
       confirmar: "Voltar ao padrão",
     });
-    if (!ok) return;
-    restaurarAparencia();
-    restaurarMoldura();
-    restaurarTelaHoje();
+    if (ok) restaurarAparencia();
   };
 
   return (
@@ -353,10 +363,11 @@ export function Personalizar() {
               aoMudar={setAba}
               className="flex w-full [&>button]:flex-1 [&>button]:gap-1.5 [&>button]:px-1.5"
               opcoes={[
-                { valor: "aparencia", rotulo: "Aparência", icone: <Palette /> },
-                { valor: "lateral", rotulo: "Lateral", icone: <PanelLeft /> },
-                { valor: "superior", rotulo: "Superior", icone: <PanelTop /> },
-                { valor: "hoje", rotulo: "Hoje", icone: <Sun /> },
+                { valor: "perfis", rotulo: "Perfis" },
+                { valor: "aparencia", rotulo: "Aparência" },
+                { valor: "lateral", rotulo: "Lateral" },
+                { valor: "superior", rotulo: "Superior" },
+                { valor: "hoje", rotulo: "Hoje" },
               ]}
             />
             <DialogPrimitive.Close aria-label="Fechar"
@@ -365,10 +376,17 @@ export function Personalizar() {
             </DialogPrimitive.Close>
           </header>
           <div key={aba} data-aba={aba} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
-            {aba === "aparencia" ? <><OpcoesAparencia /><LevarPersonalizacao /></> : aba === "lateral" ? <AbaLateral /> : aba === "superior" ? <AbaSuperior /> : <AbaHoje />}
+            {aba === "perfis" ? <AbaPerfis /> : aba === "aparencia" ? <><OpcoesAparencia /><LevarPersonalizacao /></> : (
+              // o que se mexe nestas três abas é o arranjo do perfil em uso
+              <><FaixaDoPerfil />{aba === "lateral" ? <AbaLateral /> : aba === "superior" ? <AbaSuperior /> : <AbaHoje />}</>
+            )}
           </div>
           <footer className="flex shrink-0 items-center justify-between gap-2 border-t bg-muted/40 px-4 py-2.5">
-            <Button variant="ghost" size="sm" onClick={restaurar}><RotateCcw /> Voltar tudo ao padrão</Button>
+            {aba === "aparencia" ? (
+              <Button variant="ghost" size="sm" data-slot="restaurar-aparencia" onClick={restaurarAparenciaComPergunta}><RotateCcw /> Voltar a aparência ao padrão</Button>
+            ) : (
+              <Button variant="ghost" size="sm" data-slot="redefinir-perfil" disabled={!perfis.modificado} onClick={() => perfis.redefinir()}><RotateCcw /> Redefinir este perfil</Button>
+            )}
             <Button size="sm" onClick={() => setAberto(false)}>Pronto</Button>
           </footer>
         </DialogPrimitive.Content>

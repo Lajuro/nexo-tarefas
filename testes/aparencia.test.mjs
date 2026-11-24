@@ -29,6 +29,7 @@ const A = await import("../lib/aparencia.ts");
 const M = await import("../lib/moldura.ts");
 const H = await import("../lib/tela-hoje.ts");
 const P = await import("../lib/personalizacao.ts");
+const Pf = await import("../lib/perfis.ts");
 
 let falhas = 0;
 let total = 0;
@@ -257,6 +258,32 @@ teste("personalização: o que é copiado volta igual ao ser colado", () => {
   assert.deepEqual(lido.valor, p);
   // com conversa em volta (colado de um e-mail ou de um chat) também serve
   assert.deepEqual(P.lerPersonalizacao(`segue o código:\n${texto}\nabraço`).valor, p);
+});
+
+teste("personalização v2 (3.20): os perfis próprios e a tela inicial vão junto, sem a memória; o código v1 continua valendo", () => {
+  const base = {
+    tema: "claro", aparencia: A.normalizarAparencia({}), moldura: M.normalizarMoldura({ ocultos: ["/links"] }), hoje: H.normalizarTelaHoje({ nome: "Ana" }),
+  };
+  const proprio = { id: "ppmeu00001", nome: "Plantão", base: "foco", arranjo: Pf.normalizarArranjo({ inicio: "/pendencias", moldura: { ocultos: ["/notas"] } }) };
+  const texto = P.textoDaPersonalizacao({ ...base, perfis: { ativo: "ppmeu00001", proprios: [proprio], memoria: { foco: proprio.arranjo } }, inicio: "/pendencias", lateralRecolhida: true });
+  const bruto = JSON.parse(texto);
+  assert.equal(bruto.v, 2);
+  assert.equal("memoria" in bruto.perfis, false, "a memória de cada perfil é só deste navegador");
+  const lido = P.lerPersonalizacao(texto);
+  assert.ok(lido.ok);
+  assert.deepEqual(lido.valor, { ...base, perfis: { ativo: "ppmeu00001", proprios: [proprio] }, inicio: "/pendencias", lateralRecolhida: true });
+  // v1 (de antes dos perfis): lido como sempre, sem mexer nos perfis de quem cola
+  const v1 = P.lerPersonalizacao(P.textoDaPersonalizacao(base));
+  assert.equal(JSON.parse(P.textoDaPersonalizacao(base)).v, 1);
+  assert.deepEqual(v1.valor, base);
+  assert.equal("perfis" in v1.valor, false);
+  // perfis hostis dentro do código passam pelo normalizador: id ruim fica de fora, ativo que não existe vira o Completo, início fora da lista vira Hoje
+  const hostil = P.lerPersonalizacao(JSON.stringify({ nexo: "personalizacao", v: 2, perfis: { ativo: "../x", proprios: [{ id: "../x", nome: "Ruim" }, { id: "ppbom00001", nome: "<b>Bom</b>" }], memoria: { foco: {} } }, inicio: "https://exemplo.invalido" }));
+  assert.ok(hostil.ok);
+  assert.equal(hostil.valor.perfis.ativo, "completo");
+  assert.deepEqual(hostil.valor.perfis.proprios.map((p) => p.id), ["ppbom00001"]);
+  assert.equal(hostil.valor.inicio, "/");
+  assert.equal(hostil.valor.lateralRecolhida, false);
 });
 
 teste("personalização: texto que não é código, cortado ou hostil é recusado ou vira o padrão", () => {

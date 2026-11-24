@@ -17,6 +17,7 @@ import { BarraSuperior } from "./shell/BarraSuperior";
 import { abrirAnotar } from "./shell/Ferramentas";
 import { Lateral } from "./shell/Lateral";
 import { Paleta } from "./shell/Paleta";
+import { abrirPerfis, telaInicial, useIniciarPerfis } from "./shell/Perfis";
 import { Personalizar } from "./shell/Personalizar";
 import { Carregando, JanelaAtalhos, Onboarding, TelaErro } from "./shell/Telas";
 import { NAV, ehAcompanhar, nomeDaRota } from "./shell/navegacao";
@@ -158,6 +159,9 @@ export function Shell({ children }: { children: ReactNode }) {
       } else if (k === "a") {
         e.preventDefault();
         abrirAnotar();
+      } else if (k === "p") {
+        e.preventDefault();
+        abrirPerfis();
       } else if (e.key === "?") {
         e.preventDefault();
         setAtalhos(true);
@@ -176,6 +180,24 @@ export function Shell({ children }: { children: ReactNode }) {
       window.removeEventListener("keydown", teclas);
     };
   }, [router, setRecolhida, toast]);
+
+  // Perfis de uso (3.20): na primeira vez, decide em que perfil a pessoa está (quem já personalizou ganha "Meu arranjo").
+  useIniciarPerfis();
+  // A tela inicial do perfil vale só ao abrir o app (primeira entrada da sessão, pela raiz). Clicar em Hoje continua indo para Hoje,
+  // e quem abriu um endereço direto (uma tarefa, a busca) fica onde pediu.
+  const inicioConferido = useRef(false);
+  useEffect(() => {
+    if (!dados || inicioConferido.current) return;
+    inicioConferido.current = true;
+    try {
+      if (sessionStorage.getItem("nexo:sessao")) return;
+      sessionStorage.setItem("nexo:sessao", "1");
+    } catch {
+      return;
+    }
+    const destino = telaInicial();
+    if (pathname === "/" && destino !== "/") router.replace(destino);
+  }, [dados, pathname, router]);
 
   // Primeira visita do dia: oferece o ritual de planejar o dia (uma vez por dia, mesmo com o app aberto direto).
   const temAbertas = !!dados?.tarefas.some(aberta);

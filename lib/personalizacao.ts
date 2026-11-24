@@ -7,6 +7,7 @@
 
 import { type Aparencia, normalizarAparencia } from "./aparencia";
 import { type Moldura, normalizarMoldura } from "./moldura";
+import { type Inicio, type PerfilProprio, normalizarInicio, normalizarPerfis } from "./perfis";
 import { type TelaHoje, normalizarTelaHoje } from "./tela-hoje";
 
 export const TEMAS = ["sistema", "claro", "escuro"] as const;
@@ -17,6 +18,11 @@ export interface Personalizacao {
   aparencia: Aparencia;
   moldura: Moldura;
   hoje: TelaHoje;
+  /** Desde a 3.20 (código v2): os perfis próprios e qual está em uso. A memória de cada perfil não viaja. */
+  perfis?: { ativo: string; proprios: PerfilProprio[] };
+  /** A tela em que o app abre (v2). */
+  inicio?: Inicio;
+  lateralRecolhida?: boolean;
 }
 
 const MARCA = "personalizacao";
@@ -26,8 +32,9 @@ export const TAMANHO_MAXIMO = 20_000;
 export const normalizarTema = (x: unknown): TemaGuardado => (TEMAS.includes(x as TemaGuardado) ? (x as TemaGuardado) : "sistema");
 
 /** O texto para copiar. */
-export function textoDaPersonalizacao(p: Personalizacao) {
-  return JSON.stringify({ nexo: MARCA, v: 1, tema: p.tema, aparencia: p.aparencia, moldura: p.moldura, hoje: p.hoje });
+export function textoDaPersonalizacao(p: Omit<Personalizacao, "inicio" | "lateralRecolhida"> & { inicio?: unknown; lateralRecolhida?: unknown }) {
+  const comPerfis = p.perfis ? { perfis: { ativo: p.perfis.ativo, proprios: p.perfis.proprios }, inicio: normalizarInicio(p.inicio), lateralRecolhida: p.lateralRecolhida === true } : {};
+  return JSON.stringify({ nexo: MARCA, v: p.perfis ? 2 : 1, tema: p.tema, aparencia: p.aparencia, moldura: p.moldura, hoje: p.hoje, ...comPerfis });
 }
 
 /** Lê o texto colado. Devolve a personalização já conferida ou o motivo de não ter servido. */
@@ -45,8 +52,14 @@ export function lerPersonalizacao(texto: string): { ok: true; valor: Personaliza
   }
   const x = (lido && typeof lido === "object" && !Array.isArray(lido) ? lido : {}) as Record<string, unknown>;
   if (x.nexo !== MARCA) return { ok: false, erro: "Esse texto não é um código de personalização do Nexo." };
-  return {
-    ok: true,
-    valor: { tema: normalizarTema(x.tema), aparencia: normalizarAparencia(x.aparencia), moldura: normalizarMoldura(x.moldura), hoje: normalizarTelaHoje(x.hoje) },
-  };
+  const valor: Personalizacao = { tema: normalizarTema(x.tema), aparencia: normalizarAparencia(x.aparencia), moldura: normalizarMoldura(x.moldura), hoje: normalizarTelaHoje(x.hoje) };
+  // v2: os perfis passam pelo mesmo normalizador do localStorage (ids, nomes, limite de 12, listas fechadas).
+  // Um código v1, de antes dos perfis, continua valendo: só não mexe neles.
+  if (x.perfis && typeof x.perfis === "object") {
+    const lidos = normalizarPerfis({ ...(x.perfis as Record<string, unknown>), memoria: {} });
+    valor.perfis = { ativo: lidos.ativo, proprios: lidos.proprios };
+    valor.inicio = normalizarInicio(x.inicio);
+    valor.lateralRecolhida = x.lateralRecolhida === true;
+  }
+  return { ok: true, valor };
 }

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, Link2, ListChecks, Merge, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, History, LayoutDashboard, Link2, ListChecks, Merge, MessageCircleQuestion, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.19";
+export const VERSAO_NOVIDADES = "3.20";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,16 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.20", icone: LayoutDashboard, titulo: "Perfis de uso: o app arrumado para o dia que você tem", texto: "O Nexo agora tem perfis de uso, como os espaços de trabalho de um editor de imagem. Cada perfil arruma o menu, as barras, a tela Hoje e a tela em que o app abre para um jeito de trabalhar: Completo, Foco, Reuniões, Gestão e Estudo. Suas tarefas são as mesmas em todos. Cada perfil lembra como você o deixou, dá para voltar ao original e para salvar os seus.", href: "/", rotulo: "Abrir os perfis",
+    acao: () => abrirPersonalizar("perfis"),
+    pontos: [
+      "Trocar de perfil: o botão com o nome do perfil na barra superior, a tecla P (no menu, 1 a 9 escolhe) ou a paleta (Ctrl K e \"perfil foco\").",
+      "Foco esconde o que distrai e recolhe a barra lateral. Reuniões põe rotina, pendências por pessoa e notas na frente. Gestão abre no Radar, com o quadro de tarefas. Estudo abre em Páginas.",
+      "Cada perfil lembra como você o deixou. Mexeu no Foco, trocou e voltou: está como ficou. \"Redefinir este perfil\" volta ao original, com Desfazer.",
+      "Seus perfis: arrume o app do seu jeito e use \"Salvar o arranjo de agora como perfil\". Dá para renomear, duplicar e excluir. Se você já tinha personalizado as barras, nada mudou: o seu arranjo virou o perfil \"Meu arranjo\".",
+      "Em Personalizar, a aba Perfis mostra uma miniatura de cada um e a tela em que ele abre. \"Copiar código deste perfil\" leva um perfil para um colega: colar acrescenta à lista, sem trocar nada.",
+      "O painel Personalizar passou a ter duas voltas separadas: \"Redefinir este perfil\" (menu, barras e tela Hoje) e \"Voltar a aparência ao padrão\" (cores, cantos e letra). O seu nome na saudação não é mais apagado por nenhuma delas.",
+    ] },
   { versao: "3.19", icone: Merge, titulo: "Passos sem repetição e cobrança por pessoa", texto: "O mesmo passo não aparece mais duas vezes na mesma tarefa. Ao preencher um registro com a resposta do Copilot, ao organizar uma folha do bloco de notas e ao encerrar o modo reunião, o passo que já está em aberto na tarefa não é criado de novo: a tela avisa e deixa incluir mesmo assim. Os repetidos que já existem aparecem com um aviso e o botão Juntar, e nada se perde: a cópia fica guardada no registro e dá para separar. Em Pendências, por pessoa, cada grupo tem a mensagem de cobrança pronta para copiar.", href: "/pendencias", rotulo: "Abrir as Pendências",
     pontos: [
       "Aviso de repetidos: no painel Pendências da tarefa e na tela de Pendências aparece \"N passos repetidos\". \"Ver e juntar\" mostra os pares antes de mexer em qualquer coisa.",
@@ -156,7 +166,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "O mesmo passo não aparece mais duas vezes na mesma tarefa: os repetidos ganham Juntar (sem perder nada), e Pendências copia a cobrança de cada pessoa.",
+          description: "Chegaram os perfis de uso: Foco, Reuniões, Gestão e Estudo arrumam o menu, as barras e a tela Hoje para o dia que você tem. Troque pela barra superior ou pela tecla P.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

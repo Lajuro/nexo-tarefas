@@ -788,6 +788,24 @@ html[data-fundo="grade"] [data-slot="pagina"] > header {
   }
 }
 
+/* Troca de perfil de uso (3.20): a tela inteira esmaece de uma vez, sem cada barra se mexer por conta própria. */
+html[data-vt="perfil"]::view-transition-old(root) {
+  animation: nexo-perfil-sai 0.16s ease both;
+}
+html[data-vt="perfil"]::view-transition-new(root) {
+  animation: nexo-perfil-entra 0.2s ease both;
+}
+@keyframes nexo-perfil-sai {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nexo-perfil-entra {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Painel "Personalizar" aberto em tela larga: o app encolhe para o painel caber ao lado. */
 [data-slot="app"] {
   transition: padding-right 0.3s cubic-bezier(0.22, 1, 0.36, 1);

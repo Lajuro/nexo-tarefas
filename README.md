@@ -79,6 +79,18 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.20: perfis de uso
+
+O mesmo app, arrumado para o dia que você tem. Um **perfil** guarda o que aparece no menu, nas barras e na tela Hoje, e em que tela o app abre. Suas tarefas são as mesmas em todos, e nada muda no formato dos dados.
+
+- **Cinco perfis prontos.** **Completo** (tudo à vista), **Foco** (dia de execução: o foco na frente, a barra lateral recolhida e o resto fora do caminho), **Reuniões** (rotina, pendências por pessoa e bloco de notas à mão), **Gestão** (abre no Radar, com Relatórios e o quadro de tarefas) e **Estudo** (abre em Páginas, com Perguntar, Links e Categorias na frente).
+- **Trocar.** O botão com o nome do perfil na barra superior, a tecla **P** (no menu, **1 a 9** escolhe) ou a paleta (Ctrl K e "perfil foco").
+- **Cada perfil lembra como você o deixou.** Mexeu no Foco, trocou para Reuniões e voltou: o Foco está como ficou. **Redefinir este perfil** volta ao original, com Desfazer.
+- **Seus perfis.** Arrume o app do seu jeito e use **Salvar o arranjo de agora como perfil**. Dá para renomear, duplicar e excluir. Se você já tinha personalizado as barras ou a tela Hoje, nada mudou: o seu arranjo virou o perfil **Meu arranjo**, já em uso.
+- **Personalizar > Perfis.** Uma miniatura de cada perfil, a tela em que ele abre e **Copiar código deste perfil**, para mandar a um colega. Quem recebe usa **Colar código de perfil**: o perfil entra na lista, sem trocar nada do que está em uso.
+- **Duas voltas separadas.** No painel Personalizar, **Redefinir este perfil** mexe no menu, nas barras e na tela Hoje; **Voltar a aparência ao padrão** mexe nas cores, nos cantos e na letra. O seu nome na saudação não é apagado por nenhuma das duas.
+- O perfil não muda o tema nem as cores (isso continua nos temas prontos), e a tela inicial do perfil só vale ao abrir o app: clicar em Hoje continua levando para Hoje.
+
 ## 3.19: passos sem repetição e cobrança por pessoa
 
 O mesmo passo não aparece mais duas vezes na mesma tarefa. Nada muda no formato dos dados.
@@ -407,7 +419,7 @@ O botão de ajustes no rodapé da barra lateral (ou "Personalizar" na paleta, `C
   - **...** (sempre à vista): tema, tela cheia, atalhos de teclado e Personalizar. Tela cheia e atalhos escondidos aqui somem também desse menu.
 - **Fixar uma tarefa**: no menu da tarefa (botão direito ou "..."), "Fixar na barra lateral". Ela fica a um clique, em qualquer tela.
 
-Essas escolhas ficam no navegador daquele computador. "Voltar tudo ao padrão" desfaz tudo de uma vez, sem tocar nas suas tarefas. Para aumentar ou diminuir tudo, use `Ctrl +` e `Ctrl -`.
+Essas escolhas ficam no navegador daquele computador. "Redefinir este perfil" desfaz o que você mexeu no menu, nas barras e na tela Hoje, e "Voltar a aparência ao padrão" desfaz cores, cantos e letra, sem tocar nas suas tarefas. Para aumentar ou diminuir tudo, use `Ctrl +` e `Ctrl -`.
 
 ## Pessoas e times
 

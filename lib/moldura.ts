@@ -20,9 +20,10 @@ export const NOME_SECAO: Record<IdSecao, { nome: string; descricao: string }> = 
  * Ferramentas opcionais da barra superior. O sino e o menu "Mais" (com a aparência) ficam sempre.
  * Tela cheia e atalhos moram dentro do menu "Mais" desde a 3.9: escondê-las tira do menu.
  */
-export const FERRAMENTAS = ["rotina", "agenda", "foco", "anotar", "busca", "telaCheia", "ajuda"] as const;
+export const FERRAMENTAS = ["perfil", "rotina", "agenda", "foco", "anotar", "busca", "telaCheia", "ajuda"] as const;
 export type IdFerramenta = (typeof FERRAMENTAS)[number];
 export const NOME_FERRAMENTA: Record<IdFerramenta, { nome: string; descricao: string }> = {
+  perfil: { nome: "Perfil de uso", descricao: "O perfil em uso e o menu para trocar (Foco, Reuniões, Gestão, Estudo ou os seus). A tecla P e a paleta continuam valendo sem ele." },
   rotina: { nome: "Rotina de hoje", descricao: "O bloco de agora e quanto falta, ou a hora de sair. Ao clicar, o próximo bloco e os botões do ponto." },
   agenda: { nome: "Data e agenda", descricao: "O dia. Ao clicar, a hora e os prazos das próximas duas semanas." },
   foco: { nome: "Foco de hoje", descricao: "Quantos passos do foco já saíram. Ao clicar, marca passos sem trocar de tela." },
@@ -139,7 +140,7 @@ export function useRecentes() {
 }
 
 /** Abre o painel "Personalizar" de qualquer lugar, já na aba pedida. */
-export type AbaPersonalizar = "aparencia" | "lateral" | "superior" | "hoje";
+export type AbaPersonalizar = "perfis" | "aparencia" | "lateral" | "superior" | "hoje";
 export function abrirPersonalizar(aba: AbaPersonalizar = "aparencia") {
   window.dispatchEvent(new CustomEvent("nexo:personalizar", { detail: { aba } }));
 }

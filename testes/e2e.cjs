@@ -161,6 +161,17 @@ async function main() {
     await campo.fill(texto);
     await campo.press("Enter");
   };
+  // Desde a 3.20 o painel Personalizar tem duas voltas: "Redefinir este perfil" (menu, barras, tela Hoje) e
+  // "Voltar a aparência ao padrão" (cores, cantos, letra). Esta ajudante faz as duas e termina na aba Aparência.
+  const voltarAoPadrao = async (painel) => {
+    await painel.getByRole("radio", { name: "Perfis" }).click();
+    const redefinir = painel.locator("[data-slot=redefinir-perfil]");
+    if (await redefinir.isEnabled()) await redefinir.click();
+    await pg.waitForFunction(() => document.querySelector("[data-slot=redefinir-perfil]")?.disabled === true);
+    await painel.getByRole("radio", { name: "Aparência" }).click();
+    await painel.locator("[data-slot=restaurar-aparencia]").click();
+    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+  };
   const fecharDialogo = async () => {
     await pg.keyboard.press("Escape");
     await pg.locator("[role=dialog][data-state=open]").waitFor({ state: "detached" }).catch(() => {});
@@ -1845,11 +1856,13 @@ async function main() {
     await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "155");
     await pg.locator("[data-slot=pagina]").first().waitFor();
     afirmar((await pg.locator("[data-slot=ferramenta-agenda]").count()) === 0, "a ferramenta escondida voltou depois de recarregar");
-    // voltar tudo ao padrão
+    // voltar tudo ao padrão: o perfil em uso e a aparência
     await pg.locator("[data-slot=abrir-personalizar]").click();
-    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
-    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+    // as mudanças feitas até aqui são do perfil em uso (Completo): o seletor mostra que ele foi mexido
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=completo][data-modificado]").waitFor();
+    await voltarAoPadrao(painel);
     await pg.waitForFunction(() => document.documentElement.style.getPropertyValue("--matiz") === "275");
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=completo]:not([data-modificado])").waitFor();
     await pg.locator("[data-slot=ferramenta-agenda]").waitFor();
     // o padrão volta a juntar as telas de acompanhar
     await nav("Acompanhar").waitFor();
@@ -1935,11 +1948,17 @@ async function main() {
     await pg.waitForFunction(async () => (await navigator.clipboard.readText()).includes('"personalizacao"'));
     const codigo = await pg.evaluate(() => navigator.clipboard.readText());
     afirmar(codigo.length < 3000 && JSON.parse(codigo).hoje.nome === "Ana", "o código copiado não traz a personalização");
-    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
-    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
+    afirmar(JSON.parse(codigo).v === 2 && JSON.parse(codigo).perfis.ativo === "completo" && !("memoria" in JSON.parse(codigo).perfis), "o código não leva os perfis (ou leva a memória deles)");
+    await voltarAoPadrao(painel);
     await raiz(() => document.documentElement.style.getPropertyValue("--matiz") === "275" && document.documentElement.dataset.neutros === "frio");
     await pg.locator("[data-bloco=semana]").waitFor();
-    afirmar(!(await pg.locator("[data-slot=pagina] h1").innerText()).includes("Ana"), "o nome continuou na saudação depois de voltar ao padrão");
+    // o nome da saudação é da pessoa, não do perfil nem da aparência: nenhuma das duas voltas apaga
+    afirmar((await pg.locator("[data-slot=pagina] h1").innerText()).includes("Ana"), "voltar ao padrão apagou o nome da saudação");
+    await painel.getByRole("radio", { name: "Hoje", exact: true }).click();
+    await painel.getByLabel("Seu nome na saudação").fill("");
+    await pg.keyboard.press("Enter");
+    await pg.waitForFunction(() => !document.querySelector("[data-slot=pagina] h1").innerText.includes("Ana"));
+    await painel.getByRole("radio", { name: "Aparência" }).click();
     await painel.locator("[data-acao=colar-personalizacao]").click();
     const campo = pg.getByRole("textbox", { name: "Código de personalização" });
     await campo.fill("isto não é um código");
@@ -1958,9 +1977,9 @@ async function main() {
     afirmar(depois.matiz === "0" && depois.neutros === "quente" && depois.escuro === "profundo", "a personalização não voltou depois de recarregar: " + JSON.stringify(depois));
     // deixa tudo como veio para as próximas etapas
     await pg.locator("[data-acao=personalizar-hoje]").click();
-    await painel.getByRole("button", { name: "Voltar tudo ao padrão" }).click();
-    await pg.getByRole("button", { name: "Voltar ao padrão", exact: true }).click();
-    await painel.getByRole("radio", { name: "Aparência" }).click();
+    await painel.getByLabel("Seu nome na saudação").fill("");
+    await pg.keyboard.press("Enter");
+    await voltarAoPadrao(painel);
     await painel.getByRole("radio", { name: "Sistema", exact: true }).click();
     await raiz(() => !document.documentElement.classList.contains("dark") && document.documentElement.style.getPropertyValue("--matiz") === "275");
     await painel.getByRole("button", { name: "Pronto" }).click();
@@ -2847,6 +2866,166 @@ async function main() {
     }
     await pg.getByRole("radio", { name: "Por tarefa" }).click();
     await pg.locator("[data-slot=lista-pendencias][data-agrupamento=tarefa]").waitFor();
+  });
+
+  await etapa("3.20: perfis de uso (trocar, lembrar, redefinir, salvar, código, tecla P, paleta e tela inicial)", async () => {
+    const perfis = () => pg.evaluate(() => JSON.parse(localStorage.getItem("nexo:perfis")));
+    const pref = (chave) => pg.evaluate((k) => JSON.parse(localStorage.getItem("nexo:" + k)), chave);
+    const seletor = (id) => pg.locator(`[data-slot=seletor-perfil][data-perfil${id ? `=${id}` : ""}]`);
+    const nav = (nome) => pg.locator("[data-slot=lateral] [data-slot=nav-item]", { hasText: new RegExp("^" + nome) });
+    const menu = pg.locator("[data-slot=menu-perfis]");
+    const painel = pg.locator("[data-slot=personalizar]");
+    const lateralEstreita = (estreita) => pg.waitForFunction((e) => (document.querySelector("[data-slot=lateral]").getBoundingClientRect().width < 100) === e, estreita);
+    const pelaTecla = async (numero) => {
+      await pg.locator("body").click({ position: { x: 700, y: 5 } }).catch(() => {});
+      await pg.evaluate(() => document.activeElement?.blur());
+      await pg.keyboard.press("p");
+      await menu.waitFor();
+      await pg.keyboard.press(String(numero));
+      await menu.waitFor({ state: "detached" });
+    };
+
+    await pg.goto(B + "/");
+    await pg.locator("[data-slot=hoje]").waitFor();
+    // as etapas anteriores voltaram tudo ao padrão: o perfil em uso é o Completo, sem mudanças
+    await seletor("completo").waitFor();
+    afirmar((await perfis()).ativo === "completo" && (await perfis()).proprios.length === 0, "o app não começou no perfil Completo");
+
+    // ---- o menu mostra os cinco prontos; Gestão troca o menu, as barras, a tela Hoje e as visões ----
+    await seletor().click();
+    await menu.waitFor();
+    afirmar((await menu.locator("[data-slot=opcao-perfil]").count()) === 5, "o menu não mostrou os cinco perfis prontos");
+    afirmar((await menu.locator("[data-slot=perfil-redefinir]").getAttribute("data-disabled")) !== null, "Redefinir devia estar desligado num perfil sem mudanças");
+    await menu.locator("[data-slot=opcao-perfil][data-perfil=gestao]").click();
+    await seletor("gestao").waitFor();
+    await nav("Radar").waitFor();
+    await nav("Relatórios").waitFor();
+    await nav("Notas").waitFor({ state: "detached" });
+    await nav("Acompanhar").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=hoje] [data-bloco=captura]").waitFor({ state: "detached" });
+    afirmar((await pref("visaoTarefas")) === "quadro" && (await pref("agrupamentoPendencias")) === "pessoa" && (await pref("telaInicial")) === "/radar", "o perfil Gestão não ajustou as visões e a tela inicial");
+    afirmar(Object.keys((await perfis()).memoria).join() === "completo", "sair do Completo não guardou como ele estava");
+
+    // ---- mexer no perfil pelo painel: a faixa diz de quem é a mudança e o seletor marca que foi mexido ----
+    await seletor().click();
+    await menu.locator("[data-slot=perfil-gerenciar]").click();
+    await painel.locator("[data-slot=aba-perfis]").waitFor();
+    afirmar((await painel.locator("[data-slot=cartao-perfil]").count()) === 5, "a aba Perfis não mostrou os cinco cartões");
+    await painel.locator("[data-slot=cartao-perfil][data-perfil=gestao][data-em-uso]").waitFor();
+    afirmar((await painel.locator("[data-slot=miniatura-perfil]").count()) === 5, "faltou a miniatura de algum perfil");
+    await painel.getByRole("radio", { name: "Lateral" }).click();
+    await painel.locator("[data-slot=faixa-do-perfil]", { hasText: "Gestão" }).waitFor();
+    await painel.getByRole("switch", { name: "Mostrar Diário" }).click();
+    await nav("Diário").waitFor({ state: "detached" });
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=gestao][data-modificado]").waitFor();
+
+    // ---- trocar para o Foco pelo cartão: barra lateral recolhida e sem barra de status ----
+    await painel.getByRole("radio", { name: "Perfis" }).click();
+    await painel.locator("[data-slot=cartao-perfil][data-perfil=foco] [data-slot=usar-perfil]").click();
+    await seletor("foco").waitFor();
+    await lateralEstreita(true);
+    await pg.locator("[data-slot=barra-status]").waitFor({ state: "detached" });
+    afirmar((await pref("soMeus")) === true && (await pref("visaoTarefas")) === "lista", "o perfil Foco não ajustou as visões");
+    await painel.getByRole("button", { name: "Pronto" }).click();
+    await painel.waitFor({ state: "detached" });
+
+    // ---- tecla P e o número: volta para Gestão, que lembra como foi deixada (sem o Diário) ----
+    await pelaTecla(4);
+    await seletor("gestao").waitFor();
+    await lateralEstreita(false);
+    await nav("Radar").waitFor();
+    afirmar((await nav("Diário").count()) === 0, "o perfil Gestão não lembrou como foi deixado");
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=gestao][data-modificado]").waitFor();
+
+    // ---- redefinir volta ao original, e tem Desfazer ----
+    await seletor().click();
+    await menu.locator("[data-slot=perfil-redefinir]").click();
+    await nav("Diário").waitFor();
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=gestao]:not([data-modificado])").waitFor();
+    await pg.locator("[data-sonner-toast]", { hasText: "Perfil Gestão redefinido" }).getByRole("button", { name: "Desfazer" }).click();
+    await nav("Diário").waitFor({ state: "detached" });
+
+    // ---- salvar o arranjo de agora como perfil próprio: ele passa a ser o perfil em uso, e Gestão volta a ser como era ----
+    await seletor().click();
+    await menu.locator("[data-slot=perfil-salvar-como]").click();
+    await dialogo().getByLabel("Nome do perfil").fill("  Perfil 320  ");
+    await dialogo().locator("[data-slot=confirmar-nome-do-perfil]").click();
+    await pg.locator("[data-slot=seletor-perfil]:not([data-modificado])", { hasText: "Perfil 320" }).waitFor();
+    const comProprio = await perfis();
+    afirmar(comProprio.proprios.length === 1 && comProprio.proprios[0].nome === "Perfil 320" && comProprio.proprios[0].base === "gestao" && comProprio.ativo === comProprio.proprios[0].id, "o perfil próprio não foi salvo como esperado");
+    afirmar(comProprio.proprios[0].arranjo.moldura.ocultos.includes("/diario") && !("largura" in comProprio.proprios[0].arranjo.moldura) && !("nome" in comProprio.proprios[0].arranjo.hoje), "o arranjo salvo não é o de agora (ou levou a largura ou o nome)");
+    afirmar(!("gestao" in comProprio.memoria), "as mudanças que viraram o perfil novo ficaram também na memória do Gestão");
+
+    // ---- código de um perfil: copiar e colar acrescenta um perfil à lista, sem trocar o que está em uso ----
+    await seletor().click();
+    await menu.locator("[data-slot=perfil-gerenciar]").click();
+    const cartaoProprio = painel.locator("[data-slot=cartao-perfil]", { hasText: "Perfil 320" }).first();
+    await cartaoProprio.locator("[data-slot=menu-do-perfil]").click();
+    await pg.locator("[data-slot=copiar-codigo-do-perfil]").click();
+    await pg.waitForFunction(async () => (await navigator.clipboard.readText()).includes('"nexo":"perfil"'));
+    const codigo = await pg.evaluate(() => navigator.clipboard.readText());
+    afirmar(codigo.length < 3000 && !codigo.includes('"tema"') && !codigo.includes('"largura"'), "o código do perfil leva o que não devia: " + codigo.slice(0, 200));
+    await painel.locator("[data-slot=colar-codigo-do-perfil]").click();
+    const campo = pg.getByRole("textbox", { name: "Código do perfil" });
+    await campo.fill("isto não é um código");
+    await pg.locator("[data-slot=aplicar-codigo-do-perfil]").click();
+    await pg.getByRole("alert").filter({ hasText: "código de perfil" }).waitFor();
+    await campo.fill("segue o perfil: " + codigo);
+    await pg.locator("[data-slot=aplicar-codigo-do-perfil]").click();
+    await painel.locator("[data-slot=cartao-perfil]", { hasText: "Perfil 320 (2)" }).waitFor();
+    const comDois = await perfis();
+    afirmar(comDois.proprios.length === 2 && comDois.ativo === comProprio.ativo, "colar um código trocou o perfil em uso (ou não acrescentou o perfil)");
+
+    // ---- excluir um perfil próprio tem Desfazer; excluir o que está em uso leva para o pronto de origem ----
+    await painel.locator("[data-slot=cartao-perfil]", { hasText: "Perfil 320 (2)" }).locator("[data-slot=menu-do-perfil]").click();
+    await pg.locator("[data-slot=excluir-perfil]").click();
+    await pg.waitForFunction(() => JSON.parse(localStorage.getItem("nexo:perfis")).proprios.length === 1);
+    await pg.locator("[data-sonner-toast]", { hasText: "Perfil “Perfil 320 (2)” excluído" }).getByRole("button", { name: "Desfazer" }).click();
+    await pg.waitForFunction(() => JSON.parse(localStorage.getItem("nexo:perfis")).proprios.length === 2);
+    await painel.locator("[data-slot=cartao-perfil][data-em-uso]").locator("[data-slot=menu-do-perfil]").click();
+    await pg.locator("[data-slot=excluir-perfil]").click();
+    await seletor("gestao").waitFor();
+    await nav("Diário").waitFor();
+    await painel.getByRole("button", { name: "Pronto" }).click();
+    await painel.waitFor({ state: "detached" });
+
+    // ---- a tela inicial do perfil vale ao abrir o app; clicar em Hoje continua indo para Hoje ----
+    await pg.evaluate(() => sessionStorage.removeItem("nexo:sessao"));
+    await pg.goto(B + "/");
+    await pg.waitForURL(/\/radar$/);
+    await nav("Hoje").click();
+    await pg.waitForURL(B + "/");
+    await pg.locator("[data-slot=hoje]").waitFor();
+    // quem abre um endereço direto fica onde pediu
+    await pg.evaluate(() => sessionStorage.removeItem("nexo:sessao"));
+    await pg.goto(B + "/tarefas");
+    await pg.locator("[data-slot=pagina]").first().waitFor();
+    afirmar(new URL(pg.url()).pathname === "/tarefas", "a tela inicial do perfil passou por cima de um endereço direto");
+
+    // ---- paleta: "Perfil: Completo" ----
+    await pg.keyboard.press("Control+k");
+    await pg.locator("[data-slot=paleta] input").first().fill("perfil completo");
+    await pg.locator('[data-paleta-item="perfil:completo"]').click();
+    await seletor("completo").waitFor();
+    await nav("Acompanhar").waitFor();
+    await nav("Notas").waitFor();
+
+    // ---- a escolha vale depois de recarregar; e o seletor escondido não tira a tecla P (ela abre a aba Perfis) ----
+    await pelaTecla(3);
+    await seletor("reunioes").waitFor();
+    await pg.reload();
+    await seletor("reunioes").waitFor();
+    afirmar((await pref("agrupamentoPendencias")) === "pessoa", "o perfil Reuniões não ficou depois de recarregar");
+    await pelaTecla(1);
+    await seletor("completo").waitFor();
+
+    // deixa tudo como veio para as próximas etapas: sem perfis próprios, sem memórias e com as visões padrão
+    await pg.evaluate(() => {
+      localStorage.setItem("nexo:perfis", JSON.stringify({ v: 1, ativo: "completo", proprios: [], memoria: {} }));
+      for (const k of ["visaoTarefas", "agrupamentoPendencias", "soMeus", "telaInicial", "moldura", "telaHoje", "lateralRecolhida"]) localStorage.removeItem("nexo:" + k);
+    });
+    await pg.reload();
+    await pg.locator("[data-slot=seletor-perfil][data-perfil=completo]:not([data-modificado])").waitFor();
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

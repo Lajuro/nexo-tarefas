@@ -18,6 +18,8 @@ import { lerPref } from "@/lib/preferencias";
 import { normalizarVisoes } from "@/components/tarefas/filtros";
 import { type Categoria, hojeISO, type Tarefa } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
+import { listaDePerfis, normalizarPerfis } from "@/lib/perfis";
+import { iconeDoPerfil, trocarDePerfil } from "./Perfis";
 import { TODOS_NAV } from "./navegacao";
 import { type Direcao, vizinho } from "./paleta/navegacao";
 import { cartao, MarcaAtual, Miniatura, Opcao, TituloSecao } from "./paleta/pecas";
@@ -117,7 +119,13 @@ export function Paleta({
 
   const telas = TODOS_NAV.map((n) => ({ id: `tela:${n.href}`, nav: n }));
   const casa = (texto: string) => filtroSemAcento(texto, termo) > 0;
-  const acoesVis = buscando ? [...ACOES, ...ACOES_DA_BUSCA].filter((a) => casa(`${a.nome} ${a.palavras}`)) : ACOES;
+  // Perfis de uso (3.20): "perfil foco", "modo reunião"... trocam o arranjo sem abrir menu nenhum.
+  const perfisVis: Comando[] = buscando
+    ? listaDePerfis(normalizarPerfis(lerPref<unknown>("perfis", null)))
+        .map((p) => ({ id: `perfil:${p.id}`, nome: `Perfil: ${p.nome}`, palavras: `perfil de uso modo arranjo espaco de trabalho trocar ${p.descricao}`, icone: iconeDoPerfil(p) }))
+        .filter((a) => casa(`${a.nome} ${a.palavras}`))
+    : [];
+  const acoesVis = buscando ? [...[...ACOES, ...ACOES_DA_BUSCA].filter((a) => casa(`${a.nome} ${a.palavras}`)), ...perfisVis] : ACOES;
   const temasVis = buscando ? TEMAS.filter((t) => casa(t.palavras)) : TEMAS;
   const telasVis = buscando ? telas.filter((t) => casa(`ir para ${t.nav.nome}`)) : telas;
   const catsVis = buscando ? cats.filter((c) => casa(`categoria ${c.nome}`)) : [];
@@ -155,6 +163,7 @@ export function Paleta({
     "acao:anotar": () => fazer(acoes.anotar),
     "acao:personalizar": () => fazer(acoes.personalizar),
     "acao:tags": () => ir("/categorias?aba=tags"),
+    ...Object.fromEntries(perfisVis.map((p) => [p.id, () => fazer(() => void trocarDePerfil(p.id.slice("perfil:".length)))])),
     ...Object.fromEntries(COISAS_PARA_CRIAR.map((c) => [`criar:${c.tipo}`, () => fazer(() => pedirCriar(c.tipo))])),
   };
 
