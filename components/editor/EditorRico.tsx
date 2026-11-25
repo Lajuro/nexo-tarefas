@@ -6,6 +6,9 @@
 //
 // Imagens: colar (Ctrl V), arrastar ou escolher. O arquivo vai para a pasta de dados (arquivos/AAAA/...) pela
 // mesma rota dos anexos e o texto guarda só o caminho. Nada é buscado de fora.
+//
+// Citar: "@" (tarefa, página, pessoa, folha, categoria, link do banco), "[[" (página) e, desde a 3.25, "#" (links e
+// documentos, os da tarefa do texto primeiro, com "Novo link" para guardar no banco e citar de uma vez).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,10 +17,11 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { exitSuggestion } from "@tiptap/suggestion";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  AtSign, Bold, CalendarDays, ChevronsUpDown, CircleAlert, CircleCheckBig, CircleHelp, Clock, Code, ExternalLink, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Info, Italic, Lightbulb,
+  AtSign, Bold, CalendarDays, ChevronsUpDown, Hash, Plus, CircleAlert, CircleCheckBig, CircleHelp, Clock, Code, ExternalLink, FilePlus2, FileText, Heading1, Heading2, Heading3, ImagePlus, Info, Italic, Lightbulb,
   Link2, Link2Off, List, ListChecks, ListOrdered, ListTodo, ListTree, Minus, OctagonAlert, Paperclip, Pilcrow, Quote, Redo2, Shapes, SquareCode, StickyNote, Strikethrough, Table2, Trash2,
   TriangleAlert, Undo2, UserRound, type LucideIcon,
 } from "lucide-react";
+import { LinkForm } from "@/components/LinkForm";
 import { useNexo } from "@/components/Provider";
 import { abrirArquivo } from "@/components/VisorDeArquivo";
 import { abrirImagem } from "@/components/VisorDeImagem";
@@ -26,12 +30,12 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { aberta } from "@/lib/lembretes";
-import { nomeDaFolha, nomeDoEstado } from "@/lib/links";
+import { type CitavelDeLink, hrefDoLink, linkDoDigitado, linksParaCitar, nomeDaFolha } from "@/lib/links";
 import { nomesConhecidos } from "@/lib/pessoas";
 import { paginaNova } from "@/lib/paginas";
 import { LINGUAGENS, NOMES_DE_LINGUAGEM } from "@/lib/realce";
 import { anexoDoSrc, hrefInterno, linkInterno, linkPermitido, srcDoAnexo, urlDoAnexo } from "@/lib/texto-rico";
-import { formatarData, hojeISO } from "@/lib/tipos";
+import { type LinkDoc, formatarData, hojeISO } from "@/lib/tipos";
 import { nomeNaUrl } from "@/lib/visor";
 import { cn } from "@/lib/utils";
 import { type ItemDoMenu, type PonteDoMenu, extensoesDoEditor, linkDoEditor, pareceMarkdown } from "./extensoes";
@@ -45,7 +49,17 @@ const ICONE: Record<string, LucideIcon> = {
   codigo: SquareCode, divisor: Minus, tabela: Table2, imagem: ImagePlus, pessoa: UserRound, tarefa: ListTodo, pagina: FileText, nova: FilePlus2, subpagina: FilePlus2,
   nota: Info, dica: Lightbulb, importante: CircleAlert, atencao: TriangleAlert, perigo: OctagonAlert, sucesso: CircleCheckBig, pergunta: CircleHelp, detalhes: ChevronsUpDown,
   indice: ListTree, arquivo: Paperclip, folha: StickyNote, link: Link2, documento: Paperclip, categoria: Shapes, hoje: CalendarDays, agora: Clock, citar: AtSign,
+  "citar-link": Hash, "novo-link": Plus,
 };
+
+/** Nome de cada menu para o leitor de tela, pelo caractere que o abriu. */
+const NOME_DO_MENU: Record<string, string> = { "/": "Blocos", "@": "Citar", "[": "Ligar a uma página", "#": "Links e documentos" };
+
+/** Ícone de um link ou documento na lista do "#" e do "@". */
+const iconeDoCitavel = (c: CitavelDeLink) => (c.tipo === "arquivo" ? "documento" : c.tipo === "nota" ? "folha" : c.tipo);
+
+/** O que foi digitado, curto o bastante para caber no nome do item. */
+const curto = (t: string, max = 36) => (t.length > max ? `${t.slice(0, max - 1)}…` : t);
 const MAX_ANEXO = 200 * 1024 * 1024;
 
 const p2 = (n: number) => String(n).padStart(2, "0");
@@ -69,6 +83,11 @@ const paraGuardar = (ed: Editor) => (ed.isEmpty ? "" : ed.getMarkdown().replace(
 interface EstadoMenu {
   itens: ItemDoMenu[];
   indice: number;
+  /** O que foi digitado depois do caractere: mudou, a escolha com a seta recomeça. */
+  consulta: string;
+  /** O usuário andou com as setas: aí o Enter escolhe até um item fraco. */
+  navegou: boolean;
+  rotulo: string;
   topo: number;
   esquerda: number;
   paraCima: boolean;
@@ -102,7 +121,7 @@ const SO_COM_ESPACO = "hidden @[40rem]/editor:inline-flex";
 
 export function EditorRico({
   valor, aoMudar, placeholder = "Escreva, ou digite / para escolher um bloco", className, classeConteudo, variante = "campo", focoInicial, desabilitado, paginaAtualId, folhaAtualId, aoPronto,
-  "aria-label": rotulo, "data-slot": slot = "editor-rico",
+  tarefaIds, textoDaTarefa, "aria-label": rotulo, "data-slot": slot = "editor-rico",
 }: {
   /** Markdown. */
   valor: string;
@@ -120,6 +139,13 @@ export function EditorRico({
   paginaAtualId?: string;
   /** Folha do bloco de notas em que o editor está: ela não aparece na lista de citar (não faz sentido citar a si mesma). */
   folhaAtualId?: string;
+  /**
+   * As tarefas de onde o texto é (a do registro; as que a página ou a folha servem): os links e documentos delas vêm
+   * primeiro no "#" e no "@", e um link novo guardado pelo "#" já nasce ligado a elas.
+   */
+  tarefaIds?: string[];
+  /** O texto é da própria tarefa (registro, reunião): a lista diz "Desta tarefa" em vez do nome dela. */
+  textoDaTarefa?: boolean;
   /** Recebe a API do editor quando ele fica pronto (e null quando sai da tela). */
   aoPronto?: (api: ApiDoEditor | null) => void;
   focoInicial?: boolean;
@@ -134,6 +160,19 @@ export function EditorRico({
   dadosRef.current = dados;
   const folhaAtual = useRef(folhaAtualId);
   folhaAtual.current = folhaAtualId;
+  const contexto = useRef({ tarefaIds: tarefaIds ?? [], textoDaTarefa: !!textoDaTarefa });
+  contexto.current = { tarefaIds: tarefaIds ?? [], textoDaTarefa: !!textoDaTarefa };
+  const paginaAtual = useRef(paginaAtualId);
+  paginaAtual.current = paginaAtualId;
+  // links e documentos (do banco, e as páginas e folhas ligadas à tarefa), na ordem do "#": os da tarefa primeiro
+  const paraCitar = () => {
+    const d = dadosRef.current;
+    if (!d) return [];
+    return linksParaCitar(d, contexto.current.tarefaIds, { naTarefa: contexto.current.textoDaTarefa, semPagina: paginaAtual.current, semNota: folhaAtual.current });
+  };
+  const porLink = (rotulo: string, href: string) => (ed: Editor, r: Range) =>
+    ed.chain().focus().deleteRange(r).insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href } }] }, { type: "text", text: " " }]).run();
+  const comoItem = (c: CitavelDeLink): ItemDoMenu => ({ id: c.chave, nome: c.titulo, dica: c.dica, palavras: c.palavras, icone: iconeDoCitavel(c), fazer: porLink(c.titulo, c.href) });
   const citaveis = useRef((): ItemDoMenu[] => {
     const d = dadosRef.current;
     if (!d) return [];
@@ -149,18 +188,9 @@ export function EditorRico({
       .filter((p) => !p.arquivadaEm)
       .map((p): ItemDoMenu => ({ id: `pagina:${p.id}`, nome: p.titulo || "Página sem título", dica: "Página", palavras: "pagina", icone: "pagina", fazer: citar("pagina", p.id, p.titulo || "Página sem título") }));
     // 3.14: também dá para citar o que está no banco de links (entra o endereço de verdade, ou o arquivo
-    // guardado), as folhas do bloco de notas e as categorias. Caminho de rede (\\servidor) fica de fora:
-    // o navegador não abre, e o texto só aceita http, https, mailto e anexos.
-    const porLink = (rotulo: string, href: string) => (ed: Editor, r: Range) =>
-      ed.chain().focus().deleteRange(r).insertContent([{ type: "text", text: rotulo, marks: [{ type: "link", attrs: { href } }] }, { type: "text", text: " " }]).run();
-    const links = [...d.links.items]
-      .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
-      .flatMap((l): ItemDoMenu[] => {
-        const href = l.tipo === "arquivo" ? (anexoDoSrc(l.arquivo || "") ? srcDoAnexo(anexoDoSrc(l.arquivo || "")!) : null) : linkPermitido(l.url || "");
-        if (!href) return [];
-        const dica = [l.tipo === "arquivo" ? "Documento do banco" : "Link do banco", l.estado ? nomeDoEstado(l.estado) : ""].filter(Boolean).join(" · ");
-        return [{ id: `link:${l.id}`, nome: l.titulo, dica, palavras: `link documento ${l.tags.join(" ")} ${l.descricao}`, icone: l.tipo === "arquivo" ? "documento" : "link", fazer: porLink(l.titulo, href) }];
-      });
+    // guardado), as folhas do bloco de notas e as categorias. Os links vêm de linksParaCitar (lib/links.ts),
+    // os da tarefa do texto primeiro; caminho de rede (\\servidor) fica de fora.
+    const links = paraCitar().filter((c) => c.tipo === "link" || c.tipo === "arquivo").map(comoItem);
     const folhas = (d.notas?.items ?? [])
       .filter((n) => n.id !== folhaAtual.current)
       .sort((a, b) => Number(!!a.arquivadaEm) - Number(!!b.arquivadaEm) || b.atualizadaEm.localeCompare(a.atualizadaEm))
@@ -175,8 +205,6 @@ export function EditorRico({
     return out;
   });
   // "[[" liga a uma página; se o que foi digitado não existe, oferece criar (nasce dentro da página atual).
-  const paginaAtual = useRef(paginaAtualId);
-  paginaAtual.current = paginaAtualId;
   const router = useRouter();
   const routerRef = useRef(router);
   routerRef.current = router;
@@ -200,6 +228,24 @@ export function EditorRico({
     const existe = (dadosRef.current?.paginas?.items ?? []).some((p) => !p.arquivadaEm && p.titulo.trim().toLowerCase() === titulo.toLowerCase());
     if (!titulo || existe) return [];
     return [{ id: "nova", nome: `Criar página “${titulo}”`, dica: "Ainda não existe: cria e liga", palavras: "", icone: "nova", fazer: (ed, r) => ligar(criarPaginaRef.current(titulo), titulo)(ed, r) }];
+  });
+  // "#": links e documentos. O último item guarda um link novo no banco (já ligado às tarefas do texto) e o cita
+  // onde estava o "#": o formulário abre por cima e, ao salvar, o link entra no texto.
+  const linksDoTexto = useRef((): ItemDoMenu[] => paraCitar().map(comoItem));
+  const [novoLink, setNovoLink] = useState<{ pos: number; titulo: string; url: string } | null>(null);
+  const novoLinkRef = useRef((digitado: string): ItemDoMenu[] => {
+    const { titulo, url } = linkDoDigitado(digitado);
+    const daTarefa = contexto.current.tarefaIds.length > 0;
+    return [{
+      id: "novo-link",
+      nome: url ? `Guardar ${curto(url.replace(/^https?:\/\//i, ""))}` : titulo ? `Novo link «${curto(titulo, 28)}»` : "Novo link ou documento",
+      dica: daTarefa ? "Guarda no banco, nesta tarefa, e cita aqui" : "Guarda no banco e cita aqui",
+      palavras: "", icone: "novo-link", fraco: true,
+      fazer: (ed, r) => {
+        ed.chain().focus().deleteRange(r).run();
+        setNovoLink({ pos: r.from, titulo, url });
+      },
+    }];
   });
   const caixa = useRef<HTMLDivElement>(null);
   const arquivo = useRef<HTMLInputElement>(null);
@@ -313,6 +359,8 @@ export function EditorRico({
       { id: "arquivo", nome: "Arquivo", dica: "Anexa um PDF, planilha ou outro arquivo", palavras: "arquivo anexo pdf planilha documento upload", fazer: bloco((ed, r) => { limpo(ed, r).run(); qualquerArquivo.current?.click(); }) },
       // abre o menu de citar no mesmo lugar: tarefa, página, pessoa, folha, categoria ou algo do banco de links
       { id: "citar", nome: "Citar ou ligar", dica: "Tarefa, página, pessoa, folha ou link do banco", palavras: "citar mencionar ligar link tarefa pagina pessoa folha chamado @", fazer: bloco((ed, r) => limpo(ed, r).insertContent("@").run()) },
+      // abre o "#": só links e documentos, os da tarefa primeiro
+      { id: "citar-link", nome: "Link ou documento", dica: "Um link do banco, um arquivo, uma página ou folha da tarefa", palavras: "citar link documento arquivo chamado banco anexo url endereco #", fazer: bloco((ed, r) => limpo(ed, r).insertContent("#").run()) },
       { id: "hoje", nome: "Data de hoje", dica: "Escreve a data de hoje", palavras: "data hoje dia", fazer: bloco((ed, r) => limpo(ed, r).insertContent(`${formatarData(hojeISO())} `).run()) },
       { id: "agora", nome: "Hora de agora", dica: "Escreve a hora deste instante", palavras: "hora agora horario relogio", fazer: bloco((ed, r) => { const d = new Date(); limpo(ed, r).insertContent(`${p2(d.getHours())}:${p2(d.getMinutes())} `).run(); }) },
       // só dentro de uma página: cria uma página filha e já deixa o link para ela
@@ -339,6 +387,9 @@ export function EditorRico({
       setMenu((atual) => ({
         itens: p.items,
         indice: Math.min(atual?.indice ?? 0, p.items.length - 1),
+        consulta: p.query,
+        navegou: !!atual && atual.consulta === p.query && atual.navegou,
+        rotulo: NOME_DO_MENU[p.text?.[0] ?? "/"] ?? "Blocos",
         topo: (paraCima ? rect.top : rect.bottom) - base.top,
         esquerda: Math.max(0, Math.min(rect.left - base.left, base.width - 260)),
         paraCima,
@@ -350,11 +401,17 @@ export function EditorRico({
       if (!m) return false;
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         const passo = event.key === "ArrowDown" ? 1 : -1;
-        setMenu({ ...m, indice: (m.indice + passo + m.itens.length) % m.itens.length });
+        setMenu({ ...m, indice: (m.indice + passo + m.itens.length) % m.itens.length, navegou: true });
         return true;
       }
       if (event.key === "Enter" || event.key === "Tab") {
-        m.escolher(m.itens[m.indice]);
+        const item = m.itens[m.indice];
+        // item fraco sem ter andado com a seta: o Enter faz o que faria sem o menu (quebrar a linha)
+        if (item?.fraco && !m.navegou) {
+          setMenu(null);
+          return false;
+        }
+        m.escolher(item);
         return true;
       }
       if (event.key === "Escape") {
@@ -370,6 +427,7 @@ export function EditorRico({
     extensions: extensoesDoEditor({
       placeholder, itens, ponte: () => ponte.current, citaveis: () => citaveis.current(),
       paginas: () => paginasParaLigar.current(), criarPagina: (q) => criarAoLigar.current(q),
+      linksDoTexto: () => linksDoTexto.current(), novoLink: (q) => novoLinkRef.current(q),
     }),
     content: valor,
     contentType: "markdown",
@@ -543,7 +601,27 @@ export function EditorRico({
   const documento = variante === "documento";
   const pagina = variante === "pagina" || documento;
 
+  // o link guardado pelo "#" entra onde estava o "#" (o texto não muda enquanto o formulário está aberto por cima)
+  const citarLinkNovo = (l: LinkDoc) => {
+    const ed = editorRef.current;
+    const href = hrefDoLink(l);
+    if (!ed || ed.isDestroyed || !novoLink) return;
+    if (!href) {
+      toast("Link guardado no banco. Caminho de rede não vira link no texto: o navegador não abre.", "info");
+      return;
+    }
+    const pos = Math.max(0, Math.min(novoLink.pos, ed.state.doc.content.size));
+    ed.chain().focus().insertContentAt(pos, [{ type: "text", text: l.titulo, marks: [{ type: "link", attrs: { href } }] }, { type: "text", text: " " }]).run();
+  };
+  const idsDoContexto = (tarefaIds ?? []).join(",");
+  const inicialDoLink = useMemo(
+    () => (novoLink ? { titulo: novoLink.titulo, url: novoLink.url, tarefaIds: idsDoContexto ? idsDoContexto.split(",") : [] } : undefined),
+    [novoLink, idsDoContexto],
+  );
+  const categoriaDoContexto = (tarefaIds?.[0] && dados?.tarefas.find((t) => t.id === tarefaIds[0])?.categoriaId) || null;
+
   return (
+    <>
     <div ref={caixa} data-slot={slot} data-variante={variante}
       className={cn(
         "editor-rico @container/editor relative flex min-w-0 flex-col",
@@ -687,19 +765,24 @@ export function EditorRico({
 
       <AnimatePresence>
         {menu && (
-          <motion.div key="menu" data-slot="menu-editor" role="listbox" aria-label="Blocos"
+          <motion.div key="menu" data-slot="menu-editor" role="listbox" aria-label={menu.rotulo}
             initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.12 }}
             style={{ left: menu.esquerda, ...(menu.paraCima ? { bottom: `calc(100% - ${menu.topo - 6}px)` } : { top: menu.topo + 6 }) }}
             className="absolute z-30 max-h-80 w-64 overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg">
             {menu.itens.map((i, k) => {
               const Icone = ICONE[i.icone ?? i.id] ?? Pilcrow;
               return (
-                <button key={i.id} type="button" role="option" aria-selected={k === menu.indice} data-item={i.id}
+                <button key={i.id} type="button" role="option" aria-selected={k === menu.indice} data-item={i.id} data-fraco={i.fraco || undefined}
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => setMenu((m) => (m ? { ...m, indice: k } : m))}
                   onClick={() => menu.escolher(i)}
                   ref={(el) => { if (el && k === menu.indice) el.scrollIntoView({ block: "nearest" }); }}
-                  className={cn("flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left outline-none", k === menu.indice && "bg-accent")}>
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left outline-none",
+                    k === menu.indice && "bg-accent",
+                    // a ação de guardar um link novo fica separada da lista
+                    i.fraco && k > 0 && "relative mt-1.5 before:absolute before:inset-x-1 before:-top-1 before:h-px before:bg-border",
+                  )}>
                   <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground"><Icone className="size-3.5" /></span>
                   <span className="min-w-0">
                     <span className="block truncate text-[13px] font-medium">{i.nome}</span>
@@ -712,5 +795,20 @@ export function EditorRico({
         )}
       </AnimatePresence>
     </div>
+    {/* Fora da caixa do editor e com as teclas presas aqui: o React passa os eventos do formulário (que é desenhado num
+        portal) para quem está em volta na árvore, e o Ctrl Enter do formulário de link salvaria também o registro. */}
+    <div hidden onKeyDown={(e) => e.stopPropagation()}>
+    <LinkForm
+      aberto={!!novoLink}
+      fechar={() => {
+        setNovoLink(null);
+        editorRef.current?.commands.focus();
+      }}
+      inicial={inicialDoLink}
+      categoriaId={categoriaDoContexto}
+      aoSalvar={citarLinkNovo}
+    />
+    </div>
+    </>
   );
 }

@@ -82,6 +82,14 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.25: # cita um link ou documento nas anotações
+
+- **Digite `#` nas anotações** de um registro (e também no modo reunião, numa folha ou numa página) e escolha um link ou documento. Os da tarefa aparecem primeiro, marcados "Desta tarefa", e o resto do banco de links embaixo. Algumas letras de cada palavra bastam, em qualquer ordem; a busca também acha pelo endereço, pelas tags e pelo status.
+- O que entra no texto é o **link de verdade**: na linha do tempo, um clique abre o endereço, e um documento abre por dentro do app.
+- **Link novo sem sair do registro**: digite `#` e o endereço, desça com a seta até **Guardar** e confirme. O formulário abre por cima, já com a tarefa, e ao salvar o link entra no texto e fica no banco.
+- Escrever "chamado #4521" e apertar Enter continua só quebrando a linha, e `# ` no começo da linha continua virando título.
+- **Corrigido**: o `@` também passou a citar os documentos (arquivos) do banco de links, que desde a 3.14 não apareciam na lista.
+
 ## 3.24.2: páginas na ordem que você quer, e vídeo grande enviado inteiro
 
 - **Arrastar na árvore de páginas**: no terço de cima de uma página, a que você arrasta vai antes dela; no meio, para dentro; no terço de baixo, depois. Uma linha azul e um texto embaixo do item mostram onde ela vai cair. Parar em cima de uma página fechada a abre.

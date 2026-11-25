@@ -142,11 +142,12 @@ export function EditorNota({
           data-slot="texto-da-folha"
           variante="pagina"
           folhaAtualId={id}
+          tarefaIds={nota?.tarefaIds}
           focoInicial
           valor={texto}
           aoMudar={(v) => mudar("texto", v)}
           desabilitado={somenteLeitura}
-          placeholder="Escreva solto, do seu jeito. Digite / para títulos, listas e tabelas, @ para citar uma tarefa ou um link, ou cole um print com Ctrl V."
+          placeholder="Escreva solto, do seu jeito. Digite / para títulos, listas e tabelas, @ para citar uma tarefa, # para um link ou documento, ou cole um print com Ctrl V."
           aria-label="Texto da folha"
           className="min-h-0 flex-1 rounded-md border border-input bg-card shadow-xs dark:bg-input/20"
           classeConteudo="px-4 py-3.5 leading-relaxed"

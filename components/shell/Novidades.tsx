@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, FolderTree, Gavel, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, FolderTree, Gavel, Hash, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.24.2";
+export const VERSAO_NOVIDADES = "3.25";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,14 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.25", icone: Hash, titulo: "# cita um link ou documento da tarefa nas anotações", texto: "Nas anotações de um registro, digite # e escolha: os links, documentos, páginas e folhas da tarefa aparecem primeiro, e o resto do banco de links embaixo. O que entra no texto é o link de verdade, que abre com um clique na linha do tempo. E um endereço digitado depois do # pode ser guardado no banco, já nesta tarefa, e citado de uma vez.", href: "/tarefas", rotulo: "Abrir Tarefas",
+    pontos: [
+      "Digite # nas anotações (do registro, do modo reunião, de uma folha ou de uma página) e algumas letras do nome: a busca vale para cada palavra, em qualquer ordem, e também acha pelo endereço, pelas tags e pelo status do link.",
+      "Os da tarefa vêm primeiro, marcados \"Desta tarefa\". Numa página ou numa folha, vêm primeiro os das tarefas a que ela serve.",
+      "Link novo sem sair do registro: digite # e o endereço, desça com a seta até \"Guardar\" e confirme. O formulário abre por cima, já com a tarefa, e ao salvar o link entra no texto.",
+      "Escrever \"chamado #4521\" e apertar Enter continua quebrando a linha, e \"# \" no começo da linha continua virando título.",
+      "Corrigido: o @ também cita os documentos (arquivos) do banco de links. Desde a 3.14 eles não apareciam na lista.",
+    ] },
   { versao: "3.24.2", icone: FolderTree, titulo: "Páginas na ordem que você quer, e vídeo grande enviado inteiro", texto: "Reorganizar a árvore de páginas ficou fácil: ao arrastar, uma linha mostra se a página vai antes, depois ou para dentro da outra, e o menu da página ganhou Mover (para cima, para baixo, para dentro, para fora, para dentro de qualquer página e em ordem alfabética), com atalhos e Desfazer. E o envio de vídeo acima de 10 MB, que chegava cortado e não tocava, foi corrigido.", href: "/paginas", rotulo: "Abrir Páginas",
     pontos: [
       "Arrastar na árvore: no terço de cima de uma página, a arrastada vai antes dela; no meio, para dentro; no terço de baixo, depois. A linha azul e o texto embaixo do item dizem onde ela vai cair, e parar em cima de uma página fechada a abre.",
@@ -203,7 +211,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Reorganizar as páginas ficou fácil (arrastar com linha guia, Mover no menu, ordem alfabética, Alt+setas), e o vídeo acima de 10 MB volta a ser enviado inteiro.",
+          description: "Nas anotações, # cita um link ou documento da tarefa (os dela primeiro) e guarda um link novo no banco sem sair do registro.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

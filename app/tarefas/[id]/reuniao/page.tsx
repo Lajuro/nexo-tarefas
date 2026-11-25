@@ -376,8 +376,10 @@ export default function PaginaReuniao() {
               variante="pagina"
               valor={r.notas}
               aoMudar={(v) => mudar({ notas: v })}
-              placeholder="Anote solto o que for sendo falado. Decisões e próximos passos vão para a coluna ao lado (Alt 1 e Alt 2). Digite / para blocos e @ para citar."
+              placeholder="Anote solto o que for sendo falado. Decisões e próximos passos vão para a coluna ao lado (Alt 1 e Alt 2). Digite / para blocos, @ para citar e # para um link ou documento."
               aria-label="Anotações da reunião"
+              tarefaIds={[tarefa.id]}
+              textoDaTarefa
               className="min-h-72 rounded-md border border-input bg-card shadow-xs @5xl:min-h-0 @5xl:flex-1 dark:bg-input/20"
               classeConteudo="px-4 py-3.5 leading-relaxed"
             />

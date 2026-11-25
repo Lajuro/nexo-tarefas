@@ -196,7 +196,7 @@ function DetalheDaTag({ tag, inventario, aoMudarNome }: { tag: TagDoInventario; 
     <Painel
       className="min-w-0"
       icone={<Tag />}
-      titulo={<span data-slot="tag-aberta" className="truncate">{tag.nome}</span>}
+      titulo={<span data-slot="tag-aberta" data-tag={tag.chave} className="truncate">{tag.nome}</span>}
       contagem={tag.total}
       acoes={
         <Dica texto="Tira a tag de tudo o que a usa (os itens ficam)">

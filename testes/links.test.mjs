@@ -278,5 +278,65 @@ teste("link interno para folha do bloco de notas: lê, monta e entra no índice 
   assert.equal(R.paraTextoPlano("ver [rascunho](nexo:nota/n1)"), "ver rascunho");
 });
 
+// ---------- citar com "#" (3.25) ----------
+
+teste("# lista primeiro o que é da tarefa (links, páginas, folhas) e depois o resto do banco", () => {
+  const dados = {
+    tarefas: [tarefa({ id: "t1", titulo: "Onboarding" }), tarefa({ id: "t2", titulo: "Pagamentos" })],
+    links: { rev: 1, items: [
+      link({ id: "l1", titulo: "Planilha de riscos", tarefaIds: ["t2"], criadoEm: meioDia(-1) }),
+      link({ id: "l2", titulo: "Chamado 123", tarefaIds: ["t1"], estado: "aberto", estadoEm: meioDia(-3), criadoEm: meioDia(-20) }),
+      link({ id: "l3", tipo: "arquivo", titulo: "Contrato", url: "", arquivo: "2026/abc-contrato.pdf", nomeArquivo: "contrato.pdf", tarefaIds: ["t1"], criadoEm: meioDia(-10) }),
+      link({ id: "l4", titulo: "Pasta da rede", url: "\\\\servidor\\pasta", tarefaIds: ["t1"] }),
+      link({ id: "l5", tipo: "arquivo", titulo: "Anexo torto", url: "", arquivo: "../fora.pdf", tarefaIds: ["t1"] }),
+    ] },
+    paginas: { rev: 1, items: [
+      T.normalizarPagina({ id: "pg1", titulo: "Como pedir acesso", tarefaIds: ["t1"] }),
+      T.normalizarPagina({ id: "pg2", titulo: "Sem tarefa" }),
+      T.normalizarPagina({ id: "pg3", titulo: "Arquivada", tarefaIds: ["t1"], arquivadaEm: meioDia(-1) }),
+    ] },
+    notas: { rev: 1, items: [T.normalizarNota({ id: "n1", titulo: "Rascunho da reunião", tarefaIds: ["t1"] })] },
+  };
+  const lista = K.linksParaCitar(dados, ["t1"], { naTarefa: true });
+  assert.deepEqual(lista.map((c) => c.chave), ["link:l3", "link:l2", "pagina:pg1", "nota:n1", "link:l1"], "da tarefa primeiro; caminho de rede, anexo torto, página arquivada e página sem tarefa ficam de fora");
+  assert.deepEqual(lista.map((c) => c.daTarefa), [true, true, true, true, false]);
+  const porChave = Object.fromEntries(lista.map((c) => [c.chave, c]));
+  assert.equal(porChave["link:l2"].href, "https://exemplo.local/chamado/123", "o link entra com o endereço de verdade");
+  assert.equal(porChave["link:l3"].href, "arquivos/2026/abc-contrato.pdf", "o arquivo entra como anexo da pasta de dados");
+  assert.equal(R.anexoDoSrc(porChave["link:l3"].href), "2026/abc-contrato.pdf");
+  assert.equal(porChave["pagina:pg1"].href, "nexo:pagina/pg1");
+  assert.equal(porChave["nota:n1"].href, "nexo:nota/n1");
+  assert.equal(porChave["link:l2"].dica, "Desta tarefa · Aberto há 3 dias");
+  assert.equal(porChave["pagina:pg1"].dica, "Página desta tarefa");
+  assert.equal(porChave["link:l1"].dica, "Link do banco");
+  assert.match(porChave["link:l2"].palavras, /exemplo\.local/, "dá para achar pelo endereço");
+  assert.match(porChave["link:l2"].palavras, /Aberto/, "e pelo status");
+
+  // de uma página que serve à tarefa: a dica diz qual tarefa, e a própria página não aparece
+  const daPagina = K.linksParaCitar(dados, ["t1"], { semPagina: "pg1" });
+  assert.equal(daPagina.find((c) => c.chave === "link:l2").dica, "Da tarefa «Onboarding» · Aberto há 3 dias");
+  assert.equal(daPagina.find((c) => c.chave === "nota:n1").dica, "Folha da tarefa «Onboarding»");
+  assert.equal(daPagina.some((c) => c.chave === "pagina:pg1"), false);
+  assert.equal(K.linksParaCitar(dados, ["t1"], { semNota: "n1" }).some((c) => c.chave === "nota:n1"), false, "a folha não cita a si mesma");
+
+  // sem tarefa em volta (uma folha solta): só o banco, sem páginas nem folhas
+  assert.deepEqual(K.linksParaCitar(dados, []).map((c) => c.chave), ["link:l1", "link:l3", "link:l2"]);
+  // dado antigo, só com o campo tarefaId, também conta como da tarefa
+  const antigo = { ...dados, links: { rev: 1, items: [T.normalizarLink({ id: "lv", tipo: "link", titulo: "Velho", url: "https://exemplo.local/v", tarefaId: "t1", criadoEm: meioDia(-5) })] } };
+  assert.equal(K.linksParaCitar(antigo, ["t1"], { naTarefa: true })[0].daTarefa, true);
+});
+
+teste("# com um link novo: endereço vira endereço, o resto vira título", () => {
+  assert.deepEqual(K.linkDoDigitado("https://exemplo.local/chamados/4521"), { titulo: "", url: "https://exemplo.local/chamados/4521" });
+  assert.deepEqual(K.linkDoDigitado("  www.exemplo.local/a  "), { titulo: "", url: "https://www.exemplo.local/a" });
+  assert.deepEqual(K.linkDoDigitado("Planilha de riscos"), { titulo: "Planilha de riscos", url: "" });
+  assert.deepEqual(K.linkDoDigitado("javascript:alert(1)"), { titulo: "javascript:alert(1)", url: "" }, "esquema que não é http vira só texto do título");
+  assert.deepEqual(K.linkDoDigitado(""), { titulo: "", url: "" });
+  assert.equal(K.linkDoDigitado("x".repeat(500)).titulo.length, 200);
+  assert.equal(K.hrefDoLink({ tipo: "link", url: "mailto:time@exemplo.local" }), "mailto:time@exemplo.local");
+  assert.equal(K.hrefDoLink({ tipo: "link", url: "javascript:alert(1)" }), null);
+  assert.equal(K.hrefDoLink({ tipo: "arquivo", arquivo: "2026/a b.pdf" }), "arquivos/2026/a%20b.pdf");
+});
+
 console.log(`\n${total - falhas} de ${total} testes passaram.`);
 process.exit(falhas ? 1 : 0);

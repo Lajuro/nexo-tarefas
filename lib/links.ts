@@ -13,7 +13,7 @@
 // Páginas e folhas do bloco de notas também podem servir a tarefas (`pagina.tarefaIds`, `nota.tarefaIds`):
 // aparecem junto dos links em "Links e documentos" da tarefa (referenciasDaTarefa).
 
-import { paraTextoPlano } from "./texto-rico";
+import { anexoDoSrc, hrefInterno, linkPermitido, paraTextoPlano, srcDoAnexo } from "./texto-rico";
 import {
   type Dados, ESTADOS_LINK, type EstadoLink, type LinkDoc, MAX_DEPENDENCIAS, type Nota, type Pagina, dataLocal, diasAte,
 } from "./tipos";
@@ -152,4 +152,97 @@ export function passaNoFiltro(l: LinkDoc, filtro: FiltroDeEstado): boolean {
   if (filtro === "abertos") return estadoAberto(l);
   if (filtro === "sem") return !l.estado;
   return l.estado === filtro;
+}
+
+// ---------- citar com "#" num texto (3.25) ----------
+//
+// Nas anotações de um registro (e em qualquer editor rico), "#" abre a lista de links e documentos: primeiro o que
+// está ligado à tarefa do texto (links do banco, páginas e folhas, como no painel "Links e documentos"), depois o
+// resto do banco. O que entra no texto é o mesmo do "@" desde a 3.14: o endereço de verdade (ou o anexo da pasta de
+// dados) para um link, e o link interno para uma página ou folha. Caminho de rede (\\servidor) fica de fora:
+// o navegador não abre, e o texto só aceita http, https, mailto e anexos.
+
+/** O que vai para o texto quando um link do banco é citado. null = não dá para pôr num texto (caminho de rede, anexo torto). */
+export function hrefDoLink(l: Pick<LinkDoc, "tipo" | "url" | "arquivo">): string | null {
+  if (l.tipo === "arquivo") {
+    // `arquivo` é o caminho dentro de arquivos/ ("2026/abc-contrato.pdf"); no texto vai com a pasta na frente.
+    // (Da 3.14 à 3.24 o "@" conferia o caminho sem a pasta, e nenhum documento do banco aparecia para citar.)
+    const a = (l.arquivo || "").trim();
+    const rel = anexoDoSrc(a) ?? anexoDoSrc(srcDoAnexo(a));
+    return rel ? srcDoAnexo(rel) : null;
+  }
+  return linkPermitido(l.url || "");
+}
+
+export interface CitavelDeLink {
+  /** "link:<id>", "pagina:<id>" ou "nota:<id>". */
+  chave: string;
+  tipo: "link" | "arquivo" | "pagina" | "nota";
+  titulo: string;
+  /** O que entra no Markdown. */
+  href: string;
+  /** Ligado a uma das tarefas do texto. */
+  daTarefa: boolean;
+  /** Linha de baixo no menu: de onde vem e o status ("Desta tarefa · Aberto há 3 dias"). */
+  dica: string;
+  /** Mais palavras para a busca: tags, descrição e o endereço. */
+  palavras: string;
+}
+
+/**
+ * A lista do "#". `tarefaIds` são as tarefas de onde o texto está (a do registro; as que a página ou a folha servem).
+ * `naTarefa` diz que o texto é da própria tarefa (registro, reunião): a dica fica "Desta tarefa" em vez do nome dela.
+ */
+export function linksParaCitar(
+  dados: Pick<Dados, "links" | "paginas" | "notas"> & { tarefas?: Pick<Dados, "tarefas">["tarefas"] },
+  tarefaIds: string[],
+  opcoes: { naTarefa?: boolean; semPagina?: string; semNota?: string } = {},
+): CitavelDeLink[] {
+  const ids = new Set(tarefaIds.filter(Boolean));
+  const titulo = (id: string) => dados.tarefas?.find((t) => t.id === id)?.titulo?.trim() || "";
+  const deOnde = (doItem: string[], tipo: "" | "Página" | "Folha") => {
+    const id = doItem.find((x) => ids.has(x));
+    if (!id) return "";
+    const qual = opcoes.naTarefa || !titulo(id) ? "desta tarefa" : `da tarefa «${titulo(id)}»`;
+    return tipo ? `${tipo} ${qual}` : qual[0].toUpperCase() + qual.slice(1);
+  };
+  const daTarefa: CitavelDeLink[] = [];
+  const outros: CitavelDeLink[] = [];
+
+  for (const l of [...dados.links.items].sort((a, b) => (b.criadoEm || "").localeCompare(a.criadoEm || ""))) {
+    const href = hrefDoLink(l);
+    if (!href) continue;
+    const origem = deOnde(tarefasDoLink(l), "");
+    const dica = [origem || (l.tipo === "arquivo" ? "Documento do banco" : "Link do banco"), resumoDoEstado(l)].filter(Boolean).join(" · ");
+    const item: CitavelDeLink = {
+      chave: `link:${l.id}`, tipo: l.tipo === "arquivo" ? "arquivo" : "link", titulo: l.titulo.trim() || l.nomeArquivo || l.url || "Link sem título",
+      href, daTarefa: !!origem, dica,
+      palavras: ["link documento", ...(l.tags ?? []), l.descricao || "", l.url || "", l.nomeArquivo || "", l.estado ? nomeDoEstado(l.estado) : ""].join(" "),
+    };
+    (origem ? daTarefa : outros).push(item);
+  }
+  if (ids.size) {
+    for (const p of [...(dados.paginas?.items ?? [])].sort((a, b) => (b.atualizadaEm || "").localeCompare(a.atualizadaEm || ""))) {
+      if (p.arquivadaEm || p.id === opcoes.semPagina) continue;
+      const origem = deOnde(p.tarefaIds ?? [], "Página");
+      if (origem) daTarefa.push({ chave: `pagina:${p.id}`, tipo: "pagina", titulo: p.titulo.trim() || "Página sem título", href: hrefInterno("pagina", p.id), daTarefa: true, dica: origem, palavras: `pagina ${(p.tags ?? []).join(" ")}` });
+    }
+    for (const n of [...(dados.notas?.items ?? [])].sort((a, b) => Number(!!a.arquivadaEm) - Number(!!b.arquivadaEm) || (b.atualizadaEm || "").localeCompare(a.atualizadaEm || ""))) {
+      if (n.id === opcoes.semNota) continue;
+      const origem = deOnde(n.tarefaIds ?? [], "Folha");
+      if (origem) daTarefa.push({ chave: `nota:${n.id}`, tipo: "nota", titulo: nomeDaFolha(n), href: hrefInterno("nota", n.id), daTarefa: true, dica: origem, palavras: "folha nota bloco" });
+    }
+  }
+  return [...daTarefa, ...outros];
+}
+
+/**
+ * O que foi digitado depois do "#" quando o usuário quer guardar um link novo: um endereço vira o endereço do
+ * formulário, o resto vira o título. "www.exemplo.local/x" ganha o https, como no formulário de link.
+ */
+export function linkDoDigitado(digitado: string): { titulo: string; url: string } {
+  const t = (digitado || "").trim().slice(0, 2000);
+  if (/^https?:\/\/\S+$/i.test(t) && linkPermitido(t)) return { titulo: "", url: t };
+  if (/^www\.[^\s/]+\.\S+$/i.test(t)) return { titulo: "", url: `https://${t}` };
+  return { titulo: t.slice(0, 200), url: "" };
 }

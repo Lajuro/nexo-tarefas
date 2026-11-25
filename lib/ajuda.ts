@@ -84,7 +84,7 @@ export const AJUDA: AjudaDaTela[] = [
     rota: "/tarefas/[id]", titulo: "Página da tarefa",
     paraQue: "A história da tarefa numa linha do tempo: cada reunião, atividade, decisão e impedimento vira um registro, com os próximos passos que ficaram combinados.",
     como: [
-      "Registre o que aconteceu com os botões Reunião, Atividade e os outros tipos. Pode escrever solto, do seu jeito.",
+      "Registre o que aconteceu com os botões Reunião, Atividade e os outros tipos. Pode escrever solto, do seu jeito, e digitar # para citar um link ou documento da tarefa.",
       "Se quiser, copie o prompt, cole no Copilot e traga a resposta: os campos se preenchem e você revisa antes de salvar.",
       "Os próximos passos de cada registro aparecem em Pendências, à direita. Marque quando fizer.",
       "O Checklist é a lista do que a tarefa precisa para ficar pronta. Não tem responsável nem prazo.",
@@ -102,7 +102,7 @@ export const AJUDA: AjudaDaTela[] = [
     paraQue: "O antes, o durante e o depois de uma reunião da tarefa: a pauta à esquerda, as anotações no meio e as decisões e os passos à direita.",
     como: [
       "Antes: confira a pauta (pendências, últimas decisões e o que está com cada participante) e copie para mandar.",
-      "Durante: anote solto no meio. Decisão e próximo passo têm campo próprio à direita.",
+      "Durante: anote solto no meio. Decisão e próximo passo têm campo próprio à direita. # cita um link ou documento da tarefa.",
       "Marque na pauta os passos antigos que foram resolvidos na conversa.",
       "Encerrar grava tudo como um registro de reunião e monta a ata para copiar.",
     ],
@@ -155,7 +155,7 @@ export const AJUDA: AjudaDaTela[] = [
     paraQue: "O conhecimento que vale além de uma tarefa: como se faz, decisões que ficam, guias. Em árvore, com links entre páginas.",
     como: [
       "Crie uma página e escreva com títulos, listas, tabelas, imagens e anexos.",
-      "Digite [[ para ligar a outra página e @ para citar tarefa, pessoa, folha ou link.",
+      "Digite [[ para ligar a outra página, @ para citar tarefa, pessoa, folha ou link, e # para um link ou documento (os das tarefas da página primeiro).",
       "Uma página pode ter subpáginas e servir a várias tarefas.",
       "Para mudar a ordem, arraste na árvore: a linha azul mostra se a página vai antes, depois ou para dentro da outra. Ou use Mover, no menu da página (botão direito ou \"...\"), que também põe em ordem alfabética.",
       "O histórico guarda as versões: dá para comparar e restaurar.",

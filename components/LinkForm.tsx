@@ -23,9 +23,13 @@ import { comEstado, comTarefasNoLink, tarefasDoLink } from "@/lib/links";
 import { ESTADOS_LINK, type EstadoLink, LinkDoc, agoraISO, normalizarLink, novoId } from "@/lib/tipos";
 
 export function LinkForm({
-  aberto, fechar, link, tarefaId, categoriaId,
+  aberto, fechar, link, tarefaId, categoriaId, inicial, aoSalvar,
 }: {
   aberto: boolean; fechar: () => void; link?: LinkDoc; tarefaId?: string | null; categoriaId?: string | null;
+  /** Para um link novo: o que já vem preenchido (o "#" do editor manda o que foi digitado e as tarefas do texto). */
+  inicial?: { titulo?: string; url?: string; tarefaIds?: string[] };
+  /** Chamado com o link gravado, antes de fechar (o editor o cita no texto). */
+  aoSalvar?: (l: LinkDoc) => void;
 }) {
   const { dados, salvarLinks, enviarArquivo, toast } = useNexo();
   const [tipo, setTipo] = useState<"link" | "arquivo">("link");
@@ -42,16 +46,16 @@ export function LinkForm({
   useEffect(() => {
     if (!aberto) return;
     setTipo(link?.tipo ?? "link");
-    setTitulo(link?.titulo ?? "");
-    setUrl(link?.url ?? "");
+    setTitulo(link?.titulo ?? inicial?.titulo ?? "");
+    setUrl(link?.url ?? inicial?.url ?? "");
     setArquivo(null);
     setDescricao(link?.descricao ?? "");
     setTags(link?.tags ?? []);
-    setTIds(link ? tarefasDoLink(link) : tarefaId ? [tarefaId] : []);
+    setTIds(link ? tarefasDoLink(link) : inicial?.tarefaIds?.length ? inicial.tarefaIds : tarefaId ? [tarefaId] : []);
     setCId(link?.categoriaId ?? categoriaId ?? "");
     setEstado(link?.estado ?? "");
     setSalvando(false);
-  }, [aberto, link, tarefaId, categoriaId]);
+  }, [aberto, link, tarefaId, categoriaId, inicial]);
 
   const valido = Boolean(titulo.trim() || url.trim() || arquivo);
   const podeSalvar = Boolean(tipo === "link" ? url.trim() : link?.arquivo || arquivo);
@@ -92,6 +96,7 @@ export function LinkForm({
     setSalvando(false);
     if (ok) {
       toast(link ? "Alterações salvas." : tipo === "arquivo" ? "Arquivo guardado." : "Link guardado.");
+      aoSalvar?.(novo);
       fechar();
     }
   }
@@ -113,7 +118,7 @@ export function LinkForm({
   const IconeEndereco = ehRede ? FolderOpen : Globe;
 
   const sujo = aberto && (
-    titulo !== (link?.titulo ?? "") || url !== (link?.url ?? "") || descricao !== (link?.descricao ?? "") || arquivo !== null
+    titulo !== (link?.titulo ?? inicial?.titulo ?? "") || url !== (link?.url ?? inicial?.url ?? "") || descricao !== (link?.descricao ?? "") || arquivo !== null
   );
   const tentarFechar = useFecharComCuidado(sujo, fechar);
 

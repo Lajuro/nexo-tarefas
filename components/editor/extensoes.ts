@@ -15,7 +15,7 @@ import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import { Markdown } from "@tiptap/markdown";
 import StarterKit from "@tiptap/starter-kit";
-import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
+import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps, findSuggestionMatch } from "@tiptap/suggestion";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { anexoDoSrc, ehMarcaDeIndice, linkInterno, linkPermitido, marcaDeDestaque, srcDoAnexo, tamanhoDaMarca, tempoDoLink, urlDaImagem } from "@/lib/texto-rico";
@@ -128,6 +128,11 @@ export interface ItemDoMenu {
   palavras: string;
   /** Ícone a mostrar (chave do mapa do EditorRico). Sem isso, usa o id. */
   icone?: string;
+  /**
+   * Item "fraco" (como "Novo link «texto»"): o Enter sozinho não o escolhe, só a seta ou o clique. Assim, escrever
+   * "chamado #4521" e apertar Enter quebra a linha, em vez de abrir um formulário.
+   */
+  fraco?: boolean;
   fazer: (editor: Editor, range: Range) => void;
 }
 
@@ -142,13 +147,19 @@ const limpar = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLower
 
 /**
  * Menu que abre ao digitar um caractere: "/" lista os blocos, "@" lista o que dá para citar (páginas, tarefas,
- * pessoas, links do banco, folhas e categorias). A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
+ * pessoas, links do banco, folhas e categorias), "[[" liga a uma página e "#" (3.25) lista os links e documentos,
+ * os da tarefa primeiro. A tela é desenhada pelo EditorRico, que entrega a "ponte". `itens` é uma função para a lista de
  * citações acompanhar os dados sem recriar o editor.
  */
 interface OpcoesDoMenu {
   char: string; chave: string; itens: () => ItemDoMenu[]; ponte: () => PonteDoMenu | null; limite: number;
   /** Itens que dependem do que foi digitado ("Criar página «texto»"), postos no fim da lista. */
   extra?: (digitado: string) => ItemDoMenu[];
+  /**
+   * O menu não abre quando o caractere vem seguido de espaço. É o caso do "#": "# " no começo da linha é título em
+   * Markdown, e "item # 3" no meio do texto não é uma citação.
+   */
+  semEspacoDepois?: boolean;
 }
 export const MenuBarra = Extension.create<OpcoesDoMenu>({
   name: "menuBarra",
@@ -156,7 +167,7 @@ export const MenuBarra = Extension.create<OpcoesDoMenu>({
     return { char: "/", chave: "menuBarra", itens: () => [], ponte: () => null, limite: 50 };
   },
   addProseMirrorPlugins() {
-    const { char, chave, itens, ponte, limite, extra } = this.options;
+    const { char, chave, itens, ponte, limite, extra, semEspacoDepois } = this.options;
     return [
       Suggestion<ItemDoMenu, ItemDoMenu>({
         editor: this.editor,
@@ -164,9 +175,17 @@ export const MenuBarra = Extension.create<OpcoesDoMenu>({
         char,
         // nome de pessoa e título de página têm espaço
         allowSpaces: char !== "/",
+        ...(semEspacoDepois
+          ? { findSuggestionMatch: (config: Parameters<typeof findSuggestionMatch>[0]) => {
+              const achado = findSuggestionMatch(config);
+              return achado && /^\s/.test(achado.query) ? null : achado;
+            } }
+          : {}),
+        // cada palavra digitada precisa aparecer, em qualquer ordem ("@silva ana" acha "Ana Silva")
         items: ({ query }) => {
-          const q = limpar(query);
-          return [...itens().filter((i) => !q || limpar(`${i.nome} ${i.palavras}`).includes(q)).slice(0, limite), ...(extra?.(query.trim()) ?? [])];
+          const palavras = limpar(query).split(/\s+/).filter(Boolean);
+          const passa = (i: ItemDoMenu) => { const alvo = limpar(`${i.nome} ${i.palavras}`); return palavras.every((p) => alvo.includes(p)); };
+          return [...itens().filter(passa).slice(0, limite), ...(extra?.(query.trim()) ?? [])];
         },
         command: ({ editor, range, props }) => props.fazer(editor, range),
         // dentro de bloco de código, "/" é só uma barra
@@ -198,6 +217,9 @@ export function extensoesDoEditor(opcoes: {
   /** As páginas que "[[" lista, e o item "criar página" para o que foi digitado. */
   paginas: () => ItemDoMenu[];
   criarPagina: (digitado: string) => ItemDoMenu[];
+  /** O que "#" lista (links e documentos, os da tarefa primeiro) e o item de guardar um link novo. */
+  linksDoTexto: () => ItemDoMenu[];
+  novoLink: (digitado: string) => ItemDoMenu[];
 }) {
   return [
     StarterKit.configure({
@@ -231,6 +253,8 @@ export function extensoesDoEditor(opcoes: {
     MenuBarra.extend({ name: "menuCitar" }).configure({ char: "@", chave: "menuCitar", itens: opcoes.citaveis, ponte: opcoes.ponte, limite: 12 }),
     // "[[" liga a outra página (e cria a página se ela ainda não existe), como numa wiki
     MenuBarra.extend({ name: "menuLigar" }).configure({ char: "[[", chave: "menuLigar", itens: opcoes.paginas, ponte: opcoes.ponte, limite: 8, extra: opcoes.criarPagina }),
+    // "#" cita um link ou documento (3.25): os ligados à tarefa do texto vêm primeiro, depois o resto do banco
+    MenuBarra.extend({ name: "menuLinks" }).configure({ char: "#", chave: "menuLinks", itens: opcoes.linksDoTexto, ponte: opcoes.ponte, limite: 14, extra: opcoes.novoLink, semEspacoDepois: true }),
     MarcasDeComponente,
     SemQuebraNoCtrlEnter,
   ];

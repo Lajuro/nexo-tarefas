@@ -248,12 +248,13 @@ export function EditorPagina({
                   data-slot="texto-da-pagina"
                   variante="documento"
                   paginaAtualId={id}
+                  tarefaIds={pagina.tarefaIds}
                   aoPronto={(api) => { apiDoEditor.current = api; }}
                   valor={valor.texto}
                   aoMudar={(v) => mudar({ texto: v })}
                   desabilitado={somenteLeitura}
                   focoInicial={!!titulo && vazia}
-                  placeholder="Escreva o que vale guardar. Digite / para blocos, @ para citar uma tarefa ou pessoa e [[ para ligar a outra página."
+                  placeholder="Escreva o que vale guardar. Digite / para blocos, @ para citar uma tarefa ou pessoa, # para um link ou documento e [[ para ligar a outra página."
                   aria-label="Texto da página"
                   classeConteudo="px-0 pt-4 pb-2 text-[15px] leading-relaxed min-h-[40vh] [&_h1]:scroll-mt-16 [&_h2]:scroll-mt-16 [&_h3]:scroll-mt-16"
                 />

@@ -2624,7 +2624,8 @@ async function main() {
     await dialogo().getByRole("button", { name: "Juntar" }).click();
     await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("Esteira")) && !d.tarefas.some((t) => t.tags.includes("esteiras")), "juntar as tags parecidas não gravou");
     afirmar(tarefa(await dados(), ids[1]).tags.filter((t) => t === "Esteira").length === 1, "juntar deixou a tag repetida no mesmo item");
-    await pg.locator("[data-slot=tag-aberta]", { hasText: "Esteira" }).waitFor();
+    // pela chave, não pelo texto: o texto casa sem maiúsculas e por pedaço, e "esteiras" também tem "Esteira"
+    await pg.locator("[data-slot=tag-aberta][data-tag=esteira]").waitFor();
     // desfazer devolve a grafia que cada item tinha
     await aviso("juntada em “Esteira”").waitFor();
     await pg.evaluate(() => document.activeElement?.blur());
@@ -2632,13 +2633,14 @@ async function main() {
     await ateOsDados((d) => tarefa(d, ids[1]).tags.includes("esteiras") && tarefa(d, ids[1]).tags.includes("Esteira"), "Ctrl Z não devolveu a tag que tinha sido juntada");
     // renomear para um nome que já existe avisa que vai juntar
     await pg.locator("[data-slot=tag-do-inventario][data-tag=esteiras]").click();
-    await pg.locator("[data-slot=tag-aberta]", { hasText: "esteiras" }).waitFor();
+    await pg.locator("[data-slot=tag-aberta][data-tag=esteiras]").waitFor();
     await pg.locator("[data-slot=nome-da-tag]").fill("esteira");
     await pg.locator("[data-slot=renomear-tag]", { hasText: "Juntar" }).click();
     await dialogo().getByRole("button", { name: "Juntar" }).click();
     await ateOsDados((d) => !d.tarefas.some((t) => t.tags.includes("esteiras")), "renomear para uma tag que já existe não juntou as duas");
     // renomear de verdade: muda em todos os itens de uma vez, e o endereço acompanha
-    await pg.locator("[data-slot=tag-aberta]", { hasText: "Esteira" }).waitFor();
+    // a tela troca para a tag juntada: digitar antes disso perderia o texto (trocar de tag recomeça o campo)
+    await pg.locator("[data-slot=tag-aberta][data-tag=esteira]").waitFor();
     await pg.locator("[data-slot=nome-da-tag]").fill("  esteira de entrega, ");
     await pg.locator("[data-slot=renomear-tag]", { hasText: "Renomear" }).click();
     await ateOsDados((d) => ids.every((id) => tarefa(d, id).tags.includes("esteira de entrega")) && !d.tarefas.some((t) => t.tags.includes("Esteira")), "renomear a tag não gravou em todos os itens");
@@ -3556,6 +3558,91 @@ async function main() {
     await texto1a1.waitFor({ state: "detached" });
     afirmar((await copiado()).startsWith("Para o 1:1, de "), "o roteiro do 1:1 não foi para a área de transferência");
     await pg.evaluate(() => localStorage.removeItem("nexo:relatorio"));
+  });
+
+  // ---------- citar com # (3.25) ----------
+  await etapa("3.25: # nas anotações cita link ou documento da tarefa, Enter não cria, título com # continua e link novo guarda e cita", async () => {
+    const d0 = await dados();
+    const GUIA = "Guia de integração da Ferramenta X";
+    const guia = d0.links.find((l) => l.titulo === GUIA);
+    afirmar(guia && (guia.tarefaIds || []).length >= 2, "o link da etapa de links não está em duas tarefas");
+    const laudo = d0.links.find((l) => l.titulo === "Laudo em PDF");
+    afirmar(laudo && laudo.tipo === "arquivo", "o documento de exemplo da etapa de arquivos sumiu");
+    const idT = guia.tarefaIds[1];
+    const URL_NOVA = "https://exemplo.local/chamados/4521";
+    await pg.goto(`${B}/tarefas/${idT}`);
+    await pg.locator("[data-slot=registrar][data-tipo=atividade]").click();
+    const d = dialogo();
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    await d.getByPlaceholder("Resumo em uma linha").fill("Revisei o guia com o chamado");
+    const texto = d.locator("[data-slot=anotacoes] [data-slot=editor-rico-conteudo]");
+    const menu = pg.locator("[data-slot=menu-editor]");
+    await texto.click();
+
+    // "#" abre só links e documentos, os desta tarefa primeiro
+    await pg.keyboard.type("Segui o #");
+    await menu.waitFor();
+    afirmar((await menu.getAttribute("aria-label")) === "Links e documentos", "o menu do # não diz o que lista");
+    afirmar((await menu.locator("[role=option]").first().textContent()).includes("Desta tarefa"), "o que é da tarefa não veio primeiro no #");
+    await pg.keyboard.type("integ guia");
+    await menu.locator(`[data-item="link:${guia.id}"]`).waitFor();
+    await pg.keyboard.press("Enter");
+    await texto.locator(`a[href="${guia.url}"]`, { hasText: GUIA }).waitFor();
+    await menu.waitFor({ state: "detached" });
+
+    // documento do banco (arquivo): aparece no # e também no @ (da 3.14 à 3.24 o @ não achava nenhum)
+    await pg.keyboard.type("e o @Laudo em");
+    await menu.locator(`[data-item="link:${laudo.id}"]`).waitFor();
+    for (let i = 0; i < "@Laudo em".length; i++) await pg.keyboard.press("Backspace");
+    await menu.waitFor({ state: "detached" });
+    await pg.keyboard.type("#Laudo em");
+    await menu.locator(`[data-item="link:${laudo.id}"]`).waitFor();
+    await pg.keyboard.press("Enter");
+    await texto.locator('a[href^="arquivos/"]', { hasText: "Laudo em PDF" }).waitFor();
+
+    // "chamado #4521" e Enter: só o "Novo link" casa, e ele não é escolhido pelo Enter sozinho (a linha quebra)
+    await pg.keyboard.type("no chamado #4521");
+    await menu.locator('[data-item="novo-link"][data-fraco]').waitFor();
+    afirmar((await menu.locator("[role=option]").count()) === 1, "#4521 não devia casar com nenhum link");
+    await pg.keyboard.press("Enter");
+    await menu.waitFor({ state: "detached" });
+    afirmar((await pg.locator("[data-slot=link-form]").count()) === 0, "o Enter depois de #4521 abriu o formulário de link");
+    await texto.locator("p", { hasText: "no chamado #4521" }).waitFor();
+
+    // "# " no começo da linha continua sendo título
+    await pg.keyboard.type("# Pendências do guia");
+    await texto.locator("h1", { hasText: "Pendências do guia" }).waitFor();
+    await pg.keyboard.press("Enter");
+
+    // um endereço depois do "#": com a seta e Enter, guarda no banco (já nesta tarefa) e cita no lugar
+    await pg.keyboard.type("Aberto em #" + URL_NOVA);
+    const novo = menu.locator('[data-item="novo-link"]');
+    await novo.waitFor();
+    afirmar((await novo.textContent()).includes("exemplo.local/chamados/4521"), "o item de guardar não mostra o endereço digitado");
+    await pg.keyboard.press("ArrowDown");
+    await pg.keyboard.press("Enter");
+    const form = pg.locator("[data-slot=link-form]");
+    await form.waitFor();
+    afirmar((await form.getByPlaceholder("https://...").inputValue()) === URL_NOVA, "o endereço digitado não veio para o formulário");
+    await form.getByPlaceholder("Como você vai reconhecer isso depois").fill("Chamado 4521");
+    // Ctrl Enter salva o link, e só o link: a janela do registro continua aberta
+    await form.getByPlaceholder("Como você vai reconhecer isso depois").press("Control+Enter");
+    await form.waitFor({ state: "detached" });
+    await ateOsDados((x) => x.links.some((l) => l.url === URL_NOVA && l.titulo === "Chamado 4521" && (l.tarefaIds || []).includes(idT)), "o link novo não foi guardado na tarefa");
+    await texto.locator(`a[href="${URL_NOVA}"]`, { hasText: "Chamado 4521" }).waitFor();
+    await d.locator("[data-slot=editor-registro]").waitFor();
+    afirmar(!(await dados()).tarefas.find((t) => t.id === idT).registros.some((r) => r.titulo === "Revisei o guia com o chamado"), "o Ctrl Enter do formulário de link salvou o registro junto");
+
+    // salva o registro: os três ficam nas anotações e aparecem como links na linha do tempo
+    await texto.press("Control+Enter");
+    await dialogo().waitFor({ state: "detached" }).catch(() => {});
+    await ateOsDados((x) => {
+      const r = x.tarefas.find((t) => t.id === idT).registros.find((y) => y.titulo === "Revisei o guia com o chamado");
+      return !!r && r.anotacoes.includes(`](${guia.url})`) && r.anotacoes.includes(`](${URL_NOVA})`) && /\]\(arquivos\/\d{4}\//.test(r.anotacoes) && r.anotacoes.includes("#4521");
+    }, "as anotações não guardaram os links citados com #");
+    const card = pg.locator("[data-slot=registro]", { hasText: "Revisei o guia com o chamado" });
+    await card.locator(`a[href="${URL_NOVA}"]`).waitFor();
+    await card.locator("[data-slot=anexo]", { hasText: "Laudo em PDF" }).waitFor();
   });
 
   await etapa("imprimir a tarefa: a folha aparece só na impressão", async () => {

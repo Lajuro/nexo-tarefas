@@ -501,8 +501,10 @@ export function RegistroEditor({
               data-slot="anotacoes"
               valor={r.anotacoes}
               aoMudar={(v) => set("anotacoes", v)}
-              placeholder="O que foi falado, combinado, o que ficou pendente..."
+              placeholder="O que foi falado, combinado, o que ficou pendente... Digite # para citar um link ou documento da tarefa."
               aria-label="Anotações brutas"
+              tarefaIds={[tarefa.id]}
+              textoDaTarefa
               classeConteudo="min-h-[max(11rem,calc(100vh-33rem))]"
             />
           </Campo>
