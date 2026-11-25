@@ -985,9 +985,9 @@ main() {
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="50be8a2"
+MANIFEST_COMMIT="5f6521d"
 MANIFEST_VERSAO="3.24.2"
-MANIFEST_CONTEUDO="f4f8e70e803e25920eb6ec9a152643b75add1484"
+MANIFEST_CONTEUDO="ca08a2f2ed7e896910078faa45587f8669aa57fb"
 manifest() {
   cat <<'MANIFESTO'
 100755 ec44197cc92dfb24c38d88f7a17e02e26d461cf9 .githooks/pre-push
@@ -1282,7 +1282,7 @@ manifest() {
 100644 1f8bd4db1f1f83ef73754de8cd3b5768e2b95cfe testes/decisoes.test.mjs
 100644 a855dfcec14616ad1656d69562094dc969d34b2f testes/dependencias.test.mjs
 100644 05bf34712725bf7eba2b3b3fefeecb81e0425721 testes/diario.test.mjs
-100644 d37f13443393b41ac1de5b29fb2bc94686e60eac testes/e2e.cjs
+100644 28f1feb0106b89b82378c274ed38db8cf11e82dc testes/e2e.cjs
 100644 219e377c120090cec006827af1cbdf3e6f88f0bd testes/email.test.mjs
 100644 2ea4582196066202d5ec8dbf66feab818adcbf55 testes/exemplo.test.mjs
 100644 80d928e62b422418bff733c21375b601758631e2 testes/fechamento.test.mjs
