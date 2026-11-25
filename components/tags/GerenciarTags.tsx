@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, LayoutTemplate, ListFilter, ListTodo, Merge, PencilLine, Tag, Tags, Trash2, UserRound, type LucideIcon } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { useConfirmar } from "@/components/Raiz";
@@ -123,7 +123,19 @@ function DetalheDaTag({ tag, inventario, aoMudarNome }: { tag: TagDoInventario; 
   const trocar = useTrocarTag();
   const [nome, setNome] = useState(tag.nome);
   const [fazendo, setFazendo] = useState(false);
-  useEffect(() => setNome(tag.nome), [tag.chave, tag.nome]);
+  // O campo acompanha a grafia da tag nos dados, mas só enquanto a pessoa não mexeu nele: logo depois de um
+  // "Juntar" os itens são regravados um por um e a grafia oscila, e o que acabou de ser digitado era apagado.
+  // Trocar de tag recomeça o campo.
+  const grafiaMostrada = useRef(tag.nome);
+  useEffect(() => {
+    setNome((atual) => (atual === grafiaMostrada.current ? tag.nome : atual));
+    grafiaMostrada.current = tag.nome;
+  }, [tag.nome]);
+  useEffect(() => {
+    setNome(tag.nome);
+    grafiaMostrada.current = tag.nome;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tag.chave]);
 
   const itens = useMemo(() => itensDaTag(dados, tag.chave), [dados, tag.chave]);
   const somenteLeitura = !!estado?.somenteLeitura;
