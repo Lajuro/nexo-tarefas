@@ -82,6 +82,14 @@ O Nexo lembra você do que fazer:
 - **Revisão semanal**: a barra lateral avisa quando faz 7 dias da última. A tela Revisão passa por todas as tarefas abertas, das mais esquecidas para as mais recentes.
 - Os lembretes são calculados dos próprios dados: prazo vencido ou chegando, passo com prazo vencido, aguardando retorno há 5 dias, parada há 7 dias e outros.
 
+## 3.24.2: páginas na ordem que você quer, e vídeo grande enviado inteiro
+
+- **Arrastar na árvore de páginas**: no terço de cima de uma página, a que você arrasta vai antes dela; no meio, para dentro; no terço de baixo, depois. Uma linha azul e um texto embaixo do item mostram onde ela vai cair. Parar em cima de uma página fechada a abre.
+- **Mover, no menu da página** (botão direito ou **...**): para cima, para baixo, para dentro da de cima, para fora da mãe, **para dentro de outra página...** (uma lista com busca, para levar longe sem arrastar) e levar para a raiz.
+- **Ordem alfabética de uma vez**: "Ordenar as de dentro de A a Z" e "Ordenar as irmãs de A a Z". Números contam como números: "2. Instalar" vem antes de "10. Testar".
+- **Pelo teclado**, com o foco numa página da árvore: `Alt ↑` e `Alt ↓` sobem e descem, `Alt Shift →` põe para dentro da de cima e `Alt Shift ←` tira de dentro. `Ctrl Z` desfaz qualquer movimento.
+- **Vídeo enviado acima de 10 MB** ("Enviar o arquivo") era gravado só com o começo e não tocava. Agora chega inteiro. Se um vídeo que você enviou antes não toca, use **Escolher o arquivo de novo**, na própria mensagem do player: a transcrição, os capítulos e as anotações ficam. Anexar arquivo e importar um export acima de 10 MB também voltaram a funcionar.
+
 ## 3.24: acabamento
 
 Uma passada por todas as telas, nos dois temas, medindo o que dá para medir. Nada muda nos dados nem no jeito de usar.

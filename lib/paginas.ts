@@ -123,10 +123,13 @@ export function moverPagina(paginas: Pagina[], id: string, novaMae: string | nul
   if (!paginas.some((p) => p.id === id)) return paginas;
   if (novaMae && (novaMae === id || !paginas.some((p) => p.id === novaMae) || descendentes(paginas, id).has(novaMae))) return paginas;
   if (antesDe === id) return paginas;
-  const mae = maes(paginas);
+  // A árvore que a pessoa vê é a das ativas: é nela que "antes de" e "no fim" fazem sentido. Uma página cuja mãe
+  // foi arquivada aparece na raiz, e é na raiz que ela é procurada como vizinha. As arquivadas ficam como estão.
+  const visiveis = paginas.filter((p) => !p.arquivadaEm || p.id === id);
+  const mae = maes(visiveis);
   const agora = agoraISO();
   // as irmãs no destino, na ordem em que aparecem hoje, sem a página que está sendo movida
-  const irmas = paginas.filter((p) => p.id !== id && (mae.get(p.id) ?? null) === novaMae).sort(porOrdem).map((p) => p.id);
+  const irmas = visiveis.filter((p) => p.id !== id && (mae.get(p.id) ?? null) === novaMae).sort(porOrdem).map((p) => p.id);
   const onde = antesDe ? irmas.indexOf(antesDe) : -1;
   irmas.splice(onde < 0 ? irmas.length : onde, 0, id);
   const posicao = new Map(irmas.map((x, i) => [x, i]));
@@ -136,6 +139,85 @@ export function moverPagina(paginas: Pagina[], id: string, novaMae: string | nul
     if (p.id === id) return { ...p, paiId: novaMae, ordem, atualizadaEm: p.paiId === novaMae ? p.atualizadaEm : agora };
     return (p.ordem ?? 0) === ordem ? p : { ...p, ordem };
   });
+}
+
+// ---------- reorganizar (mover um passo, para dentro, para fora, em ordem alfabética) ----------
+// Tudo sobre a árvore das ativas, que é a que aparece no explorador. Cada função devolve a lista com
+// `paiId` e `ordem` acertados, ou a MESMA lista quando o movimento não vale (já é a primeira, não tem mãe...),
+// para quem chama saber que não há nada a gravar.
+
+/** Onde uma página ativa está: a mãe (null = raiz), as irmãs na ordem da tela (ela inclusive) e a posição dela. */
+export interface PosicaoNaArvore {
+  mae: string | null;
+  irmas: Pagina[];
+  indice: number;
+}
+
+export function posicaoNaArvore(paginas: Pagina[], id: string): PosicaoNaArvore | null {
+  const ativas = paginas.filter((p) => !p.arquivadaEm);
+  if (!ativas.some((p) => p.id === id)) return null;
+  const mae = maes(ativas);
+  const minha = mae.get(id) ?? null;
+  const irmas = ativas.filter((p) => (mae.get(p.id) ?? null) === minha).sort(porOrdem);
+  return { mae: minha, irmas, indice: irmas.findIndex((p) => p.id === id) };
+}
+
+export type Reposicao = "acima" | "abaixo" | "dentro" | "fora";
+
+/** Para onde a página pode ir dali: para ligar e desligar os itens do menu e os atalhos. */
+export function reposicoesPossiveis(paginas: Pagina[], id: string): Record<Reposicao, boolean> & { acimaId: string | null; maeId: string | null } {
+  const pos = posicaoNaArvore(paginas, id);
+  if (!pos) return { acima: false, abaixo: false, dentro: false, fora: false, acimaId: null, maeId: null };
+  const acima = pos.indice > 0 ? pos.irmas[pos.indice - 1].id : null;
+  return { acima: !!acima, abaixo: pos.indice < pos.irmas.length - 1, dentro: !!acima, fora: pos.mae !== null, acimaId: acima, maeId: pos.mae };
+}
+
+/**
+ * Um passo na árvore: "acima" e "abaixo" trocam de lugar com a irmã vizinha; "dentro" vai para o fim da irmã
+ * de cima; "fora" sai da mãe e fica logo depois dela.
+ */
+export function reposicionar(paginas: Pagina[], id: string, para: Reposicao): Pagina[] {
+  const pos = posicaoNaArvore(paginas, id);
+  if (!pos) return paginas;
+  const { irmas, indice, mae } = pos;
+  if (para === "acima") return indice > 0 ? moverPagina(paginas, id, mae, irmas[indice - 1].id) : paginas;
+  if (para === "abaixo") return indice < irmas.length - 1 ? moverPagina(paginas, id, mae, irmas[indice + 2]?.id ?? null) : paginas;
+  if (para === "dentro") return indice > 0 ? moverPagina(paginas, id, irmas[indice - 1].id, null) : paginas;
+  if (!mae) return paginas;
+  const daMae = posicaoNaArvore(paginas, mae);
+  if (!daMae) return paginas;
+  return moverPagina(paginas, id, daMae.mae, daMae.irmas[daMae.indice + 1]?.id ?? null);
+}
+
+const porNome = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+
+/**
+ * Põe em ordem alfabética as páginas de dentro de `maeId` (null = a raiz). "2. Instalar" vem antes de
+ * "10. Testar" (números contam como números) e acento não muda a ordem. As arquivadas ficam como estão.
+ */
+export function ordenarPorNome(paginas: Pagina[], maeId: string | null): Pagina[] {
+  const ativas = paginas.filter((p) => !p.arquivadaEm);
+  const mae = maes(ativas);
+  const irmas = ativas.filter((p) => (mae.get(p.id) ?? null) === maeId);
+  const ordem = new Map(
+    [...irmas].sort((a, b) => porNome.compare(nomeDaPagina(a), nomeDaPagina(b)) || porOrdem(a, b)).map((p, i) => [p.id, i]),
+  );
+  if (irmas.every((p) => (p.ordem ?? 0) === ordem.get(p.id))) return paginas;
+  return paginas.map((p) => (ordem.has(p.id) && (p.ordem ?? 0) !== ordem.get(p.id) ? { ...p, ordem: ordem.get(p.id) } : p));
+}
+
+/** As páginas cujo lugar na árvore (mãe ou posição) mudou de uma lista para a outra. */
+export function lugaresQueMudaram(antes: Pagina[], depois: Pagina[]): Map<string, { de: { paiId: string | null; ordem: number }; para: { paiId: string | null; ordem: number } }> {
+  const velhas = new Map(antes.map((p) => [p.id, p]));
+  const out = new Map<string, { de: { paiId: string | null; ordem: number }; para: { paiId: string | null; ordem: number } }>();
+  for (const p of depois) {
+    const v = velhas.get(p.id);
+    if (!v) continue;
+    const de = { paiId: v.paiId ?? null, ordem: v.ordem ?? 0 };
+    const para = { paiId: p.paiId ?? null, ordem: p.ordem ?? 0 };
+    if (de.paiId !== para.paiId || de.ordem !== para.ordem) out.set(p.id, { de, para });
+  }
+  return out;
 }
 
 /** Tira uma página da lista; as filhas dela sobem para a mãe dela (nunca ficam órfãs nem somem). */

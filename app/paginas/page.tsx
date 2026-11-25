@@ -12,6 +12,7 @@ import { Pagina, Vazio } from "@/components/comum";
 import { Abas } from "@/components/paginas/Abas";
 import { EditorPagina, type ModoDaPagina } from "@/components/paginas/EditorPagina";
 import { Explorador } from "@/components/paginas/Explorador";
+import { JanelaMoverPagina } from "@/components/paginas/MoverPagina";
 import { ListaPaginas } from "@/components/paginas/ListaPaginas";
 import { MapaDePaginas } from "@/components/paginas/MapaDePaginas";
 import { QuadroPaginas } from "@/components/paginas/QuadroPaginas";
@@ -136,7 +137,8 @@ function Conteudo() {
   // Alt+seta: página anterior ou próxima entre as abas, como num editor de código
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
-      if (!e.altKey || e.ctrlKey || e.metaKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight") || area.visao !== "docs" || abertas.length < 2 || !ativa) return;
+      // (com Shift é outra coisa: na árvore, Alt+Shift+seta põe a página para dentro ou para fora)
+      if (!e.altKey || e.shiftKey || e.ctrlKey || e.metaKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight") || area.visao !== "docs" || abertas.length < 2 || !ativa) return;
       const alvo = e.target as HTMLElement | null;
       if (alvo?.closest("input, textarea, [contenteditable=true]")) return;
       e.preventDefault();
@@ -246,6 +248,7 @@ function Conteudo() {
           </section>
         </div>
       )}
+      <JanelaMoverPagina acoes={acoes} />
     </Pagina>
   );
 }

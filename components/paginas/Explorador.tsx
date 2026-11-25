@@ -2,72 +2,100 @@
 
 // Explorador de páginas: a árvore da documentação (arrastar muda a ordem e a página mãe), as favoritas,
 // as arquivadas e a busca dentro das páginas, que mostra em que seção cada trecho está.
+//
+// Arrastar: cada linha tem três zonas pela altura do ponteiro. No terço de cima a página vai ANTES dela, no
+// meio vai para DENTRO dela (no fim), no terço de baixo vai DEPOIS dela (ou, se ela está aberta e tem páginas
+// dentro, vira a primeira de dentro, que é onde a linha guia aparece). Parar sobre uma página fechada a abre.
+// Teclado, com o foco numa página: Alt+↑/↓ sobe e desce entre as irmãs, Alt+Shift+→ põe para dentro da de cima
+// e Alt+Shift+← tira de dentro da mãe. O mesmo está no menu da página (Mover), e tudo tem Desfazer (Ctrl Z).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  type CollisionDetection, DndContext, type DragEndEvent, DragOverlay, type DragStartEvent, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors,
+  DndContext, type DragEndEvent, type DragMoveEvent, DragOverlay, type DragStartEvent, MeasuringStrategy, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors,
 } from "@dnd-kit/core";
-import { Archive, Bookmark, ChevronDown, ChevronRight, ChevronsDownUp, Hash, Plus, Search, X } from "lucide-react";
+import { Archive, Bookmark, ChevronDown, ChevronRight, ChevronsDownUp, CornerDownRight, Hash, Plus, Search, X } from "lucide-react";
 import { Destaque } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/menu";
 import { Dica } from "@/components/ui/popover";
-import { MODELOS_DE_PAGINA, type NoDePagina, buscarNasPaginas, descendentes, emOrdemDeLeitura, montarArvore, nomeDaPagina } from "@/lib/paginas";
+import { MODELOS_DE_PAGINA, type NoDePagina, type Reposicao, buscarNasPaginas, descendentes, emOrdemDeLeitura, montarArvore, nomeDaPagina } from "@/lib/paginas";
 import type { Pagina } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 import { type AcoesDePagina, BotaoMenuPagina, IconePagina, MenuContextoPagina } from "./pecas";
 
-// zona fina "antes de" ganha da linha inteira ("dentro de") quando o ponteiro está nas duas
-const colisao: CollisionDetection = (args) => {
-  const dentro = pointerWithin(args);
-  return [...dentro].sort((a, b) => Number(String(b.id).startsWith("antes:")) - Number(String(a.id).startsWith("antes:")));
-};
+type Zona = "antes" | "dentro" | "depois";
+interface AlvoDoArrasto { id: string; zona: Zona }
+/** Até 30% da altura da linha é "antes"; a partir de 70%, "depois"; o meio é "dentro". */
+const zonaPelaAltura = (fracao: number): Zona => (fracao < 0.3 ? "antes" : fracao > 0.7 ? "depois" : "dentro");
+/** Quanto tempo parado sobre uma página fechada até ela abrir sozinha. */
+const ABRIR_AO_PARAR_MS = 650;
+
+/** Onde cada página está na árvore que está na tela (para traduzir "depois de X" em mãe e posição). */
+interface LugarNaTela { mae: string | null; proxima: string | null; primeiraFilha: string | null; temFilhas: boolean }
 
 interface PropsDaLinha {
   no: NoDePagina;
   ativaId: string | null;
   recolhidas: Set<string>;
   arrastando: string | null;
+  alvo: AlvoDoArrasto | null;
   proibidas: Set<string>;
   acoes: AcoesDePagina;
   aoAbrir: (id: string) => void;
   aoAlternar: (id: string) => void;
   aoFechar: (id: string) => void;
+  aoMoverPeloTeclado: (id: string, para: Reposicao) => void;
 }
 
-function Linha({ no, ativaId, recolhidas, arrastando, proibidas, acoes, aoAbrir, aoAlternar, aoFechar }: PropsDaLinha) {
+/** A tecla de mover que foi apertada (Alt+↑/↓, Alt+Shift+→/←), ou null. */
+function reposicaoDaTecla(e: React.KeyboardEvent): Reposicao | null {
+  if (!e.altKey || e.ctrlKey || e.metaKey) return null;
+  if (e.shiftKey) return e.key === "ArrowRight" ? "dentro" : e.key === "ArrowLeft" ? "fora" : null;
+  return e.key === "ArrowUp" ? "acima" : e.key === "ArrowDown" ? "abaixo" : null;
+}
+
+function Linha({ no, ativaId, recolhidas, arrastando, alvo, proibidas, acoes, aoAbrir, aoAlternar, aoFechar, aoMoverPeloTeclado }: PropsDaLinha) {
   const p = no.pagina;
   const temFilhas = no.filhos.length > 0;
   const aberta = temFilhas && !recolhidas.has(p.id);
   const { setNodeRef: arrasto, listeners, isDragging } = useDraggable({ id: p.id });
   const podeReceber = !!arrastando && !proibidas.has(p.id);
-  const dentro = useDroppable({ id: `dentro:${p.id}`, disabled: !podeReceber });
-  const antes = useDroppable({ id: `antes:${p.id}`, disabled: !podeReceber });
+  const linha = useDroppable({ id: `linha:${p.id}`, disabled: !podeReceber });
   const ativa = p.id === ativaId;
+  const zona = podeReceber && alvo?.id === p.id ? alvo.zona : null;
+  // "depois" de uma página aberta com filhas = a primeira de dentro: a guia fica com o recuo das filhas
+  const recuoDepois = zona === "depois" && aberta ? no.nivel + 1 : no.nivel;
 
   return (
     <li role="treeitem" aria-expanded={temFilhas ? aberta : undefined} aria-selected={ativa} aria-level={no.nivel + 1}>
       <div className="relative">
-        <div ref={antes.setNodeRef} aria-hidden className="absolute inset-x-0 -top-[3px] z-10 h-[7px]">
-          {antes.isOver && <div data-slot="soltar-antes" className="absolute inset-x-1 top-[3px] h-0.5 rounded-full bg-primary" style={{ marginLeft: no.nivel * 14 + 8 }} />}
-        </div>
+        {zona === "antes" && <div data-slot="soltar-antes" aria-hidden className="pointer-events-none absolute right-1 -top-px z-10 h-0.5 rounded-full bg-primary" style={{ left: no.nivel * 14 + 8 }} />}
+        {zona === "depois" && <div data-slot="soltar-depois" aria-hidden className="pointer-events-none absolute right-1 -bottom-px z-10 h-0.5 rounded-full bg-primary" style={{ left: recuoDepois * 14 + 8 }} />}
         <MenuContextoPagina pagina={p} acoes={acoes} aoAbrir={aoAbrir} aoExcluir={() => aoFechar(p.id)}>
           <div
-            ref={(el) => { arrasto(el); dentro.setNodeRef(el); }}
+            ref={(el) => { arrasto(el); linha.setNodeRef(el); }}
             {...listeners}
             data-slot="item-pagina"
             data-id={p.id}
             data-ativa={ativa || undefined}
             data-nivel={no.nivel}
+            data-soltar={zona ?? undefined}
             className={cn(
               "group/linha flex h-7 cursor-pointer items-center gap-1 rounded-md pr-1 text-[13px] transition-colors outline-none sem-selecao hover:bg-accent/60",
               ativa && "bg-accent font-medium",
-              dentro.isOver && "bg-primary/10 ring-1 ring-primary/50",
+              zona === "dentro" && "bg-primary/10 ring-1 ring-primary/50",
               isDragging && "opacity-40",
             )}
             style={{ paddingLeft: no.nivel * 14 + 2 }}
             onClick={() => aoAbrir(p.id)}
+            onKeyDown={(e) => {
+              const para = reposicaoDaTecla(e);
+              if (!para) return;
+              e.preventDefault();
+              e.stopPropagation();
+              aoMoverPeloTeclado(p.id, para);
+            }}
           >
             <button type="button" tabIndex={-1} aria-label={aberta ? "Recolher" : "Abrir"} disabled={!temFilhas}
               onClick={(e) => { e.stopPropagation(); aoAlternar(p.id); }}
@@ -75,7 +103,7 @@ function Linha({ no, ativaId, recolhidas, arrastando, proibidas, acoes, aoAbrir,
               {aberta ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
             </button>
             <IconePagina pagina={p} temFilhas={temFilhas} className={cn("text-muted-foreground", ativa && "text-primary")} />
-            <button type="button" className="min-w-0 flex-1 truncate rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            <button type="button" data-slot="nome-pagina" className="min-w-0 flex-1 truncate rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
               onClick={(e) => { e.stopPropagation(); aoAbrir(p.id); }}>
               {nomeDaPagina(p)}
             </button>
@@ -94,7 +122,8 @@ function Linha({ no, ativaId, recolhidas, arrastando, proibidas, acoes, aoAbrir,
       {aberta && (
         <ul role="group">
           {no.filhos.map((f) => (
-            <Linha key={f.pagina.id} no={f} ativaId={ativaId} recolhidas={recolhidas} arrastando={arrastando} proibidas={proibidas} acoes={acoes} aoAbrir={aoAbrir} aoAlternar={aoAlternar} aoFechar={aoFechar} />
+            <Linha key={f.pagina.id} no={f} ativaId={ativaId} recolhidas={recolhidas} arrastando={arrastando} alvo={alvo} proibidas={proibidas} acoes={acoes}
+              aoAbrir={aoAbrir} aoAlternar={aoAlternar} aoFechar={aoFechar} aoMoverPeloTeclado={aoMoverPeloTeclado} />
           ))}
         </ul>
       )}
@@ -106,7 +135,7 @@ function FimDaRaiz({ ligado }: { ligado: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: "fim-da-raiz", disabled: !ligado });
   return (
     <div ref={setNodeRef} className={cn("mt-1 min-h-8 flex-1 rounded-md border border-dashed border-transparent px-2 py-1.5 text-xs text-muted-foreground transition-colors", ligado && "border-border", isOver && "border-primary/60 bg-primary/8 text-foreground")}>
-      {ligado && "Soltar aqui leva para a raiz"}
+      {ligado && "Soltar aqui leva para o fim da raiz"}
     </div>
   );
 }
@@ -140,6 +169,11 @@ export function Explorador({
   const [busca, setBusca] = useState("");
   const [arquivadasAbertas, setArquivadasAbertas] = useState(false);
   const [arrastando, setArrastando] = useState<string | null>(null);
+  const [alvo, setAlvo] = useState<AlvoDoArrasto | null>(null);
+  const alvoAgora = useRef<AlvoDoArrasto | null>(null);
+  const sobreAgora = useRef<string>("");
+  const ponteiro = useRef({ y: 0 });
+  const raiz = useRef<HTMLElement>(null);
   const campo = useRef<HTMLInputElement>(null);
 
   const ativas = useMemo(() => paginas.filter((p) => !p.arquivadaEm), [paginas]);
@@ -151,6 +185,81 @@ export function Explorador({
   // não dá para soltar uma página dentro dela mesma nem de uma descendente
   const proibidas = useMemo(() => (arrastando ? new Set([arrastando, ...descendentes(ativas, arrastando)]) : new Set<string>()), [arrastando, ativas]);
   const comFilhas = useMemo(() => emOrdemDeLeitura(arvore).filter((n) => n.filhos.length).map((n) => n.pagina.id), [arvore]);
+  const lugares = useMemo(() => {
+    const out = new Map<string, LugarNaTela>();
+    const andar = (nos: NoDePagina[], mae: string | null) =>
+      nos.forEach((n, i) => {
+        out.set(n.pagina.id, { mae, proxima: nos[i + 1]?.pagina.id ?? null, primeiraFilha: n.filhos[0]?.pagina.id ?? null, temFilhas: n.filhos.length > 0 });
+        andar(n.filhos, n.pagina.id);
+      });
+    andar(arvore, null);
+    return out;
+  }, [arvore]);
+
+  // A zona sai da posição de verdade do ponteiro sobre a linha (getBoundingClientRect), que não se perde com a
+  // rolagem do explorador nem quando uma página se abre no meio do arrasto.
+  function mudarAlvo(novo: AlvoDoArrasto | null) {
+    const velho = alvoAgora.current;
+    if (velho?.id === novo?.id && velho?.zona === novo?.zona) return;
+    alvoAgora.current = novo;
+    setAlvo(novo);
+  }
+  function recalcularAlvo() {
+    const sobre = sobreAgora.current;
+    if (!sobre.startsWith("linha:")) return mudarAlvo(null);
+    const id = sobre.slice("linha:".length);
+    const el = raiz.current?.querySelector(`[data-slot=item-pagina][data-id="${CSS.escape(id)}"]`);
+    if (!el) return mudarAlvo(null);
+    const r = el.getBoundingClientRect();
+    mudarAlvo({ id, zona: zonaPelaAltura(r.height ? (ponteiro.current.y - r.top) / r.height : 0.5) });
+  }
+  useEffect(() => {
+    if (!arrastando) return;
+    const mexeu = (e: PointerEvent) => { ponteiro.current.y = e.clientY; recalcularAlvo(); };
+    window.addEventListener("pointermove", mexeu);
+    return () => window.removeEventListener("pointermove", mexeu);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arrastando]);
+
+  // parado sobre o meio de uma página fechada, ela abre (para soltar entre as de dentro). A função vem da tela,
+  // nova a cada render: fica numa ref para o tempo não recomeçar à toa.
+  const alternar = useRef(aoAlternar);
+  alternar.current = aoAlternar;
+  useEffect(() => {
+    if (!alvo || alvo.zona !== "dentro" || !lugares.get(alvo.id)?.temFilhas || !fechadas.has(alvo.id)) return;
+    const t = window.setTimeout(() => alternar.current(alvo.id), ABRIR_AO_PARAR_MS);
+    return () => window.clearTimeout(t);
+  }, [alvo, lugares, fechadas]);
+
+  /** Para onde vai a página, dado onde ela foi solta. */
+  function destinoDoAlvo(a: AlvoDoArrasto): { mae: string | null; antes: string | null } | null {
+    const lugar = lugares.get(a.id);
+    if (!lugar) return null;
+    if (a.zona === "antes") return { mae: lugar.mae, antes: a.id };
+    if (a.zona === "dentro") return { mae: a.id, antes: null };
+    if (lugar.temFilhas && !fechadas.has(a.id)) return { mae: a.id, antes: lugar.primeiraFilha };
+    return { mae: lugar.mae, antes: lugar.proxima };
+  }
+
+  /** O que aparece embaixo da página arrastada: onde ela vai cair se soltar agora. */
+  function textoDoDestino(): string {
+    if (sobreAgora.current === "fim-da-raiz") return "no fim da raiz";
+    if (!alvo) return "";
+    const nome = `“${nomeDaPagina(ativas.find((p) => p.id === alvo.id) ?? { titulo: "", texto: "" })}”`;
+    if (alvo.zona === "antes") return `antes de ${nome}`;
+    if (alvo.zona === "dentro") return `dentro de ${nome}`;
+    return lugares.get(alvo.id)?.temFilhas && !fechadas.has(alvo.id) ? `primeira dentro de ${nome}` : `depois de ${nome}`;
+  }
+
+  /** Alt+setas numa página: um passo, sem aviso (a mudança está à vista e o Ctrl Z desfaz). O foco fica nela. */
+  async function moverPeloTeclado(id: string, para: Reposicao) {
+    const novaMae = para === "dentro" ? acoes.possiveis(id).acimaId : null;
+    const mexeu = await acoes.passo(id, para, { semAviso: true });
+    if (!mexeu) return;
+    if (novaMae && fechadas.has(novaMae)) aoAlternar(novaMae);
+    const focar = () => raiz.current?.querySelector<HTMLElement>(`[data-slot=item-pagina][data-id="${CSS.escape(id)}"] [data-slot=nome-pagina]`)?.focus();
+    requestAnimationFrame(() => requestAnimationFrame(focar));
+  }
 
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   // soltar em cima do próprio lugar dispararia o clique que abre a página: cancela logo depois de um arrasto
@@ -179,25 +288,24 @@ export function Explorador({
 
   function aoSoltar(e: DragEndEvent) {
     fimDoArrasto.current = Date.now();
-    setArrastando(null);
-    const id = String(e.active.id);
+    const a = alvoAgora.current;
     const sobre = e.over ? String(e.over.id) : "";
-    if (!sobre) return;
+    setArrastando(null);
+    mudarAlvo(null);
+    sobreAgora.current = "";
+    const id = String(e.active.id);
     if (sobre === "fim-da-raiz") return void acoes.mover(id, null);
-    const [modo, alvo] = [sobre.slice(0, sobre.indexOf(":")), sobre.slice(sobre.indexOf(":") + 1)];
-    if (alvo === id || descendentes(ativas, id).has(alvo)) return;
-    if (modo === "dentro") {
-      if (fechadas.has(alvo)) aoAlternar(alvo);
-      return void acoes.mover(id, alvo);
-    }
-    const irma = ativas.find((p) => p.id === alvo);
-    if (irma) void acoes.mover(id, irma.paiId && ativas.some((p) => p.id === irma.paiId) ? irma.paiId : null, alvo);
+    if (!a || a.id === id || descendentes(ativas, id).has(a.id)) return;
+    const destino = destinoDoAlvo(a);
+    if (!destino) return;
+    if (a.zona === "dentro" && fechadas.has(a.id)) aoAlternar(a.id);
+    void acoes.mover(id, destino.mae, destino.antes);
   }
 
   const paginaNoAr = arrastando ? ativas.find((p) => p.id === arrastando) : null;
 
   return (
-    <aside data-slot="explorador" className="flex h-full w-[272px] shrink-0 flex-col border-r bg-sidebar/40">
+    <aside ref={raiz} data-slot="explorador" className="flex h-full w-[272px] shrink-0 flex-col border-r bg-sidebar/40">
       <div className="flex items-center gap-1.5 px-2.5 pt-3 pb-2">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -262,10 +370,16 @@ export function Explorador({
             ))}
           </div>
         ) : (
-          <DndContext sensors={sensores} collisionDetection={colisao}
-            onDragStart={(e: DragStartEvent) => setArrastando(String(e.active.id))}
+          <DndContext sensors={sensores} collisionDetection={pointerWithin}
+            measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+            onDragStart={(e: DragStartEvent) => {
+              ponteiro.current.y = (e.activatorEvent as PointerEvent | null)?.clientY ?? 0;
+              setArrastando(String(e.active.id));
+            }}
+            onDragMove={(e: DragMoveEvent) => { sobreAgora.current = e.over ? String(e.over.id) : ""; recalcularAlvo(); }}
+            onDragOver={(e) => { sobreAgora.current = e.over ? String(e.over.id) : ""; recalcularAlvo(); }}
             onDragEnd={aoSoltar}
-            onDragCancel={() => { fimDoArrasto.current = Date.now(); setArrastando(null); }}>
+            onDragCancel={() => { fimDoArrasto.current = Date.now(); setArrastando(null); mudarAlvo(null); sobreAgora.current = ""; }}>
             <div className="flex min-h-full flex-col">
               {favoritas.length > 0 && (
                 <section className="mb-2">
@@ -291,7 +405,8 @@ export function Explorador({
               ) : (
                 <ul role="tree" aria-label="Páginas" data-slot="arvore-de-paginas">
                   {arvore.map((n) => (
-                    <Linha key={n.pagina.id} no={n} ativaId={ativaId} recolhidas={fechadas} arrastando={arrastando} proibidas={proibidas} acoes={acoes} aoAbrir={aoAbrir} aoAlternar={aoAlternar} aoFechar={aoFechar} />
+                    <Linha key={n.pagina.id} no={n} ativaId={ativaId} recolhidas={fechadas} arrastando={arrastando} alvo={alvo} proibidas={proibidas} acoes={acoes}
+                      aoAbrir={aoAbrir} aoAlternar={aoAlternar} aoFechar={aoFechar} aoMoverPeloTeclado={(id, para) => void moverPeloTeclado(id, para)} />
                   ))}
                 </ul>
               )}
@@ -312,8 +427,15 @@ export function Explorador({
             </div>
             <DragOverlay dropAnimation={null}>
               {paginaNoAr ? (
-                <div className="inline-flex h-7 max-w-[240px] items-center gap-1.5 rounded-md border border-primary/50 bg-card px-2 text-[13px] font-medium shadow-lg">
-                  <IconePagina pagina={paginaNoAr} className="text-primary" /><span className="truncate">{nomeDaPagina(paginaNoAr)}</span>
+                <div className="pointer-events-none inline-flex max-w-[260px] flex-col rounded-md border border-primary/50 bg-card px-2 py-1 shadow-lg">
+                  <span className="inline-flex items-center gap-1.5 text-[13px] font-medium">
+                    <IconePagina pagina={paginaNoAr} className="text-primary" /><span className="truncate">{nomeDaPagina(paginaNoAr)}</span>
+                  </span>
+                  {textoDoDestino() && (
+                    <span data-slot="destino-do-arrasto" className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <CornerDownRight className="size-3 shrink-0" /><span className="truncate">{textoDoDestino()}</span>
+                    </span>
+                  )}
                 </div>
               ) : null}
             </DragOverlay>

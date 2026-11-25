@@ -28,6 +28,11 @@ import { Transcricao } from "./Transcricao";
 
 const SO_AUDIO = /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac)$/i;
 
+// Vídeo enviado que não toca. Até a 3.24.1 o envio acima de 10 MB era gravado cortado (o proxy do Next guardava
+// só o começo do corpo, ver lib/origem.ts): o arquivo existe, mas sem o fim o navegador não consegue abrir.
+const EXPLICACAO_DO_ENVIADO =
+  "Se este vídeo foi enviado antes da versão 3.24.2, ele pode ter sido gravado cortado: os envios acima de 10 MB ficavam só com o começo. Escolha o arquivo de novo (a transcrição, os capítulos e as anotações ficam). Se não for isso, o formato pode não ser um que o navegador toque: MP4 (H.264) e WebM são os mais garantidos.";
+
 /** Escolher de onde vem o vídeo: enviar, apontar para um arquivo do computador ou só guardar o link. */
 function FonteDoVideo({ aoEscolher }: { aoEscolher: (v: Partial<VideoDaPagina>) => void }) {
   const { enviarMidia } = useNexo();
@@ -233,6 +238,8 @@ export function VisaoDeVideo({
               aoTempo={aoTempo}
               inicio={inicio}
               aoDuracao={(d) => { if (Math.abs((video.duracao ?? 0) - d) > 1.5) void mudarVideo({ duracao: Math.round(d) }); }}
+              explicacaoDoErro={video.arquivo ? EXPLICACAO_DO_ENVIADO : undefined}
+              acaoDoErro={video.arquivo && !pagina.arquivadaEm ? { rotulo: "Escolher o arquivo de novo", aoClicar: () => void tirarVideo() } : undefined}
               className={cn("w-full rounded-none", somenteAudio ? "h-40" : "aspect-video max-w-[78vh]")}
             />
           </div>

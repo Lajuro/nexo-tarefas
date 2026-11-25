@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast as sonner } from "sonner";
 import {
-  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, Gavel, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
+  ArrowRight, BookText, CalendarClock, Check, ChevronDown, Telescope, Clapperboard, Component, Eye, FileAudio, FileSearch, FolderTree, Gavel, History, LayoutDashboard, LifeBuoy, Link2, ListChecks, Merge, MessageCircleQuestion, Navigation, MoonStar, Paintbrush, Palette, PanelTop, PencilLine, Presentation, Printer, Radar, ShieldCheck, Sparkles, SquarePen, Ticket, Undo2, Waypoints, type LucideIcon, Tags } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { Modal } from "@/components/comum";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { abrirPersonalizar } from "@/lib/moldura";
 import { usePref } from "@/lib/preferencias";
 
 /** Sobe quando há novidades que valem o aviso. Não é a versão do pacote: correção pequena não avisa de novo. */
-export const VERSAO_NOVIDADES = "3.23";
+export const VERSAO_NOVIDADES = "3.24.2";
 
 const EVENTO = "nexo:novidades";
 export const abrirNovidades = () => window.dispatchEvent(new Event(EVENTO));
@@ -33,6 +33,15 @@ type Novidade = {
 };
 
 const NOVIDADES: Novidade[] = [
+  { versao: "3.24.2", icone: FolderTree, titulo: "Páginas na ordem que você quer, e vídeo grande enviado inteiro", texto: "Reorganizar a árvore de páginas ficou fácil: ao arrastar, uma linha mostra se a página vai antes, depois ou para dentro da outra, e o menu da página ganhou Mover (para cima, para baixo, para dentro, para fora, para dentro de qualquer página e em ordem alfabética), com atalhos e Desfazer. E o envio de vídeo acima de 10 MB, que chegava cortado e não tocava, foi corrigido.", href: "/paginas", rotulo: "Abrir Páginas",
+    pontos: [
+      "Arrastar na árvore: no terço de cima de uma página, a arrastada vai antes dela; no meio, para dentro; no terço de baixo, depois. A linha azul e o texto embaixo do item dizem onde ela vai cair, e parar em cima de uma página fechada a abre.",
+      "Mover, no menu da página (botão direito ou \"...\"): para cima, para baixo, para dentro da de cima, para fora da mãe, \"para dentro de outra página...\" (uma lista com busca, para levar longe sem arrastar) e levar para a raiz.",
+      "Ordem alfabética de uma vez: \"Ordenar as de dentro de A a Z\" e \"Ordenar as irmãs de A a Z\". Números contam como números: \"2. Instalar\" vem antes de \"10. Testar\".",
+      "Pelo teclado, com o foco numa página da árvore: Alt+↑ e Alt+↓ sobem e descem, Alt+Shift+→ põe para dentro da de cima e Alt+Shift+← tira de dentro. Ctrl Z desfaz.",
+      "Vídeo enviado (\"Enviar o arquivo\") acima de 10 MB era gravado só com o começo e não tocava. Agora chega inteiro. Se um vídeo enviado antes não toca, use \"Escolher o arquivo de novo\" na própria mensagem do player: a transcrição, os capítulos e as anotações ficam.",
+      "Anexar arquivo e importar um export acima de 10 MB também falhavam pelo mesmo motivo, e foram corrigidos junto.",
+    ] },
   { versao: "3.23", icone: Gavel, titulo: "Acompanhar de verdade: decisões num lugar só, tempo em cada status e o resumo pronto, sem IA", texto: "A tela Decisões, em Acompanhar, junta o que foi decidido em todas as tarefas, com quando e com quem, e leva ao registro de cada uma. A tarefa mostra há quanto tempo está no status de agora e quanto ficou em cada um; o Radar e os Relatórios mostram quanto as tarefas esperam por terceiros. E Relatórios ganhou \"Copiar resumo\" e \"Preparar o 1:1\": texto simples, montado só com os seus registros, sem passar pelo Copilot.", href: "/decisoes", rotulo: "Abrir Decisões",
     pontos: [
       "Decisões: uma aba nova em Acompanhar (G depois I). Tudo o que está no campo Decisões dos registros, por mês, com busca, categoria, quem estava e período. O nome da tarefa leva ao registro, e Copiar gera o texto para uma ata.",
@@ -194,7 +203,7 @@ export function Novidades() {
     if (temDados)
       setTimeout(() => {
         sonner(`O Nexo chegou à versão ${VERSAO_NOVIDADES}`, {
-          description: "Decisões de todas as tarefas num lugar só, o tempo que cada tarefa ficou em cada status, e o resumo do período pronto para copiar, sem IA.",
+          description: "Reorganizar as páginas ficou fácil (arrastar com linha guia, Mover no menu, ordem alfabética, Alt+setas), e o vídeo acima de 10 MB volta a ser enviado inteiro.",
           duration: 15000,
           action: { label: "Ver novidades", onClick: abrirNovidades },
         });

@@ -1,8 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { caminhoArquivo, salvarArquivo } from "@/lib/armazenamento";
+import { recusaDaRota } from "@/lib/origem";
 import { tratar } from "@/lib/resposta";
 export const dynamic = "force-dynamic";
+
+// Esta rota não passa pelo proxy.ts (ver lib/origem.ts): lá o Next cortaria em 10 MB o anexo enviado.
+// Por isso cada pedido confere aqui mesmo quem está pedindo, com a mesma regra do proxy.
 
 const TIPOS: Record<string, string> = {
   ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -16,6 +20,7 @@ const TETO = 200 * 1024 * 1024;
 const grande = () => new Error("Arquivo grande demais (o limite é 200 MB). Guarde o arquivo numa pasta e salve aqui o link para ele.");
 
 export const POST = (req: Request) =>
+  recusaDaRota(req) ??
   tratar(async () => {
     if (Number(req.headers.get("content-length")) > TETO + 1024 * 1024) throw grande();
     const form = await req.formData();
@@ -36,6 +41,7 @@ const FECHADO = { "Content-Security-Policy": "sandbox; frame-ancestors 'none'", 
 const PDF_NO_VISOR = { "Content-Security-Policy": "frame-ancestors 'self'", "X-Frame-Options": "SAMEORIGIN" };
 
 export const GET = (req: Request) =>
+  recusaDaRota(req) ??
   tratar(async () => {
     const url = new URL(req.url);
     const rel = url.searchParams.get("p") || "";

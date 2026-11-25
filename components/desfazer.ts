@@ -42,11 +42,14 @@ async function executar(item: Desfazivel) {
 /**
  * Mostra o aviso da ação com "Desfazer" e guarda a volta para o Ctrl Z.
  * `desfazer` devolve false quando não deu (e já avisou o porquê).
+ * `semAviso`: só guarda a volta para o Ctrl Z, sem aviso na tela. Para ação repetida pelo teclado (mover uma
+ * página com Alt+seta), em que um aviso por tecla encheria a tela e a mudança já está à vista.
  */
-export function oferecerDesfazer(texto: string, desfazer: Desfazivel["desfazer"], opcoes: { tipo?: "ok" | "info" } = {}) {
+export function oferecerDesfazer(texto: string, desfazer: Desfazivel["desfazer"], opcoes: { tipo?: "ok" | "info"; semAviso?: boolean } = {}) {
   const item: Desfazivel = { id: proximo++, texto, desfazer, em: Date.now() };
   pilha.push(item);
   if (pilha.length > MAXIMO) pilha.splice(0, pilha.length - MAXIMO);
+  if (opcoes.semAviso) return;
   const mostrar = opcoes.tipo === "info" ? sonner : sonner.success;
   item.aviso = mostrar(texto, {
     duration: 6000,

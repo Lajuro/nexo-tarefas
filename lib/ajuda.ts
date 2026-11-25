@@ -157,10 +157,17 @@ export const AJUDA: AjudaDaTela[] = [
       "Crie uma página e escreva com títulos, listas, tabelas, imagens e anexos.",
       "Digite [[ para ligar a outra página e @ para citar tarefa, pessoa, folha ou link.",
       "Uma página pode ter subpáginas e servir a várias tarefas.",
+      "Para mudar a ordem, arraste na árvore: a linha azul mostra se a página vai antes, depois ou para dentro da outra. Ou use Mover, no menu da página (botão direito ou \"...\"), que também põe em ordem alfabética.",
       "O histórico guarda as versões: dá para comparar e restaurar.",
     ],
     mostrar: [],
-    atalhos: [],
+    atalhos: [
+      { teclas: ["Alt", "↑"], descricao: "Subir a página na árvore (com o foco nela)" },
+      { teclas: ["Alt", "↓"], descricao: "Descer a página na árvore" },
+      { teclas: ["Alt", "Shift", "→"], descricao: "Pôr a página dentro da de cima" },
+      { teclas: ["Alt", "Shift", "←"], descricao: "Tirar a página de dentro da mãe" },
+      { teclas: ["Ctrl", "Z"], descricao: "Desfazer o último movimento" },
+    ],
   },
   {
     rota: "/perguntar", titulo: "Perguntar",

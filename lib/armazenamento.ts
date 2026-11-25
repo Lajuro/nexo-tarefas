@@ -944,8 +944,12 @@ const TIPOS_DE_MIDIA: Record<string, string> = {
 export const TETO_DE_MIDIA = 4 * 1024 * 1024 * 1024;
 const tipoDeMidia = (arquivo: string) => TIPOS_DE_MIDIA[path.extname(arquivo).toLowerCase()];
 
-/** Grava um vídeo ou áudio na pasta de dados, lendo o corpo do pedido aos poucos. Nunca sobrescreve. */
-export async function salvarMidia(nomeOriginal: string, corpo: ReadableStream<Uint8Array> | null) {
+/**
+ * Grava um vídeo ou áudio na pasta de dados, lendo o corpo do pedido aos poucos. Nunca sobrescreve.
+ * `anunciado` é o tamanho que o navegador disse que ia mandar (Content-Length): se chegar outra coisa, o envio
+ * foi cortado no caminho e nada fica gravado (até a 3.24.1 o proxy cortava em 10 MB e o vídeo era gravado assim).
+ */
+export async function salvarMidia(nomeOriginal: string, corpo: ReadableStream<Uint8Array> | null, anunciado: number | null = null) {
   const dir = await paraEscrita();
   if (!corpo) throw new Error("Nenhum arquivo enviado.");
   if (!tipoDeMidia(nomeOriginal)) throw new Error("Esse tipo de arquivo não é aceito como vídeo. Use MP4, WebM, MOV, MKV, MP3, M4A, WAV ou OGG.");
@@ -965,6 +969,8 @@ export async function salvarMidia(nomeOriginal: string, corpo: ReadableStream<Ui
       if (tamanho > TETO_DE_MIDIA) throw new Error("Arquivo grande demais (o limite é 4 GB). Deixe o vídeo numa pasta do computador e aponte para ele, sem copiar.");
       await arquivo.write(value);
     }
+    if (anunciado != null && tamanho !== anunciado)
+      throw new Error(`O vídeo chegou incompleto (${tamanho} de ${anunciado} bytes) e não foi gravado. Tente enviar de novo.`);
     await arquivo.close();
   } catch (e) {
     // envio interrompido ou grande demais: não fica um arquivo pela metade na pasta

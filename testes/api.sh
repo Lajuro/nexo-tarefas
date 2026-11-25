@@ -165,6 +165,40 @@ curl -s -X POST "$B/api/midia?nome=..%2F..%2Ffora.mp4" --data-binary @"$TMP/vide
 checa "vídeo: nome com ../ não sai da pasta de anexos" '' "$(ls "$TMP/dados" "$TMP" | grep -x 'fora.mp4' || true)"
 checa "vídeo: CSRF recusa Origin de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B/api/midia?nome=x.mp4" -H 'Origin: https://evil.example' --data-binary @"$TMP/video.bin")"
 checa "vídeo: recusa caminho fora de arquivos/" 'inválid' "$(curl -s "$B/api/midia?p=../nexo.json")"
+# Envio grande chega inteiro (3.24.2). Com o proxy.ts no caminho, o Next guardava só os primeiros 10 MB do corpo e o
+# vídeo era gravado cortado, sem erro nenhum. As três rotas de envio ficam fora do proxy (lib/origem.ts) e se protegem sozinhas.
+head -c 25000000 /dev/urandom >"$TMP/grande.mp4"
+R=$(curl -s -X POST "$B/api/midia?nome=grande.mp4" --data-binary @"$TMP/grande.mp4" -H 'Content-Type: application/octet-stream')
+checa "vídeo de 25 MB: o servidor conta os 25 MB" '"tamanho":25000000' "$R"
+GRANDE="$(echo "$R" | sed -n 's/.*"arquivo":"\([^"]*\)".*/\1/p')"
+checa "vídeo de 25 MB: o arquivo gravado é igual ao enviado" "$(sha256sum <"$TMP/grande.mp4" | cut -d' ' -f1)" "$(sha256sum <"$TMP/dados/arquivos/$GRANDE" 2>/dev/null | cut -d' ' -f1)"
+checa "vídeo de 25 MB: toca até o último byte" 'bytes 24999990-24999999/25000000' "$(curl -s -D - -o /dev/null "$B/api/midia?p=$GRANDE" -H 'Range: bytes=24999990-')"
+head -c 15000000 /dev/urandom >"$TMP/grande.pdf"
+checa "anexo de 15 MB chega inteiro" '"tamanho":15000000' "$(curl -s -F "arquivo=@$(nativo "$TMP/grande.pdf")" $B/api/arquivos)"
+checa "nenhum envio foi cortado pelo proxy" '' "$(grep -i 'body exceeded' "$TMP/server.log" || true)"
+# envio que chega com menos bytes do que anunciou: não fica arquivo pela metade
+node -e '
+  const s = require("net").connect(Number(process.argv[1]), "127.0.0.1", () => {
+    s.end("POST /api/midia?nome=pela-metade.mp4 HTTP/1.1\r\nHost: 127.0.0.1:" + process.argv[1] + "\r\nContent-Type: application/octet-stream\r\nContent-Length: 5000\r\n\r\n" + "x".repeat(1000));
+  });
+  s.on("data", () => {}); s.on("close", () => process.exit(0)); s.on("error", () => process.exit(0));
+  setTimeout(() => process.exit(0), 3000);
+' "$PORTA"
+sleep 0.5
+checa "vídeo cortado no caminho: nada fica gravado" '' "$(find "$TMP/dados/arquivos" -name '*pela-metade*' 2>/dev/null)"
+# as rotas fora do proxy aplicam a mesma regra dele, em leitura e em escrita
+for ROTA in "/api/midia?p=$GRANDE" "/api/arquivos?p=$GRANDE"; do
+  checa "fora do proxy ($ROTA): recusa Host estranho" '403' "$(curl -s -o /dev/null -w '%{http_code}' "$B$ROTA" -H 'Host: evil.example')"
+  checa "fora do proxy ($ROTA): recusa leitura de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' "$B$ROTA" -H 'Sec-Fetch-Site: cross-site')"
+  checa "fora do proxy ($ROTA): recusa leitura de outra porta" '403' "$(curl -s -o /dev/null -w '%{http_code}' "$B$ROTA" -H 'Sec-Fetch-Site: same-site')"
+  checa "fora do proxy ($ROTA): o próprio app lê" '200' "$(curl -s -o /dev/null -w '%{http_code}' "$B$ROTA" -H 'Sec-Fetch-Site: same-origin')"
+done
+for ROTA in "/api/midia?nome=x.mp4" "/api/arquivos" "/api/importar"; do
+  checa "fora do proxy ($ROTA): recusa escrita com Host estranho" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B$ROTA" --data x -H 'Host: evil.example')"
+  checa "fora do proxy ($ROTA): recusa escrita de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B$ROTA" --data x -H 'Sec-Fetch-Site: cross-site')"
+  checa "fora do proxy ($ROTA): recusa Origin de outro site" '403' "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$B$ROTA" --data x -H 'Origin: https://evil.example')"
+done
+checa "uma rota com nome parecido continua no proxy" '403' "$(curl -s -o /dev/null -w '%{http_code}' "$B/api/midiax" -H 'Host: evil.example')"
 echo "nao e video" >"$TMP/dados/arquivos/$(date +%Y)/nota.txt"
 checa "vídeo: não toca arquivo que não é vídeo" 'não é um vídeo' "$(curl -s "$B/api/midia?p=$(date +%Y)/nota.txt")"
 # vídeo num caminho do computador: o caminho vem da página gravada, nunca do pedido

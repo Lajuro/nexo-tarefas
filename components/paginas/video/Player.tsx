@@ -13,6 +13,7 @@ import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useImpe
 import {
   AudioLines, Captions, CaptionsOff, LoaderCircle, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, TriangleAlert, Volume1, Volume2, VolumeX,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/controles";
 import { Dica } from "@/components/ui/popover";
 import { usePref } from "@/lib/preferencias";
@@ -60,7 +61,7 @@ function Botao({ dica, atalho, aoClicar, ativo, children, slot, className }: { d
 }
 
 export function Player({
-  src, somenteAudio, capa, titulo, paginaId, capitulos = [], legendaEm, comLegenda, aoTempo, aoDuracao, aoErro, controle, inicio, className,
+  src, somenteAudio, capa, titulo, paginaId, capitulos = [], legendaEm, comLegenda, aoTempo, aoDuracao, aoErro, explicacaoDoErro, acaoDoErro, controle, inicio, className,
 }: {
   src: string;
   /** Arquivo de áudio: em vez da imagem, mostra um painel com o título. */
@@ -78,6 +79,10 @@ export function Player({
   aoTempo?: (segundos: number) => void;
   aoDuracao?: (segundos: number) => void;
   aoErro?: () => void;
+  /** O que dizer quando o vídeo não toca (depende de onde ele vem). */
+  explicacaoDoErro?: string;
+  /** Um botão na mensagem de erro (ex.: escolher o arquivo de novo). */
+  acaoDoErro?: { rotulo: string; aoClicar: () => void };
   controle?: React.Ref<ControleDoPlayer>;
   /** Começar neste instante (vindo de uma busca na transcrição, por exemplo). */
   inicio?: number | null;
@@ -316,10 +321,13 @@ export function Player({
         <div role="alert" data-slot="player-erro" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/85 px-8 text-center">
           <TriangleAlert className="size-7 text-alerta" />
           <p className="text-sm font-medium">Não consegui tocar este vídeo</p>
-          <p className="max-w-[52ch] text-xs leading-relaxed text-white/70">
-            O arquivo pode não estar neste computador (vídeo apontado por caminho só toca onde ele existe), o OneDrive pode ainda não ter baixado, ou o formato não é um que o navegador toque.
-            MP4 (H.264) e WebM são os mais garantidos.
+          <p data-slot="player-erro-explicacao" className="max-w-[56ch] text-xs leading-relaxed text-white/70">
+            {explicacaoDoErro ??
+              "O arquivo pode não estar neste computador (vídeo apontado por caminho só toca onde ele existe), o OneDrive pode ainda não ter baixado, ou o formato não é um que o navegador toque. MP4 (H.264) e WebM são os mais garantidos."}
           </p>
+          {acaoDoErro && (
+            <Button data-slot="player-erro-acao" size="sm" variant="secondary" className="mt-1" onClick={acaoDoErro.aoClicar}>{acaoDoErro.rotulo}</Button>
+          )}
         </div>
       )}
       {esperando && !erro && <LoaderCircle className="pointer-events-none absolute z-10 size-9 animate-spin text-white/80" />}

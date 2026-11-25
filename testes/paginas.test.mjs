@@ -125,6 +125,71 @@ teste("mover: para dentro, para a raiz, antes de outra, e nunca para dentro de s
   assert.equal(m.find((p) => p.id === "a2x").atualizadaEm, "2026-11-01T10:00:00Z");
 });
 
+teste("mover: a árvore é a das ativas (mãe arquivada não esconde a vizinha)", () => {
+  // "c" é filha de uma página arquivada: na tela ela aparece na raiz, e é lá que ela é vizinha
+  const ps = [...base(), pg("z", "Arquivada", { ordem: 5, arquivadaEm: "2026-11-10T10:00:00Z" }), pg("c", "Solta", { paiId: "z", ordem: 2 })];
+  const ativas = (l) => l.filter((p) => !p.arquivadaEm);
+  assert.deepEqual(ids(P.montarArvore(ativas(ps))), ["a", "b", "c"]);
+  const m = P.moverPagina(ps, "b1", null, "c");
+  assert.deepEqual(ids(P.montarArvore(ativas(m))), ["a", "b", "b1", "c"]);
+  // a arquivada não ganha posição nova
+  assert.equal(m.find((p) => p.id === "z").ordem, 5);
+});
+
+teste("reorganizar: um passo acima, abaixo, para dentro da de cima e para fora", () => {
+  const ps = base(); // a: [a2 [a2x], a1], b: [b1]
+  const arvore = (l) => forma(P.montarArvore(l));
+  // acima e abaixo trocam com a vizinha
+  assert.deepEqual(arvore(P.reposicionar(ps, "a1", "acima"))[0], ["a", ["a1", ["a2", ["a2x"]]]]);
+  assert.deepEqual(arvore(P.reposicionar(ps, "a", "abaixo")).map((x) => (Array.isArray(x) ? x[0] : x)), ["b", "a"]);
+  // para dentro da de cima: vai para o fim dela
+  assert.deepEqual(arvore(P.reposicionar(ps, "a1", "dentro"))[0], ["a", [["a2", ["a2x", "a1"]]]]);
+  // para fora: fica logo depois da mãe
+  assert.deepEqual(arvore(P.reposicionar(ps, "a2x", "fora"))[0], ["a", ["a2", "a2x", "a1"]]);
+  assert.deepEqual(ids(P.montarArvore(P.reposicionar(ps, "b1", "fora"))), ["a", "b", "b1"]);
+  // o que não dá devolve a mesma lista (nada a gravar)
+  assert.equal(P.reposicionar(ps, "a2", "acima"), ps);
+  assert.equal(P.reposicionar(ps, "a1", "abaixo"), ps);
+  assert.equal(P.reposicionar(ps, "a", "dentro"), ps);
+  assert.equal(P.reposicionar(ps, "a", "fora"), ps);
+  assert.equal(P.reposicionar(ps, "nao-existe", "acima"), ps);
+  // ninguém some nem duplica, e o resto da árvore não muda
+  for (const r of ["acima", "abaixo", "dentro", "fora"])
+    for (const p of ps) assert.equal(P.reposicionar(ps, p.id, r).length, ps.length);
+  // o menu sabe o que vale
+  const pos = P.reposicoesPossiveis(ps, "a1");
+  assert.deepEqual([pos.acima, pos.abaixo, pos.dentro, pos.fora, pos.acimaId, pos.maeId], [true, false, true, true, "a2", "a"]);
+  assert.deepEqual(P.reposicoesPossiveis(ps, "a"), { acima: false, abaixo: true, dentro: false, fora: false, acimaId: null, maeId: null });
+  // página arquivada não tem lugar na árvore
+  assert.equal(P.posicaoNaArvore([pg("x", "X", { arquivadaEm: "2026-11-10T10:00:00Z" })], "x"), null);
+});
+
+teste("reorganizar: ordem alfabética, com número como número e sem ligar para acento", () => {
+  const ps = [
+    pg("r1", "10. Testar", { ordem: 0 }),
+    pg("r2", "2. Instalar", { ordem: 1 }),
+    pg("r3", "Ávore de decisão", { ordem: 2 }),
+    pg("r4", "arquitetura", { ordem: 3 }),
+    pg("f1", "Zeta", { paiId: "r4", ordem: 0 }),
+    pg("f2", "alfa", { paiId: "r4", ordem: 1 }),
+    pg("x", "0 arquivada", { ordem: 9, arquivadaEm: "2026-11-10T10:00:00Z" }),
+  ];
+  const raiz = P.ordenarPorNome(ps, null);
+  assert.deepEqual(ids(P.montarArvore(raiz.filter((p) => !p.arquivadaEm))), ["r2", "r1", "r4", "r3"]);
+  // só a raiz mudou: as filhas e a arquivada ficam como estavam
+  assert.equal(raiz.find((p) => p.id === "f1").ordem, 0);
+  assert.equal(raiz.find((p) => p.id === "x").ordem, 9);
+  const dentro = P.ordenarPorNome(ps, "r4");
+  assert.deepEqual(ids(P.montarArvore(dentro.filter((p) => !p.arquivadaEm)).find((n) => n.pagina.id === "r4").filhos), ["f2", "f1"]);
+  // já em ordem: a mesma lista
+  assert.equal(P.ordenarPorNome(dentro, "r4"), dentro);
+  // o que mudou de lugar, para o desfazer
+  const mudou = P.lugaresQueMudaram(ps, dentro);
+  assert.deepEqual([...mudou.keys()].sort(), ["f1", "f2"]);
+  assert.deepEqual(mudou.get("f2"), { de: { paiId: "r4", ordem: 1 }, para: { paiId: "r4", ordem: 0 } });
+  assert.equal(P.lugaresQueMudaram(ps, ps).size, 0);
+});
+
 teste("excluir uma página sobe as filhas para a avó", () => {
   const sem = P.semPagina(base(), "a2");
   assert.equal(sem.length, 5);

@@ -5,9 +5,9 @@
 
 import { type ReactNode, useCallback } from "react";
 import {
-  Archive, ArchiveRestore, Bookmark, BookmarkMinus, BookOpen, Box, Brain, Bug, Calendar, ChartColumn, CircleHelp, Clapperboard, Cloud, CodeXml, Copy, CopyPlus, Database, Ellipsis,
-  Eye, FilePlus2, FileText, Flag, Folder, House, KeyRound, Lightbulb, Link2, ListChecks, Lock, type LucideIcon, Map as IconeMapa, MessageSquare, Rocket, Shield, SquareTerminal,
-  Star, Target, Trash2, Users, Workflow, Wrench, Zap,
+  Archive, ArchiveRestore, ArrowDown, ArrowDownAZ, ArrowUp, Bookmark, BookmarkMinus, BookOpen, Box, Brain, Bug, Calendar, ChartColumn, CircleHelp, Clapperboard, Cloud, CodeXml, Copy, CopyPlus,
+  Database, Ellipsis, Eye, FilePlus2, FileText, Flag, Folder, FolderInput, House, IndentDecrease, IndentIncrease, KeyRound, Lightbulb, Link2, ListChecks, Lock, type LucideIcon,
+  Map as IconeMapa, MessageSquare, Move, Rocket, Shield, SquareTerminal, Star, Target, Trash2, Users, Workflow, Wrench, Zap,
 } from "lucide-react";
 import { useNexo } from "@/components/Provider";
 import { oferecerDesfazer } from "@/components/desfazer";
@@ -16,7 +16,10 @@ import { copiarTexto } from "@/components/comum";
 import { Button } from "@/components/ui/button";
 import * as M from "@/components/ui/menu";
 import { Dica, Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ICONES_DE_PAGINA, type IconeDePagina, descendentes, duplicarPagina, moverPagina, nomeDaPagina, paginaDoModelo, semPagina } from "@/lib/paginas";
+import {
+  ICONES_DE_PAGINA, type IconeDePagina, type Reposicao, descendentes, duplicarPagina, lugaresQueMudaram, moverPagina, nomeDaPagina, ordenarPorNome, paginaDoModelo,
+  posicaoNaArvore, reposicionar, reposicoesPossiveis, semPagina,
+} from "@/lib/paginas";
 import { apagarNotaPendente } from "@/lib/rascunhos";
 import { hrefInterno } from "@/lib/texto-rico";
 import { ESTADOS_PAGINA, type EstadoPagina, type Pagina, agoraISO } from "@/lib/tipos";
@@ -89,9 +92,12 @@ export function SeloEstado({ estado, className }: { estado: EstadoPagina; classN
 
 // ---------- ações ----------
 
+/** Pede a janela "Mover para dentro de outra página" (montada na tela de Páginas). */
+export const pedirMoverPagina = (id: string) => window.dispatchEvent(new CustomEvent("nexo:mover-pagina", { detail: id }));
+
 /** Tudo o que se faz com uma página, passando pelo Provider (fila de gravação e revisão). */
 export function useAcoesDePagina() {
-  const { salvarPaginas, toast } = useNexo();
+  const { salvarPaginas, toast, dadosAtuais } = useNexo();
   const confirmar = useConfirmar();
 
   const mudar = useCallback(
@@ -99,8 +105,58 @@ export function useAcoesDePagina() {
     [salvarPaginas],
   );
 
+  const atuais = () => dadosAtuais()?.paginas?.items ?? [];
+  const nome = (id: string | null) => {
+    const p = id ? atuais().find((x) => x.id === id) : null;
+    return p ? `“${nomeDaPagina(p)}”` : "";
+  };
+
+  /**
+   * Muda o lugar de páginas na árvore (mãe e posição) e oferece desfazer. Se nada muda, nada é gravado.
+   * O desfazer volta só as páginas que continuam onde esta ação as deixou: quem mexeu depois não é passado por cima.
+   */
+  const reorganizar = async (fn: (items: Pagina[]) => Pagina[], texto: string, opcoes: { semAviso?: boolean } = {}) => {
+    const agora = atuais();
+    if (!lugaresQueMudaram(agora, fn(agora)).size) return false;
+    let mudou: ReturnType<typeof lugaresQueMudaram> = new Map();
+    const ok = await salvarPaginas((items) => {
+      const novos = fn(items);
+      mudou = lugaresQueMudaram(items, novos);
+      return novos;
+    });
+    if (!ok || !mudou.size) return ok;
+    const volta = mudou;
+    oferecerDesfazer(
+      texto,
+      () =>
+        salvarPaginas((items) =>
+          items.map((p) => {
+            const m = volta.get(p.id);
+            if (!m || (p.paiId ?? null) !== m.para.paiId || (p.ordem ?? 0) !== m.para.ordem) return p;
+            return { ...p, paiId: m.de.paiId, ordem: m.de.ordem };
+          }),
+        ),
+      { tipo: "info", semAviso: opcoes.semAviso },
+    );
+    return true;
+  };
+
+  /** O texto do aviso depois de mover: para dentro de qual página, para a raiz, ou só de lugar. */
+  const textoDoMovimento = (id: string, maeDepois: string | null) => {
+    const maeAntes = posicaoNaArvore(atuais(), id)?.mae ?? null;
+    if (maeAntes === maeDepois) return `${nome(id)} mudou de lugar.`;
+    return maeDepois ? `${nome(id)} foi para dentro de ${nome(maeDepois)}.` : `${nome(id)} foi para a raiz.`;
+  };
+
   return {
     mudar,
+    /** Para onde a página pode ir dali (para o menu ligar e desligar os itens). */
+    possiveis: (id: string) => {
+      const lista = atuais();
+      const pos = posicaoNaArvore(lista, id);
+      const filhas = lista.filter((p) => !p.arquivadaEm && p.paiId === id).length;
+      return { ...reposicoesPossiveis(lista, id), irmas: pos?.irmas.length ?? 0, filhas, nomeAcima: nome(reposicoesPossiveis(lista, id).acimaId), nomeMae: nome(pos?.mae ?? null) };
+    },
     /** Cria uma página (de um modelo, se pedido) e devolve o id, ou null se não gravou. */
     criar: async (parte: Partial<Pagina> = {}, modeloId = "branco"): Promise<string | null> => {
       const nova = paginaDoModelo(modeloId, parte);
@@ -111,7 +167,17 @@ export function useAcoesDePagina() {
       });
       return ok ? nova.id : null;
     },
-    mover: (id: string, mae: string | null, antes: string | null = null) => salvarPaginas((items) => moverPagina(items, id, mae, antes)),
+    /** Muda a página de lugar: para dentro de `mae` (null = raiz), antes de `antes` ou no fim. Com desfazer. */
+    mover: (id: string, mae: string | null, antes: string | null = null) =>
+      reorganizar((items) => moverPagina(items, id, mae, antes), textoDoMovimento(id, mae)),
+    /** Um passo na árvore (acima, abaixo, para dentro da de cima, para fora). Pelo teclado, sem aviso na tela. */
+    passo: (id: string, para: Reposicao, opcoes: { semAviso?: boolean } = {}) => {
+      const depois = posicaoNaArvore(reposicionar(atuais(), id, para), id)?.mae ?? null;
+      return reorganizar((items) => reposicionar(items, id, para), textoDoMovimento(id, depois), opcoes);
+    },
+    /** Ordem alfabética para as páginas de dentro de `maeId` (null = a raiz). */
+    ordenar: (maeId: string | null) =>
+      reorganizar((items) => ordenarPorNome(items, maeId), maeId ? `As páginas de dentro de ${nome(maeId)} ficaram em ordem alfabética.` : "As páginas da raiz ficaram em ordem alfabética."),
     fixar: (p: Pagina) => mudar(p.id, { fixada: !p.fixada }),
     duplicar: async (p: Pagina): Promise<string | null> => {
       const copia = duplicarPagina(p);
@@ -205,11 +271,39 @@ function Itens({ pagina: p, acoes, aoAbrir, aoExcluir, k }: OpcoesDoMenuDaPagina
       <k.Item onSelect={async () => { const id = await acoes.duplicar(p); if (id) aoAbrir(id); }}><CopyPlus /> Duplicar</k.Item>
       <k.Item onSelect={() => acoes.copiarLink(p)}><Link2 /> Copiar link interno</k.Item>
       <k.Item onSelect={() => acoes.copiarMarkdown(p)}><Copy /> Copiar em Markdown</k.Item>
-      {p.paiId && !p.arquivadaEm && <k.Item onSelect={() => acoes.mover(p.id, null)}><House /> Levar para a raiz</k.Item>}
+      {!p.arquivadaEm && <ItensDeMover pagina={p} acoes={acoes} k={k} />}
       <k.Separator />
       <k.Item onSelect={() => acoes.arquivar(p, !p.arquivadaEm)}>{p.arquivadaEm ? <ArchiveRestore /> : <Archive />} {p.arquivadaEm ? "Desarquivar" : "Arquivar"}</k.Item>
       <k.Item perigo onSelect={() => acoes.excluir(p, aoExcluir)}><Trash2 /> Excluir</k.Item>
     </>
+  );
+}
+
+/** O submenu "Mover": um passo para cada lado, para dentro de outra página, para a raiz e em ordem alfabética. */
+function ItensDeMover({ pagina: p, acoes, k }: { pagina: Pagina; acoes: AcoesDePagina; k: Kit }) {
+  const pode = acoes.possiveis(p.id);
+  return (
+    <k.Sub>
+      <k.SubTrigger data-slot="menu-mover-pagina"><Move /> Mover</k.SubTrigger>
+      <k.SubContent className="w-72">
+        <k.Item data-acao="pagina-acima" disabled={!pode.acima} onSelect={() => acoes.passo(p.id, "acima")}><ArrowUp /> Para cima <M.MenuAtalho>Alt ↑</M.MenuAtalho></k.Item>
+        <k.Item data-acao="pagina-abaixo" disabled={!pode.abaixo} onSelect={() => acoes.passo(p.id, "abaixo")}><ArrowDown /> Para baixo <M.MenuAtalho>Alt ↓</M.MenuAtalho></k.Item>
+        <k.Item data-acao="pagina-dentro" disabled={!pode.dentro} onSelect={() => acoes.passo(p.id, "dentro")}>
+          <IndentIncrease /> <span className="min-w-0 truncate">{pode.dentro ? `Para dentro de ${pode.nomeAcima}` : "Para dentro da de cima"}</span> <M.MenuAtalho>Alt Shift →</M.MenuAtalho>
+        </k.Item>
+        <k.Item data-acao="pagina-fora" disabled={!pode.fora} onSelect={() => acoes.passo(p.id, "fora")}>
+          <IndentDecrease /> <span className="min-w-0 truncate">{pode.fora ? `Para fora de ${pode.nomeMae}` : "Para fora da mãe"}</span> <M.MenuAtalho>Alt Shift ←</M.MenuAtalho>
+        </k.Item>
+        <k.Separator />
+        <k.Item data-acao="pagina-mover-para" onSelect={() => pedirMoverPagina(p.id)}><FolderInput /> Para dentro de outra página...</k.Item>
+        {pode.fora && <k.Item onSelect={() => acoes.mover(p.id, null)}><House /> Levar para a raiz</k.Item>}
+        {(pode.irmas > 1 || pode.filhas > 1) && <k.Separator />}
+        {pode.irmas > 1 && (
+          <k.Item data-acao="ordenar-nivel" onSelect={() => acoes.ordenar(pode.maeId)}><ArrowDownAZ /> {pode.maeId ? "Ordenar as irmãs de A a Z" : "Ordenar a raiz de A a Z"}</k.Item>
+        )}
+        {pode.filhas > 1 && <k.Item data-acao="ordenar-dentro" onSelect={() => acoes.ordenar(p.id)}><ArrowDownAZ /> Ordenar as de dentro de A a Z</k.Item>}
+      </k.SubContent>
+    </k.Sub>
   );
 }
 

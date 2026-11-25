@@ -1202,6 +1202,77 @@ async function main() {
     await pg.locator(`[data-slot=item-pagina][data-id="${idExcecao}"][data-nivel="1"]`).waitFor();
     d = await dados();
     afirmar(d.paginas.items.length === 4, "arrastar mudou a quantidade de páginas");
+
+    // ---- reorganizar sem tirar tudo do lugar (3.24.2): Guia > [Instalar > [Lista], Exceção] ----
+    const filhas = (dd, mae) => dd.paginas.items.filter((p) => (p.paiId ?? null) === mae && !p.arquivadaEm).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)).map((p) => p.id);
+    // arrastar para o terço de cima de uma linha põe ANTES dela, com a linha guia e o destino escrito
+    {
+      const o = await item(idExcecao).boundingBox();
+      const alvo = await item(instalar.id).boundingBox();
+      await pg.mouse.move(o.x + 60, o.y + o.height / 2);
+      await pg.mouse.down();
+      await pg.mouse.move(o.x + 70, o.y + o.height / 2 - 8, { steps: 4 });
+      await pg.mouse.move(alvo.x + 90, alvo.y + 4, { steps: 12 });
+      await pg.locator("[data-slot=soltar-antes]").waitFor();
+      const escrito = await pg.locator("[data-slot=destino-do-arrasto]").innerText();
+      afirmar(escrito.includes("antes de") && escrito.includes("Instalar o agente"), "o arrasto não disse para onde a página ia: " + escrito);
+      await pg.mouse.up();
+    }
+    await ateOsDados((dd) => filhas(dd, idGuia).join() === [idExcecao, instalar.id].join(), "soltar no terço de cima não pôs a página antes da outra");
+    // no terço de baixo de uma página fechada, a arrastada vai DEPOIS dela (aberta, viraria a primeira de dentro)
+    {
+      await pg.waitForTimeout(200); // o explorador (e o dnd-kit) ignora cliques logo depois de soltar um arrasto
+      await item(instalar.id).getByRole("button", { name: "Recolher" }).click();
+      await item(criada.id).waitFor({ state: "detached" });
+      const o = await item(idExcecao).boundingBox();
+      const alvo = await item(instalar.id).boundingBox();
+      await pg.mouse.move(o.x + 60, o.y + o.height / 2);
+      await pg.mouse.down();
+      await pg.mouse.move(o.x + 70, o.y + o.height / 2 + 8, { steps: 4 });
+      await pg.mouse.move(alvo.x + 90, alvo.y + alvo.height - 4, { steps: 12 });
+      await pg.locator("[data-slot=soltar-depois]").waitFor();
+      afirmar((await pg.locator("[data-slot=destino-do-arrasto]").innerText()).includes("depois de"), "o terço de baixo não disse depois de");
+      await pg.mouse.up();
+      await ateOsDados((dd) => filhas(dd, idGuia).join() === [instalar.id, idExcecao].join(), "soltar no terço de baixo não pôs a página depois da outra");
+      await pg.waitForTimeout(200);
+      await item(instalar.id).getByRole("button", { name: "Abrir" }).click();
+      await item(criada.id).waitFor();
+    }
+    // pelo teclado: Alt+↑ sobe entre as irmãs, Alt+Shift+← tira de dentro da mãe, Ctrl Z volta; o foco fica na página
+    await pg.waitForTimeout(200); // o explorador ignora cliques logo depois de soltar um arrasto
+    await item(idExcecao).locator("[data-slot=nome-pagina]").focus();
+    await pg.keyboard.press("Alt+ArrowUp");
+    await ateOsDados((dd) => filhas(dd, idGuia).join() === [idExcecao, instalar.id].join(), "Alt+↑ não subiu a página");
+    await pg.waitForFunction((id) => document.activeElement?.closest("[data-slot=item-pagina]")?.getAttribute("data-id") === id, idExcecao);
+    await pg.keyboard.press("Alt+Shift+ArrowLeft");
+    await ateOsDados((dd) => filhas(dd, null).join() === [idGuia, idExcecao].join(), "Alt+Shift+← não pôs a página logo depois da mãe");
+    await pg.waitForFunction((id) => document.activeElement?.closest("[data-slot=item-pagina]")?.getAttribute("data-id") === id, idExcecao);
+    await pg.keyboard.press("Control+z");
+    await ateOsDados((dd) => filhas(dd, idGuia).join() === [idExcecao, instalar.id].join(), "Ctrl Z não desfez o movimento feito pelo teclado");
+    // pelo menu: Mover > Para dentro de outra página... (a janela não oferece a própria página)
+    const abrirMover = async (id) => {
+      await item(id).click({ button: "right" });
+      await pg.locator("[data-slot=menu-mover-pagina]").hover();
+      await pg.locator("[data-acao=pagina-acima]").waitFor();
+    };
+    await abrirMover(idExcecao);
+    await pg.locator("[data-acao=pagina-mover-para]").click();
+    const janela = pg.locator("[data-slot=mover-pagina]");
+    await janela.waitFor();
+    afirmar((await janela.locator(`[data-destino="${idExcecao}"]`).count()) === 0, "a janela de mover ofereceu a própria página como destino");
+    await janela.locator("input").fill("instalar");
+    await janela.locator(`[data-destino="${instalar.id}"]`).click();
+    await ateOsDados((dd) => filhas(dd, instalar.id).join() === [criada.id, idExcecao].join(), "a janela de mover não pôs a página no fim da escolhida");
+    // Ordenar as de dentro de A a Z: "Como pedir exceção" vem antes de "Lista de agentes homologados"
+    await abrirMover(instalar.id);
+    await pg.locator("[data-acao=ordenar-dentro]").click();
+    await ateOsDados((dd) => filhas(dd, instalar.id).join() === [idExcecao, criada.id].join(), "ordenar de A a Z não pôs as de dentro em ordem");
+    // Para fora: logo depois da mãe, que deixa a árvore como estava antes destes passos
+    await abrirMover(idExcecao);
+    await pg.locator("[data-acao=pagina-fora]").click();
+    await ateOsDados((dd) => filhas(dd, idGuia).join() === [instalar.id, idExcecao].join(), "Mover > Para fora não pôs a página logo depois da mãe");
+    d = await dados();
+    afirmar(d.paginas.items.length === 4, "reorganizar mudou a quantidade de páginas");
   });
 
   await etapa("documentação: ler com sumário, favoritar, quadro por estado, lista e arquivar", async () => {
