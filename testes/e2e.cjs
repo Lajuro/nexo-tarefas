@@ -1251,6 +1251,8 @@ async function main() {
     await ateOsDados((dd) => filhas(dd, idGuia).join() === [idExcecao, instalar.id].join(), "Ctrl Z não desfez o movimento feito pelo teclado");
     // pelo menu: Mover > Para dentro de outra página... (a janela não oferece a própria página)
     const abrirMover = async (id) => {
+      // o menu anterior some com uma animação curta: abrir outro antes disso deixa dois na tela por um instante
+      await pg.locator("[data-slot=menu-mover-pagina]").first().waitFor({ state: "detached" });
       await item(id).click({ button: "right" });
       await pg.locator("[data-slot=menu-mover-pagina]").hover();
       await pg.locator("[data-acao=pagina-acima]").waitFor();
