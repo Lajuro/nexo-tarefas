@@ -985,9 +985,9 @@ main() {
 }
 
 # >>> MANIFESTO
-MANIFEST_COMMIT="5f6521d"
+MANIFEST_COMMIT="09c1bd6"
 MANIFEST_VERSAO="3.24.2"
-MANIFEST_CONTEUDO="ca08a2f2ed7e896910078faa45587f8669aa57fb"
+MANIFEST_CONTEUDO="9e5752b4e97a037fcef68e80ed1bcf4eaa949012"
 manifest() {
   cat <<'MANIFESTO'
 100755 ec44197cc92dfb24c38d88f7a17e02e26d461cf9 .githooks/pre-push
@@ -1164,7 +1164,7 @@ manifest() {
 100644 ef82c53884453c0a48d07c61b7b92bde09cac876 components/shell/paleta/navegacao.ts
 100644 f3a0e7d53d9dde960025644d375a864b238461f5 components/shell/paleta/pecas.tsx
 100644 06f7196d2a251c2ef9193429bdd1f3de228979bd components/tags/FiltroDeTags.tsx
-100644 cf0d91f140d9940d5aaf7c254db60332c5d85cf7 components/tags/GerenciarTags.tsx
+100644 947e1111bed9ba6ec1932e0b8b47d489c1063d43 components/tags/GerenciarTags.tsx
 100644 e88827a0c6a423951b80c18e829ab2de3ae651ea components/tags/useTags.ts
 100644 0da340a19a9c3e61a53abb4950ad3fd5859435f3 components/tarefa/Checklist.tsx
 100644 32b0c3dcb921b5db0cf1d7431b5e3400c6f20734 components/tarefa/ColarEmail.tsx
